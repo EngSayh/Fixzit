@@ -1,10 +1,10 @@
 {
   "stats": {
-    "files": 1086,
-    "usedKeys": 3416,
+    "files": 1093,
+    "usedKeys": 3589,
     "hasDynamic": true,
-    "enCount": 31446,
-    "arCount": 31446,
+    "enCount": 31491,
+    "arCount": 31491,
     "parityGap": 0
   },
   "missing": {
@@ -734,15 +734,6 @@
       {
         "key": "issues.tabs.comments",
         "bare": "issues.tabs.comments",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
-        ]
-      },
-      {
-        "key": "issues.details.title",
-        "bare": "issues.details.title",
         "inEN": false,
         "inAR": false,
         "files": [
@@ -1515,24 +1506,6 @@
         ]
       },
       {
-        "key": "common.created",
-        "bare": "common.created",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
-        ]
-      },
-      {
-        "key": "common.lastUpdated",
-        "bare": "common.lastUpdated",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
-        ]
-      },
-      {
         "key": "workOrders.new.offlineQueued",
         "bare": "workOrders.new.offlineQueued",
         "inEN": false,
@@ -1672,12 +1645,553 @@
         ]
       },
       {
+        "key": "superadmin.catalog.title",
+        "bare": "superadmin.catalog.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.subtitle",
+        "bare": "superadmin.catalog.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.totalProducts",
+        "bare": "superadmin.catalog.totalProducts",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.active",
+        "bare": "superadmin.catalog.active",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.lowStock",
+        "bare": "superadmin.catalog.lowStock",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.inventoryValue",
+        "bare": "superadmin.catalog.inventoryValue",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.searchPlaceholder",
+        "bare": "superadmin.catalog.searchPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.categoryPlaceholder",
+        "bare": "superadmin.catalog.categoryPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.allCategories",
+        "bare": "superadmin.catalog.allCategories",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.statusPlaceholder",
+        "bare": "superadmin.catalog.statusPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.allStatus",
+        "bare": "superadmin.catalog.allStatus",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "common.inactive",
+        "bare": "common.inactive",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx",
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "common.outOfStock",
+        "bare": "common.outOfStock",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.modelPlaceholder",
+        "bare": "superadmin.catalog.modelPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.allModels",
+        "bare": "superadmin.catalog.allModels",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.search",
+        "bare": "superadmin.catalog.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.products",
+        "bare": "superadmin.catalog.products",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.marketplaceCatalog",
+        "bare": "superadmin.catalog.marketplaceCatalog",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.catalog.noProducts",
+        "bare": "superadmin.catalog.noProducts",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.title",
+        "bare": "superadmin.services.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.subtitle",
+        "bare": "superadmin.services.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.add",
+        "bare": "superadmin.services.add",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.search",
+        "bare": "superadmin.services.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.name",
+        "bare": "superadmin.services.name",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.category",
+        "bare": "superadmin.services.category",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.model",
+        "bare": "superadmin.services.model",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.pricing",
+        "bare": "superadmin.services.pricing",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.duration",
+        "bare": "superadmin.services.duration",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.vendors",
+        "bare": "superadmin.services.vendors",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.rating",
+        "bare": "superadmin.services.rating",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.active",
+        "bare": "superadmin.services.active",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.services.noServices",
+        "bare": "superadmin.services.noServices",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/catalog/services/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.title",
+        "bare": "superadmin.dashboard.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.subtitle",
+        "bare": "superadmin.dashboard.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.totalTenants",
+        "bare": "superadmin.dashboard.totalTenants",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.activeUsers",
+        "bare": "superadmin.dashboard.activeUsers",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.systemUptime",
+        "bare": "superadmin.dashboard.systemUptime",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.avgResponseTime",
+        "bare": "superadmin.dashboard.avgResponseTime",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.serviceHealth",
+        "bare": "superadmin.dashboard.serviceHealth",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.serviceHealthDesc",
+        "bare": "superadmin.dashboard.serviceHealthDesc",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.noServices",
+        "bare": "superadmin.dashboard.noServices",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.recentActivity",
+        "bare": "superadmin.dashboard.recentActivity",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.noActivity",
+        "bare": "superadmin.dashboard.noActivity",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.moduleStatus",
+        "bare": "superadmin.dashboard.moduleStatus",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.moduleStatusDesc",
+        "bare": "superadmin.dashboard.moduleStatusDesc",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.dashboard.quickActions",
+        "bare": "superadmin.dashboard.quickActions",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/dashboard/page.tsx"
+        ]
+      },
+      {
         "key": "superadmin.database.description",
         "bare": "superadmin.database.description",
         "inEN": false,
         "inAR": false,
         "files": [
           "Fixzit/app/superadmin/database/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.title",
+        "bare": "superadmin.emails.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.subtitle",
+        "bare": "superadmin.emails.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.search",
+        "bare": "superadmin.emails.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.name",
+        "bare": "superadmin.emails.name",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.key",
+        "bare": "superadmin.emails.key",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.subject",
+        "bare": "superadmin.emails.subject",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.category",
+        "bare": "superadmin.emails.category",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.variables",
+        "bare": "superadmin.emails.variables",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.version",
+        "bare": "superadmin.emails.version",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.noTemplates",
+        "bare": "superadmin.emails.noTemplates",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.editTitle",
+        "bare": "superadmin.emails.editTitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.editDescription",
+        "bare": "superadmin.emails.editDescription",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.preview",
+        "bare": "superadmin.emails.preview",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.emails.sendTest",
+        "bare": "superadmin.emails.sendTest",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/emails/page.tsx"
         ]
       },
       {
@@ -1759,6 +2273,96 @@
         "inAR": false,
         "files": [
           "Fixzit/app/superadmin/footer-content/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.historyTitle",
+        "bare": "superadmin.impersonation.historyTitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.historySubtitle",
+        "bare": "superadmin.impersonation.historySubtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.search",
+        "bare": "superadmin.impersonation.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.operator",
+        "bare": "superadmin.impersonation.operator",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.tenant",
+        "bare": "superadmin.impersonation.tenant",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.started",
+        "bare": "superadmin.impersonation.started",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.duration",
+        "bare": "superadmin.impersonation.duration",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.actions",
+        "bare": "superadmin.impersonation.actions",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.status",
+        "bare": "superadmin.impersonation.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.impersonation.noSessions",
+        "bare": "superadmin.impersonation.noSessions",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/impersonate/history/page.tsx"
         ]
       },
       {
@@ -1915,48 +2519,246 @@
         ]
       },
       {
+        "key": "superadmin.quotas.editQuota",
+        "bare": "superadmin.quotas.editQuota",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.editQuotaDesc",
+        "bare": "superadmin.quotas.editQuotaDesc",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.plan",
+        "bare": "superadmin.quotas.plan",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.storageLimit",
+        "bare": "superadmin.quotas.storageLimit",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.usersLimit",
+        "bare": "superadmin.quotas.usersLimit",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.apiLimit",
+        "bare": "superadmin.quotas.apiLimit",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.title",
+        "bare": "superadmin.quotas.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.subtitle",
+        "bare": "superadmin.quotas.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.search",
+        "bare": "superadmin.quotas.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.tenant",
+        "bare": "superadmin.quotas.tenant",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.storage",
+        "bare": "superadmin.quotas.storage",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.users",
+        "bare": "superadmin.quotas.users",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.apiCalls",
+        "bare": "superadmin.quotas.apiCalls",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.quotas.noTenants",
+        "bare": "superadmin.quotas.noTenants",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/quotas/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.title",
+        "bare": "superadmin.tasks.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.subtitle",
+        "bare": "superadmin.tasks.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.search",
+        "bare": "superadmin.tasks.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.name",
+        "bare": "superadmin.tasks.name",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.schedule",
+        "bare": "superadmin.tasks.schedule",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.lastRun",
+        "bare": "superadmin.tasks.lastRun",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.nextRun",
+        "bare": "superadmin.tasks.nextRun",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.status",
+        "bare": "superadmin.tasks.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.stats",
+        "bare": "superadmin.tasks.stats",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.enabled",
+        "bare": "superadmin.tasks.enabled",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.noTasks",
+        "bare": "superadmin.tasks.noTasks",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.tasks.history",
+        "bare": "superadmin.tasks.history",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+        ]
+      },
+      {
         "key": "accessibility.searchSuperadmin",
         "bare": "accessibility.searchSuperadmin",
         "inEN": false,
         "inAR": false,
         "files": [
           "Fixzit/app/superadmin/search/page.tsx"
-        ]
-      },
-      {
-        "key": "superadmin.ssot.fetchFailed",
-        "bare": "superadmin.ssot.fetchFailed",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/superadmin/ssot/page.tsx"
-        ]
-      },
-      {
-        "key": "common.unknownError",
-        "bare": "common.unknownError",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/superadmin/ssot/page.tsx"
-        ]
-      },
-      {
-        "key": "superadmin.ssot.loadFailed",
-        "bare": "superadmin.ssot.loadFailed",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/superadmin/ssot/page.tsx"
-        ]
-      },
-      {
-        "key": "superadmin.ssot.downloadSuccess",
-        "bare": "superadmin.ssot.downloadSuccess",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/superadmin/ssot/page.tsx"
         ]
       },
       {
@@ -2578,6 +3380,357 @@
         "inAR": false,
         "files": [
           "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.userLogs.exportTitle",
+        "bare": "superadmin.userLogs.exportTitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.userLogs.exportWarning",
+        "bare": "superadmin.userLogs.exportWarning",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.userLogs.piiWarning",
+        "bare": "superadmin.userLogs.piiWarning",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.userLogs.includeEmails",
+        "bare": "superadmin.userLogs.includeEmails",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.userLogs.exportConsent",
+        "bare": "superadmin.userLogs.exportConsent",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.userLogs.recordCount",
+        "bare": "superadmin.userLogs.recordCount",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "common.exporting",
+        "bare": "common.exporting",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/user-logs/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.title",
+        "bare": "superadmin.vendors.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.subtitle",
+        "bare": "superadmin.vendors.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.refresh",
+        "bare": "superadmin.vendors.refresh",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.totalVendors",
+        "bare": "superadmin.vendors.totalVendors",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.active",
+        "bare": "superadmin.vendors.active",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.avgRating",
+        "bare": "superadmin.vendors.avgRating",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.categories",
+        "bare": "superadmin.vendors.categories",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.searchPlaceholder",
+        "bare": "superadmin.vendors.searchPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.typePlaceholder",
+        "bare": "superadmin.vendors.typePlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.allTypes",
+        "bare": "superadmin.vendors.allTypes",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.statusPlaceholder",
+        "bare": "superadmin.vendors.statusPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.allStatus",
+        "bare": "superadmin.vendors.allStatus",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "common.suspended",
+        "bare": "common.suspended",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.search",
+        "bare": "superadmin.vendors.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.allVendors",
+        "bare": "superadmin.vendors.allVendors",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.vendors.noVendors",
+        "bare": "superadmin.vendors.noVendors",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/vendors/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.title",
+        "bare": "superadmin.webhooks.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.subtitle",
+        "bare": "superadmin.webhooks.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.create",
+        "bare": "superadmin.webhooks.create",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.search",
+        "bare": "superadmin.webhooks.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.name",
+        "bare": "superadmin.webhooks.name",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.url",
+        "bare": "superadmin.webhooks.url",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.events",
+        "bare": "superadmin.webhooks.events",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.deliveries",
+        "bare": "superadmin.webhooks.deliveries",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.status",
+        "bare": "superadmin.webhooks.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.enabled",
+        "bare": "superadmin.webhooks.enabled",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.noWebhooks",
+        "bare": "superadmin.webhooks.noWebhooks",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.createTitle",
+        "bare": "superadmin.webhooks.createTitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.createDescription",
+        "bare": "superadmin.webhooks.createDescription",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.retryPolicy",
+        "bare": "superadmin.webhooks.retryPolicy",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.maxRetries",
+        "bare": "superadmin.webhooks.maxRetries",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.webhooks.deliveryLogs",
+        "bare": "superadmin.webhooks.deliveryLogs",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/superadmin/webhooks/page.tsx"
         ]
       },
       {
@@ -3726,6 +4879,15 @@
         ]
       },
       {
+        "key": "superadmin.searchPlaceholder",
+        "bare": "superadmin.searchPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/components/superadmin/SuperadminHeader.tsx"
+        ]
+      },
+      {
         "key": "superadmin.searchSuperadmin",
         "bare": "superadmin.searchSuperadmin",
         "inEN": false,
@@ -3735,35 +4897,35 @@
         ]
       },
       {
-        "key": "superadmin.auth.redirectingToLogin",
-        "bare": "superadmin.auth.redirectingToLogin",
+        "key": "superadmin.themeTitle",
+        "bare": "superadmin.themeTitle",
         "inEN": false,
         "inAR": false,
         "files": [
-          "Fixzit/components/superadmin/SuperadminLayoutClient.tsx"
+          "Fixzit/components/superadmin/SuperadminHeader.tsx"
         ]
       },
       {
-        "key": "superadmin.auth.verifyingSession",
-        "bare": "superadmin.auth.verifyingSession",
+        "key": "superadmin.notificationsTitle",
+        "bare": "superadmin.notificationsTitle",
         "inEN": false,
         "inAR": false,
         "files": [
-          "Fixzit/components/superadmin/SuperadminLayoutClient.tsx"
-        ]
-      },
-      {
-        "key": "superadmin.auth.clickHereIfNotRedirected",
-        "bare": "superadmin.auth.clickHereIfNotRedirected",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/superadmin/SuperadminLayoutClient.tsx"
+          "Fixzit/components/superadmin/SuperadminHeader.tsx"
         ]
       },
       {
         "key": "common.collapse",
         "bare": "common.collapse",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/components/superadmin/SuperadminSidebar.tsx"
+        ]
+      },
+      {
+        "key": "superadmin.version",
+        "bare": "superadmin.version",
         "inEN": false,
         "inAR": false,
         "files": [
@@ -6244,17 +7406,22 @@
     ],
     "common.saving": [
       "Fixzit/app/(fm)/admin/cms/footer/page.tsx",
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
       "Fixzit/app/(fm)/fm/work-orders/new/page.tsx",
+      "Fixzit/app/superadmin/quotas/page.tsx",
       "Fixzit/components/finance/JournalEntryForm.tsx",
       "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
     ],
     "common.save": [
       "Fixzit/app/(fm)/admin/cms/footer/page.tsx",
       "Fixzit/app/(fm)/admin/cms/page.tsx",
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
       "Fixzit/app/(fm)/finance/invoices/new/page.tsx",
       "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx",
       "Fixzit/app/(fm)/fm/finance/expenses/new/page.tsx",
-      "Fixzit/app/(fm)/fm/page.tsx"
+      "Fixzit/app/(fm)/fm/page.tsx",
+      "Fixzit/app/superadmin/emails/page.tsx",
+      "Fixzit/app/superadmin/quotas/page.tsx"
     ],
     "admin.footer.contentEn": [
       "Fixzit/app/(fm)/admin/cms/footer/page.tsx"
@@ -6326,8 +7493,96 @@
     "errors.admin.message": [
       "Fixzit/app/(fm)/admin/error.tsx"
     ],
+    "common.notFound": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.notFound": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.fetchFailed": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "common.error": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
+      "Fixzit/app/(fm)/finance/invoices/new/page.tsx",
+      "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx",
+      "Fixzit/app/(fm)/fm/finance/expenses/new/page.tsx",
+      "Fixzit/app/(fm)/fm/work-orders/new/page.tsx",
+      "Fixzit/components/finance/TrialBalanceReport.tsx"
+    ],
+    "issues.loadFailed": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.saveFailed": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "common.saved": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.updateSuccess": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.saveFailedChanges": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.deleteFailed": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "common.deleted": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.deleteSuccess": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.deleteFailedIssue": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "common.note": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.comments.apiMissing": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.comments.comingSoon": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
     "accessibility.backToIssuesList": [
       "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "common.created": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
+      "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
+    ],
+    "common.lastUpdated": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
+      "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
+    ],
+    "common.refresh": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
+      "Fixzit/app/(fm)/admin/test-notifications/page.tsx",
+      "Fixzit/app/(fm)/fm/properties/documents/page.tsx",
+      "Fixzit/app/(fm)/fm/properties/leases/page.tsx",
+      "Fixzit/app/(fm)/hr/settings/page.tsx",
+      "Fixzit/app/superadmin/catalog/services/page.tsx",
+      "Fixzit/app/superadmin/dashboard/page.tsx",
+      "Fixzit/app/superadmin/emails/page.tsx",
+      "Fixzit/app/superadmin/impersonate/history/page.tsx",
+      "Fixzit/app/superadmin/quotas/page.tsx",
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx",
+      "Fixzit/app/superadmin/ssot/page.tsx",
+      "Fixzit/app/superadmin/user-logs/page.tsx",
+      "Fixzit/app/superadmin/webhooks/page.tsx",
+      "Fixzit/components/finance/BalanceSheetWidget.tsx",
+      "Fixzit/components/finance/IncomeStatementWidget.tsx",
+      "Fixzit/components/finance/OwnerStatementWidget.tsx",
+      "Fixzit/components/finance/TrialBalanceReport.tsx"
+    ],
+    "common.delete": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
+      "Fixzit/app/(fm)/fm/maintenance/page.tsx",
+      "Fixzit/app/(fm)/fm/orders/page.tsx",
+      "Fixzit/app/(fm)/fm/page.tsx",
+      "Fixzit/app/(fm)/fm/tenants/page.tsx"
     ],
     "issues.actions.deleteConfirm": [
       "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
@@ -6340,17 +7595,14 @@
       "Fixzit/app/(fm)/admin/logo/page.tsx",
       "Fixzit/app/(fm)/fm/maintenance/page.tsx",
       "Fixzit/app/(fm)/hr/leave/page.tsx",
+      "Fixzit/app/superadmin/emails/page.tsx",
+      "Fixzit/app/superadmin/quotas/page.tsx",
+      "Fixzit/app/superadmin/user-logs/page.tsx",
+      "Fixzit/app/superadmin/webhooks/page.tsx",
       "Fixzit/components/finance/JournalEntryForm.tsx",
       "Fixzit/components/i18n/CurrencyChangeConfirmDialog.tsx",
       "Fixzit/components/SupportPopup.tsx",
       "Fixzit/components/TopBar.tsx"
-    ],
-    "common.delete": [
-      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx",
-      "Fixzit/app/(fm)/fm/maintenance/page.tsx",
-      "Fixzit/app/(fm)/fm/orders/page.tsx",
-      "Fixzit/app/(fm)/fm/page.tsx",
-      "Fixzit/app/(fm)/fm/tenants/page.tsx"
     ],
     "issues.tabs.details": [
       "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
@@ -6386,6 +7638,42 @@
       "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
     ],
     "issues.placeholders.proposedFix": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.location": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.properties": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.metadata": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.labels": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.riskTags": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.auditHistory": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.auditDescription": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.noActivity": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.comments": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.addComment": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.postComment": [
+      "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
+    ],
+    "issues.details.noComments": [
       "Fixzit/app/(fm)/admin/issues/[id]/page.tsx"
     ],
     "admin.logo.accessDenied": [
@@ -6495,18 +7783,6 @@
     ],
     "admin.notifications.configStatus": [
       "Fixzit/app/(fm)/admin/test-notifications/page.tsx"
-    ],
-    "common.refresh": [
-      "Fixzit/app/(fm)/admin/test-notifications/page.tsx",
-      "Fixzit/app/(fm)/fm/properties/documents/page.tsx",
-      "Fixzit/app/(fm)/fm/properties/leases/page.tsx",
-      "Fixzit/app/(fm)/hr/settings/page.tsx",
-      "Fixzit/app/superadmin/ssot/page.tsx",
-      "Fixzit/app/superadmin/user-logs/page.tsx",
-      "Fixzit/components/finance/BalanceSheetWidget.tsx",
-      "Fixzit/components/finance/IncomeStatementWidget.tsx",
-      "Fixzit/components/finance/OwnerStatementWidget.tsx",
-      "Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "admin.notifications.configured": [
       "Fixzit/app/(fm)/admin/test-notifications/page.tsx"
@@ -7045,13 +8321,6 @@
     "finance.invoice.draftSaved": [
       "Fixzit/app/(fm)/finance/invoices/new/page.tsx"
     ],
-    "common.error": [
-      "Fixzit/app/(fm)/finance/invoices/new/page.tsx",
-      "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx",
-      "Fixzit/app/(fm)/fm/finance/expenses/new/page.tsx",
-      "Fixzit/app/(fm)/fm/work-orders/new/page.tsx",
-      "Fixzit/components/finance/TrialBalanceReport.tsx"
-    ],
     "finance.invoice.created": [
       "Fixzit/app/(fm)/finance/invoices/new/page.tsx"
     ],
@@ -7349,7 +8618,8 @@
       "Fixzit/app/(fm)/finance/page.tsx"
     ],
     "common.create": [
-      "Fixzit/app/(fm)/finance/page.tsx"
+      "Fixzit/app/(fm)/finance/page.tsx",
+      "Fixzit/app/superadmin/webhooks/page.tsx"
     ],
     "admin.redirecting": [
       "Fixzit/app/(fm)/fm/admin/page.tsx"
@@ -7676,7 +8946,12 @@
       "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx"
     ],
     "common.actions": [
-      "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx"
+      "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx",
+      "Fixzit/app/superadmin/catalog/services/page.tsx",
+      "Fixzit/app/superadmin/emails/page.tsx",
+      "Fixzit/app/superadmin/quotas/page.tsx",
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx",
+      "Fixzit/app/superadmin/webhooks/page.tsx"
     ],
     "finance.budget.selectCategory": [
       "Fixzit/app/(fm)/fm/finance/budgets/new/page.tsx"
@@ -8665,6 +9940,7 @@
       "Fixzit/app/(fm)/fm/work-orders/pm/page.tsx",
       "Fixzit/app/(fm)/properties/inspections/page.tsx",
       "Fixzit/app/(fm)/properties/units/page.tsx",
+      "Fixzit/app/superadmin/catalog/services/page.tsx",
       "Fixzit/app/vendor/dashboard/page.tsx"
     ],
     "maintenance.deleteTask": [
@@ -8725,6 +10001,7 @@
     "common.export": [
       "Fixzit/app/(fm)/fm/orders/page.tsx",
       "Fixzit/app/(fm)/fm/page.tsx",
+      "Fixzit/app/superadmin/impersonate/history/page.tsx",
       "Fixzit/app/superadmin/user-logs/page.tsx",
       "Fixzit/components/fm/vendors/FmVendorsList.tsx"
     ],
@@ -9170,12 +10447,6 @@
       "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
     ],
     "vendor.sections.recordInfo": [
-      "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
-    ],
-    "common.created": [
-      "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
-    ],
-    "common.lastUpdated": [
       "Fixzit/app/(fm)/fm/vendors/[id]/page.tsx"
     ],
     "workOrders.approvals.title": [
@@ -10528,19 +11799,224 @@
       "Fixzit/app/superadmin/analytics/page.tsx"
     ],
     "superadmin.nav.audit": [
-      "Fixzit/app/superadmin/audit/page.tsx"
+      "Fixzit/app/superadmin/audit/page.tsx",
+      "Fixzit/app/superadmin/dashboard/page.tsx"
     ],
     "superadmin.nav.billing": [
       "Fixzit/app/superadmin/billing/page.tsx"
     ],
-    "superadmin.nav.catalog": [
+    "superadmin.catalog.title": [
       "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.subtitle": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.totalProducts": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.active": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.lowStock": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.inventoryValue": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.searchPlaceholder": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.categoryPlaceholder": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.allCategories": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.statusPlaceholder": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.allStatus": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "common.inactive": [
+      "Fixzit/app/superadmin/catalog/page.tsx",
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "common.outOfStock": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.modelPlaceholder": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.allModels": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.search": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.products": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.marketplaceCatalog": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.catalog.noProducts": [
+      "Fixzit/app/superadmin/catalog/page.tsx"
+    ],
+    "superadmin.services.title": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.subtitle": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.add": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.search": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.name": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.category": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.model": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.pricing": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.duration": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.vendors": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.rating": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.active": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "superadmin.services.noServices": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx"
+    ],
+    "common.close": [
+      "Fixzit/app/superadmin/catalog/services/page.tsx",
+      "Fixzit/app/superadmin/emails/page.tsx",
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx",
+      "Fixzit/app/superadmin/user-logs/page.tsx",
+      "Fixzit/app/superadmin/webhooks/page.tsx",
+      "Fixzit/components/admin/UpgradeModal.tsx",
+      "Fixzit/components/i18n/CurrencyChangeConfirmDialog.tsx",
+      "Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "superadmin.dashboard.title": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.subtitle": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.totalTenants": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.activeUsers": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.systemUptime": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.avgResponseTime": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.serviceHealth": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.serviceHealthDesc": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.noServices": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.recentActivity": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.noActivity": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.moduleStatus": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.moduleStatusDesc": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.dashboard.quickActions": [
+      "Fixzit/app/superadmin/dashboard/page.tsx"
+    ],
+    "superadmin.nav.tenants": [
+      "Fixzit/app/superadmin/dashboard/page.tsx",
+      "Fixzit/app/superadmin/tenants/page.tsx"
+    ],
+    "superadmin.nav.users": [
+      "Fixzit/app/superadmin/dashboard/page.tsx",
+      "Fixzit/app/superadmin/users/page.tsx"
+    ],
+    "superadmin.nav.jobs": [
+      "Fixzit/app/superadmin/dashboard/page.tsx",
+      "Fixzit/app/superadmin/jobs/page.tsx"
+    ],
+    "superadmin.nav.integrations": [
+      "Fixzit/app/superadmin/dashboard/page.tsx",
+      "Fixzit/app/superadmin/integrations/page.tsx"
     ],
     "superadmin.nav.database": [
       "Fixzit/app/superadmin/database/page.tsx"
     ],
     "superadmin.database.description": [
       "Fixzit/app/superadmin/database/page.tsx"
+    ],
+    "superadmin.emails.title": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.subtitle": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.search": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.name": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.key": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.subject": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.category": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.variables": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.version": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.noTemplates": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.editTitle": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.editDescription": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.preview": [
+      "Fixzit/app/superadmin/emails/page.tsx"
+    ],
+    "superadmin.emails.sendTest": [
+      "Fixzit/app/superadmin/emails/page.tsx"
     ],
     "superadmin.error.title": [
       "Fixzit/app/superadmin/error.tsx"
@@ -10572,11 +12048,38 @@
     "superadmin.nav.footerContent": [
       "Fixzit/app/superadmin/footer-content/page.tsx"
     ],
+    "superadmin.impersonation.historyTitle": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.historySubtitle": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.search": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.operator": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.tenant": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.started": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.duration": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.actions": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.status": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
+    "superadmin.impersonation.noSessions": [
+      "Fixzit/app/superadmin/impersonate/history/page.tsx"
+    ],
     "superadmin.nav.import-export": [
       "Fixzit/app/superadmin/import-export/page.tsx"
-    ],
-    "superadmin.nav.integrations": [
-      "Fixzit/app/superadmin/integrations/page.tsx"
     ],
     "superadmin.issues.filters.all": [
       "Fixzit/app/superadmin/issues/page.tsx"
@@ -10770,9 +12273,6 @@
     "superadmin.jobs.fetchError": [
       "Fixzit/app/superadmin/jobs/page.tsx"
     ],
-    "superadmin.nav.jobs": [
-      "Fixzit/app/superadmin/jobs/page.tsx"
-    ],
     "auth.hidePassword": [
       "Fixzit/app/superadmin/login/page.tsx"
     ],
@@ -10791,11 +12291,89 @@
     "superadmin.nav.permissions": [
       "Fixzit/app/superadmin/permissions/page.tsx"
     ],
+    "superadmin.quotas.editQuota": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.editQuotaDesc": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.plan": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.storageLimit": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.usersLimit": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.apiLimit": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.title": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.subtitle": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.search": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.tenant": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.storage": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.users": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.apiCalls": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
+    "superadmin.quotas.noTenants": [
+      "Fixzit/app/superadmin/quotas/page.tsx"
+    ],
     "superadmin.nav.reports": [
       "Fixzit/app/superadmin/reports/page.tsx"
     ],
     "superadmin.nav.roles": [
       "Fixzit/app/superadmin/roles/page.tsx"
+    ],
+    "superadmin.tasks.title": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.subtitle": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.search": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.name": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.schedule": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.lastRun": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.nextRun": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.status": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.stats": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.enabled": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.noTasks": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
+    ],
+    "superadmin.tasks.history": [
+      "Fixzit/app/superadmin/scheduled-tasks/page.tsx"
     ],
     "accessibility.searchSuperadmin": [
       "Fixzit/app/superadmin/search/page.tsx"
@@ -10824,6 +12402,30 @@
     "common.download": [
       "Fixzit/app/superadmin/ssot/page.tsx"
     ],
+    "superadmin.ssot.metadata.file": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.metadata.lastModified": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.metadata.size": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.metadata.lines": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.search.placeholder": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.search.matches": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.fileName": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
+    "superadmin.ssot.canonicalDescription": [
+      "Fixzit/app/superadmin/ssot/page.tsx"
+    ],
     "accessibility.scrollToTop": [
       "Fixzit/app/superadmin/ssot/page.tsx"
     ],
@@ -10841,9 +12443,6 @@
     ],
     "superadmin.nav.support": [
       "Fixzit/app/superadmin/support/page.tsx"
-    ],
-    "superadmin.nav.tenants": [
-      "Fixzit/app/superadmin/tenants/page.tsx"
     ],
     "superadmin.nav.translations": [
       "Fixzit/app/superadmin/translations/page.tsx"
@@ -11016,12 +12615,6 @@
     "superadmin.userLogs.fields.metadata": [
       "Fixzit/app/superadmin/user-logs/page.tsx"
     ],
-    "common.close": [
-      "Fixzit/app/superadmin/user-logs/page.tsx",
-      "Fixzit/components/admin/UpgradeModal.tsx",
-      "Fixzit/components/i18n/CurrencyChangeConfirmDialog.tsx",
-      "Fixzit/components/topbar/CommandPalette.tsx"
-    ],
     "superadmin.userLogs.sessionDetails": [
       "Fixzit/app/superadmin/user-logs/page.tsx"
     ],
@@ -11053,11 +12646,125 @@
     "superadmin.userLogs.terminateSession": [
       "Fixzit/app/superadmin/user-logs/page.tsx"
     ],
-    "superadmin.nav.users": [
-      "Fixzit/app/superadmin/users/page.tsx"
+    "superadmin.userLogs.exportTitle": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "superadmin.userLogs.exportWarning": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "superadmin.userLogs.piiWarning": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "superadmin.userLogs.includeEmails": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "superadmin.userLogs.exportConsent": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "superadmin.userLogs.recordCount": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "common.exporting": [
+      "Fixzit/app/superadmin/user-logs/page.tsx"
+    ],
+    "superadmin.vendors.title": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.subtitle": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.refresh": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.totalVendors": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.active": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.avgRating": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.categories": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.searchPlaceholder": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.typePlaceholder": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.allTypes": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.statusPlaceholder": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.allStatus": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "common.suspended": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.search": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
     ],
     "superadmin.nav.vendors": [
       "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.allVendors": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.vendors.noVendors": [
+      "Fixzit/app/superadmin/vendors/page.tsx"
+    ],
+    "superadmin.webhooks.title": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.subtitle": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.create": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.search": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.name": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.url": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.events": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.deliveries": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.status": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.enabled": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.noWebhooks": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.createTitle": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.createDescription": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.retryPolicy": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.maxRetries": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
+    ],
+    "superadmin.webhooks.deliveryLogs": [
+      "Fixzit/app/superadmin/webhooks/page.tsx"
     ],
     "support.title": [
       "Fixzit/app/support/page.tsx"
@@ -13707,7 +15414,16 @@
     "superadmin.switchTenant": [
       "Fixzit/components/superadmin/SuperadminHeader.tsx"
     ],
+    "superadmin.searchPlaceholder": [
+      "Fixzit/components/superadmin/SuperadminHeader.tsx"
+    ],
     "superadmin.searchSuperadmin": [
+      "Fixzit/components/superadmin/SuperadminHeader.tsx"
+    ],
+    "superadmin.themeTitle": [
+      "Fixzit/components/superadmin/SuperadminHeader.tsx"
+    ],
+    "superadmin.notificationsTitle": [
       "Fixzit/components/superadmin/SuperadminHeader.tsx"
     ],
     "superadmin.loggingOut": [
@@ -13729,6 +15445,9 @@
       "Fixzit/components/superadmin/SuperadminSidebar.tsx"
     ],
     "common.collapse": [
+      "Fixzit/components/superadmin/SuperadminSidebar.tsx"
+    ],
+    "superadmin.version": [
       "Fixzit/components/superadmin/SuperadminSidebar.tsx"
     ],
     "support.impersonation.errors.identifierRequired": [
@@ -14338,5 +16057,5 @@
       "Fixzit/components/UpgradePrompt.tsx"
     ]
   },
-  "timestamp": "2025-12-30T08:53:41.158Z"
+  "timestamp": "2025-12-30T09:59:57.960Z"
 }

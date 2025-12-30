@@ -2086,9 +2086,9 @@
       "viewDeal": "عرض العرض"
     },
     "recentlyViewed": {
-      "itemFallback": "عنصر",
-      "signInCta": "سجل الدخول لعرض سجلك",
-      "subtitle": "المنتجات التي شاهدتها مؤخراً",
+      "itemFallback": "منتج",
+      "signInCta": "تسجيل الدخول",
+      "subtitle": "استكمل من حيث توقفت. سجّل الدخول للمزامنة عبر الأجهزة.",
       "title": "شوهد مؤخراً"
     },
     "home": {
@@ -5218,7 +5218,12 @@
     "verifyingAccess": "جاري التحقق من الصلاحيات...",
     "goToLanding": "الذهاب للصفحة الرئيسية",
     "searchSuperadmin": "بحث في المسؤول الأعلى",
+    "searchPlaceholder": "بحث...",
     "switchTenant": "تبديل المستأجر",
+    "themeTitle": "المظهر: {{theme}} (اضغط للتغيير)",
+    "notificationsTitle": "الإشعارات",
+    "fullAccess": "وصول كامل للمنصة",
+    "version": "Fixzit المسؤول الأعلى v2.0",
     "error": {
       "title": "حدث خطأ",
       "message": "حدث خطأ غير متوقع في لوحة المسؤول الأعلى. تم إخطار فريقنا.",
@@ -5504,6 +5509,43 @@
         "next": "التالي",
         "pageOf": "الصفحة {page} من {total}"
       }
+    },
+    "catalog": {
+      "title": "كتالوج المنتجات",
+      "subtitle": "إدارة منتجات سوق Fixzit",
+      "searchPlaceholder": "بحث عن المنتجات...",
+      "categoryPlaceholder": "الفئة",
+      "allCategories": "جميع الفئات",
+      "statusPlaceholder": "الحالة",
+      "allStatus": "جميع الحالات",
+      "modelPlaceholder": "النموذج",
+      "allModels": "جميع النماذج",
+      "totalProducts": "إجمالي المنتجات",
+      "active": "نشط",
+      "lowStock": "مخزون منخفض",
+      "inventoryValue": "قيمة المخزون",
+      "products": "المنتجات",
+      "marketplaceCatalog": "كتالوج السوق",
+      "noProducts": "لم يتم العثور على منتجات",
+      "search": "بحث",
+      "refresh": "تحديث"
+    },
+    "vendors": {
+      "title": "إدارة الموردين",
+      "subtitle": "إدارة الموردين والمقاولين ومقدمي الخدمات",
+      "searchPlaceholder": "بحث عن الموردين...",
+      "typePlaceholder": "النوع",
+      "allTypes": "جميع الأنواع",
+      "statusPlaceholder": "الحالة",
+      "allStatus": "جميع الحالات",
+      "totalVendors": "إجمالي الموردين",
+      "active": "نشط",
+      "avgRating": "متوسط التقييم",
+      "categories": "الفئات",
+      "allVendors": "جميع الموردين عبر المستأجرين",
+      "noVendors": "لم يتم العثور على موردين",
+      "search": "بحث",
+      "refresh": "تحديث"
     }
   }
 }

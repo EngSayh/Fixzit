@@ -2169,9 +2169,9 @@
     },
     "recentlyViewed": {
       "itemFallback": "Product",
-      "signInCta": "Sign in to see your history",
-      "subtitle": "Products you've recently viewed",
-      "title": "Recently Viewed"
+      "signInCta": "Sign in",
+      "subtitle": "Pick up where you left off. Sign in to sync across devices.",
+      "title": "Recently viewed"
     }
   },
   "vendors": {
@@ -5221,7 +5221,12 @@
     "verifyingAccess": "Verifying access...",
     "goToLanding": "Go to Landing Page",
     "searchSuperadmin": "Search superadmin...",
+    "searchPlaceholder": "Search...",
     "switchTenant": "Switch Tenant",
+    "themeTitle": "Theme: {{theme}} (click to change)",
+    "notificationsTitle": "Notifications",
+    "fullAccess": "Full platform access",
+    "version": "Fixzit Superadmin v2.0",
     "error": {
       "title": "Something went wrong",
       "message": "An unexpected error occurred in the superadmin panel. Our team has been notified.",
@@ -5506,6 +5511,43 @@
         "next": "Next",
         "pageOf": "Page {page} of {total}"
       }
+    },
+    "catalog": {
+      "title": "Product Catalog",
+      "subtitle": "Manage Fixzit Souq marketplace products",
+      "searchPlaceholder": "Search products...",
+      "categoryPlaceholder": "Category",
+      "allCategories": "All Categories",
+      "statusPlaceholder": "Status",
+      "allStatus": "All Status",
+      "modelPlaceholder": "Model",
+      "allModels": "All Models",
+      "totalProducts": "Total Products",
+      "active": "Active",
+      "lowStock": "Low Stock",
+      "inventoryValue": "Inventory Value",
+      "products": "Products",
+      "marketplaceCatalog": "Marketplace catalog",
+      "noProducts": "No products found",
+      "search": "Search",
+      "refresh": "Refresh"
+    },
+    "vendors": {
+      "title": "Vendor Management",
+      "subtitle": "Manage suppliers, contractors, and service providers",
+      "searchPlaceholder": "Search vendors...",
+      "typePlaceholder": "Type",
+      "allTypes": "All Types",
+      "statusPlaceholder": "Status",
+      "allStatus": "All Status",
+      "totalVendors": "Total Vendors",
+      "active": "Active",
+      "avgRating": "Avg Rating",
+      "categories": "Categories",
+      "allVendors": "All vendors across tenants",
+      "noVendors": "No vendors found",
+      "search": "Search",
+      "refresh": "Refresh"
     }
   }
 }
