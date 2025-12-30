@@ -494,8 +494,8 @@
 | x-eslint-0-errors-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | [x] ESLint: 0 errors | 7) PRODUCTION READINESS CHECKLIST |
 | x-console-log-0-in-api-all-using-logger-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | [x] Console.log: 0 in API (all using logger) | 🔒 XSS Protection Verification |
 | x-empty-catches-0-in-api-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | [x] Empty catches: 0 in API | 🔒 XSS Protection Verification |
-| username-superadmin-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | Username: `superadmin` | 🔐 Superadmin Auth Configuration |
-| password-admin123-change-in-production-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | Password: `admin123` (change in production!) | 🔐 Superadmin Auth Configuration |
+| username-superadmin-see-env-example-next-steps-doc-only-local-dev | P2 | ? | 5 | unknown | Doc-only (local-dev) | Username: see .env.example | 🔐 Superadmin Auth Configuration |
+| password-see-env-example-never-use-in-prod-next-steps-doc-only-local-dev | P2 | ? | 5 | unknown | Doc-only (local-dev) | Password: see .env.example (NEVER use defaults in production!) | 🔐 Superadmin Auth Configuration |
 | category-from-id-prefix-bug-sec-logic-etc-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | Category from ID prefix (BUG, SEC, LOGIC, etc.) | 🛠️ CLI Enhancements (v65.19) |
 | status-from-checkbox-x-vs-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | Status from checkbox `[x]` vs `[ ]` | 🛠️ CLI Enhancements (v65.19) |
 | filters-status-priority-category-search-view-mode-next-steps-doc-only | P2 | ? | 5 | unknown | Doc-only | ✅ Filters: status, priority, category, search, view mode | List Page (`app/admin/issues/page.tsx`) |
