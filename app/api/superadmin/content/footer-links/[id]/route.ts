@@ -20,11 +20,11 @@ export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const UpdateFooterLinkSchema = z.object({
-  label: z.string().min(1).optional(),
-  labelAr: z.string().optional(),
-  url: z.string().min(1).optional(),
+  label: z.string().trim().min(1).optional(),
+  labelAr: z.string().trim().optional(),
+  url: z.string().trim().min(1).optional(),
   section: z.enum(["company", "support", "legal", "social"]).optional(),
-  icon: z.string().optional(),
+  icon: z.string().trim().optional(),
   isExternal: z.boolean().optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().optional(),

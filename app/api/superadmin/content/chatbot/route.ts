@@ -22,17 +22,17 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 const ChatbotSettingsSchema = z.object({
   enabled: z.boolean().optional(),
   provider: z.enum(["internal", "openai", "anthropic", "custom"]).optional(),
-  newApiKey: z.string().optional(), // Only used to update API key
-  model: z.string().optional(),
-  welcomeMessage: z.string().optional(),
-  welcomeMessageAr: z.string().optional(),
+  newApiKey: z.string().trim().optional(), // Only used to update API key
+  model: z.string().trim().optional(),
+  welcomeMessage: z.string().trim().optional(),
+  welcomeMessageAr: z.string().trim().optional(),
   position: z.enum(["bottom-right", "bottom-left"]).optional(),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional(),
-  avatarUrl: z.string().url().optional().or(z.literal("")),
-  offlineMessage: z.string().optional(),
+  primaryColor: z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional(),
+  avatarUrl: z.string().trim().url().optional().or(z.literal("")),
+  offlineMessage: z.string().trim().optional(),
   maxTokens: z.number().min(100).max(4000).optional(),
   temperature: z.number().min(0).max(2).optional(),
-  systemPrompt: z.string().optional(),
+  systemPrompt: z.string().trim().optional(),
 });
 
 // Default settings for new installations
