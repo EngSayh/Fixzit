@@ -53,7 +53,7 @@ function AuthDebugInfo() {
   return (
     <div className="mb-4 p-3 rounded bg-amber-950/50 border border-amber-700 text-xs text-amber-200">
       <div className="font-semibold mb-1">Auth Debug (middleware redirect):</div>
-      <div>reason: {reason || 'none'}</div>
+      <div>reason: {reason || 'none'} {reason === 'no_cookie' && '(cookie not sent by browser)'} {reason === 'decode_failed' && '(cookie sent but JWT decode failed)'} {reason === 'expired' && '(session expired)'}</div>
       <div>had_cookie: {hadCookie || '?'}</div>
       <div>cookie_len: {cookieLen || '?'}</div>
       <div>cookie_header: {hasHeader || '?'}</div>

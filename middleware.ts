@@ -375,7 +375,11 @@ export async function middleware(request: NextRequest) {
       }
       // Add debug headers to redirect for troubleshooting
       const redirectUrl = new URL('/superadmin/login', sanitizedRequest.url);
-      redirectUrl.searchParams.set('reason', !session ? 'no_session' : 'expired');
+      // Always include reason - this is safe for production
+      const reason = !session 
+        ? (hasCookie ? 'decode_failed' : 'no_cookie') 
+        : 'expired';
+      redirectUrl.searchParams.set('reason', reason);
       // Only include detailed debug params in non-production environments
       if (process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
         redirectUrl.searchParams.set('had_cookie', hasCookie ? '1' : '0');
