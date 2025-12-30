@@ -17,6 +17,7 @@ import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -46,14 +47,20 @@ export async function PATCH(
   try {
     await dbConnect();
     await requireSuperAdmin(req);
-    const body = await req.json();
+    const { data: body, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[admin:billing:pricebooks:id]",
+    });
+    if (parseError || !body) {
+      return createSecureResponse({ error: "Invalid JSON payload" }, 400, req);
+    }
 
     // AUDIT-2025-12-08: Whitelist allowed fields to prevent mass assignment
     const allowedFields = ['name', 'description', 'prices', 'currency', 'effectiveDate', 'expiryDate', 'isActive', 'metadata'];
     const sanitizedBody: Record<string, unknown> = {};
+    const bodyRecord = body as Record<string, unknown>;
     for (const key of allowedFields) {
-      if (body[key] !== undefined) {
-        sanitizedBody[key] = body[key];
+      if (bodyRecord[key] !== undefined) {
+        sanitizedBody[key] = bodyRecord[key];
       }
     }
 
