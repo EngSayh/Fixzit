@@ -59,14 +59,14 @@ $env:PLAYWRIGHT_GLOBAL = "true"
 $ConfigFile = if ($env:PLAYWRIGHT_CONFIG) { $env:PLAYWRIGHT_CONFIG } else { "tests/playwright.config.ts" }
 $Workers = if ($env:PLAYWRIGHT_WORKERS) { $env:PLAYWRIGHT_WORKERS } else { "1" }
 
-$cmdArgs = @("playwright", "test", "--config=$ConfigFile", "--workers=$Workers")
+$cmdArgs = @("exec", "playwright", "test", "--config=$ConfigFile", "--workers=$Workers")
 
 if ($TestArgs.Count -gt 0) {
     $cmdArgs += $TestArgs
 }
 
-Write-Host "Running: npx $($cmdArgs -join ' ')" -ForegroundColor Cyan
-& npx @cmdArgs
+Write-Host "Running: pnpm $($cmdArgs -join ' ')" -ForegroundColor Cyan
+& pnpm @cmdArgs
 
 $exitCode = $LASTEXITCODE
 
