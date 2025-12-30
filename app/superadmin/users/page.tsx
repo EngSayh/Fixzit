@@ -211,7 +211,8 @@ export default function SuperadminUsersPage() {
         setOrganizations(data.organizations || []);
       }
     } catch {
-      // Silently fail - filter will just not have orgs
+      // Non-critical: filter will still work without org dropdown
+      toast.warning("Could not load organizations filter");
     }
   }, []);
 

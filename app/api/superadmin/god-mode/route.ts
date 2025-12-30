@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { createHash } from "crypto";
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,21 +58,21 @@ export async function GET(req: NextRequest) {
       .limit(5)
       .toArray();
     
-    // Count users per tenant
-    const topTenantsWithUsers = await Promise.all(
-      topTenants.map(async (tenant, index) => {
-        const userCount = await db.collection("users").countDocuments({ 
-          organizationId: tenant._id 
-        });
-        return {
-          name: tenant.name,
-          id: String(index + 1), // Obfuscated index, not real ID
-          users: userCount,
-          status: tenant.status,
-          plan: tenant.plan || "starter",
-        };
-      })
-    );
+    // Count users per tenant - batch query to avoid N+1
+    const tenantIds = topTenants.map(t => t._id);
+    const userCountsAgg = await db.collection("users").aggregate([
+      { $match: { orgId: { $in: tenantIds } } },
+      { $group: { _id: "$orgId", count: { $sum: 1 } } }
+    ]).toArray();
+    const userCountMap = new Map(userCountsAgg.map(u => [String(u._id), u.count]));
+    
+    const topTenantsWithUsers = topTenants.map((tenant, index) => ({
+      name: tenant.name,
+      id: String(index + 1), // Obfuscated index, not real ID
+      users: userCountMap.get(String(tenant._id)) || 0,
+      status: tenant.status,
+      plan: tenant.plan || "starter",
+    }));
     
     // Fetch active kill switch events
     const activeKillSwitchEvents = await db.collection("kill_switch_events")
@@ -80,24 +81,25 @@ export async function GET(req: NextRequest) {
       .limit(10)
       .toArray();
     
-    // Enrich kill switch events with tenant names
-    const killSwitchWithNames = await Promise.all(
-      activeKillSwitchEvents.map(async (event) => {
-        const tenant = await db.collection("organizations").findOne(
-          { _id: event.tenant_id },
+    // Enrich kill switch events with tenant names - batch query to avoid N+1
+    const killSwitchTenantIds = activeKillSwitchEvents.map(e => e.tenant_id).filter(Boolean);
+    const killSwitchTenants = killSwitchTenantIds.length > 0 
+      ? await db.collection("organizations").find(
+          { _id: { $in: killSwitchTenantIds } },
           { projection: { name: 1 } }
-        );
-        return {
-          tenant_id: "tenant-" + String(event.tenant_id).slice(-6), // Partial ID only
-          tenant_name: tenant?.name || "Unknown Tenant",
-          action: event.action,
-          reason: event.reason,
-          activated_at: event.activated_at,
-          activated_by: event.activated_by?.toString().slice(-6) || "system",
-          scheduled_reactivation: event.scheduled_reactivation || null,
-        };
-      })
-    );
+        ).toArray()
+      : [];
+    const killSwitchTenantMap = new Map(killSwitchTenants.map(t => [String(t._id), t.name]));
+    
+    const killSwitchWithNames = activeKillSwitchEvents.map((event) => ({
+      tenant_id: "tenant-" + String(event.tenant_id).slice(-6), // Partial ID only
+      tenant_name: killSwitchTenantMap.get(String(event.tenant_id)) || "Unknown Tenant",
+      action: event.action,
+      reason: event.reason,
+      activated_at: event.activated_at,
+      activated_by: event.activated_by?.toString().slice(-6) || "system",
+      scheduled_reactivation: event.scheduled_reactivation || null,
+    }));
     
     // Fetch snapshot stats
     const now = new Date();
@@ -112,23 +114,24 @@ export async function GET(req: NextRequest) {
         .toArray(),
     ]);
     
-    // Enrich snapshots with tenant names
-    const snapshotsWithNames = await Promise.all(
-      recentSnapshots.map(async (snap) => {
-        const tenant = await db.collection("organizations").findOne(
-          { _id: snap.tenant_id },
+    // Enrich snapshots with tenant names - batch query to avoid N+1
+    const snapshotTenantIds = recentSnapshots.map(s => s.tenant_id).filter(Boolean);
+    const snapshotTenants = snapshotTenantIds.length > 0
+      ? await db.collection("organizations").find(
+          { _id: { $in: snapshotTenantIds } },
           { projection: { name: 1 } }
-        );
-        return {
-          id: "snap-" + String(snap._id).slice(-6),
-          tenant_name: tenant?.name || "Unknown Tenant",
-          type: snap.type,
-          size_mb: snap.size_bytes ? Math.round(snap.size_bytes / (1024 * 1024)) : 0,
-          created_at: snap.created_at,
-          status: snap.status,
-        };
-      })
-    );
+        ).toArray()
+      : [];
+    const snapshotTenantMap = new Map(snapshotTenants.map(t => [String(t._id), t.name]));
+    
+    const snapshotsWithNames = recentSnapshots.map((snap) => ({
+      id: "snap-" + String(snap._id).slice(-6),
+      tenant_name: snapshotTenantMap.get(String(snap.tenant_id)) || "Unknown Tenant",
+      type: snap.type,
+      size_mb: snap.size_bytes ? Math.round(snap.size_bytes / (1024 * 1024)) : 0,
+      created_at: snap.created_at,
+      status: snap.status,
+    }));
     
     // Fetch active ghost sessions
     const activeGhostSessions = await db.collection("ghost_sessions")
@@ -184,8 +187,9 @@ export async function GET(req: NextRequest) {
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
-      // Use hashed username for audit trail to protect PII
-      operator_id: `sa_${Buffer.from(session.username).toString('base64').slice(0, 8)}`,
+      // Use SHA-256 hash for audit trail to protect PII (not reversible like base64)
+      operator_id: `sa_${createHash('sha256').update(session.username).digest('hex').slice(0, 12)}`,
+      operator_username: session.username, // Only visible to current superadmin
       
       // System Health - PLACEHOLDER DATA
       // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data
