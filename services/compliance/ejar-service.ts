@@ -15,7 +15,7 @@
  * @created 2025-12-29
  */
 
-import { ObjectId, type WithId, type Document } from "mongodb";
+import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -25,11 +25,33 @@ import { getDatabase } from "@/lib/mongodb-unified";
 
 /**
  * Calculate the number of months between two dates
- * Uses calendar-based calculation instead of fixed 30-day months
+ * Uses calendar-based calculation (year*12 + month difference).
+ * 
+ * NOTE: This uses whole-month semantics - it ignores day-of-month by default.
+ * Examples with includePartialMonths=false (default):
+ *   - Jan 1 → Jan 31 = 0 months
+ *   - Jan 31 → Feb 1 = 1 month  
+ *   - Jan 1 → Feb 1 = 1 month
+ * 
+ * @param start - Start date
+ * @param end - End date (must be >= start)
+ * @param includePartialMonths - If true, adds 1 when end.date >= start.date
+ * @returns Number of months (minimum 0)
  */
-function calculateMonthsDifference(start: Date, end: Date): number {
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + 
-                 (end.getMonth() - start.getMonth());
+function calculateMonthsDifference(start: Date, end: Date, includePartialMonths: boolean = false): number {
+  // Handle invalid date order
+  if (end < start) {
+    return 0;
+  }
+  
+  let months = (end.getFullYear() - start.getFullYear()) * 12 + 
+               (end.getMonth() - start.getMonth());
+  
+  // If including partial months, add 1 when end day >= start day
+  if (includePartialMonths && end.getDate() >= start.getDate()) {
+    months += 1;
+  }
+  
   return Math.max(0, months);
 }
 
@@ -884,12 +906,12 @@ export async function getContract(
   try {
     const db = await getDatabase();
     
-    const contract = await db.collection(EJAR_COLLECTION).findOne({
+    const contract = await db.collection<EjarContract>(EJAR_COLLECTION).findOne({
       _id: new ObjectId(contractId),
       orgId,
-    }) as WithId<Document> | null;
+    });
     
-    return contract as unknown as EjarContract | null;
+    return contract;
   } catch (error) {
     logger.error("Failed to get contract", { 
       component: "ejar-service",
@@ -910,12 +932,12 @@ export async function getContractByEjarNumber(
   try {
     const db = await getDatabase();
     
-    const contract = await db.collection(EJAR_COLLECTION).findOne({
+    const contract = await db.collection<EjarContract>(EJAR_COLLECTION).findOne({
       orgId,
       ejarNumber,
-    }) as WithId<Document> | null;
+    });
     
-    return contract as unknown as EjarContract | null;
+    return contract;
   } catch (error) {
     logger.error("Failed to get contract by Ejar number", { 
       component: "ejar-service",
@@ -967,7 +989,7 @@ export async function listContracts(
     const skip = (page - 1) * limit;
     
     const [contracts, total] = await Promise.all([
-      db.collection(EJAR_COLLECTION)
+      db.collection<EjarContract>(EJAR_COLLECTION)
         .find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -977,7 +999,7 @@ export async function listContracts(
     ]);
     
     return {
-      contracts: contracts as unknown as EjarContract[],
+      contracts,
       total,
     };
   } catch (error) {
@@ -1110,8 +1132,9 @@ async function checkSubmissionReadiness(
 
 function generateEjarNumber(): string {
   const year = new Date().getFullYear();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `EJAR-${year}-${random}`;
+  // Use crypto.randomUUID for robust random generation instead of Math.random
+  const uuid = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase();
+  return `EJAR-${year}-${uuid}`;
 }
 
 async function updateContractStatus(

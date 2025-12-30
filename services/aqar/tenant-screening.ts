@@ -350,6 +350,24 @@ export async function addDocument(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Validate and sanitize URL before storing
+    let validatedUrl: string;
+    try {
+      const parsedUrl = new URL(document.url);
+      // Only allow http/https protocols
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return { success: false, error: "Document URL must use http or https protocol" };
+      }
+      // Reject localhost/private IPs to prevent SSRF
+      const hostname = parsedUrl.hostname.toLowerCase();
+      if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.") || hostname.startsWith("172.")) {
+        return { success: false, error: "Document URL cannot point to private/local addresses" };
+      }
+      validatedUrl = parsedUrl.toString();
+    } catch (_urlError) {
+      return { success: false, error: "Invalid document URL format" };
+    }
+
     const db = await getDatabase();
     
     // Properly typed MongoDB update for adding document to array
@@ -358,7 +376,7 @@ export async function addDocument(
         documents: {
           type: document.type,
           status: "pending" as const,
-          url: document.url,
+          url: validatedUrl,
         },
       },
       $set: { updatedAt: new Date() },
@@ -791,6 +809,11 @@ function calculateEmploymentScore(
     case "student":
       score += 5;
       redFlags.push("Student - may need guarantor");
+      break;
+    case "other":
+      // "Other" is a known status - neutral score, no red flag
+      score += 10;
+      positiveIndicators.push("Other employment type");
       break;
     default:
       redFlags.push("Employment status unclear");

@@ -295,10 +295,7 @@ export async function createLease(
     }
     
     // Check for overlapping leases
-    // Validate unitId format but use string for query since leases store unitId as string
-    if (!ObjectId.isValid(request.unitId)) {
-      return { success: false, error: "Invalid unit ID format" };
-    }
+    // Use string for query since leases store unitId as string
     
     // Build overlap check query, excluding the specified lease (used during renewals)
     const overlapQuery: Record<string, unknown> = {

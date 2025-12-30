@@ -17,7 +17,6 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
-import mongoose from "mongoose";
 
 // ============================================================================
 // Types & Interfaces
@@ -367,7 +366,9 @@ export async function createDefaultTemplates(
   orgId: string,
   createdBy: string
 ): Promise<{ created: number }> {
-  const session = await mongoose.startSession();
+  const db = await getDatabase();
+  // Use native MongoDB driver session instead of mongoose
+  const session = db.client.startSession();
   
   try {
     const templates: Omit<InspectionTemplate, "_id" | "createdAt" | "updatedAt">[] = [
@@ -683,8 +684,9 @@ export async function completeInspection(
     // Calculate overall condition and score
     const { overallCondition, score } = calculateInspectionScore(record.completedItems);
     
-    await db.collection(INSPECTIONS_COLLECTION).updateOne(
-      { _id: new ObjectId(inspectionId), orgId },
+    // Atomic update: include expected status in filter to prevent race condition
+    const result = await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId), orgId, status: InspectionStatus.IN_PROGRESS },
       {
         $set: {
           status: InspectionStatus.PENDING_REVIEW,
@@ -699,6 +701,11 @@ export async function completeInspection(
         },
       }
     );
+    
+    // Check if update succeeded (status may have changed concurrently)
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Inspection status changed concurrently - completion aborted" };
+    }
     
     logger.info("Inspection completed", {
       component: "inspection-service",

@@ -35,9 +35,17 @@ const BulkUpdateSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting for bulk operations - 5 requests per minute
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const rl = await smartRateLimit(`superadmin:bulk-update:${ip}`, 5, 60_000);
+    // Verify superadmin session FIRST (before rate limiting)
+    const session = await getSuperadminSession(request);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized - Superadmin access required" },
+        { status: 401 }
+      );
+    }
+
+    // Rate limiting for bulk operations - 5 requests per minute (per authenticated session)
+    const rl = await smartRateLimit(`superadmin:bulk-update:${session.username}`, 5, 60_000);
     if (!rl.allowed) {
       // Compute remaining seconds from epoch timestamp, with minimum of 1 and fallback to 60
       const remainingSeconds = rl.resetAt 
@@ -46,15 +54,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Rate limit exceeded. Please try again later." },
         { status: 429, headers: { "Retry-After": String(remainingSeconds) } }
-      );
-    }
-
-    // Verify superadmin session
-    const session = await getSuperadminSession(request);
-    if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized - Superadmin access required" },
-        { status: 401 }
       );
     }
 

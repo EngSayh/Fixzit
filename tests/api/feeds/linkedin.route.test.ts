@@ -86,6 +86,8 @@ describe("API /api/feeds/linkedin", () => {
       const res = await GET(req);
 
       expect(res.status).toBe(501);
+      const data = await res.json();
+      expect(data.error).toContain("not available");
     });
   });
 

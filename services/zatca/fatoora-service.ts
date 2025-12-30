@@ -113,10 +113,15 @@ export async function getPreviousInvoiceHash(
   try {
     const db = await getDatabase();
     
+    // Build tenantId query that handles both ObjectId and string storage formats
+    const tenantIdQuery = ObjectId.isValid(tenantId) 
+      ? { $in: [new ObjectId(tenantId), tenantId] }
+      : tenantId;
+    
     // Fetch the most recent cleared invoice for this tenant
     const lastInvoice = await db.collection(ZATCA_INVOICES_COLLECTION).findOne(
       { 
-        tenant_id: ObjectId.isValid(tenantId) ? new ObjectId(tenantId) : tenantId,
+        tenant_id: tenantIdQuery,
         clearance_status: { $in: ["cleared", "submitted"] },
       },
       { 
@@ -148,10 +153,15 @@ export async function validateHashChain(
   try {
     const db = await getDatabase();
     
+    // Build tenantId query that handles both ObjectId and string storage formats
+    const tenantIdQuery = ObjectId.isValid(tenantId) 
+      ? { $in: [new ObjectId(tenantId), tenantId] }
+      : tenantId;
+    
     // Fetch last N invoices ordered by creation date (oldest first for chain validation)
     const invoices = await db.collection(ZATCA_INVOICES_COLLECTION).find(
       { 
-        tenant_id: ObjectId.isValid(tenantId) ? new ObjectId(tenantId) : tenantId,
+        tenant_id: tenantIdQuery,
         clearance_status: { $in: ["cleared", "submitted", "draft"] },
       },
       {
@@ -367,19 +377,31 @@ export async function submitToFatoora(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
-      // Check if error is retryable (network errors, timeout, 5xx)
-      const isRetryable = 
-        lastError.name === "AbortError" ||
-        lastError.message.includes("server error") ||
-        lastError.message.includes("network") ||
-        lastError.message.includes("ECONNREFUSED") ||
-        lastError.message.includes("ETIMEDOUT");
+      // Robust retryable error detection using error properties
+      const errorAny = error as Record<string, unknown>;
+      const errorCode = errorAny.code as string | undefined;
+      const responseObj = errorAny.response as Record<string, unknown> | undefined;
+      const errorStatus = (errorAny.status ?? responseObj?.status) as number | undefined;
       
-      // Non-retryable errors (4xx, validation) - fail immediately
-      if (!isRetryable || lastError.message.includes("non-retryable")) {
+      // Check if error is retryable:
+      // 1. AbortError (timeout)
+      // 2. Known transient network error codes
+      // 3. 5xx server errors
+      const transientCodes = new Set(["ECONNREFUSED", "ETIMEDOUT", "ENETUNREACH", "EAI_AGAIN", "ECONNRESET"]);
+      const isRetryable = 
+        (error instanceof Error && error.name === "AbortError") ||
+        (errorCode && transientCodes.has(errorCode)) ||
+        (typeof errorStatus === "number" && errorStatus >= 500);
+      
+      // Non-retryable errors (4xx client errors) - fail immediately
+      const isClientError = typeof errorStatus === "number" && errorStatus >= 400 && errorStatus < 500;
+      
+      if (!isRetryable || isClientError) {
         logger.error("ZATCA submission failed with non-retryable error", {
           uuid: submission.uuid,
           error: lastError.message,
+          code: errorCode,
+          status: errorStatus,
         });
         throw lastError;
       }
@@ -388,6 +410,7 @@ export async function submitToFatoora(
         const delay = ZATCA_CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt - 1);
         logger.warn(`ZATCA submission attempt ${attempt} failed, retrying in ${delay}ms`, {
           error: lastError.message,
+          code: errorCode,
         });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -525,8 +548,17 @@ export function validateTenantConfig(config: Partial<ZatcaTenantConfig>): string
   
   if (!config.vat_number) {
     errors.push("VAT Number is required");
-  } else if (!/^\d{15}$/.test(config.vat_number)) {
-    errors.push("VAT Number must be exactly 15 digits");
+  } else {
+    // ZATCA VAT format: 15 digits, starts with '3', ends with valid tax type code
+    if (!/^3\d{14}$/.test(config.vat_number)) {
+      errors.push("VAT Number must be exactly 15 digits and start with '3'");
+    } else {
+      // Validate final two digits are a valid tax type (not '00')
+      const taxType = config.vat_number.slice(-2);
+      if (taxType === "00") {
+        errors.push("VAT Number tax type code (last 2 digits) cannot be '00'");
+      }
+    }
   }
   
   if (config.zatca_wave && (config.zatca_wave < 1 || config.zatca_wave > 9)) {

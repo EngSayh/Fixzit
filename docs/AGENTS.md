@@ -238,7 +238,7 @@ Not all gates apply to every issue. Use this matrix to determine required gates:
 | **Bug Fix (UI)** | 4.2.1, 4.2.3, 4.2.6, 4.2.8, 4.2.14 | 4.2.9 (if auth/PII), 4.2.7 (if mobile) |
 | **Bug Fix (API)** | 4.2.1, 4.2.4, 4.2.5, 4.2.8, 4.2.14 | 4.2.9 (if auth), 4.2.11 (if finance) |
 | **Bug Fix (Multi-tenant)** | 4.2.1, 4.2.4, 4.2.5, 4.2.8, 4.2.9, 4.2.14 | All |
-| **New Feature** | ALL GATES (4.2.1–4.2.14) | — |
+| **New Feature** | ALL GATES (4.2.1–4.2.13) + Task Breakdown (4.2.14) | — |
 | **Security Fix** | 4.2.1, 4.2.4, 4.2.5, 4.2.8, 4.2.9, 4.2.10, 4.2.14 | 4.2.13 (if PII) |
 | **Performance Fix** | 4.2.4, 4.2.5, 4.2.8, 4.2.10, 4.2.14 | — |
 | **Integration Fix** | 4.2.4, 4.2.5, 4.2.8, 4.2.12, 4.2.14 | 4.2.11 (if payments) |

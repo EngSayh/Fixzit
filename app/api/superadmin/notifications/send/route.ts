@@ -36,7 +36,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body: SendNotificationRequest = await req.json();
+    let body: SendNotificationRequest;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      logger.warn("Invalid JSON in notification request", {
+        component: "superadmin-notifications",
+        error: parseError instanceof Error ? parseError.message : "Unknown parse error",
+      });
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
     
     // Accept both naming conventions for flexibility
     const title = body.title || body.subject;

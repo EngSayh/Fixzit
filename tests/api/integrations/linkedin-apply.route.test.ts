@@ -149,6 +149,8 @@ describe("API /api/integrations/linkedin/apply", () => {
       const res = await POST(req);
 
       expect(res.status).toBe(501);
+      const data = await res.json();
+      expect(data.error).toContain("not available");
     });
   });
 

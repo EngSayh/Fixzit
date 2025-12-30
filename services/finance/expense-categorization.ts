@@ -234,7 +234,7 @@ const CATEGORY_KEYWORDS: Record<ExpenseCategory, string[]> = {
 export async function createExpense(
   data: Omit<ExpenseRecord, "_id" | "category" | "subcategory" | "confidence" | "confidenceLevel" |
     "aiCategorized" | "manualOverride" | "status" | "createdAt" | "updatedAt">,
-  autoApprove: boolean = true
+  autoApprove: boolean = false
 ): Promise<{ success: boolean; expenseId?: string; category?: ExpenseCategory; error?: string }> {
   try {
     const db = await getDatabase();
@@ -285,8 +285,12 @@ export async function createExpense(
       expenseId: result.insertedId.toString(),
       category: categorization.category,
     };
-  } catch (_error) {
-    logger.error("Failed to create expense", { component: "expense-categorization" });
+  } catch (error) {
+    logger.error("Failed to create expense", { 
+      component: "expense-categorization",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to create expense" };
   }
 }
@@ -422,8 +426,12 @@ export async function overrideCategory(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to override category", { component: "expense-categorization" });
+  } catch (error) {
+    logger.error("Failed to override category", { 
+      component: "expense-categorization",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to override category" };
   }
 }
@@ -507,8 +515,11 @@ async function learnFromCorrection(
       
       await db.collection(RULES_COLLECTION).insertOne(newRule);
     }
-  } catch (_error) {
-    logger.error("Failed to learn from correction", { component: "expense-categorization" });
+  } catch (error) {
+    logger.error("Failed to learn from correction", { 
+      component: "expense-categorization",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 }
 
@@ -534,8 +545,8 @@ async function findDuplicate(
     const threeDaysAfter = new Date(date);
     threeDaysAfter.setDate(threeDaysAfter.getDate() + 3);
     
-    // Escape regex special characters and truncate for safety
-    const vendorPrefix = vendorName.substring(0, 5).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Escape regex special characters and use longer prefix for accuracy
+    const vendorPrefix = vendorName.substring(0, 10).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const similar = await db.collection(EXPENSES_COLLECTION).findOne({
       orgId,
       amountSAR: amount,
@@ -552,8 +563,14 @@ async function findDuplicate(
     }
     
     return null;
-  } catch (_error) {
-    return null;
+  } catch (error) {
+    logger.error("Failed to find duplicate expense", {
+      component: "expense-categorization",
+      error: error instanceof Error ? error.message : "Unknown error",
+      orgId,
+    });
+    // Rethrow to let caller handle DB errors
+    throw error;
   }
 }
 
@@ -614,9 +631,13 @@ export async function getSpendingByCategory(
       percentOfTotal: grandTotal > 0 ? Math.round(((r.totalAmount as number) / grandTotal) * 100) : 0,
       monthlyTrend: [], // Would require additional query
     }));
-  } catch (_error) {
-    logger.error("Failed to get spending by category", { component: "expense-categorization" });
-    return [];
+  } catch (error) {
+    logger.error("Failed to get spending by category", { 
+      component: "expense-categorization",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    // Rethrow instead of returning empty array so callers can detect failure
+    throw error;
   }
 }
 
@@ -741,8 +762,11 @@ export async function generateSpendingInsights(
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
-  } catch (_error) {
-    logger.error("Failed to generate spending insights", { component: "expense-categorization" });
+  } catch (error) {
+    logger.error("Failed to generate spending insights", { 
+      component: "expense-categorization",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return [];
   }
 }

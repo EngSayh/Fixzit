@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
       type: reportType,
       format,
       dateRange,
-      notes,
+      notes: trimmedNotes,
       status: 'queued',
       createdBy: session.username,
       createdAt: new Date(),

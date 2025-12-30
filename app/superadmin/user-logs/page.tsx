@@ -262,7 +262,8 @@ export default function SuperadminUserLogsPage() {
           // Could redirect to login or show unauthorized state
           return; // Don't fall through to demo data on auth failures
         }
-        // Fall through to demo data for other errors
+        // Throw to trigger catch block for demo data fallback
+        throw new Error(`HTTP ${response.status}: ${errorText || "Failed to fetch sessions"}`);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
@@ -339,7 +340,8 @@ export default function SuperadminUserLogsPage() {
           // Could redirect to login or show unauthorized state
           return; // Don't fall through to demo data on auth failures
         }
-        // Fall through to demo data for other errors
+        // Throw to trigger catch block for demo data fallback
+        throw new Error(`HTTP ${response.status}: ${errorText || "Failed to fetch stats"}`);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors

@@ -584,10 +584,20 @@ export async function updateReportConfig(
       updateData.nextRun = nextRun;
     }
     
-    await db.collection(REPORT_CONFIGS_COLLECTION).updateOne(
+    // Validate configId format before query
+    if (!ObjectId.isValid(configId)) {
+      return { success: false, error: "Invalid config ID format" };
+    }
+    
+    const result = await db.collection(REPORT_CONFIGS_COLLECTION).updateOne(
       { _id: new ObjectId(configId), orgId },
       { $set: updateData }
     );
+    
+    // Check if document was found
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Report configuration not found" };
+    }
     
     return { success: true };
   } catch (error) {

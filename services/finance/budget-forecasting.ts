@@ -942,11 +942,21 @@ function generateMonthlyBreakdown(
     temp.setMonth(temp.getMonth() + 1);
   }
   
-  // Even distribution
-  const monthlyAmount = months > 0 ? Math.round(totalBudget / months) : totalBudget;
+  if (months === 0) {
+    return breakdown;
+  }
+  
+  // Calculate base amount and remainder for exact distribution
+  const baseMonthly = Math.floor(totalBudget / months);
+  const remainder = totalBudget - (baseMonthly * months);
   
   const current = new Date(start);
+  let monthIndex = 0;
   while (current <= end) {
+    // Add remainder to the last month so total sums correctly
+    const isLastMonth = monthIndex === months - 1;
+    const monthlyAmount = isLastMonth ? baseMonthly + remainder : baseMonthly;
+    
     breakdown.push({
       month: current.getMonth() + 1,
       year: current.getFullYear(),
@@ -956,6 +966,7 @@ function generateMonthlyBreakdown(
       status: "on_track",
     });
     current.setMonth(current.getMonth() + 1);
+    monthIndex++;
   }
   
   return breakdown;

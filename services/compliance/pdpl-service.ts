@@ -253,6 +253,25 @@ export function getDsarSlaStatus(dsar: DsarRequest): {
   deadline: Date;
 } {
   const effectiveDeadline = dsar.extended_deadline ?? dsar.deadline;
+  
+  // Handle terminal statuses - completed/closed/denied DSARs are never overdue
+  const terminalStatuses = ["completed", "closed", "denied"];
+  if (terminalStatuses.includes(dsar.status)) {
+    // Use actual completion timestamp if available, otherwise current time
+    const dsarRecord = dsar as unknown as Record<string, unknown>;
+    const completedAt = (dsarRecord.completed_at as Date | undefined) 
+      ?? (dsarRecord.closed_at as Date | undefined) 
+      ?? new Date();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysRemaining = Math.max(0, Math.ceil((effectiveDeadline.getTime() - completedAt.getTime()) / msPerDay));
+    
+    return {
+      status: "on_track",
+      days_remaining: daysRemaining,
+      deadline: effectiveDeadline,
+    };
+  }
+  
   const now = new Date();
   const msPerDay = 24 * 60 * 60 * 1000;
   const daysRemaining = Math.ceil((effectiveDeadline.getTime() - now.getTime()) / msPerDay);

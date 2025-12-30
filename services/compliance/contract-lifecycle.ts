@@ -758,6 +758,11 @@ export async function requestApproval(
       return { success: false, error: "Contract not found" };
     }
     
+    // Validate contract is in the correct status for approval request
+    if (contract.status !== ContractStatus.PENDING_REVIEW) {
+      return { success: false, error: "Contract not in review state" };
+    }
+    
     const approval: WorkflowApproval = {
       approverId,
       approverName,
@@ -1166,6 +1171,7 @@ export async function terminateContract(
     }
     
     // Atomic update: set termination fields and status in single operation
+    // Include expected status in filter to prevent race condition
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOp: any = {
       $set: {
@@ -1184,10 +1190,15 @@ export async function terminateContract(
       },
     };
     
-    await db.collection(CONTRACTS_COLLECTION).updateOne(
-      { _id: new ObjectId(contractId), orgId },
+    const result = await db.collection(CONTRACTS_COLLECTION).updateOne(
+      { _id: new ObjectId(contractId), orgId, status: ContractStatus.ACTIVE },
       updateOp
     );
+    
+    // Check if update succeeded (status may have changed concurrently)
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Contract status changed concurrently - termination aborted" };
+    }
     
     logger.info("Contract terminated", {
       component: "contract-lifecycle",

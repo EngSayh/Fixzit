@@ -250,7 +250,7 @@ export default function SuperadminFMDashboardPage() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {analytics?.anomalies?.items?.filter(i => i.severity === "high" || i.severity === "critical").length ?? 0} high severity
+            {(analytics?.anomalies?.items ?? []).filter(i => i.severity === "high" || i.severity === "critical").length} high severity
           </p>
         </div>
 

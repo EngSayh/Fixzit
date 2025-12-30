@@ -514,58 +514,50 @@ export async function deactivateKillSwitch(
   const db = await getDatabase();
   const timestamp = new Date();
   
-  // Validate tenant ownership: caller must either be superadmin (no callerTenantId) 
-  // or must belong to the same tenant as the kill switch event
-  if (callerTenantId && event.tenant_id.toString() !== callerTenantId) {
-    throw new Error(`Access denied: Cannot deactivate kill switch for different tenant`);
-  }
-  
-  // Validate the kill switch is currently active (not already deactivated)
-  if (event.deactivated_at) {
-    throw new Error(`Kill switch event ${event._id.toString()} is already deactivated`);
-  }
-  
-  const updatedEvent: KillSwitchEvent = {
-    ...event,
-    deactivated_at: timestamp,
-    deactivated_by: deactivatedBy,
-    audit_trail: [
-      ...event.audit_trail,
-      {
-        timestamp,
-        action: "kill_switch_deactivated",
-        actor_id: deactivatedBy,
-        details: notes ?? "Kill switch deactivated",
-      },
-    ],
+  // Use atomic findOneAndUpdate with conditional filter to prevent races
+  // Filter ensures: event exists, not already deactivated, and caller has access
+  const filter: Record<string, unknown> = {
+    _id: event._id,
+    deactivated_at: { $exists: false },
   };
   
-  // Use transaction to ensure atomicity of kill switch deactivation
+  // Add tenant ownership check if callerTenantId is provided
+  if (callerTenantId) {
+    filter.tenant_id = new ObjectId(callerTenantId);
+  }
+  
+  const updateResult = await db.collection("kill_switch_events").findOneAndUpdate(
+    filter,
+    {
+      $set: {
+        deactivated_at: timestamp,
+        deactivated_by: deactivatedBy,
+      },
+      $push: {
+        audit_trail: {
+          timestamp,
+          action: "kill_switch_deactivated",
+          actor_id: deactivatedBy,
+          details: notes ?? "Kill switch deactivated",
+        },
+      },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+    { returnDocument: "after" }
+  );
+  
+  if (!updateResult) {
+    // Either not found, already deactivated, or access denied
+    if (callerTenantId && event.tenant_id.toString() !== callerTenantId) {
+      throw new Error(`Access denied: Cannot deactivate kill switch for different tenant`);
+    }
+    throw new Error(`Kill switch event ${event._id.toString()} is already deactivated or not found`);
+  }
+  
+  // Restore tenant status in a transaction
   const session = await mongoose.connection.getClient().startSession();
   try {
     await session.withTransaction(async () => {
-      // Persist deactivation to database
-      await db.collection("kill_switch_events").updateOne(
-        { _id: event._id },
-        {
-          $set: {
-            deactivated_at: timestamp,
-            deactivated_by: deactivatedBy,
-          },
-          $push: {
-            audit_trail: {
-              timestamp,
-              action: "kill_switch_deactivated",
-              actor_id: deactivatedBy,
-              details: notes ?? "Kill switch deactivated",
-            },
-          },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any,
-        { session }
-      );
-      
-      // Restore tenant status
       await db.collection("organizations").updateOne(
         { _id: event.tenant_id },
         {
@@ -591,7 +583,7 @@ export async function deactivateKillSwitch(
     duration_minutes: Math.round((timestamp.getTime() - event.activated_at.getTime()) / 60000),
   });
   
-  return updatedEvent;
+  return updateResult as unknown as KillSwitchEvent;
 }
 
 function getDefaultBlockedFeatures(action: KillSwitchAction): string[] {

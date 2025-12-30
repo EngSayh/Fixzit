@@ -482,11 +482,28 @@ async function checkIPReputation(
   orgId: string,
   ipAddress: string
 ): Promise<DetectionResult> {
-  // Check our blocklist
+  // Check our blocklist - respect expiresAt for non-permanent blocks
+  const now = new Date();
   const blocked = await db.collection("blocked_ips").findOne({
     $or: [
-      { orgId, ipAddress },
-      { orgId: "*", ipAddress }, // Global blocklist
+      { 
+        orgId, 
+        ipAddress,
+        $or: [
+          { expiresAt: null },
+          { expiresAt: { $exists: false } },
+          { expiresAt: { $gt: now } }
+        ]
+      },
+      { 
+        orgId: "*", 
+        ipAddress,
+        $or: [
+          { expiresAt: null },
+          { expiresAt: { $exists: false } },
+          { expiresAt: { $gt: now } }
+        ]
+      }, // Global blocklist
     ],
   });
   

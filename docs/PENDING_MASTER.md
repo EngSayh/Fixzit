@@ -1,3 +1,20 @@
+<!-- 
+  PENDING_MASTER.md - DERIVED SNAPSHOT (DO NOT EDIT MANUALLY)
+  ============================================================
+  Authority: MongoDB Issue Tracker (SSOT)
+  Sync: This file is auto-generated/updated by agent workflows
+  Last-Sync: 2025-12-30T18:30:00+03:00
+  
+  IMPORTANT: Manual edits to this file are forbidden.
+  To update issues, modify the MongoDB Issue Tracker directly.
+  
+  Links:
+  - SSOT: MongoDB Atlas issue-tracker collection
+  - Protocol: See docs/AGENTS.md for agent token and sync procedures
+  
+  Discrepancies: Contact platform team or open issue in GitHub Issues
+-->
+
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---

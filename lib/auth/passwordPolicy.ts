@@ -551,9 +551,19 @@ export async function recordFailedAttempt(
       return { shouldLock: false, attemptCount: incrementResult.count || 1 };
     }
     
-    // Increment didn't match - we're at or above threshold
-    // Get current count and lock
+    // Increment didn't match - re-query to get current state
+    // Another concurrent request may have already locked the account
     const current = await db.collection("login_attempts").findOne({ orgId, userId });
+    
+    // Check if account is already locked (may have been locked by concurrent request)
+    const alreadyLocked = await db.collection("account_lockouts").findOne({ orgId, userId });
+    
+    if (alreadyLocked) {
+      // Account was locked by concurrent request - report threshold reached
+      return { shouldLock: true, attemptCount: policy.maxFailedAttempts };
+    }
+    
+    // Derive attempt count from current state
     const attemptCount = (current?.count ?? 0) + 1;
     
     // Lock account and reset counter
