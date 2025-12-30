@@ -323,6 +323,7 @@ async function importBacklog() {
   }
 
   const backlogData = JSON.parse(fs.readFileSync(backlogPath, 'utf-8'));
+  const totalIssues = Array.isArray(backlogData.issues) ? backlogData.issues.length : 0;
 
   console.log('📦 Importing BACKLOG_AUDIT.json directly to MongoDB...');
   console.log(`   Total issues: ${backlogData.counts.total}`);
@@ -357,7 +358,14 @@ async function importBacklog() {
   const issueIds: string[] = [];
   const startTime = new Date().toISOString();
 
+  let processed = 0;
   for (const raw of backlogData.issues as IssueImport[]) {
+    processed += 1;
+    if (!isVerbose && logEvery > 0 && processed % logEvery === 0) {
+      console.log(
+        `[progress] ${processed}/${totalIssues} processed (created=${summary.created} updated=${summary.updated} skipped=${summary.skipped} errors=${summary.errors.length})`
+      );
+    }
     try {
       const normalizedExternalId = resolveExternalId(raw);
       if (shouldSkipImport(raw, normalizedExternalId)) {
@@ -377,18 +385,27 @@ async function importBacklog() {
       const normalizedAction =
         rawAction && !isPlaceholderTitle(rawAction) ? rawAction : `Fix: ${normalizedTitle}`;
 
-      const key = normalizedExternalId?.trim() || raw.key?.trim() || slugify(normalizedTitle);
-      if (!key) {
+      const candidateKey = normalizedExternalId?.trim() || raw.key?.trim() || slugify(normalizedTitle);
+      if (!candidateKey) {
         summary.errors.push(`Invalid key: ${raw.key || raw.title}`);
         summary.skipped++;
         continue;
       }
-      const existing = await Issue.findOne({ orgId: SUPER_ADMIN_ORG, key });
+      const lookupConditions = [{ key: candidateKey }];
+      if (normalizedExternalId) {
+        const lowerExternal = normalizedExternalId.toLowerCase();
+        lookupConditions.push({ key: lowerExternal });
+        lookupConditions.push({ issueId: normalizedExternalId });
+        lookupConditions.push({ issueId: lowerExternal });
+        lookupConditions.push({ externalId: normalizedExternalId });
+      }
+      const existing = await Issue.findOne({ orgId: SUPER_ADMIN_ORG, $or: lookupConditions });
+      const key = existing?.key || candidateKey;
       const issueId =
-        normalizedExternalId ||
         existing?.issueId ||
+        normalizedExternalId ||
         (await Issue.generateIssueId(normalizedCategory as any));
-      const externalId = normalizedExternalId || raw.externalId || undefined;
+      const externalId = normalizedExternalId || existing?.externalId || raw.externalId || undefined;
 
       const locationObj =
         typeof raw.location === 'string' ? { filePath: raw.location } : raw.location;
@@ -465,7 +482,9 @@ async function importBacklog() {
           });
 
           summary.updated++;
-          console.log(`✓ Updated: ${key}`);
+          if (isVerbose) {
+            console.log(`✓ Updated: ${key}`);
+          }
         } else {
           try {
             const newIssue = await Issue.create(issueData);
@@ -484,7 +503,9 @@ async function importBacklog() {
             });
 
             summary.created++;
-            console.log(`+ Created: ${key}`);
+            if (isVerbose) {
+              console.log(`+ Created: ${key}`);
+            }
           } catch (createError) {
             // Handle duplicate key error (E11000) by merging into existing issue
             const errMsg = createError instanceof Error ? createError.message : String(createError);
@@ -508,7 +529,9 @@ async function importBacklog() {
                   }
                 );
                 summary.updated++;
-                console.log(`⇄ Merged: ${key} into ${existingByIssueId.key} (${issueId})`);
+                if (isVerbose) {
+                  console.log(`⇄ Merged: ${key} into ${existingByIssueId.key} (${issueId})`);
+                }
               } else {
                 throw createError;
               }
@@ -520,10 +543,14 @@ async function importBacklog() {
       } else {
         if (existing) {
           summary.updated++;
-          console.log(`[DRY-RUN] Would update: ${key}`);
+          if (isVerbose) {
+            console.log(`[DRY-RUN] Would update: ${key}`);
+          }
         } else {
           summary.created++;
-          console.log(`[DRY-RUN] Would create: ${key}`);
+          if (isVerbose) {
+            console.log(`[DRY-RUN] Would create: ${key}`);
+          }
         }
       }
 
@@ -584,3 +611,4 @@ importBacklog().catch((err) => {
   console.error('❌ Import failed:', err);
   process.exit(1);
 });
+

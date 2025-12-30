@@ -46,6 +46,8 @@ function matchesOrgFilter(targetOrgId: string, query: Record<string, unknown>): 
   return true;
 }
 
+const bulkWriteMock = vi.hoisted(() => vi.fn());
+
 vi.mock("@/server/models/souq/Listing", () => ({
   SouqListing: {
     findOne: vi.fn(async (query: Record<string, unknown>) => {
@@ -55,6 +57,19 @@ vi.mock("@/server/models/souq/Listing", () => ({
           matchesOrgFilter(l.orgId, query),
       ) || null;
     }),
+    find: vi.fn((query: Record<string, unknown>) => ({
+      select: vi.fn().mockReturnThis(),
+      lean: vi.fn(async () => {
+        const listingIds =
+          (query.listingId as { $in?: string[] })?.$in || [];
+        return listings.filter(
+          (listing) =>
+            listingIds.includes(listing.listingId) &&
+            matchesOrgFilter(listing.orgId, query),
+        );
+      }),
+    })),
+    bulkWrite: (...args: unknown[]) => bulkWriteMock(...args),
   },
 }));
 
@@ -67,6 +82,18 @@ vi.mock("@/server/models/souq/Inventory", () => ({
           matchesOrgFilter(inv.orgId, query),
       ) || null;
     }),
+    find: vi.fn((query: Record<string, unknown>) => ({
+      select: vi.fn().mockReturnThis(),
+      lean: vi.fn(async () => {
+        const listingIds =
+          (query.listingId as { $in?: string[] })?.$in || [];
+        return inventories.filter(
+          (inventory) =>
+            listingIds.includes(inventory.listingId) &&
+            matchesOrgFilter(inventory.orgId, query),
+        );
+      }),
+    })),
   },
 }));
 
@@ -77,6 +104,15 @@ describe("fulfillmentService.assignFastBadge", () => {
     listings.length = 0;
     inventories.length = 0;
     vi.clearAllMocks();
+    bulkWriteMock.mockImplementation(async (ops: Array<{ updateOne: { filter: { listingId: string }; update: { $set: { badges: string[] } } } }>) => {
+      for (const op of ops) {
+        const target = listings.find((listing) => listing.listingId === op.updateOne.filter.listingId);
+        if (target) {
+          target.badges = op.updateOne.update.$set.badges;
+        }
+      }
+      return { modifiedCount: ops.length };
+    });
   });
 
   it("rejects when orgId is missing", async () => {
@@ -101,5 +137,33 @@ describe("fulfillmentService.assignFastBadge", () => {
     expect(result).toBe(true);
     expect(listings[0].badges).toContain("fast");
     expect(save).toHaveBeenCalled();
+  });
+});
+
+describe("fulfillmentService.assignFastBadges", () => {
+  beforeEach(() => {
+    listings.length = 0;
+    inventories.length = 0;
+    vi.clearAllMocks();
+  });
+
+  it("returns zero counts when orgId is missing", async () => {
+    const result = await fulfillmentService.assignFastBadges(["L1"], "" as unknown as string);
+    expect(result).toEqual({ eligible: 0, updated: 0 });
+  });
+
+  it("bulk-assigns fast badges within org scope", async () => {
+    listings.push({ listingId: "L1", orgId: "org-1", badges: [], save: vi.fn(async () => undefined) });
+    listings.push({ listingId: "L2", orgId: "org-1", badges: ["fast"], save: vi.fn(async () => undefined) });
+    inventories.push({ listingId: "L1", orgId: "org-1", fulfillmentType: "FBF", availableQuantity: 10 });
+    inventories.push({ listingId: "L2", orgId: "org-1", fulfillmentType: "FBM", availableQuantity: 2 });
+
+    const result = await fulfillmentService.assignFastBadges(["L1", "L2"], "org-1");
+
+    expect(result.eligible).toBe(1);
+    expect(result.updated).toBe(1);
+    expect(listings[0].badges).toContain("fast");
+    expect(listings[1].badges).not.toContain("fast");
+    expect(bulkWriteMock).toHaveBeenCalled();
   });
 });
