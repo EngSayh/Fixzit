@@ -14,34 +14,69 @@
  * - Plugin integration (tenant isolation, audit)
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import {
   setTenantContext,
   clearTenantContext,
 } from "@/server/plugins/tenantIsolation";
 
 let Property: mongoose.Model<any>;
+let localMongoServer: MongoMemoryServer | null = null;
 
 /**
  * Wait for mongoose connection to be ready (max 30s).
+ * If not connected after timeout, attempts to start a local MongoMemoryServer.
  */
-async function waitForMongoConnection(maxWaitMs = 30000): Promise<void> {
+async function ensureMongoConnection(maxWaitMs = 10000): Promise<void> {
   const start = Date.now();
-  while (mongoose.connection.readyState !== 1) {
-    if (Date.now() - start > maxWaitMs) {
-      throw new Error(
-        `Mongoose not connected after ${maxWaitMs}ms - readyState: ${mongoose.connection.readyState}`
-      );
-    }
+  
+  // First, wait for global setup to potentially connect
+  while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWaitMs) {
     await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  
+  // If still not connected, start our own MongoMemoryServer
+  if (mongoose.connection.readyState !== 1) {
+    if (!localMongoServer) {
+      localMongoServer = await MongoMemoryServer.create({
+        instance: {
+          dbName: "fixzit-test-property",
+          launchTimeout: 60000,
+        },
+      });
+      const uri = localMongoServer.getUri();
+      await mongoose.connect(uri, {
+        autoCreate: true,
+        autoIndex: true,
+      });
+    }
+  }
+  
+  // Final check
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error(
+      `Mongoose not connected - readyState: ${mongoose.connection.readyState}`
+    );
   }
 }
 
+beforeAll(async () => {
+  await ensureMongoConnection();
+});
+
+afterAll(async () => {
+  // Cleanup local MongoMemoryServer if we started one
+  if (localMongoServer) {
+    await mongoose.disconnect();
+    await localMongoServer.stop();
+    localMongoServer = null;
+  }
+});
+
 beforeEach(async () => {
-  // Wait for mongoose connection from vitest.setup.ts beforeAll
-  await waitForMongoConnection();
-  
+  // Connection is ensured by beforeAll
   clearTenantContext();
 
   // Clear module cache to force fresh import
