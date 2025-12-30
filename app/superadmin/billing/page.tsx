@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Billing & Plans Management
- * Real billing management using /api/admin/billing/*
+ * Real billing management using /api/superadmin/billing/*
  * 
  * @module app/superadmin/billing/page
  */
@@ -62,7 +62,7 @@ export default function SuperadminBillingPage() {
 
   const fetchPriceBooks = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/billing/pricebooks", { credentials: "include" });
+      const response = await fetch("/api/superadmin/billing/pricebooks", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setPriceBooks(Array.isArray(data) ? data : data.pricebooks || []);
@@ -74,7 +74,7 @@ export default function SuperadminBillingPage() {
 
   const fetchBenchmarks = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/billing/benchmark", { credentials: "include" });
+      const response = await fetch("/api/superadmin/billing/benchmark", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setBenchmarks(Array.isArray(data) ? data : data.benchmarks || []);
@@ -86,7 +86,7 @@ export default function SuperadminBillingPage() {
 
   const fetchAnnualDiscount = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/billing/annual-discount", { credentials: "include" });
+      const response = await fetch("/api/superadmin/billing/annual-discount", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setAnnualDiscount(data);
