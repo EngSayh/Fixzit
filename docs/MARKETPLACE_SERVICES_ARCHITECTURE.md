@@ -48,6 +48,43 @@ This document clarifies the distinction between **Marketplace (Souq)** and **FM 
 - **Marketplace**: Vendors sell to resellers/distributors who then sell to end consumers
 - **FM Services**: Service providers can serve organizations and end consumers through reseller partnerships
 
+#### B2B2C Data Model Details
+1. **Reseller/Distributor Modeling**: Resellers are modeled as separate Vendor entities with a `distributorFor` relationship field linking them to upstream vendors.
+2. **Pricing Cascade**: 
+   - Base vendor sets wholesale price in `pricing.wholesale`
+   - Distributor sets their consumer price (includes their margin)
+   - Price provenance tracked via `priceSource: { vendorId, wholesalePrice, markup }` on orders
+3. **Service Model B2B2C**: Yes, services support B2B2C flows via:
+   - `providedBy` (original service provider vendor)
+   - `resellerVendorId` (distributor offering the service)
+   - Billing splits defined in `billingResponsibilities` field
+
+## Data Validation & Enforcement Rules
+
+### businessModel Enforcement
+- **Location**: API layer (route validation) + Service layer (order validation)
+- **Rule**: If `product.businessModel === 'B2B'`, reject B2C orders at order creation
+- **Error**: `{ code: 'FIXZIT-ORDER-001', message: 'Product only available for business customers' }`
+- **UI**: Hide B2B-only products from consumer search results
+
+### businessCapabilities Enforcement
+- **Location**: Service layer (search filtering + order validation)
+- **Rule**: If `vendor.businessCapabilities.sellsToBusinesses === false`, exclude from B2B search results
+- **Order Validation**: Reject B2B orders against non-B2B vendors
+- **Error**: `{ code: 'FIXZIT-VENDOR-001', message: 'Vendor does not serve business customers' }`
+
+### Wholesale Pricing Constraints
+- **Location**: Schema validation (Mongoose) + API layer
+- **Rule**: When `pricing.wholesale` is present, require `pricing.minWholesaleQty > 1`
+- **DB Constraint**: Mongoose schema validator ensures `minWholesaleQty >= 2` when wholesale exists
+- **Error**: `{ code: 'FIXZIT-PRICE-001', message: 'Minimum wholesale quantity must be greater than 1' }`
+
+### allowedCustomerTypes Validation
+- **Location**: Order service layer
+- **Rule**: `order.customerType` must be in `product.allowedCustomerTypes`
+- **Error**: `{ code: 'FIXZIT-ORDER-002', message: 'Customer type not allowed for this product' }`
+- **Fallback**: If `allowedCustomerTypes` is empty/undefined, allow all types (backwards compatibility)
+
 ## Required Changes
 
 ### 1. Product Model Enhancement
@@ -130,6 +167,26 @@ interface Service {
 3. Add C2C marketplace toggle
 
 ## Implementation Priority
+
+### Pre-Implementation (P0) - Required Before Schema Changes
+
+| Task | Description | Owner |
+|------|-------------|-------|
+| **Data Migration Plan** | Backfill `businessModel`, `businessCapabilities`, `verificationLevel` for existing records | DBA/DevOps |
+| - Source of Truth | Existing products default to `B2C`, vendors default to `sellsToConsumers: true` | - |
+| - Migration Script | `scripts/migrate-marketplace-schema.ts` with dry-run mode | - |
+| - Rollback Strategy | Schema fields are additive; rollback = ignore new fields in app layer | - |
+| - Estimated Downtime | None (online migration with feature flag) | - |
+| **Backwards Compatibility** | Existing B2C-only products/vendors behavior post-schema change | Backend |
+| - Default Values | Products without `businessModel` default to `B2C` in queries | - |
+| - Feature Flags | `ENABLE_B2B_MARKETPLACE`, `ENABLE_C2C_MARKETPLACE` (default: off) | - |
+| - UI Fallbacks | Show "Consumer" badge if `businessModel` undefined | - |
+| **Validation/Error Handling** | Schema defaults and monitoring | Backend |
+| - Schema Defaults | Mongoose schema sets `businessModel: 'B2C'` as default | - |
+| - Validation Rules | See "Data Validation & Enforcement Rules" section above | - |
+| - Monitoring/Alerting | Add Sentry alerts for validation errors on new fields | - |
+
+### Feature Implementation
 
 | Priority | Task | Module |
 |----------|------|--------|

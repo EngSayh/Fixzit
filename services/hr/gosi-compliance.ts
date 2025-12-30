@@ -414,8 +414,8 @@ export async function updateEmployeeWage(
     
     const totalGosiWage = calculateGosiWage(basicSalary, housingAllowance);
     // Use registrationDate for accurate contribution calculation (new post-July-3-2024 rates)
-    const registrationDate = employee.registrationDate || null;
-    const contribution = calculateContribution(totalGosiWage, registrationDate);
+    const registrationDate = employee.registrationDate ?? undefined;
+    const contribution = calculateContribution(totalGosiWage, { registrationDate });
     
     const result = await db.collection(GOSI_EMPLOYEES_COLLECTION).updateOne(
       { _id: new ObjectId(employeeId), orgId },

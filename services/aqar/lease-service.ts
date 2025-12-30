@@ -169,6 +169,8 @@ export interface CreateLeaseRequest {
   terms?: Partial<LeaseDocument["terms"]>;
   autoRenew?: boolean;
   createdBy: string;
+  /** Exclude this lease from overlap check (used during renewals) */
+  excludeLeaseId?: string;
 }
 
 /**
@@ -265,13 +267,21 @@ export async function createLease(
       return { success: false, error: "Invalid unit ID format" };
     }
     
-    const overlapping = await db.collection("leases").findOne({
+    // Build overlap check query, excluding the specified lease (used during renewals)
+    const overlapQuery: Record<string, unknown> = {
       orgId: request.orgId,
       unitId: request.unitId, // Use string - leases store unitId as string
       status: { $in: [LeaseStatus.ACTIVE, LeaseStatus.PENDING_APPROVAL] },
       startDate: { $lte: request.endDate },
       endDate: { $gte: request.startDate },
-    }, sessionOpts);
+    };
+    
+    // Exclude the current lease when doing renewals to prevent false positive overlap
+    if (request.excludeLeaseId && ObjectId.isValid(request.excludeLeaseId)) {
+      overlapQuery._id = { $ne: new ObjectId(request.excludeLeaseId) };
+    }
+    
+    const overlapping = await db.collection("leases").findOne(overlapQuery, sessionOpts);
     
     if (overlapping) {
       return { success: false, error: "Overlapping lease exists for this unit" };
@@ -484,6 +494,7 @@ export async function renewLease(
         const newStartDate = leaseEndDate.getTime() < now.getTime() ? now : leaseEndDate;
         
         // Create new lease FIRST to ensure tenant always has valid lease
+        // Exclude current lease from overlap check since it will be marked as RENEWED
         const createResult = await createLease({
           orgId,
           propertyId: currentLease.propertyId,
@@ -498,6 +509,7 @@ export async function renewLease(
           terms: currentLease.terms,
           autoRenew: currentLease.autoRenew,
           createdBy: renewedBy,
+          excludeLeaseId: leaseId, // Exclude current lease from overlap check
         }, session); // Pass session for transactional insert
         
         if (!createResult.success) {

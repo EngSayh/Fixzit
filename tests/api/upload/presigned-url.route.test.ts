@@ -113,7 +113,8 @@ vi.mock("@/lib/api/parse-body", () => ({
 
 import { POST } from "@/app/api/upload/presigned-url/route";
 
-describe("API /api/upload/presigned-url", () => {
+// Use sequential to prevent race conditions from module-level mutable state (rateLimitAllowed, s3Configured)
+describe.sequential("API /api/upload/presigned-url", () => {
   beforeEach(() => {
     rateLimitAllowed = true;
     s3Configured = true;

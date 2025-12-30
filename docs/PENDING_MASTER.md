@@ -1,6 +1,117 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-30 16:45 (Asia/Riyadh) - Service Layer & Docs Fixes [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** FIX-GOSI-001, FIX-TENANT-002, FIX-LEASE-003, DOC-MARKETPLACE-004, TEST-UPLOAD-005
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | (pending commit) | (no PR yet)
+**DB Sync:** pending (retroactive entry per AGENTS.md remediation)
+
+---
+#### MULTI-ROLE VALIDATION RECORD (MRDR)
+**Issue Type:** Bug Fix (API) + Refactor/Tech Debt + Documentation
+**Required Gates:** 4.2.1, 4.2.2, 4.2.4, 4.2.5, 4.2.8, 4.2.14
+
+---
+
+### PM Gate Analysis (4.2.1)
+- **User Story:** As a developer, I need service layer bugs fixed so that GOSI calculations, tenant lifecycle, and lease renewals work correctly
+- **Acceptance Criteria:**
+  1. GOSI `calculateContribution` receives proper options object
+  2. Tenant lifecycle preview expiration persisted to DB
+  3. Pre-restore backup awaited with error handling
+  4. Lease renewal excludes current lease from overlap check
+  5. Marketplace docs include B2B2C model and validation rules
+  6. Upload tests run sequentially to prevent race conditions
+- **Roadmap Phase:** MVP (bug fixes)
+- **Roles Affected:** HR (GOSI), Superadmin (tenant lifecycle), Aqar (leases)
+- **Golden Workflow:** Yes - lease renewal flow
+- **Release Blockers:** None
+- **Ops/Support Impact:** None
+
+### BA Gate Analysis (4.2.2)
+- **Operational Process:**
+  - GOSI: Monthly contribution calculation for Saudi employees
+  - Tenant lifecycle: Superadmin time-travel and ghost mode
+  - Lease: Property lease creation and renewal
+- **State Machine:**
+  - Lease renewal: `active` → `renewLease()` → `active` (new term)
+  - Preview: `preview_active` → expire → `preview_expired` (now persisted)
+- **Permissions Required:** HR admin (GOSI), Superadmin (tenant), Aqar admin (lease)
+- **Data Fields Affected:**
+  - `TimeTravelRequest.approved_by` (new optional field)
+  - `CreateLeaseRequest.excludeLeaseId` (new optional field)
+- **Edge Cases Considered:**
+  1. Lease renewal overlap - now excludes current lease
+  2. Pre-restore backup failure - now aborts restore
+  3. Preview expiration without DB update - now persisted
+- **UAT Scenario:** Renew existing lease → verify no false overlap error
+
+### Tech Lead Gate Analysis (4.2.4)
+- **Modules Affected:** HR (gosi-compliance), Superadmin (tenant-lifecycle), Aqar (lease-service)
+- **Boundary Violations:** None - fixes within existing module boundaries
+- **API Changes:** None (internal logic only)
+- **Multi-Tenancy:**
+  - org_id scoping: maintained
+  - RBAC: maintained
+- **Tech Debt Impact:** Reduces (fixes 5 code quality issues)
+- **Observability:**
+  ✅ Error logging added to pre-restore backup
+  ✅ Preview expiration now traceable via DB
+
+### Backend Engineer Gate Analysis (4.2.5)
+- **Query Safety:**
+  ✅ lease-service overlap query uses `$ne` for excludeLeaseId
+  ✅ ObjectId validation before query construction
+- **Data Isolation:** Maintained (org_id scoping unchanged)
+- **Race Condition Handling:**
+  ✅ Pre-restore backup now awaited (was fire-and-forget)
+  ✅ presigned-url tests now sequential
+- **Input Validation:**
+  ✅ excludeLeaseId validated via `ObjectId.isValid()`
+- **Type Safety:**
+  ✅ calculateContribution now receives `{ registrationDate }` object
+  ✅ TimeTravelRequest interface updated with `approved_by`
+
+### QA Lead Gate Analysis (4.2.8)
+- **Test Coverage:**
+  ✅ presigned-url.route.test.ts: Added `.sequential()` for module-level mutable state
+- **Regression Testing:**
+  ✅ pnpm typecheck: 0 errors
+  ✅ pnpm lint: 0 errors
+- **Edge Cases:**
+  ✅ Lease renewal overlap false positive fixed
+  ✅ Backup failure handling added
+
+### Developer Task Breakdown (4.2.14)
+| Task ID | File | Change | Status |
+|---------|------|--------|--------|
+| FIX-GOSI-001 | services/hr/gosi-compliance.ts | Pass `{ registrationDate }` to calculateContribution | ✅ Done |
+| FIX-TENANT-002 | services/superadmin/tenant-lifecycle.ts | Add approved_by, persist preview expiration, await backup | ✅ Done |
+| FIX-LEASE-003 | services/aqar/lease-service.ts | Add excludeLeaseId param for renewal overlap exclusion | ✅ Done |
+| DOC-MARKETPLACE-004 | docs/MARKETPLACE_SERVICES_ARCHITECTURE.md | Add B2B2C model, validation rules, pre-implementation tasks | ✅ Done |
+| TEST-UPLOAD-005 | tests/api/upload/presigned-url.route.test.ts | Add .sequential() to prevent race conditions | ✅ Done |
+
+---
+
+**Files Modified (5 total):**
+- services/hr/gosi-compliance.ts (+2/-2)
+- services/superadmin/tenant-lifecycle.ts (+38/-12)
+- services/aqar/lease-service.ts (+14/-2)
+- docs/MARKETPLACE_SERVICES_ARCHITECTURE.md (+57)
+- tests/api/upload/presigned-url.route.test.ts (+2/-1)
+
+**Verification Evidence:**
+- pnpm typecheck: 0 errors
+- pnpm lint: 0 errors
+- Commit: (pending)
+
+**Next Steps:**
+- Commit with proper Agent Token format
+- Push to branch
+- Create PR for review
+
+---
 ### 2025-12-30 07:54 (Asia/Riyadh) - Code Quality Fixes [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Key:** CODE-QUALITY-2025-12-30

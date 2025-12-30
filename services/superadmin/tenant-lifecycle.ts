@@ -170,6 +170,9 @@ export interface TimeTravelRequest {
   changes_detected: number;
   rollback_snapshot_id?: ObjectId;
   
+  /** Approval tracking */
+  approved_by?: ObjectId;
+  
   /** Timestamps */
   requested_at: Date;
   requested_by: ObjectId;
@@ -351,21 +354,40 @@ export async function restoreFromSnapshot(
     mode: restoreJob.restore_mode,
   });
   
-  // In production, create backup first if requested (queued as background job)
+  // If pre-restore backup is requested, await it to ensure it succeeds before proceeding
   if (options.create_backup_first) {
-    // Queue pre-restore backup as background job - don't await to avoid blocking
-    // The snapshot is created with status: "pending" and will be processed async
-    createSnapshot(tenantId, initiatedBy, {
-      name: `Pre-restore backup (${new Date().toISOString()})`,
-      type: "pre_migration",
-      expires_in_days: 30,
-    }).catch(err => {
-      logger.error("Failed to queue pre-restore backup", {
+    try {
+      const preRestoreSnapshot = await createSnapshot(tenantId, initiatedBy, {
+        name: `Pre-restore backup (${new Date().toISOString()})`,
+        type: "pre_migration",
+        expires_in_days: 30,
+      });
+      
+      // Update restore job with pre-restore snapshot reference
+      await db.collection("restore_jobs").updateOne(
+        { _id: jobId },
+        { $set: { pre_restore_snapshot_id: preRestoreSnapshot._id } }
+      );
+      
+      logger.info("Pre-restore backup created", {
+        job_id: jobId.toString(),
+        snapshot_id: preRestoreSnapshot._id.toString(),
+      });
+    } catch (backupError) {
+      logger.error("Failed to create pre-restore backup - aborting restore", {
         job_id: jobId.toString(),
         tenant_id: tenantId.toString(),
-        error: err instanceof Error ? err.message : String(err),
+        error: backupError instanceof Error ? backupError.message : String(backupError),
       });
-    });
+      
+      // Update job status to failed
+      await db.collection("restore_jobs").updateOne(
+        { _id: jobId },
+        { $set: { status: "failed", error: "Pre-restore backup failed" } }
+      );
+      
+      throw new Error("Pre-restore backup failed - restore aborted");
+    }
   }
   
   // In production, queue restore job
@@ -677,6 +699,12 @@ export async function executeTimeTravel(
   if (request.preview_expires_at) {
     const expiresAt = new Date(request.preview_expires_at);
     if (expiresAt <= new Date()) {
+      // Persist the expired status to database
+      const db = await getDatabase();
+      await db.collection("time_travel_requests").updateOne(
+        { _id: request._id },
+        { $set: { status: "preview_expired", updatedAt: new Date() } }
+      );
       return {
         ...request,
         status: "preview_expired",
