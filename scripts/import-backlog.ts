@@ -508,8 +508,17 @@ async function importBacklog() {
             }
           } catch (createError) {
             // Handle duplicate key error (E11000) by merging into existing issue
-            const errMsg = createError instanceof Error ? createError.message : String(createError);
-            if (errMsg.includes('E11000') && errMsg.includes('issueId')) {
+            // Use error.code property for reliable detection, with string fallback
+            const mongoError = createError as { code?: number; keyPattern?: Record<string, number>; keyValue?: Record<string, unknown> };
+            const isDuplicateKeyError = mongoError.code === 11000 || String(mongoError.code) === '11000';
+            const isIssueIdDuplicate = isDuplicateKeyError && (
+              (mongoError.keyPattern && 'issueId' in mongoError.keyPattern) ||
+              (mongoError.keyValue && 'issueId' in mongoError.keyValue) ||
+              // Fallback to string check only if code/keyPattern are absent
+              (!mongoError.code && createError instanceof Error && createError.message.includes('E11000') && createError.message.includes('issueId'))
+            );
+
+            if (isIssueIdDuplicate) {
               // Find the existing issue by issueId and merge
               const existingByIssueId = await Issue.findOne({ issueId });
               if (existingByIssueId) {

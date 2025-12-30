@@ -28,8 +28,18 @@ const CreateFooterLinkSchema = z.object({
   sortOrder: z.number().default(0),
 });
 
+type FooterLinkSection = "company" | "support" | "legal" | "social";
+
 // Default footer links to seed if collection is empty
-const DEFAULT_FOOTER_LINKS = [
+const DEFAULT_FOOTER_LINKS: Array<{
+  label: string;
+  labelAr: string;
+  url: string;
+  section: FooterLinkSection;
+  sortOrder: number;
+  icon?: string;
+  isExternal?: boolean;
+}> = [
   { label: "About Us", labelAr: "من نحن", url: "/about", section: "company", sortOrder: 1 },
   { label: "Careers", labelAr: "الوظائف", url: "/careers", section: "company", sortOrder: 2 },
   { label: "Contact", labelAr: "اتصل بنا", url: "/contact", section: "company", sortOrder: 3 },
@@ -42,14 +52,23 @@ const DEFAULT_FOOTER_LINKS = [
 ];
 
 /**
- * Seed default footer links if collection is empty
+ * Seed default footer links if collection is empty.
+ * Uses atomic upserts to prevent race conditions under concurrent requests.
+ * SUPER_ADMIN: Platform-wide content (no tenant scope required)
  */
 async function seedDefaultLinksIfEmpty(): Promise<void> {
-  // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide content
-  const count = await FooterLink.countDocuments({});
-  if (count === 0) {
-    logger.info("[FooterLinks] Seeding default footer links");
-    await FooterLink.insertMany(DEFAULT_FOOTER_LINKS);
+  // Use bulkWrite with upserts keyed on (label, section, url) to ensure idempotent seeding
+  const bulkOps = DEFAULT_FOOTER_LINKS.map((link) => ({
+    updateOne: {
+      filter: { label: link.label, section: link.section, url: link.url },
+      update: { $setOnInsert: { ...link, createdAt: new Date(), updatedAt: new Date() } },
+      upsert: true,
+    },
+  }));
+
+  const result = await FooterLink.bulkWrite(bulkOps, { ordered: false });
+  if (result.upsertedCount > 0) {
+    logger.info("[FooterLinks] Seeded default footer links", { upserted: result.upsertedCount });
   }
 }
 

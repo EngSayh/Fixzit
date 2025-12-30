@@ -44,8 +44,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const priority = searchParams.get("priority");
     const ticketModule = searchParams.get("module");
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+
+    // Parse and validate pagination with NaN protection
+    const parsedPage = parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = parseInt(searchParams.get("limit") || "50", 10);
+    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, Math.floor(parsedPage));
+    const limit = Number.isNaN(parsedLimit) ? 50 : Math.min(100, Math.max(1, Math.floor(parsedLimit)));
     const skip = (page - 1) * limit;
 
     // Build query filter

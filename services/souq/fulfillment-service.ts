@@ -796,8 +796,9 @@ class FulfillmentService {
       }
     }
 
+    let modifiedCount = 0;
     if (updates.length > 0) {
-      await SouqListing.bulkWrite(
+      const bulkResult = await SouqListing.bulkWrite(
         updates.map((update) => ({
           updateOne: {
             filter: { listingId: update.listingId, ...orgFilter },
@@ -806,9 +807,10 @@ class FulfillmentService {
         })),
         { ordered: false },
       );
+      modifiedCount = bulkResult.modifiedCount;
     }
 
-    return { eligible, updated: eligible };
+    return { eligible, updated: modifiedCount };
   }
 
   /**
