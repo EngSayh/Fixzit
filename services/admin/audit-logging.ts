@@ -135,6 +135,7 @@ export interface AuditLogEntry {
   compliance?: ComplianceContext;
   hash?: string; // Integrity hash for tamper detection
   previousHash?: string;
+  sequenceNumber?: number; // Atomic monotonic counter for chain ordering
   timestamp: Date;
   expiresAt?: Date; // For retention policy
 }
@@ -710,12 +711,15 @@ export async function verifyChainIntegrity(
   try {
     const db = await getDatabase();
     
+    // Sort by sequenceNumber for deterministic ordering
+    // This ensures chain verification matches the atomic insert order
     const entries = await db.collection(AUDIT_COLLECTION)
       .find({
         orgId,
         timestamp: { $gte: dateFrom, $lte: dateTo },
+        sequenceNumber: { $exists: true }, // Only verify entries with sequence numbers
       })
-      .sort({ timestamp: 1 })
+      .sort({ sequenceNumber: 1 }) // Use atomic sequence, not timestamp
       .limit(10000)
       .toArray();
     
@@ -724,37 +728,49 @@ export async function verifyChainIntegrity(
     }
     
     let previousHash: string | undefined;
+    let lastSequence: number | undefined;
     
     for (const entry of entries) {
-      const log = entry as unknown as AuditLogEntry;
+      const log = entry as unknown as AuditLogEntry & { sequenceNumber: number };
+      
+      // Verify sequence is monotonically increasing (detect gaps/duplicates)
+      if (lastSequence !== undefined && log.sequenceNumber <= lastSequence) {
+        return {
+          valid: false,
+          brokenAt: log.timestamp,
+          details: `Sequence number not monotonic: got ${log.sequenceNumber} after ${lastSequence}`,
+        };
+      }
       
       // Check hash chain
       if (log.previousHash !== previousHash) {
         return {
           valid: false,
           brokenAt: log.timestamp,
-          details: "Hash chain broken - previous hash mismatch",
+          details: `Hash chain broken at sequence ${log.sequenceNumber} - previous hash mismatch`,
         };
       }
       
       // Verify current hash
       // Exclude _id and expiresAt when recomputing hash to match original computation
-      const { hash: _storedHash, _id, expiresAt: _expiresAt, ...entryWithoutHashAndMeta } = log as AuditLogEntry & { _id: unknown; expiresAt?: unknown };
+      const { hash: _storedHash, _id, expiresAt: _expiresAt, ...entryWithoutHashAndMeta } = log as AuditLogEntry & { _id: unknown; expiresAt?: unknown; sequenceNumber: number };
       const expectedHash = generateHash({
         ...entryWithoutHashAndMeta,
         timestamp: log.timestamp,
         previousHash: log.previousHash,
+        sequenceNumber: log.sequenceNumber, // Include in hash verification
       });
       
       if (log.hash !== expectedHash) {
         return {
           valid: false,
           brokenAt: log.timestamp,
-          details: "Entry hash mismatch - possible tampering",
+          details: `Entry hash mismatch at sequence ${log.sequenceNumber} - possible tampering`,
         };
       }
       
       previousHash = log.hash;
+      lastSequence = log.sequenceNumber;
     }
     
     return { valid: true };
