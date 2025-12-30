@@ -125,7 +125,7 @@ export default function SuperadminUserLogsPage() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/user-logs?range=${dateRange}`, { credentials: "include" });
+      const response = await fetch(`/api/superadmin/user-logs?range=${dateRange}`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setLogs(Array.isArray(data) ? data : data.logs || []);
@@ -253,7 +253,7 @@ export default function SuperadminUserLogsPage() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/user-sessions", { credentials: "include" });
+      const response = await fetch("/api/superadmin/user-sessions", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setSessions(Array.isArray(data) ? data : data.sessions || []);
