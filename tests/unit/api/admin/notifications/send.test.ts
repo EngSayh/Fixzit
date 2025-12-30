@@ -145,6 +145,10 @@ describe("/api/admin/notifications/send", () => {
           { _id: USER_ID, email: "test@example.com", phone: "+1234567890" },
         ]),
       });
+      
+      // Ensure sendEmail mock returns success structure expected by route
+      mockSendEmail.mockResolvedValue({ success: true, messageId: "mock-id" });
+      mockLogCommunication.mockResolvedValue({ success: true });
 
       const res = await POST(
         createRequest({
@@ -155,9 +159,10 @@ describe("/api/admin/notifications/send", () => {
           priority: "normal",
         }),
       );
-      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete notification mocks
-      // Auth verified (not 401/403) - send operation needs full mock setup
-      expect([200, 500]).toContain(res.status);
+      
+      // With proper mocks, should return 200
+      // If returns 500, check that all notification dependencies are mocked
+      expect(res.status).toBe(200);
     });
   });
 

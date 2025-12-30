@@ -173,7 +173,10 @@ export default function SuperadminFooterContentPage() {
         const data = await response.json();
         setPolicies(Array.isArray(data) ? data : data.policies || []);
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+      console.error("[Footer Content] Failed to fetch policies:", error);
+      toast.error("Failed to load policies - showing demo data");
       // Demo data
       setPolicies([
         {
@@ -239,7 +242,10 @@ export default function SuperadminFooterContentPage() {
         const data = await response.json();
         setFooterLinks(Array.isArray(data) ? data : data.links || []);
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+      console.error("[Footer Content] Failed to fetch footer links:", error);
+      toast.error("Failed to load footer links - showing demo data");
       // Demo data
       setFooterLinks([
         { _id: "link-1", label: "About Us", labelAr: "من نحن", url: "/about", section: "company", isExternal: false, isActive: true, sortOrder: 1 },
@@ -260,7 +266,10 @@ export default function SuperadminFooterContentPage() {
       if (response.ok) {
         setChatbotSettings(await response.json());
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+      console.error("[Footer Content] Failed to fetch chatbot settings:", error);
+      toast.error("Failed to load chatbot settings - using defaults");
       setChatbotSettings(DEFAULT_CHATBOT_SETTINGS);
     }
   }, []);
@@ -271,7 +280,10 @@ export default function SuperadminFooterContentPage() {
       if (response.ok) {
         setCompanyInfo(await response.json());
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+      console.error("[Footer Content] Failed to fetch company info:", error);
+      toast.error("Failed to load company info - using defaults");
       setCompanyInfo(DEFAULT_COMPANY_INFO);
     }
   }, []);
@@ -284,15 +296,51 @@ export default function SuperadminFooterContentPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filteredPolicies = policies.filter(p => 
-    !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.slug.includes(search.toLowerCase())
-  );
+  // Locale-aware search filtering for multilingual content
+  const filteredPolicies = policies.filter(p => {
+    if (!search) return true;
+    const normalizedSearch = search.normalize("NFC").toLocaleLowerCase();
+    const titleMatch = p.title.normalize("NFC").toLocaleLowerCase().includes(normalizedSearch);
+    const slugMatch = p.slug.normalize("NFC").toLocaleLowerCase().includes(normalizedSearch);
+    return titleMatch || slugMatch;
+  });
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   };
 
   const handleSavePolicy = async () => {
+    // Client-side validation
+    if (!policyForm.title?.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!policyForm.slug?.trim()) {
+      toast.error("Slug is required");
+      return;
+    }
+    // Validate slug format: alphanumeric and hyphens only
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(policyForm.slug.toLowerCase())) {
+      toast.error("Slug must be alphanumeric with hyphens (e.g., 'privacy-policy')");
+      return;
+    }
+    if (!policyForm.content?.trim()) {
+      toast.error("Content is required");
+      return;
+    }
+    if (!policyForm.type) {
+      toast.error("Policy type is required");
+      return;
+    }
+    // Check for duplicate slug (only for new policies)
+    if (!editingPolicy) {
+      const existingSlug = policies.find(p => p.slug === policyForm.slug.toLowerCase());
+      if (existingSlug) {
+        toast.error("A policy with this slug already exists");
+        return;
+      }
+    }
+    
     try {
       const url = editingPolicy 
         ? `/api/admin/content/policies/${editingPolicy._id}`
@@ -368,6 +416,31 @@ export default function SuperadminFooterContentPage() {
   };
 
   const handleSaveLink = async () => {
+    // Client-side validation
+    if (!linkForm.label?.trim()) {
+      toast.error("Label is required");
+      return;
+    }
+    if (!linkForm.url?.trim()) {
+      toast.error("URL is required");
+      return;
+    }
+    if (!linkForm.section) {
+      toast.error("Section is required");
+      return;
+    }
+    // Validate URL format
+    const isValidUrl = /^(\/[a-zA-Z0-9\-/]*|https?:\/\/.+)$/.test(linkForm.url);
+    if (!isValidUrl) {
+      toast.error("URL must be a valid relative path (e.g., /about) or absolute URL");
+      return;
+    }
+    // External links must start with http:// or https://
+    if (linkForm.isExternal && !/^https?:\/\/.+/.test(linkForm.url)) {
+      toast.error("External links must start with http:// or https://");
+      return;
+    }
+    
     try {
       const url = editingLink 
         ? `/api/admin/content/footer-links/${editingLink._id}`
@@ -395,6 +468,8 @@ export default function SuperadminFooterContentPage() {
 
   const handleNewLink = () => {
     setEditingLink(null);
+    // Calculate sortOrder per section (default section is "company")
+    const sectionLinks = footerLinks.filter(l => l.section === "company");
     setLinkForm({
       label: "",
       labelAr: "",
@@ -402,7 +477,7 @@ export default function SuperadminFooterContentPage() {
       section: "company",
       isExternal: false,
       isActive: true,
-      sortOrder: footerLinks.length + 1,
+      sortOrder: sectionLinks.length + 1,
     });
     setLinkDialogOpen(true);
   };
@@ -441,6 +516,32 @@ export default function SuperadminFooterContentPage() {
   };
 
   const handleSaveCompany = async () => {
+    // Client-side validation
+    if (!companyInfo.name?.trim()) {
+      toast.error("Company name is required");
+      return;
+    }
+    // Validate email format if provided
+    if (companyInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyInfo.email)) {
+      toast.error("Invalid email format");
+      return;
+    }
+    // Validate phone format if provided (basic check for phone-like characters)
+    if (companyInfo.phone && !/^[+\d\s()-]+$/.test(companyInfo.phone)) {
+      toast.error("Invalid phone format");
+      return;
+    }
+    // Validate social link URLs
+    const urlPattern = /^https?:\/\/.+$/;
+    if (companyInfo.socialLinks) {
+      for (const [platform, url] of Object.entries(companyInfo.socialLinks)) {
+        if (url && !urlPattern.test(url)) {
+          toast.error(`Invalid URL for ${platform}`);
+          return;
+        }
+      }
+    }
+    
     try {
       const response = await fetch("/api/admin/content/company", {
         method: "PUT",
@@ -545,15 +646,15 @@ export default function SuperadminFooterContentPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" asChild>
-                                <a href={`/${policy.slug}`} target="_blank" rel="noopener noreferrer">
+                              <Button variant="ghost" size="sm" asChild aria-label={`View policy ${policy.title || policy.slug}`}>
+                                <a href={`/${policy.slug}`} target="_blank" rel="noopener noreferrer" aria-label={`View policy ${policy.title || policy.slug} (opens in new tab)`}>
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleEditPolicy(policy)}>
+                              <Button variant="ghost" size="sm" onClick={() => handleEditPolicy(policy)} aria-label={`Edit policy ${policy.title || policy.slug}`}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeletePolicy(policy._id)}>
+                              <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeletePolicy(policy._id)} aria-label={`Delete policy ${policy.title || policy.slug}`}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -715,7 +816,11 @@ export default function SuperadminFooterContentPage() {
                   <Input 
                     type="number" 
                     value={chatbotSettings.maxTokens} 
-                    onChange={(e) => setChatbotSettings({ ...chatbotSettings, maxTokens: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const parsed = parseInt(e.target.value, 10);
+                      const value = isNaN(parsed) ? chatbotSettings.maxTokens : Math.max(1, parsed);
+                      setChatbotSettings({ ...chatbotSettings, maxTokens: value });
+                    }}
                     className="bg-muted border-input"
                   />
                 </div>
@@ -727,7 +832,12 @@ export default function SuperadminFooterContentPage() {
                     min="0"
                     max="1"
                     value={chatbotSettings.temperature} 
-                    onChange={(e) => setChatbotSettings({ ...chatbotSettings, temperature: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const parsed = parseFloat(e.target.value);
+                      if (isNaN(parsed)) return; // Keep previous value
+                      const clamped = Math.min(1, Math.max(0, parsed));
+                      setChatbotSettings({ ...chatbotSettings, temperature: clamped });
+                    }}
                     className="bg-muted border-input"
                   />
                 </div>

@@ -911,7 +911,8 @@ async function applyRetentionPolicy(
   const idsToDelete: ObjectId[] = [];
   
   instances.forEach((instance, index) => {
-    const exceedsKeepLatest = policy.keepLatest && index >= policy.keepLatest;
+    // Fix: Use !== undefined instead of truthy check - keepLatest: 0 means "keep none"
+    const exceedsKeepLatest = policy.keepLatest !== undefined && index >= policy.keepLatest;
     const isOlderThanCutoff = cutoffDate && instance.requestedAt < cutoffDate;
     
     // Delete if EITHER policy says to delete (union of deletion criteria)
@@ -1482,12 +1483,24 @@ function calculateNextRun(schedule: ReportSchedule): Date | null {
       case ScheduleFrequency.BI_WEEKLY:
         next.setDate(next.getDate() + 14);
         break;
-      case ScheduleFrequency.MONTHLY:
+      case ScheduleFrequency.MONTHLY: {
+        // Fix date rollover: set day to 1 before incrementing month
+        const targetDay = schedule.dayOfMonth || next.getDate();
+        next.setDate(1);
         next.setMonth(next.getMonth() + 1);
+        const daysInMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+        next.setDate(Math.min(targetDay, daysInMonth));
         break;
-      case ScheduleFrequency.QUARTERLY:
+      }
+      case ScheduleFrequency.QUARTERLY: {
+        // Fix date rollover: set day to 1 before incrementing months
+        const targetDayQ = schedule.dayOfMonth || next.getDate();
+        next.setDate(1);
         next.setMonth(next.getMonth() + 3);
+        const daysInQMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+        next.setDate(Math.min(targetDayQ, daysInQMonth));
         break;
+      }
       case ScheduleFrequency.ANNUALLY:
         next.setFullYear(next.getFullYear() + 1);
         break;

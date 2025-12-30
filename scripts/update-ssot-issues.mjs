@@ -63,6 +63,9 @@ const issuesToResolve = [
 async function main() {
   const client = new MongoClient(MONGODB_URI);
   
+  // Track failures for summary report
+  const auditFailures = [];
+  
   try {
     await client.connect();
     console.log('✅ Connected to MongoDB');
@@ -104,6 +107,7 @@ async function main() {
         // Only create audit event if foundIssue exists
         if (!foundIssue) {
           console.warn(`⚠️  ${issue.searchValue}: Issue modified but could not find it for audit event`);
+          auditFailures.push(`${issue.searchValue}: Issue modified but could not find it for audit event`);
         } else {
           const issueKey = foundIssue?.legacyId || foundIssue?.issueId || issue.searchValue;
           
@@ -121,7 +125,9 @@ async function main() {
               console.error(`⚠️  ${issue.searchValue}: Audit event insert returned no insertedId`);
             }
           } catch (eventError) {
-            console.error(`⚠️  ${issue.searchValue}: Failed to insert audit event - ${eventError.message}`);
+            const failureMsg = `${issue.searchValue}: Failed to insert audit event - ${eventError.message}`;
+            console.error(`⚠️  ${failureMsg}`);
+            auditFailures.push(failureMsg);
             // Continue with remaining updates, don't rethrow
           }
         }
@@ -163,6 +169,17 @@ async function main() {
     const totalInDb = await issuesCollection.countDocuments({});
     console.log(`\n📊 Displayed issues: ${allIssues.length} (showing up to 30)`);
     console.log(`📊 Total issues in DB: ${totalInDb}`);
+    
+    // Report audit failures summary
+    if (auditFailures.length > 0) {
+      console.log('\n❌ Audit Failures Summary:');
+      for (const failure of auditFailures) {
+        console.log(`  - ${failure}`);
+      }
+      console.log(`\n⚠️  Total audit failures: ${auditFailures.length}`);
+    } else {
+      console.log('\n✅ All audit events created successfully');
+    }
     
     
   } catch (error) {

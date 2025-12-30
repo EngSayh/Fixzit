@@ -402,8 +402,20 @@ export async function updateEmployeeWage(
     
     const db = await getDatabase();
     
+    // Fetch employee to get registrationDate for proper rate calculation
+    const employee = await db.collection(GOSI_EMPLOYEES_COLLECTION).findOne({
+      _id: new ObjectId(employeeId),
+      orgId,
+    });
+    
+    if (!employee) {
+      return { success: false, error: "Employee not found" };
+    }
+    
     const totalGosiWage = calculateGosiWage(basicSalary, housingAllowance);
-    const contribution = calculateContribution(totalGosiWage);
+    // Use registrationDate for accurate contribution calculation (new post-July-3-2024 rates)
+    const registrationDate = employee.registrationDate || null;
+    const contribution = calculateContribution(totalGosiWage, registrationDate);
     
     const result = await db.collection(GOSI_EMPLOYEES_COLLECTION).updateOne(
       { _id: new ObjectId(employeeId), orgId },
@@ -417,7 +429,8 @@ export async function updateEmployeeWage(
       }
     );
     
-    if (result.modifiedCount === 0) {
+    // Use matchedCount, not modifiedCount - modifiedCount is 0 if data unchanged
+    if (result.matchedCount === 0) {
       return { success: false, error: "Employee not found" };
     }
     
@@ -718,6 +731,11 @@ export async function submitReport(
   orgId: string
 ): Promise<{ success: boolean; referenceNumber?: string; error?: string }> {
   try {
+    // Validate ObjectId format before construction
+    if (!ObjectId.isValid(reportId)) {
+      return { success: false, error: "Invalid reportId format" };
+    }
+    
     const db = await getDatabase();
     
     // Generate reference number (in production, this comes from GOSI API)
@@ -808,11 +826,12 @@ export async function runComplianceCheck(
       }
     }
     
-    // Check for pending terminations
+    // Check for pending terminations - employees with past termination date but not yet terminated
+    // Include REGISTERED and SUSPENDED statuses, exclude already TERMINATED and EXEMPTED
     const pendingTerminations = await db.collection(GOSI_EMPLOYEES_COLLECTION)
       .find({
         orgId,
-        status: GosiStatus.REGISTERED,
+        status: { $in: [GosiStatus.REGISTERED, GosiStatus.SUSPENDED] },
         terminationDate: { $exists: true, $lt: now },
       })
       .toArray();
@@ -879,22 +898,33 @@ export async function getComplianceDashboard(
     let totalEmployees = 0;
     let registered = 0;
     let pending = 0;
-    let totalWage = 0;
     
     for (const stat of employeeStats) {
       totalEmployees += stat.count as number;
       if (stat._id === GosiStatus.REGISTERED) {
         registered = stat.count as number;
-        totalWage = stat.totalWage as number;
       }
       if (stat._id === GosiStatus.PENDING_REGISTRATION) {
         pending = stat.count as number;
       }
     }
     
-    // Calculate contributions
-    const monthlyContrib = calculateContribution(totalWage);
-    const annualCost = calculateAnnualEmployerCost(totalWage); // Use centralized rate calculation
+    // Calculate contributions using per-employee rates based on registration date
+    // (New registrants post-July 3 2024 have different annuity rates)
+    const registeredEmployees = await db.collection(GOSI_EMPLOYEES_COLLECTION)
+      .find({ orgId, status: GosiStatus.REGISTERED })
+      .toArray();
+    
+    let totalMonthlyEmployer = 0;
+    let totalAnnualCost = 0;
+    
+    for (const emp of registeredEmployees) {
+      const employee = emp as unknown as GosiEmployee;
+      const registrationDate = employee.registrationDate ?? undefined;
+      const contrib = calculateContribution(employee.totalGosiWage, { registrationDate });
+      totalMonthlyEmployer += contrib.employer.total;
+      totalAnnualCost += calculateAnnualEmployerCost(employee.totalGosiWage, { registrationDate });
+    }
     
     // Get alerts
     const alerts = await runComplianceCheck(orgId);
@@ -911,8 +941,8 @@ export async function getComplianceDashboard(
       totalEmployees,
       registered,
       pending,
-      monthlyContribution: monthlyContrib.employer.total,
-      annualCost: Math.round(annualCost),
+      monthlyContribution: Math.round(totalMonthlyEmployer * 100) / 100,
+      annualCost: Math.round(totalAnnualCost * 100) / 100,
       complianceScore: Math.max(0, score),
       alerts,
     };

@@ -165,6 +165,11 @@ describe("API /api/performance/metrics", () => {
       const res = await GET(req);
 
       expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data)).toBe(true);
+      // Verify limit is respected - should have at most 10 items
+      expect(data.data.length).toBeLessThanOrEqual(10);
     });
   });
 });

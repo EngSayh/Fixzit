@@ -39,9 +39,13 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const rl = await smartRateLimit(`superadmin:bulk-update:${ip}`, 5, 60_000);
     if (!rl.allowed) {
+      // Compute remaining seconds from epoch timestamp, with minimum of 1 and fallback to 60
+      const remainingSeconds = rl.resetAt 
+        ? Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))
+        : 60;
       return NextResponse.json(
         { error: "Rate limit exceeded. Please try again later." },
-        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt ?? 60000) / 1000)) } }
+        { status: 429, headers: { "Retry-After": String(remainingSeconds) } }
       );
     }
 

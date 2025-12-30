@@ -427,7 +427,7 @@ export function validateTenantConfig(config: Partial<ZatcaTenantConfig>): string
     errors.push("ZATCA wave must be between 1 and 9");
   }
   
-  if (!config.is_sandbox) {
+  if (config.is_sandbox === false) {
     if (!config.production_csid || !config.production_secret) {
       errors.push("Production CSID and secret are required for non-sandbox mode");
     }

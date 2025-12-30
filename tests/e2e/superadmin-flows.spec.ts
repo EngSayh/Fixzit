@@ -12,18 +12,19 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-// Environment-based credentials (no hardcoded fallbacks per AGENTS.md)
-const TEST_SUPERADMIN_EMAIL = process.env.TEST_SUPERADMIN_EMAIL || process.env.TEST_ADMIN_EMAIL;
-const TEST_SUPERADMIN_PASSWORD = process.env.TEST_SUPERADMIN_PASSWORD || process.env.TEST_ADMIN_PASSWORD;
+// Environment-based credentials - require explicit superadmin credentials (no fallback to avoid testing with wrong role)
+const TEST_SUPERADMIN_EMAIL = process.env.TEST_SUPERADMIN_EMAIL;
+const TEST_SUPERADMIN_PASSWORD = process.env.TEST_SUPERADMIN_PASSWORD;
 const IS_CI = process.env.CI === "true";
 
 // Skip if credentials not available
 const HAS_SUPERADMIN_CREDS = !!(TEST_SUPERADMIN_EMAIL && TEST_SUPERADMIN_PASSWORD);
 
-if (IS_CI && !HAS_SUPERADMIN_CREDS) {
+if (!HAS_SUPERADMIN_CREDS) {
   console.warn(
     "⚠️  SUPERADMIN E2E: Credentials not configured.\n" +
-    "   Set TEST_SUPERADMIN_EMAIL and TEST_SUPERADMIN_PASSWORD in GitHub Secrets."
+    "   Set TEST_SUPERADMIN_EMAIL and TEST_SUPERADMIN_PASSWORD environment variables.\n" +
+    "   Tests will be skipped without explicit superadmin credentials."
   );
 }
 

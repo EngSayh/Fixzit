@@ -62,6 +62,7 @@ interface AIAnalytics {
   churn: {
     at_risk_tenants: number;
     predictions: Array<{
+      tenant_id?: string;
       tenant_name: string;
       probability: number;
       primary_factor: string;
@@ -188,15 +189,15 @@ export default function SuperadminFMDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-foreground">
             FM Command Center
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             World-Class Facility Management Dashboard
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             Last updated: {lastRefresh.toLocaleTimeString()}
           </span>
           <button
@@ -210,19 +211,19 @@ export default function SuperadminFMDashboardPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Compliance Score */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Compliance Score</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              <p className="text-sm font-medium text-muted-foreground">Compliance Score</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {compliance?.nca?.overall_score ?? "--"}%
               </p>
             </div>
@@ -230,17 +231,17 @@ export default function SuperadminFMDashboardPage() {
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             {compliance?.nca?.domains?.length ?? 0} NCA domains tracked
           </p>
         </div>
 
         {/* AI Alerts */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">AI Alerts</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              <p className="text-sm font-medium text-muted-foreground">AI Alerts</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {analytics?.anomalies?.active_count ?? 0}
               </p>
             </div>
@@ -248,17 +249,17 @@ export default function SuperadminFMDashboardPage() {
               <Brain className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             {analytics?.anomalies?.items?.filter(i => i.severity === "high" || i.severity === "critical").length ?? 0} high severity
           </p>
         </div>
 
         {/* Security Score */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Security Score</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              <p className="text-sm font-medium text-muted-foreground">Security Score</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {security?.zero_trust?.score ?? "--"}
               </p>
             </div>
@@ -266,17 +267,17 @@ export default function SuperadminFMDashboardPage() {
               <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             {security?.authentication?.mfa_enrollment_rate ?? 0}% MFA enrolled
           </p>
         </div>
 
         {/* Provider Network */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Provider Network</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              <p className="text-sm font-medium text-muted-foreground">Provider Network</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {providers?.statistics?.total_providers ?? 0}
               </p>
             </div>
@@ -376,8 +377,8 @@ export default function SuperadminFMDashboardPage() {
             ))}
             
             {/* Churn Risk - use churn.predictions to match API */}
-            {analytics?.churn?.predictions?.slice(0, 2).map((tenant) => (
-              <div key={tenant.tenant_name} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            {analytics?.churn?.predictions?.slice(0, 2).map((tenant, index) => (
+              <div key={tenant.tenant_id ?? `${tenant.tenant_name}-${index}`} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-4 w-4 text-orange-500" />
                   <span className="font-medium text-sm">{tenant.tenant_name}</span>

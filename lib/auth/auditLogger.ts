@@ -318,7 +318,17 @@ export async function getAuthLogStats(
       },
     ];
     
-    const [result] = await collection.aggregate(pipeline).toArray();
+    const rawResult = await collection.aggregate(pipeline).toArray();
+    
+    // Guard against empty result - provide default facet arrays
+    const [result = { 
+      total: [], 
+      loginSuccess: [], 
+      loginFailure: [], 
+      mfaVerified: [], 
+      suspicious: [], 
+      uniqueIPs: [] 
+    }] = rawResult;
     
     const totalLogins = (result.loginSuccess[0]?.count || 0) + (result.loginFailure[0]?.count || 0);
     const mfaUsed = result.mfaVerified[0]?.count || 0;

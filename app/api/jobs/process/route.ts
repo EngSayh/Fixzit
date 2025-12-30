@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       "x-cron-secret",
       process.env.CRON_SECRET,
     );
-    const isAuthorized = session?.user?.isSuperAdmin || !!superadminSession || cronAuthorized;
+    const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+    const isAuthorized = session?.user?.isSuperAdmin || isAdmin || !!superadminSession || cronAuthorized;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });

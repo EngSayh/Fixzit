@@ -327,6 +327,8 @@ export async function trackEngagement(
     await db.collection(EVENTS_COLLECTION).insertOne(engagementEvent);
     
     // Update profile activity count
+    // Note: activitiesLast30Days is computed on-demand or via scheduled job
+    // since maintaining it accurately requires tracking activity timestamps
     await db.collection(PROFILES_COLLECTION).updateOne(
       { orgId, userId },
       {
@@ -334,7 +336,13 @@ export async function trackEngagement(
           lastActivityAt: new Date(),
           updatedAt: new Date(),
         },
-        $inc: { totalActivities: 1 },
+        $inc: { 
+          totalActivities: 1,
+          // Note: activitiesLast30Days increment is a heuristic - actual value
+          // should be recomputed periodically by a scheduled job that checks
+          // activity timestamps. This increment assumes the new activity is within 30 days.
+          activitiesLast30Days: 1,
+        },
         $setOnInsert: buildProfileDefaults(),
       },
       { upsert: true }
@@ -1009,7 +1017,7 @@ export async function getNPSSummary(
   promoters: number;
   passives: number;
   detractors: number;
-  trend: "up" | "down" | "stable";
+  trend: "up" | "down" | "stable" | null;
 }> {
   try {
     const db = await getDatabase();
@@ -1062,7 +1070,11 @@ export async function getNPSSummary(
       promoters: data.promoters,
       passives: data.passives,
       detractors: data.detractors,
-      trend: "stable", // Would calculate by comparing to previous period
+      // TODO: Implement real trend calculation
+      // This requires querying the previous period for the same metrics,
+      // comparing values, and classifying as "up", "down", or "stable".
+      // Currently returns null to indicate trend is not yet implemented.
+      trend: null,
     };
   } catch (_error) {
     logger.error("Failed to get NPS summary", { component: "customer-insights" });
@@ -1072,7 +1084,7 @@ export async function getNPSSummary(
       promoters: 0,
       passives: 0,
       detractors: 0,
-      trend: "stable",
+      trend: null, // Consistent with success path
     };
   }
 }

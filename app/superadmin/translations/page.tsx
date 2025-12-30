@@ -165,8 +165,8 @@ export default function SuperadminTranslationsPage() {
 
       <Tabs defaultValue="keys" className="w-full">
         <TabsList className="bg-muted border-input">
-          <TabsTrigger value="keys" className="data-[state=active]:bg-muted/80"><Languages className="h-4 w-4 me-2" />Translation Keys</TabsTrigger>
-          <TabsTrigger value="missing" className="data-[state=active]:bg-muted/80"><AlertTriangle className="h-4 w-4 me-2" />Missing ({missingCount})</TabsTrigger>
+          <TabsTrigger value="keys" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"><Languages className="h-4 w-4 me-2" />Translation Keys</TabsTrigger>
+          <TabsTrigger value="missing" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"><AlertTriangle className="h-4 w-4 me-2" />Missing ({missingCount})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="keys">

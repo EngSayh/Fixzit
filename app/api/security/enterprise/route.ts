@@ -18,14 +18,19 @@ export async function GET() {
   try {
     const session = await auth();
     
-    // Demo mode requires explicit environment flag AND no auth
+    // Demo mode requires explicit environment flag AND non-production environment
     // Note: Using ENABLE_DEMO_MODE for consistency with other routes (also accepts ENABLE_SECURITY_DEMO for backwards compatibility)
-    const isDemoEnabled = process.env.ENABLE_DEMO_MODE === "true" || process.env.ENABLE_SECURITY_DEMO === "true";
+    const isNonProduction = process.env.NODE_ENV !== "production";
+    const hasDemoFlag = process.env.ENABLE_DEMO_MODE === "true" || process.env.ENABLE_SECURITY_DEMO === "true";
+    const isDemoEnabled = hasDemoFlag && isNonProduction;
     const isDemo = isDemoEnabled && !session?.user;
     
-    // Require authentication unless demo mode is explicitly enabled
+    // Require authentication unless demo mode is explicitly enabled (non-production only)
     if (!session?.user && !isDemo) {
-      logger.warn("[security/enterprise] Unauthenticated access attempt", { reason: isDemoEnabled ? "demo_enabled_but_no_session" : "demo_disabled" });
+      const reason = hasDemoFlag && !isNonProduction 
+        ? "demo_disabled_in_production" 
+        : (hasDemoFlag ? "demo_enabled_but_no_session" : "demo_disabled");
+      logger.warn("[security/enterprise] Unauthenticated access attempt", { reason });
       return NextResponse.json(
         { error: { code: "FIXZIT-AUTH-001", message: "Authentication required" } },
         { status: 401 }

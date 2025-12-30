@@ -84,14 +84,35 @@ describe("API /api/dev/check-env", () => {
       const res = await GET(req);
       const data = await res.json();
 
-      // Values should be booleans (or strings for some like TAP_ENVIRONMENT)
-      // The important thing is they shouldn't be actual secrets
+      // Sensitive key patterns that should NEVER expose actual values
+      const sensitivePatterns = [
+        /SECRET/i,
+        /KEY/i,
+        /PASSWORD/i,
+        /TOKEN/i,
+        /API_KEY/i,
+        /PRIVATE/i,
+        /CREDENTIAL/i,
+      ];
+      
+      // Values should be booleans or safe status indicators, never actual secrets
       Object.entries(data).forEach(([key, value]) => {
-        // Skip keys that may have string values (env names, not actual secret values)
-        const allowedStringKeys = ["TAP_ENVIRONMENT", "status", "message"];
-        if (typeof value === "string" && !allowedStringKeys.includes(key)) {
-          // If it's a string, it should be a status indicator not a secret
-          expect(value.length).toBeLessThan(50);
+        const isSensitiveKey = sensitivePatterns.some((pattern) => pattern.test(key));
+        
+        if (isSensitiveKey && typeof value === "string") {
+          // Sensitive keys should only have boolean-like status values, not actual secrets
+          const safeValues = ["set", "unset", "configured", "missing", "ok", "error"];
+          expect(
+            safeValues.includes(value.toLowerCase()) || value.length < 20,
+            `Key "${key}" may be exposing a secret value`
+          ).toBe(true);
+        }
+        
+        // No value should look like a base64 encoded secret or long random string
+        if (typeof value === "string") {
+          expect(value.length).toBeLessThan(100);
+          // Should not match patterns typical of secrets (32+ character hex/base64)
+          expect(value).not.toMatch(/^[a-zA-Z0-9+/=]{32,}$/);
         }
       });
     });

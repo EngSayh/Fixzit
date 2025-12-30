@@ -36,7 +36,9 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
 
   const planId = searchParams?.get("plan") || "standard";
-  const users = parseInt(searchParams?.get("users") || "1", 10);
+  // Sanitize users param: parse, fallback to 1 if NaN or <1, clamp to sensible max
+  const rawUsers = parseInt(searchParams?.get("users") || "1", 10);
+  const users = Math.min(1000, Math.max(1, Number.isNaN(rawUsers) ? 1 : Math.floor(rawUsers)));
   const plan = getPlan(planId);
 
   // All hooks must be called before any early returns (React Hook rules)

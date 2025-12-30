@@ -349,6 +349,35 @@ test.describe("Accessibility & Keyboard Navigation", () => {
         // Both should be defined (basic check)
         expect(color).toBeDefined();
         expect(bgColor).toBeDefined();
+        
+        // Parse RGB values and calculate contrast ratio (WCAG 2.1 formula)
+        const parseRgb = (rgbStr: string): [number, number, number] | null => {
+          const match = rgbStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (!match) return null;
+          return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+        };
+        
+        const getLuminance = (r: number, g: number, b: number): number => {
+          const [rs, gs, bs] = [r / 255, g / 255, b / 255].map(c =>
+            c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+          );
+          return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+        };
+        
+        const fgRgb = parseRgb(color);
+        const bgRgb = parseRgb(bgColor);
+        
+        if (fgRgb && bgRgb) {
+          const fgLum = getLuminance(...fgRgb);
+          const bgLum = getLuminance(...bgRgb);
+          const lighter = Math.max(fgLum, bgLum);
+          const darker = Math.min(fgLum, bgLum);
+          const contrastRatio = (lighter + 0.05) / (darker + 0.05);
+          
+          // WCAG 2.1 Level AA: 4.5:1 for normal text, 3:1 for large text
+          // For this general check, we use 3:1 as minimum (large text threshold)
+          expect(contrastRatio).toBeGreaterThanOrEqual(3);
+        }
       }
     });
   });

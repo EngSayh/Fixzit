@@ -542,19 +542,24 @@ export function getRecentCommandObjects(
 // =============================================================================
 
 /**
+ * Detect if the user is on macOS
+ * Uses User-Agent Client Hints if available, fallback to navigator.platform
+ */
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  
+  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  if (uaData?.platform) {
+    return uaData.platform.toLowerCase() === "macos";
+  }
+  return /Mac|iPod|iPhone|iPad/i.test(navigator.platform);
+}
+
+/**
  * Format keyboard shortcut for display
  */
 export function formatShortcut(shortcut: string): string {
-  // Use User-Agent Client Hints if available, fallback to navigator.platform
-  let isMac = false;
-  if (typeof navigator !== "undefined") {
-    const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
-    if (uaData?.platform) {
-      isMac = uaData.platform.toLowerCase() === "macos";
-    } else {
-      isMac = /Mac|iPod|iPhone|iPad/i.test(navigator.platform);
-    }
-  }
+  const isMac = isMacPlatform();
   
   return shortcut
     .replace(/mod/g, isMac ? "⌘" : "Ctrl")

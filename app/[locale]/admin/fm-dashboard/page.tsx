@@ -523,7 +523,7 @@ export default function FMDashboardPage() {
       {/* Keyboard Shortcut Hint */}
       <div className="mt-8 text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Press <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">⌘K</kbd> or <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">Ctrl+K</kbd> to open Command Palette
+          Press <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">⌘K</kbd> or <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">Ctrl+K</kbd> to refresh dashboard
         </p>
       </div>
     </div>

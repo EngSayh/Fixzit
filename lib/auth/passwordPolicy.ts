@@ -515,6 +515,7 @@ export async function unlockAccount(
 
 /**
  * Record failed login attempt and check for lockout
+ * Uses atomic increment-and-check to prevent race conditions
  */
 export async function recordFailedAttempt(
   orgId: string,
@@ -524,9 +525,19 @@ export async function recordFailedAttempt(
     const db = await getDatabase();
     const policy = await getPasswordPolicy(orgId);
     
-    // Increment failed attempts
-    const result = await db.collection("login_attempts").findOneAndUpdate(
-      { orgId, userId },
+    // Atomic increment that only succeeds if count would stay below threshold
+    // This prevents race condition where multiple concurrent failures could
+    // each increment to exactly maxFailedAttempts before any triggers lockout
+    const incrementResult = await db.collection("login_attempts").findOneAndUpdate(
+      { 
+        orgId, 
+        userId,
+        // Only increment if current count is below max (race-safe)
+        $or: [
+          { count: { $lt: policy.maxFailedAttempts - 1 } },
+          { count: { $exists: false } },
+        ],
+      },
       {
         $inc: { count: 1 },
         $set: { lastAttempt: new Date() },
@@ -535,16 +546,21 @@ export async function recordFailedAttempt(
       { upsert: true, returnDocument: "after" }
     );
     
-    const attemptCount = result?.count || 1;
-    const shouldLock = attemptCount >= policy.maxFailedAttempts;
-    
-    if (shouldLock) {
-      await lockAccount(orgId, userId);
-      // Reset counter after lockout
-      await db.collection("login_attempts").deleteOne({ orgId, userId });
+    // If increment succeeded, we're still below threshold
+    if (incrementResult) {
+      return { shouldLock: false, attemptCount: incrementResult.count || 1 };
     }
     
-    return { shouldLock, attemptCount };
+    // Increment didn't match - we're at or above threshold
+    // Get current count and lock
+    const current = await db.collection("login_attempts").findOne({ orgId, userId });
+    const attemptCount = (current?.count ?? 0) + 1;
+    
+    // Lock account and reset counter
+    await lockAccount(orgId, userId);
+    await db.collection("login_attempts").deleteOne({ orgId, userId });
+    
+    return { shouldLock: true, attemptCount };
   } catch (error) {
     logger.error("Failed to record failed attempt", {
       error: error instanceof Error ? error.message : "Unknown error",

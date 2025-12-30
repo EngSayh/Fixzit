@@ -975,6 +975,12 @@ export async function markAsRead(
       return { success: false };
     }
     
+    // Validate notificationId is a valid ObjectId before using
+    if (!notificationId || typeof notificationId !== "string" || !/^[a-f\d]{24}$/i.test(notificationId)) {
+      logger.warn("markAsRead called with invalid notificationId", { notificationId, orgId, userId });
+      return { success: false };
+    }
+    
     const db = await getDatabase();
     
     const result = await db.collection(NOTIFICATIONS_COLLECTION).updateOne(

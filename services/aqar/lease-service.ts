@@ -207,7 +207,8 @@ async function generateLeaseNumber(orgId: string): Promise<string> {
     { upsert: true, returnDocument: "after" }
   );
   
-  const seq = result?.seq || 1;
+  // Access seq from result.value for findOneAndUpdate return type
+  const seq = result?.value?.seq ?? result?.seq ?? 1;
   return `LSE-${year}-${seq.toString().padStart(5, "0")}`;
 }
 
@@ -378,15 +379,17 @@ export async function activateLease(
       return { success: false, error: "Lease not found" };
     }
     
-    if (lease.status !== LeaseStatus.DRAFT && lease.status !== LeaseStatus.PENDING_APPROVAL) {
-      return { success: false, error: `Cannot activate lease in ${lease.status} status` };
+    // Store the expected status for the conditional update
+    const expectedStatus = lease.status;
+    if (expectedStatus !== LeaseStatus.DRAFT && expectedStatus !== LeaseStatus.PENDING_APPROVAL) {
+      return { success: false, error: `Cannot activate lease in ${expectedStatus} status` };
     }
     
     // Helper function to perform activation updates
     const performActivation = async () => {
-      // Update lease status
-      await db.collection("leases").updateOne(
-        { _id: new ObjectId(leaseId), orgId },
+      // Update lease status - include expected status in filter to prevent race condition
+      const leaseResult = await db.collection("leases").updateOne(
+        { _id: new ObjectId(leaseId), orgId, status: expectedStatus },
         {
           $set: {
             status: LeaseStatus.ACTIVE,
@@ -396,6 +399,11 @@ export async function activateLease(
         },
         sessionOpts
       );
+      
+      // Check if update was successful (status didn't change concurrently)
+      if (leaseResult.matchedCount === 0) {
+        throw new Error("Lease status changed concurrently - activation aborted");
+      }
       
       // Update unit status to occupied
       await db.collection("units").updateOne(
@@ -569,9 +577,9 @@ export async function terminateLease(
     
     // Use transaction for atomic updates
     await session.withTransaction(async () => {
-      // Update lease - do NOT overwrite endDate, only store terminationDate in terminationDetails
-      await db.collection("leases").updateOne(
-        { _id: new ObjectId(leaseId), orgId },
+      // Update lease - include status: ACTIVE in filter to prevent race condition
+      const leaseResult = await db.collection("leases").updateOne(
+        { _id: new ObjectId(leaseId), orgId, status: LeaseStatus.ACTIVE },
         {
           $set: {
             status: LeaseStatus.TERMINATED,
@@ -587,6 +595,11 @@ export async function terminateLease(
         },
         { session }
       );
+      
+      // Check if update was successful (status didn't change concurrently)
+      if (leaseResult.matchedCount === 0) {
+        throw new Error("Lease status changed concurrently - termination aborted");
+      }
       
       // Update unit status
       await db.collection("units").updateOne(
@@ -871,15 +884,27 @@ export async function getRentOptimization(
     let recommendation: RentOptimizationResult["recommendation"];
     let suggestedIncrease: number | undefined;
     
-    const difference = ((recommendedRent - currentRent) / currentRent) * 100;
-    if (difference > 5) {
-      recommendation = "increase";
-      suggestedIncrease = Math.round(recommendedRent - currentRent);
-    } else if (difference < -5) {
-      recommendation = "decrease";
-      suggestedIncrease = Math.round(recommendedRent - currentRent);
+    // Handle edge case: currentRent is 0
+    if (currentRent === 0) {
+      // If no current rent, we can only recommend maintaining or increasing
+      if (recommendedRent === 0) {
+        recommendation = "maintain";
+      } else {
+        recommendation = "increase";
+        suggestedIncrease = Math.round(recommendedRent);
+      }
     } else {
-      recommendation = "maintain";
+      // Normal case: calculate percentage difference
+      const difference = ((recommendedRent - currentRent) / currentRent) * 100;
+      if (difference > 5) {
+        recommendation = "increase";
+        suggestedIncrease = Math.round(recommendedRent - currentRent);
+      } else if (difference < -5) {
+        recommendation = "decrease";
+        suggestedIncrease = Math.round(recommendedRent - currentRent);
+      } else {
+        recommendation = "maintain";
+      }
     }
     
     // Confidence based on comparable count

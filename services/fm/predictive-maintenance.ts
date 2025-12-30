@@ -14,6 +14,7 @@
  */
 
 import { ObjectId, type WithId, type Document } from "mongodb";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -348,6 +349,11 @@ export async function recordMaintenanceEvent(
   orgId: string,
   event: Omit<MaintenanceEvent, "date">
 ): Promise<{ success: boolean; newHealthScore?: number; error?: string; partialFailure?: boolean; predictionError?: string }> {
+  // Validate ObjectId format to prevent throwing on bad input
+  if (!ObjectId.isValid(equipmentId)) {
+    return { success: false, error: "Invalid equipment ID format" };
+  }
+  
   try {
     const db = await getDatabase();
     const now = new Date();
@@ -526,9 +532,9 @@ export async function generatePredictions(
     }
     
     // Store predictions atomically in both equipment and predictions collection
-    // Note: Using native MongoDB driver, not mongoose sessions
+    // Use mongoose connection to access the MongoDB client for transactions
     const db = await getDatabase();
-    const client = db.client;
+    const client = mongoose.connection.getClient();
     const session = client.startSession();
     
     try {
@@ -822,17 +828,19 @@ export async function getEquipmentAnalytics(
 export async function autoGenerateWorkOrders(
   orgId: string,
   options?: {
-    minProbability?: number;
+    minConfidence?: number; // Confidence threshold (0-1) for generating work orders
     maxPriority?: MaintenancePriority;
   }
 ): Promise<{ created: number; workOrderIds: string[] }> {
   try {
     const db = await getDatabase();
-    const minConfidence = options?.minProbability || 0.7; // Threshold for confidence level
+    const minConfidence = options?.minConfidence || 0.7; // Default confidence threshold
     const workOrderIds: string[] = [];
     
+    // Get recommendations without priority filter - we'll filter ourselves
+    // to include both IMMEDIATE and URGENT priorities (or higher-priority items)
     const recommendations = await getMaintenanceRecommendations(orgId, {
-      priority: options?.maxPriority || MaintenancePriority.URGENT,
+      // Don't pass priority here - filter afterwards to include IMMEDIATE and URGENT
       daysAhead: 14,
     });
     

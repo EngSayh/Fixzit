@@ -14,6 +14,7 @@
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
+import mongoose from "mongoose";
 import crypto from "crypto";
 
 // =============================================================================
@@ -350,12 +351,20 @@ export async function restoreFromSnapshot(
     mode: restoreJob.restore_mode,
   });
   
-  // In production, create backup first if requested
+  // In production, create backup first if requested (queued as background job)
   if (options.create_backup_first) {
-    await createSnapshot(tenantId, initiatedBy, {
+    // Queue pre-restore backup as background job - don't await to avoid blocking
+    // The snapshot is created with status: "pending" and will be processed async
+    createSnapshot(tenantId, initiatedBy, {
       name: `Pre-restore backup (${new Date().toISOString()})`,
       type: "pre_migration",
       expires_in_days: 30,
+    }).catch(err => {
+      logger.error("Failed to queue pre-restore backup", {
+        job_id: jobId.toString(),
+        tenant_id: tenantId.toString(),
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
   }
   
@@ -426,21 +435,30 @@ export async function activateKillSwitch(
     ],
   };
   
-  // Persist kill switch event to database
-  await db.collection("kill_switch_events").insertOne(event);
-  
-  // Update tenant status
-  await db.collection("organizations").updateOne(
-    { _id: tenantId },
-    { 
-      $set: { 
-        status: "suspended",
-        kill_switch_active: true,
-        kill_switch_event_id: eventId,
-        updatedAt: timestamp,
-      }
-    }
-  );
+  // Use transaction to ensure atomicity of kill switch activation
+  const session = await mongoose.connection.getClient().startSession();
+  try {
+    await session.withTransaction(async () => {
+      // Persist kill switch event to database
+      await db.collection("kill_switch_events").insertOne(event, { session });
+      
+      // Update tenant status
+      await db.collection("organizations").updateOne(
+        { _id: tenantId },
+        { 
+          $set: { 
+            status: "suspended",
+            kill_switch_active: true,
+            kill_switch_event_id: eventId,
+            updatedAt: timestamp,
+          }
+        },
+        { session }
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
   
   logger.warn("Kill switch activated", {
     event_id: eventId.toString(),
@@ -500,40 +518,50 @@ export async function deactivateKillSwitch(
     ],
   };
   
-  // Persist deactivation to database
-  await db.collection("kill_switch_events").updateOne(
-    { _id: event._id },
-    {
-      $set: {
-        deactivated_at: timestamp,
-        deactivated_by: deactivatedBy,
-      },
-      $push: {
-        audit_trail: {
-          timestamp,
-          action: "kill_switch_deactivated",
-          actor_id: deactivatedBy,
-          details: notes ?? "Kill switch deactivated",
+  // Use transaction to ensure atomicity of kill switch deactivation
+  const session = await mongoose.connection.getClient().startSession();
+  try {
+    await session.withTransaction(async () => {
+      // Persist deactivation to database
+      await db.collection("kill_switch_events").updateOne(
+        { _id: event._id },
+        {
+          $set: {
+            deactivated_at: timestamp,
+            deactivated_by: deactivatedBy,
+          },
+          $push: {
+            audit_trail: {
+              timestamp,
+              action: "kill_switch_deactivated",
+              actor_id: deactivatedBy,
+              details: notes ?? "Kill switch deactivated",
+            },
+          },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        { session }
+      );
+      
+      // Restore tenant status
+      await db.collection("organizations").updateOne(
+        { _id: event.tenant_id },
+        {
+          $set: {
+            status: "active",
+            kill_switch_active: false,
+            updatedAt: timestamp,
+          },
+          $unset: {
+            kill_switch_event_id: "",
+          },
         },
-      },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any
-  );
-  
-  // Restore tenant status
-  await db.collection("organizations").updateOne(
-    { _id: event.tenant_id },
-    {
-      $set: {
-        status: "active",
-        kill_switch_active: false,
-        updatedAt: timestamp,
-      },
-      $unset: {
-        kill_switch_event_id: "",
-      },
-    }
-  );
+        { session }
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
   
   logger.info("Kill switch deactivated", {
     event_id: event._id.toString(),
@@ -672,6 +700,20 @@ export async function executeTimeTravel(
     executed_at: timestamp,
   };
   
+  // Persist the updated request to database
+  const db = await getDatabase();
+  await db.collection("time_travel_requests").updateOne(
+    { _id: request._id },
+    {
+      $set: {
+        status: updatedRequest.status,
+        rollback_snapshot_id: updatedRequest.rollback_snapshot_id,
+        executed_at: updatedRequest.executed_at,
+        approved_by: approvedBy,
+      },
+    }
+  );
+  
   logger.info("Time travel execution started", {
     request_id: request._id.toString(),
     tenant_id: request.tenant_id.toString(),
@@ -747,6 +789,7 @@ export async function startGhostSession(
     user_agent: string;
   }
 ): Promise<{ session: GhostSession; token: string }> {
+  const db = await getDatabase();
   const sessionId = new ObjectId();
   const plaintextToken = crypto.randomBytes(32).toString("hex");
   // Store only the hash of the token, not the plaintext
@@ -767,6 +810,9 @@ export async function startGhostSession(
     user_agent: options.user_agent,
   };
   
+  // Persist ghost session to database for audit and lifecycle tracking
+  await db.collection("ghost_sessions").insertOne(session);
+  
   // Log without exposing token
   logger.warn("Ghost mode session started", {
     session_id: sessionId.toString(),
@@ -782,38 +828,66 @@ export async function startGhostSession(
 }
 
 /**
- * Log ghost mode action
+ * Log ghost mode action and persist to database
  */
-export function logGhostAction(
+export async function logGhostAction(
   session: GhostSession,
   action: Omit<GhostAction, "timestamp">
-): GhostSession {
+): Promise<GhostSession> {
+  const db = await getDatabase();
+  
   const loggedAction: GhostAction = {
     ...action,
     timestamp: new Date(),
   };
   
-  return {
+  const updatedSession: GhostSession = {
     ...session,
     actions_performed: [...session.actions_performed, loggedAction],
   };
+  
+  // Persist action to database
+  await db.collection("ghost_sessions").updateOne(
+    { _id: session._id },
+    {
+      $push: { actions_performed: loggedAction },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- MongoDB $push operator typing
+    } as any
+  );
+  
+  return updatedSession;
 }
 
 /**
  * End ghost mode session
  */
 export async function endGhostSession(session: GhostSession): Promise<GhostSession> {
+  const db = await getDatabase();
+  const endedAt = new Date();
+  
   const endedSession: GhostSession = {
     ...session,
     active: false,
-    ended_at: new Date(),
+    ended_at: endedAt,
   };
+  
+  // Persist session end to database
+  await db.collection("ghost_sessions").updateOne(
+    { _id: session._id },
+    {
+      $set: {
+        active: false,
+        ended_at: endedAt,
+        actions_performed: session.actions_performed,
+      },
+    }
+  );
   
   logger.info("Ghost mode session ended", {
     session_id: session._id.toString(),
     admin_id: session.admin_id.toString(),
     tenant_id: session.tenant_id.toString(),
-    duration_minutes: Math.round((new Date().getTime() - session.started_at.getTime()) / 60000),
+    duration_minutes: Math.round((endedAt.getTime() - session.started_at.getTime()) / 60000),
     actions_count: session.actions_performed.length,
   });
   

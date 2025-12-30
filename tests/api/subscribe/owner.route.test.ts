@@ -107,6 +107,88 @@ describe("API /api/subscribe/owner", () => {
     });
   });
 
+  describe("Authorization", () => {
+    it("returns 403 when non-admin user tries to subscribe for another user", async () => {
+      setMockUser({
+        id: "user-123",
+        orgId: "org-123",
+        email: "user@example.com",
+        role: "MEMBER", // Non-admin role
+      });
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/subscribe/owner",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ownerUserId: "other-user-456", // Different user
+            modules: ["PROPERTIES"],
+            seats: 1,
+            customer: { email: "other@example.com" },
+          }),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const res = await POST(req);
+
+      expect(res.status).toBe(403);
+    });
+
+    it("allows non-admin user to subscribe for themselves", async () => {
+      setMockUser({
+        id: "user-123",
+        orgId: "org-123",
+        email: "user@example.com",
+        role: "MEMBER",
+      });
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/subscribe/owner",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ownerUserId: "user-123", // Same user
+            modules: ["PROPERTIES"],
+            seats: 1,
+            customer: { email: "user@example.com" },
+          }),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const res = await POST(req);
+
+      // 200 for successful subscription (subscribing for self)
+      expect(res.status).toBe(200);
+    });
+
+    it("allows admin to subscribe for any user", async () => {
+      setMockUser({
+        id: "admin-123",
+        orgId: "org-123",
+        email: "admin@example.com",
+        role: "ADMIN",
+      });
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/subscribe/owner",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ownerUserId: "other-user-456", // Different user
+            modules: ["PROPERTIES"],
+            seats: 1,
+            customer: { email: "other@example.com" },
+          }),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const res = await POST(req);
+
+      // 200 for successful subscription (admin can subscribe for anyone)
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe("Rate Limiting", () => {
     it("returns 429 when rate limited", async () => {
       rateLimitAllowed = false;

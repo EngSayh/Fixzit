@@ -323,7 +323,7 @@ export default function SuperadminUserLogsPage() {
     }
   }, []);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (currentLogs: typeof logs) => {
     try {
       const response = await fetch("/api/admin/user-logs/stats", { credentials: "include" });
       if (response.ok) {
@@ -344,13 +344,13 @@ export default function SuperadminUserLogsPage() {
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching stats:", error);
-      // Demo stats - guard against division by zero
-      const errorCount = logs.filter(l => l.status === "error").length;
-      const errorRate = logs.length > 0 ? (errorCount / logs.length) * 100 : 0;
+      // Demo stats - guard against division by zero, use passed currentLogs to avoid stale closure
+      const errorCount = currentLogs.filter(l => l.status === "error").length;
+      const errorRate = currentLogs.length > 0 ? (errorCount / currentLogs.length) * 100 : 0;
       setStats({
-        totalLogs: logs.length,
-        todayLogs: logs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length,
-        uniqueUsers: new Set(logs.map(l => l.userId)).size,
+        totalLogs: currentLogs.length,
+        todayLogs: currentLogs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length,
+        uniqueUsers: new Set(currentLogs.map(l => l.userId)).size,
         errorRate,
         avgSessionDuration: 45,
         topActions: [
@@ -361,7 +361,7 @@ export default function SuperadminUserLogsPage() {
         ],
       });
     }
-  }, [logs]);
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -370,7 +370,7 @@ export default function SuperadminUserLogsPage() {
   }, [fetchLogs, fetchSessions]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
-  useEffect(() => { if (logs.length > 0) fetchStats(); }, [logs, fetchStats]);
+  useEffect(() => { if (logs.length > 0) fetchStats(logs); }, [logs, fetchStats]);
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch = !search || 

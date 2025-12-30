@@ -425,8 +425,8 @@ export async function assessFraudRisk(
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     };
     
-    // Update vendor profile
-    await db.collection(VENDORS_COLLECTION).updateOne(
+    // Update vendor profile and check if vendor exists
+    const updateResult = await db.collection(VENDORS_COLLECTION).updateOne(
       { orgId, vendorId },
       {
         $set: {
@@ -436,6 +436,15 @@ export async function assessFraudRisk(
         },
       }
     );
+    
+    // Check if vendor was found - log error if not
+    if (updateResult.matchedCount === 0) {
+      logger.error("Fraud assessment failed: vendor not found", {
+        component: "vendor-intelligence",
+        orgId,
+        vendorId,
+      });
+    }
     
     // Create alert for high/critical risk
     if (riskLevel === FraudRiskLevel.HIGH || riskLevel === FraudRiskLevel.CRITICAL) {
@@ -533,7 +542,7 @@ export async function reinstateVendor(
     // Recalculate score to determine tier
     const score = await calculateVendorScore(orgId, vendorId);
     
-    await db.collection(VENDORS_COLLECTION).updateOne(
+    const result = await db.collection(VENDORS_COLLECTION).updateOne(
       { orgId, vendorId },
       {
         $set: {
@@ -546,6 +555,11 @@ export async function reinstateVendor(
         },
       }
     );
+    
+    // Check if vendor was found
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Vendor not found" };
+    }
     
     return { success: true };
   } catch (error) {
@@ -998,10 +1012,18 @@ export async function getVendorDashboard(
           bronze: { $sum: { $cond: [{ $eq: ["$tier", "bronze"] }, 1, 0] } },
           probation: { $sum: { $cond: [{ $eq: ["$tier", "probation"] }, 1, 0] } },
           suspended: { $sum: { $cond: [{ $eq: ["$tier", "suspended"] }, 1, 0] } },
-          highRisk: {
+          // Count distinct at-risk vendors: probation OR suspended OR high-risk fraud
+          // Using $or to avoid double-counting vendors in multiple categories
+          atRiskDistinct: {
             $sum: {
               $cond: [
-                { $in: ["$fraudAssessment.riskLevel", ["high", "critical"]] },
+                {
+                  $or: [
+                    { $eq: ["$tier", "probation"] },
+                    { $eq: ["$tier", "suspended"] },
+                    { $in: ["$fraudAssessment.riskLevel", ["high", "critical"]] },
+                  ],
+                },
                 1,
                 0,
               ],
@@ -1035,8 +1057,8 @@ export async function getVendorDashboard(
         [VendorTier.SUSPENDED]: data.suspended || 0,
       },
       averageScore: Math.round(data.avgScore || 0),
-      // Include high-risk fraud vendors in atRiskVendors count
-      atRiskVendors: (data.probation || 0) + (data.suspended || 0) + (data.highRisk || 0),
+      // Use distinct count to avoid double-counting vendors in multiple at-risk categories
+      atRiskVendors: data.atRiskDistinct || 0,
       fraudAlerts,
     };
   } catch (_error) {

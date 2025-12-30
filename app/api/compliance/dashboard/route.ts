@@ -32,12 +32,27 @@ export async function GET() {
     const userOrgId = (session?.user as { orgId?: string })?.orgId;
     if (!isDemo && !userOrgId) {
       return NextResponse.json(
-        { error: { code: 'FIXZIT-API-001', message: 'Missing orgId for authenticated user' } },
+        { error: { code: 'FIXZIT-TENANT-001', message: 'Missing orgId for authenticated user' } },
         { status: 400 }
       );
     }
     const orgId = isDemo ? 'demo' : userOrgId!;
     
+    /**
+     * TODO: PLACEHOLDER DATA - FOR UI/DEV ONLY
+     * 
+     * This entire dashboard response is currently hardcoded mock data for UI development.
+     * 
+     * Real data sources required:
+     * - ZATCA: Query zatca_submissions collection and ZATCA API status
+     * - NCA: Query nca_assessments collection from nca-service.ts
+     * - PDPL: Query pdpl_consents, dsar_requests, data_breaches collections
+     * 
+     * Follow-up ticket: COMP-001 - Integrate real compliance data sources
+     * 
+     * Gate behind feature flag: process.env.ENABLE_MOCK_COMPLIANCE === 'true'
+     * or remove entirely once real data integration is complete.
+     */
     // Compliance dashboard data
     const dashboard = {
       orgId,

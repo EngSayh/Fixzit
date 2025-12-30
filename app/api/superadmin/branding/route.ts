@@ -242,6 +242,18 @@ export async function PATCH(request: NextRequest) {
       }
     );
 
+    // Null check: findOneAndUpdate can return null if the document wasn't found/created
+    if (!settings) {
+      logger.error("Branding settings not found after upsert", {
+        username: session.username,
+        orgId: orgId || "global",
+      });
+      return NextResponse.json(
+        { success: false, message: "Branding settings not found" },
+        { status: 404 }
+      );
+    }
+
     logger.info("Platform branding updated", {
       username: session.username,
       orgId: orgId || "global",

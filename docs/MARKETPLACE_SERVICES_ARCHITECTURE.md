@@ -55,18 +55,24 @@ This document clarifies the distinction between **Marketplace (Souq)** and **FM 
 interface Product {
   // Existing fields...
   
-  // NEW: Business model type
-  businessModel: 'B2B' | 'B2C' | 'B2B2C';
+  // NEW: Business model type (includes C2C for peer-to-peer marketplace)
+  businessModel: 'B2B' | 'B2C' | 'B2B2C' | 'C2C';
   
-  // NEW: Pricing tiers
+  // NEW: Pricing tiers with currency support
   pricing: {
     retail: Price;          // B2C price
     wholesale?: Price;      // B2B price (min quantity required)
-    minWholesaleQty?: number;
+    minWholesaleQty?: number; // Required when wholesale price is set
   };
   
   // NEW: Customer type restrictions
   allowedCustomerTypes: ('BUSINESS' | 'INDIVIDUAL')[];
+}
+
+// Price type with currency support for multi-currency contexts
+interface Price {
+  amount: number;
+  currency: 'SAR' | 'USD' | 'EUR' | 'AED'; // ISO 4217 codes
 }
 ```
 

@@ -4,7 +4,12 @@
  * detection, health status, and historical snapshots for maintenance.
  * 
  * @module api/admin/route-metrics
- * @requires SUPER_ADMIN role
+ * @requires SUPER_ADMIN role OR superadmin portal session
+ * 
+ * @security
+ * This route accepts authentication via either:
+ * - Standard auth session with SUPER_ADMIN role
+ * - Superadmin portal session (getSuperadminSession)
  * 
  * @endpoints
  * - GET /api/admin/route-metrics - Get route alias metrics

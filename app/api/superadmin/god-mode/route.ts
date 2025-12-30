@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,12 +26,168 @@ export async function GET(req: NextRequest) {
       );
     }
     
+    const db = await getDatabase();
+    
+    // Fetch real tenant counts
+    const [
+      totalTenants,
+      activeTenants,
+      trialTenants,
+      suspendedTenants,
+      pendingOffboarding,
+    ] = await Promise.all([
+      db.collection("organizations").countDocuments({}),
+      db.collection("organizations").countDocuments({ status: "active" }),
+      db.collection("organizations").countDocuments({ plan: "trial" }),
+      db.collection("organizations").countDocuments({ status: "suspended" }),
+      db.collection("organizations").countDocuments({ status: "pending_offboarding" }),
+    ]);
+    
+    // Fetch top tenants (sanitize - only expose necessary fields)
+    const topTenants = await db.collection("organizations")
+      .find({ status: { $in: ["active", "trial"] } })
+      .project({ 
+        _id: 1, 
+        name: 1, 
+        status: 1, 
+        plan: 1,
+        // Don't expose internal IDs directly
+      })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .toArray();
+    
+    // Count users per tenant
+    const topTenantsWithUsers = await Promise.all(
+      topTenants.map(async (tenant, index) => {
+        const userCount = await db.collection("users").countDocuments({ 
+          organizationId: tenant._id 
+        });
+        return {
+          name: tenant.name,
+          id: String(index + 1), // Obfuscated index, not real ID
+          users: userCount,
+          status: tenant.status,
+          plan: tenant.plan || "starter",
+        };
+      })
+    );
+    
+    // Fetch active kill switch events
+    const activeKillSwitchEvents = await db.collection("kill_switch_events")
+      .find({ deactivated_at: { $exists: false } })
+      .sort({ activated_at: -1 })
+      .limit(10)
+      .toArray();
+    
+    // Enrich kill switch events with tenant names
+    const killSwitchWithNames = await Promise.all(
+      activeKillSwitchEvents.map(async (event) => {
+        const tenant = await db.collection("organizations").findOne(
+          { _id: event.tenant_id },
+          { projection: { name: 1 } }
+        );
+        return {
+          tenant_id: "tenant-" + String(event.tenant_id).slice(-6), // Partial ID only
+          tenant_name: tenant?.name || "Unknown Tenant",
+          action: event.action,
+          reason: event.reason,
+          activated_at: event.activated_at,
+          activated_by: event.activated_by?.toString().slice(-6) || "system",
+          scheduled_reactivation: event.scheduled_reactivation || null,
+        };
+      })
+    );
+    
+    // Fetch snapshot stats
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const [totalSnapshots, snapshots24h, recentSnapshots] = await Promise.all([
+      db.collection("tenant_snapshots").countDocuments({}),
+      db.collection("tenant_snapshots").countDocuments({ created_at: { $gte: yesterday } }),
+      db.collection("tenant_snapshots")
+        .find({})
+        .sort({ created_at: -1 })
+        .limit(5)
+        .toArray(),
+    ]);
+    
+    // Enrich snapshots with tenant names
+    const snapshotsWithNames = await Promise.all(
+      recentSnapshots.map(async (snap) => {
+        const tenant = await db.collection("organizations").findOne(
+          { _id: snap.tenant_id },
+          { projection: { name: 1 } }
+        );
+        return {
+          id: "snap-" + String(snap._id).slice(-6),
+          tenant_name: tenant?.name || "Unknown Tenant",
+          type: snap.type,
+          size_mb: snap.size_bytes ? Math.round(snap.size_bytes / (1024 * 1024)) : 0,
+          created_at: snap.created_at,
+          status: snap.status,
+        };
+      })
+    );
+    
+    // Fetch active ghost sessions
+    const activeGhostSessions = await db.collection("ghost_sessions")
+      .find({ active: true })
+      .limit(10)
+      .toArray();
+    
+    // Fetch 24h metrics from aggregation (or provide estimates if collection doesn't exist)
+    let metrics24h = {
+      api_requests: 0,
+      unique_users: 0,
+      work_orders_created: 0,
+      invoices_generated: 0,
+      payments_processed: 0,
+      payments_value_sar: 0,
+      errors_count: 0,
+      error_rate_percent: 0,
+    };
+    
+    try {
+      const [
+        uniqueUsersToday,
+        workOrdersToday,
+        invoicesToday,
+        paymentsToday,
+      ] = await Promise.all([
+        db.collection("users").countDocuments({ lastLoginAt: { $gte: yesterday } }),
+        db.collection("work_orders").countDocuments({ createdAt: { $gte: yesterday } }),
+        db.collection("invoices").countDocuments({ createdAt: { $gte: yesterday } }),
+        db.collection("payments").countDocuments({ createdAt: { $gte: yesterday } }),
+      ]);
+      
+      // Calculate payments total
+      const paymentsAgg = await db.collection("payments").aggregate([
+        { $match: { createdAt: { $gte: yesterday }, status: "completed" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]).toArray();
+      
+      metrics24h = {
+        api_requests: 0, // Requires telemetry service integration
+        unique_users: uniqueUsersToday,
+        work_orders_created: workOrdersToday,
+        invoices_generated: invoicesToday,
+        payments_processed: paymentsToday,
+        payments_value_sar: paymentsAgg[0]?.total || 0,
+        errors_count: 0, // Requires error tracking integration
+        error_rate_percent: 0,
+      };
+    } catch {
+      // Collections may not exist yet - use defaults
+    }
+    
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
       operator_id: session.username, // Use username for audit trail
       
-      // System Health
+      // System Health - requires monitoring service integration
+      // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data
       system_health: {
         status: "healthy",
         score: 98,
@@ -42,83 +199,49 @@ export async function GET(req: NextRequest) {
           { name: "File Storage (S3)", status: "healthy", latency_ms: 85 },
           { name: "Payment Gateway (TAP)", status: "healthy", latency_ms: 230 },
           { name: "SMS Gateway (Taqnyat)", status: "healthy", latency_ms: 180 },
-          { name: "ZATCA API", status: "degraded", latency_ms: 1200, note: "High latency - monitoring" },
+          { name: "ZATCA API", status: "healthy", latency_ms: 350 },
         ],
+        _note: "Health checks are placeholder - integrate monitoring service for real data",
       },
       
-      // Tenant Overview
+      // Tenant Overview - REAL DATA
       tenants: {
-        total: 47,
-        active: 45,
-        trial: 8,
-        suspended: 1,
-        pending_offboarding: 1,
-        mrr_sar: 127500,
-        top_tenants: [
-          { name: "SAHRECO (Platform Owner)", id: "1", users: 25, status: "active", plan: "enterprise" },
-          { name: "Al-Faisal Properties", id: "2", users: 18, status: "active", plan: "professional" },
-          { name: "Gulf Commercial", id: "3", users: 12, status: "active", plan: "professional" },
-          { name: "Riyadh Facilities", id: "4", users: 8, status: "trial", plan: "starter" },
-          { name: "Jeddah FM Co", id: "5", users: 15, status: "active", plan: "professional" },
-        ],
+        total: totalTenants,
+        active: activeTenants,
+        trial: trialTenants,
+        suspended: suspendedTenants,
+        pending_offboarding: pendingOffboarding,
+        mrr_sar: 0, // Requires billing integration
+        top_tenants: topTenantsWithUsers,
       },
       
-      // Kill Switch Status
+      // Kill Switch Status - REAL DATA
       kill_switch: {
-        active_count: 1,
-        events: [
-          {
-            tenant_id: "suspended-tenant-1",
-            tenant_name: "Test Corp (Suspended)",
-            action: "suspend_access",
-            reason: "Payment failure - 3 consecutive months",
-            activated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            activated_by: "system",
-            scheduled_reactivation: null,
-          },
-        ],
+        active_count: activeKillSwitchEvents.length,
+        events: killSwitchWithNames,
       },
       
-      // Recent Snapshots
+      // Recent Snapshots - REAL DATA
       snapshots: {
-        total: 142,
-        last_24h: 3,
-        recent: [
-          {
-            id: "snap-001",
-            tenant_name: "Al-Faisal Properties",
-            type: "scheduled",
-            size_mb: 245,
-            created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-            status: "completed",
-          },
-          {
-            id: "snap-002",
-            tenant_name: "SAHRECO",
-            type: "manual",
-            size_mb: 512,
-            created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-            status: "completed",
-          },
-        ],
+        total: totalSnapshots,
+        last_24h: snapshots24h,
+        recent: snapshotsWithNames,
       },
       
-      // Platform Metrics (24h)
-      metrics_24h: {
-        api_requests: 1247832,
-        unique_users: 892,
-        work_orders_created: 156,
-        invoices_generated: 89,
-        payments_processed: 34,
-        payments_value_sar: 45670,
-        errors_count: 23,
-        error_rate_percent: 0.002,
-      },
+      // Platform Metrics (24h) - REAL DATA WHERE AVAILABLE
+      metrics_24h: metrics24h,
       
-      // Ghost Mode Sessions
+      // Ghost Mode Sessions - REAL DATA
       ghost_sessions: {
-        active: 0,
-        recent: [],
+        active: activeGhostSessions.length,
+        recent: activeGhostSessions.map(s => ({
+          id: "ghost-" + String(s._id).slice(-6),
+          admin_id: String(s.admin_id).slice(-6),
+          tenant_id: "tenant-" + String(s.tenant_id).slice(-6),
+          mode: s.mode,
+          started_at: s.started_at,
+          permissions: s.permissions,
+        })),
       },
       
       // Quick Actions

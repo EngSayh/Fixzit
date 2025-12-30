@@ -960,15 +960,16 @@ export async function finalizeReview(
       return { success: false, error: "Review not found or not in calibration" };
     }
     
-    // Update cycle completion count
+    // Update cycle completion count - include orgId in both queries
     const review = await db.collection(REVIEWS_COLLECTION).findOne({
       _id: new ObjectId(reviewId),
+      orgId, // Ensure tenant scoping
     }) as WithId<Document> | null;
     
     if (review) {
       const r = review as unknown as PerformanceReview;
       await db.collection(CYCLES_COLLECTION).updateOne(
-        { _id: new ObjectId(r.reviewCycleId) },
+        { _id: new ObjectId(r.reviewCycleId), orgId }, // Include orgId for tenant scoping
         { $inc: { completedCount: 1 } }
       );
     }
@@ -1076,9 +1077,9 @@ export async function generatePerformanceInsights(
       });
     }
     
-    // Save insights to review
+    // Save insights to review - include orgId for tenant scoping
     await db.collection(REVIEWS_COLLECTION).updateOne(
-      { _id: new ObjectId(reviewId) },
+      { _id: new ObjectId(reviewId), orgId },
       {
         $set: {
           aiInsights: insights,

@@ -112,6 +112,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
     const userId = session.user.id;
+    
+    // Validate userId is a non-empty string (same check as GET handler)
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      logger.warn("MFA disable request with missing user ID", { orgId });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
+        { status: 400 }
+      );
+    }
+    
     const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.headers.get("x-real-ip") || 
@@ -197,6 +207,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
     const userId = session.user.id;
+    
+    // Validate userId is a non-empty string (same check as GET and DELETE handlers)
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      logger.warn("MFA regenerate codes request with missing user ID", { orgId });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
+        { status: 400 }
+      );
+    }
+    
     const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.headers.get("x-real-ip") || 

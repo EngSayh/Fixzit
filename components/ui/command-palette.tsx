@@ -189,6 +189,9 @@ export function CommandPalette({
     }
   }, [router, onOpenModal, onToggleTheme]);
   
+  // Ref for input focus on open
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  
   return (
     <CommandPrimitive.Dialog
       open={open}
@@ -203,11 +206,16 @@ export function CommandPalette({
             "bg-card border border-border shadow-2xl",
             "animate-in fade-in-0 zoom-in-95"
           )}
+          onAnimationEnd={() => {
+            // Focus input after open animation completes
+            if (open) inputRef.current?.focus();
+          }}
         >
           {/* Search Input */}
           <div className="flex items-center border-b border-border px-4">
             <SearchIcon className="h-5 w-5 text-muted-foreground shrink-0" />
             <CommandPrimitive.Input
+              ref={inputRef}
               value={query}
               onValueChange={setQuery}
               placeholder="Type a command or search..."

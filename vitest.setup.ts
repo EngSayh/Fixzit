@@ -519,18 +519,30 @@ const shouldUseInMemoryMongo = forceMongo || !isJsdomEnv || !skipGlobalMongo;
 let mongoServer: MongoMemoryServer | undefined;
 let mongoUriRef: string | undefined;
 let shuttingDownMongo = false;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 const handleMongoDisconnected = async () => {
   if (shuttingDownMongo) return;
   if (!mongoUriRef) return;
+  
+  // Limit reconnection attempts to prevent infinite loops
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    logger.error(`[MongoMemory] Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached, giving up`);
+    return;
+  }
+  
+  reconnectAttempts++;
+  
   try {
     await mongoose.connect(mongoUriRef, {
       autoCreate: true,
       autoIndex: true,
     });
     logger.debug("[MongoMemory] Reconnected after disconnect");
+    reconnectAttempts = 0; // Reset on successful reconnect
   } catch (err) {
-    logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
+    logger.error(`[MongoMemory] Reconnect attempt ${reconnectAttempts} failed`, err as Error);
   }
 };
 
@@ -590,6 +602,9 @@ async function startMongoMemoryServer() {
  * Provides in-memory database for model validation tests
  */
 beforeAll(async () => {
+  // Reset reconnect counter for each test file to prevent state leaking across workers
+  reconnectAttempts = 0;
+  
   if (!shouldUseInMemoryMongo) {
     return;
   }

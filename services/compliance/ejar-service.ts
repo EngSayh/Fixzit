@@ -681,22 +681,28 @@ export async function terminateContract(
       return { success: false, error: "Contract already terminated" };
     }
     
-    await updateContractStatus(
-      orgId,
-      contractId,
-      EjarContractStatus.TERMINATED,
-      terminatedBy,
-      reason
-    );
+    // Atomic update: combine status update and terminatedAt in single operation
+    // This prevents race conditions from separate DB writes
+    const historyEntry: StatusHistoryEntry = {
+      status: EjarContractStatus.TERMINATED,
+      changedAt: new Date(),
+      changedBy: terminatedBy,
+      reason,
+    };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateOp: any = {
+      $set: {
+        status: EjarContractStatus.TERMINATED,
+        terminatedAt: new Date(),
+        updatedAt: new Date(),
+      },
+      $push: { statusHistory: historyEntry },
+    };
     
     await db.collection(EJAR_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
-      {
-        $set: {
-          terminatedAt: new Date(),
-          updatedAt: new Date(),
-        },
-      }
+      updateOp
     );
     
     // In production, would notify Ejar platform
@@ -1183,22 +1189,27 @@ async function checkAndActivateContract(
     contract.signatures.landlordSigned &&
     contract.signatures.tenantSigned
   ) {
-    await updateContractStatus(
-      orgId,
-      contractId,
-      EjarContractStatus.ACTIVE,
-      "system",
-      "All required signatures collected"
-    );
-    
+    // Atomic update: combine status change and activatedAt in single operation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- MongoDB $push operator typing
+    const update: any = {
+      $set: {
+        status: EjarContractStatus.ACTIVE,
+        activatedAt: new Date(),
+        updatedAt: new Date(),
+      },
+      $push: {
+        statusHistory: {
+          from: EjarContractStatus.PENDING_SIGNATURES,
+          to: EjarContractStatus.ACTIVE,
+          changedBy: "system",
+          changedAt: new Date(),
+          reason: "All required signatures collected",
+        },
+      },
+    };
     await db.collection(EJAR_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
-      {
-        $set: {
-          activatedAt: new Date(),
-          updatedAt: new Date(),
-        },
-      }
+      update
     );
   }
 }

@@ -38,18 +38,27 @@ export async function GET(request: Request) {
     const category = searchParams.get("category");
     const city = searchParams.get("city")?.trim() || null;
     
+    // Resolve org_id before constructing payload
+    let org_id: string;
+    if (isDemo) {
+      org_id = "demo";
+    } else {
+      const sessionOrgId = (session?.user as { orgId?: string })?.orgId;
+      if (!sessionOrgId) {
+        logger.error("[FM Providers] Authenticated user missing orgId - rejecting request");
+        return NextResponse.json(
+          { error: { code: "FIXZIT-TENANT-001", message: "Organization ID required for authenticated users" } },
+          { status: 400 }
+        );
+      }
+      org_id = sessionOrgId;
+    }
+    
     // Provider Network Data
     const providerNetwork = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,
-      org_id: (() => {
-        if (isDemo) return "demo";
-        const sessionOrgId = (session?.user as { orgId?: string })?.orgId;
-        if (sessionOrgId) return sessionOrgId;
-        // Authenticated users without orgId should not receive data scoped to arbitrary org
-        logger.error("[FM Providers] Authenticated user missing orgId - rejecting request");
-        throw new Error("Organization ID required for authenticated users");
-      })(),
+      org_id,
       
       // Provider Statistics
       statistics: {

@@ -17,7 +17,7 @@
  * @created 2025-12-28
  */
 
-import { ObjectId, type Document as MongoDocument } from "mongodb";
+import { ObjectId, type UpdateFilter } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -180,6 +180,10 @@ const SCORING_CONFIG = {
     risky: 0.40, // 40% of income
   },
   
+  // High income threshold (SAR per month - adjusted for Saudi market)
+  // Used to identify high earners for bonus scoring
+  highIncomeThreshold: 20000,
+  
   // Minimum scores for approval
   minimumScores: {
     overall: 60,
@@ -225,9 +229,10 @@ export async function createScreeningApplication(
     
     // Create applicant record if not exists
     // Whitelist of allowed updatable applicant fields (exclude immutable/critical fields)
+    // Field names match the ScreeningApplication.applicant interface
     const allowedFields = [
-      "firstName", "lastName", "phone", "email", "address",
-      "dob", "employmentStatus", "monthlyIncome", "employer"
+      "fullName", "phone", "email", "currentAddress",
+      "dateOfBirth", "employmentStatus", "monthlyIncome", "employer", "occupation", "nationality"
     ] as const;
     
     const safeApplicantUpdate: Record<string, unknown> = {};
@@ -347,19 +352,21 @@ export async function addDocument(
   try {
     const db = await getDatabase();
     
-    // MongoDB update operators for adding document to array
-    const result = await db.collection("screening_applications").updateOne(
-      { _id: new ObjectId(applicationId), orgId },
-      {
-        $push: {
-          documents: {
-            type: document.type,
-            status: "pending",
-            url: document.url,
-          },
+    // Properly typed MongoDB update for adding document to array
+    const update: UpdateFilter<ScreeningApplication> = {
+      $push: {
+        documents: {
+          type: document.type,
+          status: "pending" as const,
+          url: document.url,
         },
-        $set: { updatedAt: new Date() },
-      } as MongoDocument
+      },
+      $set: { updatedAt: new Date() },
+    };
+    
+    const result = await db.collection<ScreeningApplication>("screening_applications").updateOne(
+      { _id: new ObjectId(applicationId), orgId },
+      update
     );
     
     // Validate that the document was actually found and updated
@@ -400,6 +407,19 @@ export async function verifyDocument(
   try {
     const db = await getDatabase();
     
+    // Build update object conditionally - only set notes if provided
+    const updateFields: Record<string, unknown> = {
+      "documents.$.status": verified ? "verified" : "rejected",
+      "documents.$.verifiedAt": new Date(),
+      "documents.$.verifiedBy": verifiedBy,
+      updatedAt: new Date(),
+    };
+    
+    // Only set notes if explicitly provided (avoid overwriting with undefined)
+    if (notes !== undefined) {
+      updateFields["documents.$.notes"] = notes;
+    }
+    
     const result = await db.collection("screening_applications").updateOne(
       { 
         _id: new ObjectId(applicationId), 
@@ -407,13 +427,7 @@ export async function verifyDocument(
         "documents.type": documentType,
       },
       {
-        $set: {
-          "documents.$.status": verified ? "verified" : "rejected",
-          "documents.$.verifiedAt": new Date(),
-          "documents.$.verifiedBy": verifiedBy,
-          "documents.$.notes": notes,
-          updatedAt: new Date(),
-        },
+        $set: updateFields,
       }
     );
     
@@ -458,10 +472,10 @@ export async function calculateScreeningScore(
   try {
     const db = await getDatabase();
     
-    const application = await db.collection("screening_applications").findOne({
+    const application = await db.collection<ScreeningApplication>("screening_applications").findOne({
       _id: new ObjectId(applicationId),
       orgId,
-    }) as ScreeningApplication | null;
+    });
     
     if (!application) {
       return { success: false, error: "Application not found" };
@@ -629,8 +643,9 @@ function calculateIncomeScore(
     redFlags.push(`Very high rent-to-income ratio: ${Math.round(rentToIncome * 100)}% - exceeds 40%`);
   }
   
-  // Bonus for high income
-  if (applicant.monthlyIncome > 20000) {
+  // Bonus for high income - use configurable threshold
+  const highIncomeThreshold = SCORING_CONFIG.highIncomeThreshold ?? 20000;
+  if (applicant.monthlyIncome > highIncomeThreshold) {
     score += 10;
     positiveIndicators.push("High income earner");
   }
@@ -894,10 +909,10 @@ export async function getScreeningSummary(
   try {
     const db = await getDatabase();
     
-    const application = await db.collection("screening_applications").findOne({
+    const application = await db.collection<ScreeningApplication>("screening_applications").findOne({
       _id: new ObjectId(applicationId),
       orgId,
-    }) as ScreeningApplication | null;
+    });
     
     if (!application) {
       return { application: null, scoreBreakdown: [] };

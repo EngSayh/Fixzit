@@ -6,6 +6,7 @@
  * 
  * Note: The actual count may vary as controls are added/updated.
  * Run a count verification if precise numbers are required.
+ * Current count: 68 controls (verified 2025-12-29)
  * 
  * @module services/compliance/nca-service
  */
@@ -19,7 +20,7 @@ import type {
 import type { ObjectId } from "mongodb";
 
 // =============================================================================
-// NCA CONTROL DEFINITIONS (69 CONTROLS)
+// NCA CONTROL DEFINITIONS (68 CONTROLS)
 // =============================================================================
 
 /**

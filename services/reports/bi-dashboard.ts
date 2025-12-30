@@ -520,7 +520,11 @@ export async function getFinanceKPIs(
     return {
       totalRevenue: createKPIResult(totalRevenueValue, prevRevenueValue),
       outstandingReceivables: createKPIResult(receivablesResult[0]?.total || 0, 0, "lower_better"),
-      cashFlow: createKPIResult(totalRevenueValue * 0.8, prevRevenueValue * 0.8), // Simplified
+      // TODO: cashFlow is a placeholder estimate (80% of revenue).
+      // Replace with actual cash flow calculation from transactions collection.
+      cashFlow: createKPIResult(totalRevenueValue * 0.8, prevRevenueValue * 0.8),
+      // TODO: expenseRatio is hardcoded (35%).
+      // Replace with actual expense/revenue ratio from finance ledger.
       expenseRatio: createKPIResult(35, 38, "lower_better", 30),
       revenuePerUnit: createKPIResult(
         unitCount > 0 ? totalRevenueValue / unitCount : 0,
@@ -634,6 +638,9 @@ export async function getOperationsKPIs(
       avgResolutionTime: createKPIResult(avgResolutionHours, 0, "lower_better", 24),
       slaCompliance: createKPIResult(slaCompliance, 0, "higher_better", 95),
       preventiveMaintenance: createKPIResult(preventiveRatio, 0, "higher_better", 30),
+      // TODO: firstTimeFixRate is hardcoded (85%).
+      // Replace with actual calculation from work_orders collection:
+      // (work orders resolved on first visit / total work orders) * 100
       firstTimeFixRate: createKPIResult(85, 82, "higher_better", 90),
     };
   } catch (error) {
@@ -851,7 +858,9 @@ export async function getHRKPIs(
       attendanceRate: createKPIResult(attendanceRate, 0, "higher_better", 95),
       turnoverRate: createKPIResult(turnoverRate, 0, "lower_better", 10),
       avgTenure: createKPIResult(avgTenureYears, 0),
-      trainingHours: createKPIResult(40, 35), // Placeholder
+      // TODO: trainingHours is hardcoded placeholder (40 hours).
+      // Replace with actual training hours from HR training module.
+      trainingHours: createKPIResult(40, 35),
       payrollCost: createKPIResult(payrollResult[0]?.total || 0, 0),
     };
   } catch (error) {
@@ -1030,10 +1039,15 @@ export async function addWidget(
       $set: { updatedAt: new Date() },
     };
     
-    await db.collection(DASHBOARDS_COLLECTION).updateOne(
+    const result = await db.collection(DASHBOARDS_COLLECTION).updateOne(
       { _id: new ObjectId(dashboardId), orgId },
       updateOp
     );
+    
+    // Verify update was successful
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Dashboard not found" };
+    }
     
     return { success: true };
   } catch (error) {
@@ -1059,10 +1073,15 @@ export async function removeWidget(
       $set: { updatedAt: new Date() },
     };
     
-    await db.collection(DASHBOARDS_COLLECTION).updateOne(
+    const result = await db.collection(DASHBOARDS_COLLECTION).updateOne(
       { _id: new ObjectId(dashboardId), orgId },
       updateOp
     );
+    
+    // Verify update was successful
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Dashboard not found" };
+    }
     
     return { success: true };
   } catch (error) {
@@ -1322,10 +1341,13 @@ function createKPIResult(
   if (target !== undefined) {
     result.target = target;
     // For lower_better metrics (like costs), being under target is good
-    // Formula: lower_better uses target/value (lower value = higher achievement)
-    result.targetAchievement = direction === "higher_better"
-      ? (value / target) * 100
-      : target > 0 ? (target / Math.max(value, 0.01)) * 100 : 100;
+    // Formula: lower_better - value at or below target = 100%, above target decreases proportionally
+    if (direction === "higher_better") {
+      result.targetAchievement = (value / target) * 100;
+    } else {
+      // lower_better: at target = 100%, below target = 100%, above target = (target/value)*100
+      result.targetAchievement = value <= target ? 100 : target > 0 ? (target / value) * 100 : 100;
+    }
   }
   
   return result;
@@ -1455,7 +1477,7 @@ async function calculateMaintenanceCostKPI(
 
 async function calculateSatisfactionKPI(
   orgId: string,
-  _dateRange: DateRange
+  dateRange: DateRange
 ): Promise<KPIResult> {
   const db = await getDatabase();
   
@@ -1464,6 +1486,8 @@ async function calculateSatisfactionKPI(
       $match: {
         org_id: orgId,
         rating: { $exists: true },
+        // Apply date range filter if feedback has createdAt field
+        createdAt: { $gte: dateRange.start, $lte: dateRange.end },
       },
     },
     { $group: { _id: null, avgRating: { $avg: "$rating" } } },

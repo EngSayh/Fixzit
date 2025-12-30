@@ -549,6 +549,9 @@ export async function createContract(
     let template: ContractTemplate | null = null;
     if (request.templateId) {
       template = await getTemplate(request.orgId, request.templateId);
+      if (!template) {
+        return { success: false, error: `Template not found: ${request.templateId}` };
+      }
     }
     
     // Create contract
@@ -863,7 +866,7 @@ export async function respondToApproval(
 export async function sendForSignatures(
   orgId: string,
   contractId: string,
-  _sentBy: string
+  _sentBy: string // Reserved for future audit tracking of who initiated signatures
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const db = await getDatabase();
@@ -1094,8 +1097,10 @@ export async function initiateRenewal(
         ...contract.terms,
         startDate: contract.terms.endDate,
         endDate: newTerms.endDate,
-        durationMonths: Math.round(
-          (newTerms.endDate.getTime() - contract.terms.endDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+        // Calculate calendar month difference using year/month components
+        durationMonths: (
+          (newTerms.endDate.getFullYear() - contract.terms.endDate.getFullYear()) * 12 +
+          (newTerms.endDate.getMonth() - contract.terms.endDate.getMonth())
         ),
         renewalCount: contract.terms.renewalCount + 1,
       },
@@ -1577,7 +1582,7 @@ function createDefaultWorkflow(type: ContractType): WorkflowStep[] {
 
 function determineComplianceRequirements(
   type: ContractType,
-  _terms: ContractTerms
+  _terms: ContractTerms // Reserved for future compliance logic based on contract terms
 ): ContractCompliance {
   return {
     ejarRequired: [

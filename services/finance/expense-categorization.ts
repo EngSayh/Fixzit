@@ -636,10 +636,11 @@ export async function generateSpendingInsights(
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
     
-    // Get this month's spending by category
+    // Get this month's spending by category (include dateTo for consistent comparison)
     const thisMonth = await getSpendingByCategory(orgId, {
       propertyId: options?.propertyId,
       dateFrom: thisMonthStart,
+      dateTo: now, // Explicitly set end date for consistent date range comparison
     });
     
     // Get last month's spending by category

@@ -35,8 +35,8 @@ async function waitForMongoConnection(maxWaitMs = 120000): Promise<void> {
 
 beforeEach(async () => {
   // Wait for mongoose connection from vitest.setup.ts beforeAll
-  // CI environments may take longer due to cold start
-  await waitForMongoConnection(60000);
+  // CI environments may take longer due to cold start and MongoDB binary download
+  await waitForMongoConnection(120000);
   
   // Clear tenant context first
   clearTenantContext();

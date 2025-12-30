@@ -566,7 +566,9 @@ async function getPreviousAuditHash(
       { sort: { timestamp: -1 }, projection: { integrity_hash: 1 }, session }
     );
     return lastAudit?.integrity_hash || "0".repeat(64);
-  } catch {
+  } catch (error) {
+    // Log the error for debugging; return genesis hash to maintain chain continuity
+    logger.error("Failed to retrieve previous audit hash", { error: String(error) });
     return "0".repeat(64);
   }
 }
@@ -574,6 +576,10 @@ async function getPreviousAuditHash(
 /**
  * Create audit log entry with chain integrity
  * Note: For atomic chain integrity, caller should use a transaction
+ * 
+ * @returns AuditLogEntry - Always returns an entry. If persistence fails,
+ *          the entry will contain an `error` field with code "AUDIT_PERSIST_FAILURE".
+ *          Callers should check for `entry.error` when persistence confirmation is required.
  */
 export async function createAuditLogEntry(
   category: AuditCategory,

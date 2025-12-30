@@ -218,9 +218,10 @@ describe("lease-service", () => {
 
       const result = await createLease(request);
       
-      if (result.success && result.lease) {
-        expect(result.lease.paymentFrequency).toBe(PaymentFrequency.MONTHLY);
-      }
+      // Assert that lease creation succeeded and has default payment frequency
+      expect(result.success).toBe(true);
+      expect(result.lease).toBeDefined();
+      expect(result.lease?.paymentFrequency).toBe(PaymentFrequency.MONTHLY);
     });
   });
 

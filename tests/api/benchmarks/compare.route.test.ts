@@ -187,6 +187,14 @@ describe("API /api/benchmarks/compare", () => {
 
       // 200 for successful benchmark comparison
       expect(res.status).toBe(200);
+      
+      // Validate response structure
+      const body = await res.json();
+      expect(body).toHaveProperty("quote");
+      expect(body.quote).toHaveProperty("total");
+      expect(typeof body.quote.total).toBe("number");
+      expect(body.quote).toHaveProperty("items");
+      expect(Array.isArray(body.quote.items)).toBe(true);
     });
   });
 });

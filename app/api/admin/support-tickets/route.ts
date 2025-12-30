@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     // TODO: Implement actual ticketing system integration (e.g., Zendesk, Freshdesk)
     // For now, return empty array - this is a placeholder
     logger.debug("Support tickets requested", {
-      superadminUsername: session.username,
+      superadminUsername: session?.username ?? "unknown",
       status,
     });
 

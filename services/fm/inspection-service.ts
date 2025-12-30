@@ -17,6 +17,7 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import mongoose from "mongoose";
 
 // ============================================================================
 // Types & Interfaces
@@ -277,6 +278,19 @@ export async function createTemplate(
   try {
     const db = await getDatabase();
     
+    // If setting as default, atomically unset other defaults BEFORE insert
+    // This prevents race condition where two templates could be default briefly
+    if (data.isDefault) {
+      await db.collection(TEMPLATES_COLLECTION).updateMany(
+        { 
+          orgId: data.orgId, 
+          type: data.type, 
+          isDefault: true,
+        },
+        { $set: { isDefault: false, updatedAt: new Date() } }
+      );
+    }
+    
     const template: Omit<InspectionTemplate, "_id"> = {
       ...data,
       createdAt: new Date(),
@@ -285,19 +299,6 @@ export async function createTemplate(
     
     const result = await db.collection(TEMPLATES_COLLECTION).insertOne(template);
     const templateId = result.insertedId.toString();
-    
-    // If setting as default, atomically unset other defaults (after insert to ensure we have the new ID)
-    if (data.isDefault) {
-      await db.collection(TEMPLATES_COLLECTION).updateMany(
-        { 
-          orgId: data.orgId, 
-          type: data.type, 
-          isDefault: true,
-          _id: { $ne: result.insertedId } 
-        },
-        { $set: { isDefault: false, updatedAt: new Date() } }
-      );
-    }
     
     logger.info("Inspection template created", {
       component: "inspection-service",
@@ -360,11 +361,14 @@ export async function getTemplatesByType(
 
 /**
  * Create default templates for an organization
+ * Uses transaction to ensure atomicity - all templates created or none
  */
 export async function createDefaultTemplates(
   orgId: string,
   createdBy: string
 ): Promise<{ created: number }> {
+  const session = await mongoose.startSession();
+  
   try {
     const templates: Omit<InspectionTemplate, "_id" | "createdAt" | "updatedAt">[] = [
       // Move-in inspection
@@ -409,15 +413,48 @@ export async function createDefaultTemplates(
     ];
     
     let created = 0;
-    for (const template of templates) {
-      const result = await createTemplate(template);
-      if (result.success) created++;
-    }
+    
+    await session.withTransaction(async () => {
+      const db = await getDatabase();
+      
+      for (const template of templates) {
+        // Unset existing defaults within transaction
+        if (template.isDefault) {
+          await db.collection(TEMPLATES_COLLECTION).updateMany(
+            { 
+              orgId: template.orgId, 
+              type: template.type, 
+              isDefault: true,
+            },
+            { $set: { isDefault: false, updatedAt: new Date() } },
+            { session }
+          );
+        }
+        
+        // Insert new template within transaction
+        const templateDoc: Omit<InspectionTemplate, "_id"> = {
+          ...template,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        const result = await db.collection(TEMPLATES_COLLECTION).insertOne(
+          templateDoc,
+          { session }
+        );
+        
+        if (result.insertedId) {
+          created++;
+        }
+      }
+    });
     
     return { created };
   } catch (_error) {
     logger.error("Failed to create default templates", { component: "inspection-service" });
     return { created: 0 };
+  } finally {
+    await session.endSession();
   }
 }
 

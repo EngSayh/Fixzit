@@ -254,8 +254,14 @@ export async function createBudget(
     
     return { success: true, budgetId: result.insertedId.toString() };
   } catch (_error) {
-    logger.error("Failed to create budget", { component: "budget-forecasting" });
-    return { success: false, error: "Failed to create budget" };
+    logger.error("Failed to create budget", { 
+      component: "budget-forecasting",
+      error: _error instanceof Error ? _error.message : String(_error),
+    });
+    return { 
+      success: false, 
+      error: _error instanceof Error ? _error.message : "Failed to create budget",
+    };
   }
 }
 
@@ -691,8 +697,11 @@ function calculateCategoryForecast(
   const remainingPeriodForecast = Math.round(currentMonthForecast * horizonMonths);
   
   // End of year (remaining months in calendar year)
+  // Note: This includes the current month in the remaining count.
+  // getMonth() returns 0-11, so December (11) gives remainingMonths = 1
   const now = new Date();
-  const remainingMonths = 12 - now.getMonth();
+  const currentMonth = now.getMonth(); // 0-11
+  const remainingMonths = 12 - currentMonth; // 12 in Jan, 1 in Dec
   const endOfYearForecast = Math.round(currentMonthForecast * remainingMonths);
   
   // Determine trend direction
@@ -782,11 +791,17 @@ export async function analyzeVariance(
       if (status === "unfavorable") {
         rootCauses.push("Actual spending exceeded budget allocation");
         
-        // Check for trend
+        // Check for increasing trend with strict comparison
+        // Requires at least one strict increase and non-zero values
         const recentMonths = item.monthlyBreakdown.slice(-3);
-        const increasing = recentMonths.every(
+        const hasNonZeroData = recentMonths.some(m => m.actual > 0);
+        const hasStrictIncrease = recentMonths.some(
+          (m, i) => i > 0 && m.actual > recentMonths[i - 1].actual
+        );
+        const isNonDecreasing = recentMonths.every(
           (m, i) => i === 0 || m.actual >= recentMonths[i - 1].actual
         );
+        const increasing = hasNonZeroData && hasStrictIncrease && isNonDecreasing;
         
         if (increasing) {
           rootCauses.push("Consistent monthly increase in spending");

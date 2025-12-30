@@ -128,6 +128,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Rate limiting for report creation - 10 requests per minute per superadmin
+    const rateLimitKey = session.username || "unknown";
+    const rateLimitResponse = enforceRateLimit(req, {
+      identifier: rateLimitKey,
+      keyPrefix: "superadmin:reports:post",
+      requests: 10,
+      windowMs: 60_000,
+    });
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     let body;
     try {
       body = await req.json();
