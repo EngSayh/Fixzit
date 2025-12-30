@@ -117,7 +117,7 @@ const MOCK_WEBHOOKS: WebhookConfig[] = [
     id: "wh-1",
     name: "CRM Integration",
     url: "https://crm.example.com/webhooks/fixzit",
-    secret: "whsec_xxxxxxxxxxxxx",
+    secret: "wh_sec_placeholder_1", // Mock data - actual secrets stored securely
     enabled: true,
     events: ["tenant.created", "user.created"],
     createdAt: "2025-01-01T00:00:00Z",
@@ -132,7 +132,7 @@ const MOCK_WEBHOOKS: WebhookConfig[] = [
     id: "wh-2",
     name: "Billing Sync",
     url: "https://billing.example.com/api/webhooks",
-    secret: "whsec_yyyyyyyyyyyyy",
+    secret: "wh_sec_placeholder_2", // Mock data - actual secrets stored securely
     enabled: true,
     events: ["payment.completed", "payment.failed", "invoice.generated"],
     createdAt: "2025-01-05T00:00:00Z",
@@ -147,7 +147,7 @@ const MOCK_WEBHOOKS: WebhookConfig[] = [
     id: "wh-3",
     name: "Analytics Pipeline",
     url: "https://analytics.internal/ingest",
-    secret: "whsec_zzzzzzzzzzzzzz",
+    secret: "wh_sec_placeholder_3", // Mock data - actual secrets stored securely
     enabled: false,
     events: ["workorder.created", "workorder.completed"],
     createdAt: "2025-01-10T00:00:00Z",
@@ -287,7 +287,7 @@ export default function WebhooksPage() {
         id: `wh-${Date.now()}`,
         name: formData.name,
         url: formData.url,
-        secret: `whsec_${crypto.randomUUID().replace(/-/g, "").substring(0, 24)}`,
+        secret: `wh_sec_${crypto.randomUUID().replace(/-/g, "").substring(0, 16)}`, // Mock secret format
         enabled: true,
         events: formData.events,
         createdAt: new Date().toISOString(),
