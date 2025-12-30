@@ -778,6 +778,62 @@ pnpm lint       # ✅ 0 errors (6 warnings expected for superadmin routes)
 
 ---
 
+## 📅 2025-12-29 21:30 (Asia/Riyadh) — Console Error Fixes + PAY-001 Verified
+
+**Agent Token:** [AGENT-001-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 2538941b4 (pushed)
+**Session Summary:** Fixed console errors (SelectValue deprecation, BrandLogo warning, /api/fm/reports 401). Verified TAP payment and MongoDB configuration in GitHub Secrets and Vercel.
+**DB Sync:** created=1, updated=1, skipped=0, errors=0
+**PR:** #618 - https://github.com/EngSayh/Fixzit/pull/618
+
+### ✅ Console Errors Fixed
+
+| Issue | File(s) | Fix Applied |
+|-------|---------|-------------|
+| SelectValue deprecation | 8 superadmin pages | Removed `SelectValue`, moved `placeholder` to `<Select>` |
+| BrandLogo aspect ratio | `components/brand/BrandLogo.tsx:207` | Added `style={{ width: 'auto', height: 'auto' }}` |
+| /api/fm/reports 401 | `app/api/superadmin/reports/route.ts` (NEW) | Created cross-tenant API with `getSuperadminSession` |
+
+### ✅ PAY-001: CLOSED — Tap Payment Verified
+
+**Evidence from GitHub Secrets (verified 2025-12-29):**
+```
+TAP_API_KEY             2025-12-11T11:19:55Z
+TAP_MERCHANT_ID         2025-12-11T11:18:57Z
+TAP_ACCOUNT_ID          2025-12-11T11:19:37Z
+TAP_TEST_SECRET_KEY     2025-12-11T11:20:15Z
+TAP_LIVE_SECRET_KEY     2025-12-11T11:22:07Z
+TAP_ENVIRONMENT         2025-12-11T11:18:19Z
+TAP_GOSELL_USERNAME     2025-12-11T11:23:03Z
+TAP_GOSELL_PASSWORD     2025-12-11T11:23:21Z
+NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY  2025-12-11T11:22:29Z
+NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY  2025-12-11T11:22:48Z
+```
+
+**Evidence from Vercel (verified 2025-12-29):**
+All TAP_* secrets configured for Development, Preview, and Production environments (18 days ago).
+
+### 📁 Files Modified (11)
+- app/superadmin/reports/page.tsx
+- app/superadmin/notifications/page.tsx
+- app/superadmin/permissions/page.tsx
+- app/superadmin/tenants/page.tsx
+- app/superadmin/user-logs/page.tsx
+- app/superadmin/subscriptions/page.tsx
+- app/superadmin/vendors/page.tsx
+- app/superadmin/issues/page.tsx
+- components/brand/BrandLogo.tsx
+- components/shared/BulkActionsToolbar.tsx
+- app/api/superadmin/reports/route.ts (NEW)
+
+### 📊 Verification Results
+```bash
+pnpm typecheck  # ✅ 0 errors
+pnpm lint       # ✅ 0 errors (6 warnings expected for superadmin routes)
+```
+
+---
+
 ## 📅 2025-12-29 18:30 (Asia/Riyadh) — 27 Bug Fixes Session
 
 **Agent Token:** [AGENT-001-A]
