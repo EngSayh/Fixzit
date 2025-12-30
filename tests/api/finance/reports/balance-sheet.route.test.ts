@@ -134,9 +134,9 @@ describe("GET /api/finance/reports/balance-sheet", () => {
     expect(callArgs).toBeDefined();
     // The service should receive a Date object for asOf
     const asOfArg = callArgs?.[1];
-    if (asOfArg instanceof Date) {
-      expect(asOfArg.toISOString().startsWith("2025-12-31")).toBe(true);
-    }
+    // Assert type first, then value - fail explicitly if not a Date
+    expect(asOfArg).toBeInstanceOf(Date);
+    expect((asOfArg as Date).toISOString().startsWith("2025-12-31")).toBe(true);
   });
 
   it("verifies permission check is called", async () => {

@@ -64,6 +64,7 @@ import {
   Monitor,
 } from "@/components/ui/icons";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
+import DOMPurify from "dompurify";
 
 // ============================================================================
 // TYPES
@@ -266,7 +267,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function EmailTemplatesPage() {
   const { t } = useI18n();
-  const _session = useSuperadminSession();
+  // Session check for superadmin access (hook validates internally)
+  useSuperadminSession();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -353,9 +355,26 @@ export default function EmailTemplatesPage() {
     }
   };
 
-  const copyTemplateKey = (key: string) => {
-    navigator.clipboard.writeText(key);
-    toast.success("Template key copied");
+  const copyTemplateKey = async (key: string) => {
+    try {
+      await navigator.clipboard.writeText(key);
+      toast.success("Template key copied");
+    } catch {
+      // Fallback for insecure context or permission denied
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = key;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        toast.success("Template key copied");
+      } catch {
+        toast.error("Failed to copy. Please copy manually: " + key);
+      }
+    }
   };
 
   const getPreviewHtml = () => {
@@ -390,7 +409,8 @@ export default function EmailTemplatesPage() {
       html = html.replace(new RegExp(`{{${key}}}`, "g"), value);
     });
     
-    return html;
+    // Sanitize HTML to prevent XSS from user-editable template content
+    return typeof window !== "undefined" ? DOMPurify.sanitize(html) : html;
   };
 
   const filteredTemplates = templates.filter(t => {

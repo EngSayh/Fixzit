@@ -177,7 +177,7 @@ function QuotaEditDialog({
       onOpenChange(false);
       toast.success("Quota updated successfully");
     } catch (_err) {
-      toast.error("Failed to update quota");;
+      toast.error("Failed to update quota");
     } finally {
       setSaving(false);
     }

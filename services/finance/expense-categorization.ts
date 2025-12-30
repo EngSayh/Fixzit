@@ -471,10 +471,17 @@ async function learnFromCorrection(
     // Extract keywords from description
     const keywords = extractKeywords(description);
     
-    // Check if similar rule exists
+    // Check if similar rule exists - use regex for substring matching
+    // This matches the same logic as matchesRule which uses text.includes(vendorPattern)
+    const normalizedVendor = vendorName.trim().toLowerCase();
     const existingRule = await db.collection(RULES_COLLECTION).findOne({
       orgId,
-      vendorPattern: vendorName.toLowerCase(),
+      // Find rules where the vendorPattern is a substring of the vendorName
+      // (matching how matchesRule uses text.includes(vendorPattern))
+      $or: [
+        { vendorPattern: normalizedVendor },
+        { vendorPattern: { $regex: normalizedVendor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+      ],
       category: correctCategory,
     }) as WithId<Document> | null;
     

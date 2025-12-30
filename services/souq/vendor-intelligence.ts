@@ -796,7 +796,7 @@ function calculateActivityScore(
     accountAge: profile?.createdAt
       ? Math.floor((Date.now() - new Date(profile.createdAt).getTime()) / (1000 * 60 * 60 * 24))
       : 0,
-    loginFrequency: 70,
+    loginFrequency: loginScore, // Use the same value used in score calculation
     score,
   };
 }

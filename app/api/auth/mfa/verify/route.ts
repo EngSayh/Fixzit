@@ -66,9 +66,10 @@ export async function POST(request: NextRequest) {
     
     const orgId = session.user.orgId;
     if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+      // Return 400 Bad Request for missing session fields (consistent with userId check below)
       return NextResponse.json(
         { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
-        { status: 403 }
+        { status: 400 }
       );
     }
     const userId = typeof session.user.id === "string" ? session.user.id.trim() : "";

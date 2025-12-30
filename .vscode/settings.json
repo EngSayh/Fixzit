@@ -80,6 +80,9 @@
   // Git performance
   "git.untrackedChanges": "hidden",
   "git.ignoreLimitWarning": true,
+  
+  // Prevent direct commits/pushes to protected branches in VS Code
+  "git.branchProtection": ["main", "master"],
 
   // Editor performance
   "editor.codeLens": false,

@@ -413,8 +413,11 @@ export default function SuperadminTenantsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-400"
+                            asChild
                           >
-                            <Edit className="h-4 w-4" />
+                            <Link href={`/superadmin/tenants/${org._id}/edit`} aria-label="Edit organization">
+                              <Edit className="h-4 w-4" />
+                            </Link>
                           </Button>
                           <Button
                             variant="ghost"

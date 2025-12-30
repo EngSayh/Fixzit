@@ -502,8 +502,8 @@ export async function addMessage(
     // Check if this is first response (public agent message only)
     const isFirstResponse = message.authorType === "agent" && !ticket.firstResponseAt && !message.isPrivate;
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateOp: any = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- MongoDB update operator typing
+    const updateOp: Record<string, any> = {
       $push: { messages: fullMessage },
       $set: { updatedAt: new Date() },
     };
@@ -575,15 +575,14 @@ export async function resolveTicket(
       createdAt: now,
     };
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateOp: any = {
+    const updateOp = {
       $set: {
         status: TicketStatus.RESOLVED,
         resolvedAt: now,
         updatedAt: now,
         "sla.resolutionMet": resolutionMet,
       },
-      $push: { messages: resolutionMessage },
+      $push: { messages: resolutionMessage as never },
     };
     
     await db.collection(TICKETS_COLLECTION).updateOne(
@@ -644,15 +643,14 @@ export async function escalateTicket(
       }
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateOp: any = {
+    const updateOp = {
       $set: {
         escalationLevel: newLevel,
         priority: newPriority,
         "sla.escalatedAt": new Date(),
         updatedAt: new Date(),
       },
-      $push: { internalNotes: note },
+      $push: { internalNotes: note as never },
     };
     
     await db.collection(TICKETS_COLLECTION).updateOne(
@@ -1040,8 +1038,13 @@ export async function listTickets(
       query["customer.userId"] = filters.customerId;
     }
     if (filters.search) {
+      // Limit search string length to prevent ReDoS from very long input
+      const MAX_SEARCH_LENGTH = 200;
+      const searchTerm = filters.search.length > MAX_SEARCH_LENGTH 
+        ? filters.search.substring(0, MAX_SEARCH_LENGTH) 
+        : filters.search;
       // Escape regex special characters to prevent injection/ReDoS
-      const escapedSearch = filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedSearch = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
         { subject: { $regex: escapedSearch, $options: "i" } },
         { ticketNumber: { $regex: escapedSearch, $options: "i" } },
@@ -1060,7 +1063,7 @@ export async function listTickets(
     const [tickets, total] = await Promise.all([
       db.collection(TICKETS_COLLECTION)
         .find(query)
-        .sort({ createdAt: -1 })
+        .sort(options?.sort && typeof options.sort === "object" ? options.sort : { createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .toArray(),

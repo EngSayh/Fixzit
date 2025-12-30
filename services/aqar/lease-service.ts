@@ -149,7 +149,7 @@ export interface LeaseDocument {
   autoRenew: boolean;
   renewalReminderSent: boolean;
   expiryNotificationsSentDays: number[];
-  expiryNotificationsSent?: number;
+  // Note: expiryNotificationsSent field removed - use expiryNotificationsSentDays.length instead
 }
 
 /**
@@ -210,8 +210,11 @@ async function generateLeaseNumber(orgId: string): Promise<string> {
   );
   
   // Access seq from result.value for findOneAndUpdate return type
-  // Use nullish fallback of 0 (not 1) to handle legitimate 0 values
-  const seq = result?.value?.seq ?? 0;
+  // Validate the result - throw error if seq is invalid to prevent duplicate lease numbers
+  const seq = result?.value?.seq;
+  if (seq === null || seq === undefined || typeof seq !== "number" || seq < 1) {
+    throw new Error(`Failed to generate lease number: invalid seq value for orgId=${orgId}, year=${year}`);
+  }
   return `LSE-${year}-${seq.toString().padStart(5, "0")}`;
 }
 

@@ -281,6 +281,18 @@ export default function WebhooksPage() {
       return;
     }
     
+    // Validate URL format
+    try {
+      const parsedUrl = new URL(formData.url);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        toast.error("Please enter a valid HTTP or HTTPS URL");
+        return;
+      }
+    } catch {
+      toast.error("Please enter a valid URL");
+      return;
+    }
+    
     try {
       // In production: POST to /api/superadmin/webhooks
       const newWebhook: WebhookConfig = {

@@ -115,50 +115,92 @@ export default function ImpersonationHistoryPage() {
     try {
       setLoading(true);
       
-      // In production, this would call /api/superadmin/impersonate/history
-      // For now, generate mock data based on god-mode ghost sessions
-      const godModeRes = await fetch("/api/superadmin/god-mode", {
+      // Call the impersonate sessions endpoint (with god-mode fallback for compatibility)
+      const sessionsRes = await fetch("/api/superadmin/impersonate/sessions", {
         credentials: "include",
       });
       
-      if (!godModeRes.ok) {
-        throw new Error("Failed to fetch impersonation history");
-      }
+      let historyData: ImpersonationSession[] = [];
       
-      const godModeData = await godModeRes.json();
-      const ghostSessions = godModeData.ghost_sessions || [];
-      
-      // Transform ghost sessions into impersonation history format
-      const historyData: ImpersonationSession[] = ghostSessions.map((gs: {
-        operator_id?: string;
-        tenant_id?: string;
-        tenant_name?: string;
-        started_at?: string;
-        ended_at?: string;
-        actions_count?: number;
-        active?: boolean;
-      }, idx: number) => {
-        const startedAt = gs.started_at ? new Date(gs.started_at) : new Date(Date.now() - (idx * 3600000));
-        const endedAt = gs.ended_at ? new Date(gs.ended_at) : (gs.active ? null : new Date(startedAt.getTime() + 1800000));
-        const duration = endedAt ? Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000) : null;
+      if (sessionsRes.ok) {
+        const sessionsData = await sessionsRes.json();
+        const rawSessions = sessionsData.sessions || sessionsData.ghost_sessions || [];
         
-        return {
-          id: `imp-${idx + 1}`,
-          operator: {
-            username: gs.operator_id || "superadmin",
-            ip: "192.168.1." + (100 + idx),
-          },
-          tenant: {
-            id: gs.tenant_id || `tenant-${idx + 1}`,
-            name: gs.tenant_name || `Tenant ${idx + 1}`,
-          },
-          startedAt: startedAt.toISOString(),
-          endedAt: endedAt?.toISOString() || null,
-          duration,
-          actionsPerformed: gs.actions_count || Math.floor(Math.random() * 50),
-          status: gs.active ? "active" : (duration && duration > 7200 ? "expired" : "ended"),
-        };
-      });
+        historyData = rawSessions.map((gs: {
+          operator_id?: string;
+          tenant_id?: string;
+          tenant_name?: string;
+          started_at?: string;
+          ended_at?: string;
+          actions_count?: number;
+          active?: boolean;
+        }, idx: number) => {
+          const startedAt = gs.started_at ? new Date(gs.started_at) : new Date(Date.now() - (idx * 3600000));
+          const endedAt = gs.ended_at ? new Date(gs.ended_at) : (gs.active ? null : new Date(startedAt.getTime() + 1800000));
+          const duration = endedAt ? Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000) : null;
+          
+          return {
+            id: `imp-${idx + 1}`,
+            operator: {
+              username: gs.operator_id || "superadmin",
+              ip: "192.168.1." + (100 + idx),
+            },
+            tenant: {
+              id: gs.tenant_id || `tenant-${idx + 1}`,
+              name: gs.tenant_name || `Tenant ${idx + 1}`,
+            },
+            startedAt: startedAt.toISOString(),
+            endedAt: endedAt?.toISOString() || null,
+            duration,
+            actionsPerformed: gs.actions_count || Math.floor(Math.random() * 50),
+            status: gs.active ? "active" : (duration && duration > 7200 ? "expired" : "ended"),
+          };
+        });
+      } else {
+        // Fallback to god-mode endpoint for compatibility
+        const godModeRes = await fetch("/api/superadmin/god-mode", {
+          credentials: "include",
+        });
+        
+        if (!godModeRes.ok) {
+          throw new Error("Failed to fetch impersonation history");
+        }
+        
+        const godModeData = await godModeRes.json();
+        const ghostSessions = godModeData.ghost_sessions || [];
+        
+        // Transform ghost sessions into impersonation history format
+        historyData = ghostSessions.map((gs: {
+          operator_id?: string;
+          tenant_id?: string;
+          tenant_name?: string;
+          started_at?: string;
+          ended_at?: string;
+          actions_count?: number;
+          active?: boolean;
+        }, idx: number) => {
+          const startedAt = gs.started_at ? new Date(gs.started_at) : new Date(Date.now() - (idx * 3600000));
+          const endedAt = gs.ended_at ? new Date(gs.ended_at) : (gs.active ? null : new Date(startedAt.getTime() + 1800000));
+          const duration = endedAt ? Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000) : null;
+          
+          return {
+            id: `imp-${idx + 1}`,
+            operator: {
+              username: gs.operator_id || "superadmin",
+              ip: "192.168.1." + (100 + idx),
+            },
+            tenant: {
+              id: gs.tenant_id || `tenant-${idx + 1}`,
+              name: gs.tenant_name || `Tenant ${idx + 1}`,
+            },
+            startedAt: startedAt.toISOString(),
+            endedAt: endedAt?.toISOString() || null,
+            duration,
+            actionsPerformed: gs.actions_count || Math.floor(Math.random() * 50),
+            status: gs.active ? "active" : (duration && duration > 7200 ? "expired" : "ended"),
+          };
+        });
+      }
       
       // Add some sample data if no ghost sessions exist
       if (historyData.length === 0) {
@@ -209,9 +251,19 @@ export default function ImpersonationHistoryPage() {
     fetchHistory();
   }, [fetchHistory]);
 
+  // CSV escape helper: wrap field in quotes and escape internal quotes
+  const escapeCSV = (value: string | number | null | undefined): string => {
+    const str = String(value ?? "");
+    // If contains comma, quote, newline, or carriage return, wrap in quotes and escape quotes
+    if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
   const handleExport = () => {
     const csv = [
-      ["ID", "Operator", "IP", "Tenant", "Started", "Ended", "Duration", "Actions", "Status"].join(","),
+      ["ID", "Operator", "IP", "Tenant", "Started", "Ended", "Duration", "Actions", "Status"].map(escapeCSV).join(","),
       ...sessions.map(s => [
         s.id,
         s.operator.username,
@@ -222,7 +274,7 @@ export default function ImpersonationHistoryPage() {
         formatDuration(s.duration),
         s.actionsPerformed,
         s.status,
-      ].join(","))
+      ].map(escapeCSV).join(","))
     ].join("\n");
     
     const blob = new Blob([csv], { type: "text/csv" });

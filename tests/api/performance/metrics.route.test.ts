@@ -162,7 +162,22 @@ describe("API /api/performance/metrics", () => {
         role: "SUPER_ADMIN",
         email: "admin@example.com",
       });
-      mockGetRecentMetrics.mockClear();
+      
+      // Mock returns more items than the limit to test that limit is enforced
+      mockGetRecentMetrics.mockReturnValue([
+        { timestamp: Date.now() - 1000, latency: 41, path: "/api/test1" },
+        { timestamp: Date.now() - 2000, latency: 42, path: "/api/test2" },
+        { timestamp: Date.now() - 3000, latency: 43, path: "/api/test3" },
+        { timestamp: Date.now() - 4000, latency: 44, path: "/api/test4" },
+        { timestamp: Date.now() - 5000, latency: 45, path: "/api/test5" },
+        { timestamp: Date.now() - 6000, latency: 46, path: "/api/test6" },
+        { timestamp: Date.now() - 7000, latency: 47, path: "/api/test7" },
+        { timestamp: Date.now() - 8000, latency: 48, path: "/api/test8" },
+        { timestamp: Date.now() - 9000, latency: 49, path: "/api/test9" },
+        { timestamp: Date.now() - 10000, latency: 50, path: "/api/test10" },
+        { timestamp: Date.now() - 11000, latency: 51, path: "/api/test11" },
+        { timestamp: Date.now() - 12000, latency: 52, path: "/api/test12" },
+      ]);
 
       const req = new NextRequest(
         "http://localhost:3000/api/performance/metrics?type=recent&limit=10",

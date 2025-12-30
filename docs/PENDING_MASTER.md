@@ -18,6 +18,50 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-30 13:03 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | a182a14ba | (no PR link found)
+**DB Sync:** created=0, updated=0, skipped=0, errors=2 (extracted=1847; API offline; import script timeout)
+
+**✅ Resolved Today (DB SSOT):**
+- None (DB sync failed; no status changes applied)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (DB issue creation failed; API offline)
+
+**Next Steps (ONLY from DB items above):**
+- None
+
+---
+### 2025-12-30 12:59 (Asia/Riyadh) — SSOT Sync + Backlog Import [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 82cf857ce | (no PR link found)
+**DB Sync:** created=0, updated=185, skipped=1662, errors=1662 (import-backlog.ts)
+
+**✅ Resolved Today (DB SSOT):**
+- None
+
+**🟠 In Progress:**
+- None (status updates blocked; missing keys in DB)
+
+**🔴 Blocked:**
+- EMAIL-001 — status update blocked; key missing after import validation errors
+- no-scheduled-tasks-ui-logic-errors-doc-only — status update blocked; key missing after import validation errors
+- no-webhook-management-ui-logic-errors-doc-only — status update blocked; key missing after import validation errors
+
+**🆕 New Findings Added to DB (with evidence):**
+- SSOT-IMPORT-ENUMS-001 — SSOT import rejects BACKLOG_AUDIT categories/status/effort enums — sourceRef: code-review:scripts/import-backlog.ts:183-186
+
+**Next Steps (ONLY from DB items above):**
+- SSOT-IMPORT-ENUMS-001 — Normalize category/status/effort mapping and rerun import
+
+---
 ### 2025-12-30 21:00 (Asia/Riyadh) - PR #618 Final Review Fixes [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** PR-REVIEW-618
@@ -45,7 +89,7 @@ All verifications pass locally per AGENTS.md Section 10.5 GitHub Billing/Quota F
 ### 2025-12-30 12:34 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
 **Agent Token:** [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | a182a14ba | (no PR link found)
-**DB Sync:** created=0, updated=0, skipped=0, errors=2 (API offline; MONGODB_URI missing)
+**DB Sync:** created=0, updated=0, skipped=0, errors=2 (extracted=1847; API offline; MONGODB_URI missing)
 
 **✅ Resolved Today (DB SSOT):**
 - None (DB sync failed; no status changes applied)

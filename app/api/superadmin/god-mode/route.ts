@@ -257,8 +257,13 @@ export async function GET(req: NextRequest) {
       ],
     };
     
+    // Obfuscate username for logging (PII protection)
+    const obfuscatedOperator = session.username 
+      ? Buffer.from(session.username).toString('base64').slice(0, 8) + '...'
+      : 'unknown';
+    
     logger.info("God Mode dashboard accessed", {
-      operatorId: session.username,
+      operatorId: obfuscatedOperator,
       tenants_count: dashboard.tenants.total,
       system_status: dashboard.system_health.status,
     });

@@ -170,14 +170,23 @@ export default function SuperadminFooterContentPage() {
   const fetchPolicies = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/content/policies", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setPolicies(Array.isArray(data) ? data : data.policies || []);
+      if (!response.ok) {
+        // Handle non-OK HTTP responses (4xx/5xx)
+        const errorText = await response.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("[Footer Content] API returned non-OK status:", response.status, errorText);
+        toast.error("Failed to load policies - showing demo data");
+        throw new Error(`HTTP ${response.status}`);
       }
+      const data = await response.json();
+      setPolicies(Array.isArray(data) ? data : data.policies || []);
+      return; // Success - don't fall through to demo data
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
       console.error("[Footer Content] Failed to fetch policies:", error);
-      toast.error("Failed to load policies - showing demo data");
+      if (!(error instanceof Error && error.message.startsWith("HTTP"))) {
+        toast.error("Failed to load policies - showing demo data");
+      }
       // Demo data
       setPolicies([
         {
@@ -239,14 +248,22 @@ export default function SuperadminFooterContentPage() {
   const fetchFooterLinks = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/content/footer-links", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setFooterLinks(Array.isArray(data) ? data : data.links || []);
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("[Footer Content] API returned non-OK status:", response.status, errorText);
+        toast.error("Failed to load footer links - showing demo data");
+        throw new Error(`HTTP ${response.status}`);
       }
+      const data = await response.json();
+      setFooterLinks(Array.isArray(data) ? data : data.links || []);
+      return;
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
       console.error("[Footer Content] Failed to fetch footer links:", error);
-      toast.error("Failed to load footer links - showing demo data");
+      if (!(error instanceof Error && error.message.startsWith("HTTP"))) {
+        toast.error("Failed to load footer links - showing demo data");
+      }
       // Demo data
       setFooterLinks([
         { _id: "link-1", label: "About Us", labelAr: "من نحن", url: "/about", section: "company", isExternal: false, isActive: true, sortOrder: 1 },
@@ -264,9 +281,15 @@ export default function SuperadminFooterContentPage() {
   const fetchChatbotSettings = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/content/chatbot", { credentials: "include" });
-      if (response.ok) {
-        setChatbotSettings(await response.json());
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("[Footer Content] Chatbot API returned non-OK status:", response.status, errorText);
+        toast.error("Failed to load chatbot settings - using defaults");
+        setChatbotSettings(DEFAULT_CHATBOT_SETTINGS);
+        return;
       }
+      setChatbotSettings(await response.json());
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
       console.error("[Footer Content] Failed to fetch chatbot settings:", error);
@@ -278,9 +301,15 @@ export default function SuperadminFooterContentPage() {
   const fetchCompanyInfo = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/content/company", { credentials: "include" });
-      if (response.ok) {
-        setCompanyInfo(await response.json());
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("[Footer Content] Company API returned non-OK status:", response.status, errorText);
+        toast.error("Failed to load company info - using defaults");
+        setCompanyInfo(DEFAULT_COMPANY_INFO);
+        return;
       }
+      setCompanyInfo(await response.json());
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
       console.error("[Footer Content] Failed to fetch company info:", error);
@@ -320,9 +349,9 @@ export default function SuperadminFooterContentPage() {
       toast.error("Slug is required");
       return;
     }
-    // Validate slug format: alphanumeric and hyphens only
+    // Validate slug format: alphanumeric and hyphens only (input is auto-lowercased)
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(policyForm.slug.toLowerCase())) {
-      toast.error("Slug must be alphanumeric with hyphens (e.g., 'privacy-policy')");
+      toast.error("Slug must contain only letters, numbers, and hyphens (e.g., 'privacy-policy'). Input will be automatically lowercased.");
       return;
     }
     if (!policyForm.content?.trim()) {

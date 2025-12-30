@@ -49,11 +49,11 @@ export async function GET(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
-  // Rate limit check - return 429 if exceeded
-  const rateLimited = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
-  if (rateLimited) return rateLimited;
-
   try {
+    // Rate limit check - return 429 if exceeded (inside try block for error handling)
+    const rateLimited = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
+    if (rateLimited) return rateLimited;
+
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

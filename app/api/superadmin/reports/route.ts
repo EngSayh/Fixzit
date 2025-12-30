@@ -64,10 +64,6 @@ const mapJob = (doc: ReportJobDocument) => ({
  * Returns all report jobs across all tenants (superadmin only)
  */
 export async function GET(_req: NextRequest) {
-  const rateLimitResponse = await enforceRateLimit(_req, { requests: 30, windowMs: 60_000, keyPrefix: "superadmin:reports" });
-  if (rateLimitResponse) {
-    return rateLimitResponse;
-  }
   try {
     const session = await getSuperadminSession(_req);
     
@@ -76,6 +72,17 @@ export async function GET(_req: NextRequest) {
         { error: { code: 'FIXZIT-AUTH-001', message: 'Superadmin access required' } },
         { status: 401 }
       );
+    }
+
+    // Per-user rate limiting to avoid shared bucket across all superadmins
+    const rateLimitKey = session.username || "unknown";
+    const rateLimitResponse = await enforceRateLimit(_req, { 
+      requests: 30, 
+      windowMs: 60_000, 
+      keyPrefix: `superadmin:reports:${rateLimitKey}` 
+    });
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
     const db = await getDatabase();
@@ -151,14 +158,77 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { title, reportType, dateRange, format = 'csv', notes } = body;
+    const { title, reportType, dateRange, format = 'csv', notes, startDate, endDate } = body;
 
-    // Validate required fields
+    // Validate required fields exist and are primitive strings (not arrays/objects)
     if (!title || !reportType || !dateRange) {
       return NextResponse.json(
         { error: { code: 'FIXZIT-API-003', message: 'Missing required fields: title, reportType, dateRange' } },
         { status: 400 }
       );
+    }
+    
+    // Validate types are primitive strings (not arrays or objects)
+    if (typeof title !== 'string' || typeof reportType !== 'string' || typeof dateRange !== 'string') {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-003', message: 'Fields title, reportType, dateRange must be strings' } },
+        { status: 400 }
+      );
+    }
+    
+    if (notes !== undefined && typeof notes !== 'string') {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-003', message: 'Field notes must be a string if provided' } },
+        { status: 400 }
+      );
+    }
+    
+    // Trim validated strings
+    const trimmedTitle = title.trim();
+    const trimmedReportType = reportType.trim();
+    const trimmedDateRange = dateRange.trim();
+    const trimmedNotes = notes ? notes.trim() : undefined;
+    
+    // Validate reportType against allowed list
+    const allowedReportTypes = ['summary', 'detailed', 'usage', 'financial', 'audit', 'tenant'];
+    if (!allowedReportTypes.includes(trimmedReportType)) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-006', message: `Invalid reportType. Allowed: ${allowedReportTypes.join(', ')}` } },
+        { status: 400 }
+      );
+    }
+    
+    // Validate dateRange against allowed values
+    const allowedDateRanges = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'];
+    if (!allowedDateRanges.includes(trimmedDateRange)) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-006', message: `Invalid dateRange. Allowed: ${allowedDateRanges.join(', ')}` } },
+        { status: 400 }
+      );
+    }
+    
+    // Validate custom date range requires startDate and endDate
+    if (trimmedDateRange === 'custom') {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { error: { code: 'FIXZIT-API-006', message: 'Custom date range requires startDate and endDate' } },
+          { status: 400 }
+        );
+      }
+      const parsedStart = new Date(startDate);
+      const parsedEnd = new Date(endDate);
+      if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
+        return NextResponse.json(
+          { error: { code: 'FIXZIT-API-006', message: 'startDate and endDate must be valid ISO-8601 dates' } },
+          { status: 400 }
+        );
+      }
+      if (parsedStart > parsedEnd) {
+        return NextResponse.json(
+          { error: { code: 'FIXZIT-API-006', message: 'startDate must be before or equal to endDate' } },
+          { status: 400 }
+        );
+      }
     }
     
     // Validate format is allowed
@@ -169,12 +239,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Validate field lengths (trim and check)
-    const trimmedTitle = String(title).trim();
-    const trimmedReportType = String(reportType).trim();
-    const trimmedDateRange = String(dateRange).trim();
-    const trimmedNotes = notes ? String(notes).trim() : undefined;
     
     if (trimmedTitle.length > 255) {
       return NextResponse.json(

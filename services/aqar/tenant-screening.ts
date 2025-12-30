@@ -628,9 +628,14 @@ export async function calculateScreeningScore(
       },
     };
     
-    // Update application
+    // Update application - only update status if currently PENDING or IN_PROGRESS
+    // to avoid regressing DECIDED applications
     const updateResult = await db.collection("screening_applications").updateOne(
-      { _id: new ObjectId(applicationId), orgId },
+      { 
+        _id: new ObjectId(applicationId), 
+        orgId,
+        status: { $in: [ScreeningStatus.PENDING, ScreeningStatus.IN_PROGRESS] }
+      },
       {
         $set: {
           results,
@@ -641,6 +646,19 @@ export async function calculateScreeningScore(
     );
     
     if (updateResult.matchedCount === 0) {
+      // Check if application exists but is in a terminal state
+      const existingApp = await db.collection("screening_applications").findOne({
+        _id: new ObjectId(applicationId),
+        orgId,
+      });
+      if (existingApp && [ScreeningStatus.APPROVED, ScreeningStatus.CONDITIONALLY_APPROVED, ScreeningStatus.REJECTED, ScreeningStatus.CANCELLED].includes(existingApp.status as ScreeningStatus)) {
+        logger.warn("Screening application already decided, skipping score update", {
+          applicationId,
+          orgId,
+          currentStatus: existingApp.status,
+        });
+        return { success: false, error: "Application already decided - cannot update score" };
+      }
       logger.warn("Screening application not found for score update", {
         applicationId,
         orgId,
