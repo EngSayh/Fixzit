@@ -191,7 +191,7 @@ export default function SuperadminSubscriptionsPage() {
 
   const fetchTiers = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/subscriptions/tiers", { credentials: "include" });
+      const response = await fetch("/api/superadmin/subscriptions/tiers", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setTiers(Array.isArray(data) ? data : data.tiers || []);
@@ -211,7 +211,7 @@ export default function SuperadminSubscriptionsPage() {
 
   const fetchSubscriptions = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/subscriptions", { credentials: "include" });
+      const response = await fetch("/api/superadmin/subscriptions", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         const list = Array.isArray(data) ? data : data.subscriptions || [];
@@ -309,7 +309,7 @@ export default function SuperadminSubscriptionsPage() {
 
   const fetchStats = useCallback(async (latestSubscriptions?: TenantSubscription[]) => {
     try {
-      const response = await fetch("/api/admin/subscriptions/stats", { credentials: "include" });
+      const response = await fetch("/api/superadmin/subscriptions/stats", { credentials: "include" });
       if (response.ok) {
         setStats(await response.json());
         return;
@@ -390,8 +390,8 @@ export default function SuperadminSubscriptionsPage() {
       };
       
       const url = editingTier 
-        ? `/api/admin/subscriptions/tiers/${editingTier._id}`
-        : "/api/admin/subscriptions/tiers";
+        ? `/api/superadmin/subscriptions/tiers/${editingTier._id}`
+        : "/api/superadmin/subscriptions/tiers";
       
       const response = await fetch(url, {
         method: editingTier ? "PUT" : "POST",
@@ -459,7 +459,7 @@ export default function SuperadminSubscriptionsPage() {
     }
     
     try {
-      const response = await fetch(`/api/admin/subscriptions/tiers/${tier._id}`, {
+      const response = await fetch(`/api/superadmin/subscriptions/tiers/${tier._id}`, {
         method: "DELETE",
         credentials: "include",
       });
