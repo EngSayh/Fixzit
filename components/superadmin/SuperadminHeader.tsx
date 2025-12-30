@@ -168,7 +168,7 @@ export function SuperadminHeader() {
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search..."
+            placeholder={t("superadmin.searchPlaceholder", "Search...")}
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
@@ -192,7 +192,7 @@ export function SuperadminHeader() {
             setTheme(next);
           }}
           className="text-muted-foreground hover:text-foreground"
-          title={`Theme: ${theme} (click to change)`}
+          title={t("superadmin.themeTitle", `Theme: ${theme} (click to change)`)}
         >
           {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
         </Button>
@@ -203,7 +203,7 @@ export function SuperadminHeader() {
           size="sm"
           onClick={() => router.push("/superadmin/notifications")}
           className="text-muted-foreground hover:text-foreground relative"
-          title="Notifications"
+          title={t("superadmin.notificationsTitle", "Notifications")}
         >
           <Bell className="h-4 w-4" />
           {/* TODO: Add notification count badge when API is available */}

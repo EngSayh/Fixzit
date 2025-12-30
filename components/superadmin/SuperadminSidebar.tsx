@@ -354,7 +354,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
           </button>
           {!collapsed && (
             <p className="text-xs text-muted-foreground text-center mt-2">
-              Fixzit Superadmin v2.0
+              {t("superadmin.version", "Fixzit Superadmin v2.0")}
             </p>
           )}
         </div>

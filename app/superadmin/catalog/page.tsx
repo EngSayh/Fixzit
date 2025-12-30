@@ -95,8 +95,8 @@ export default function SuperadminCatalogPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.catalog") || "Product Catalog"}</h1>
-          <p className="text-muted-foreground">Manage Fixzit Souq marketplace products</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.catalog.title", "Product Catalog")}</h1>
+          <p className="text-muted-foreground">{t("superadmin.catalog.subtitle", "Manage Fixzit Souq marketplace products")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
@@ -104,28 +104,28 @@ export default function SuperadminCatalogPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Package className="h-8 w-8 text-blue-400" /><div><p className="text-2xl font-bold text-foreground">{stats.total}</p><p className="text-muted-foreground text-sm">Total Products</p></div></div></CardContent></Card>
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{stats.active}</p><p className="text-muted-foreground text-sm">Active</p></div></div></CardContent></Card>
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><AlertTriangle className="h-8 w-8 text-yellow-400" /><div><p className="text-2xl font-bold text-foreground">{stats.lowStock}</p><p className="text-muted-foreground text-sm">Low Stock</p></div></div></CardContent></Card>
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalValue)}</p><p className="text-muted-foreground text-sm">Inventory Value</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Package className="h-8 w-8 text-blue-400" /><div><p className="text-2xl font-bold text-foreground">{stats.total}</p><p className="text-muted-foreground text-sm">{t("superadmin.catalog.totalProducts", "Total Products")}</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{stats.active}</p><p className="text-muted-foreground text-sm">{t("superadmin.catalog.active", "Active")}</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><AlertTriangle className="h-8 w-8 text-yellow-400" /><div><p className="text-2xl font-bold text-foreground">{stats.lowStock}</p><p className="text-muted-foreground text-sm">{t("superadmin.catalog.lowStock", "Low Stock")}</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalValue)}</p><p className="text-muted-foreground text-sm">{t("superadmin.catalog.inventoryValue", "Inventory Value")}</p></div></div></CardContent></Card>
       </div>
 
       <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]"><Input placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Categories</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Status</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="INACTIVE">Inactive</SelectItem><SelectItem value="OUT_OF_STOCK">Out of Stock</SelectItem></SelectContent></Select>
-            <Select value={businessModelFilter} onValueChange={setBusinessModelFilter}><SelectTrigger className="w-[140px] bg-muted border-input text-foreground"><SelectValue placeholder="Model" /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Models</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></SelectContent></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />Search</Button>
+            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.catalog.searchPlaceholder", "Search products...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.categoryPlaceholder", "Category")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allCategories", "All Categories")}</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.statusPlaceholder", "Status")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.catalog.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="OUT_OF_STOCK">{t("common.outOfStock", "Out of Stock")}</SelectItem></SelectContent></Select>
+            <Select value={businessModelFilter} onValueChange={setBusinessModelFilter}><SelectTrigger className="w-[140px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.modelPlaceholder", "Model")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allModels", "All Models")}</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></SelectContent></Select>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-card border-border">
-        <CardHeader className="border-b border-border"><CardTitle className="text-foreground">Products</CardTitle><CardDescription className="text-muted-foreground">Marketplace catalog</CardDescription></CardHeader>
+        <CardHeader className="border-b border-border"><CardTitle className="text-foreground">{t("superadmin.catalog.products", "Products")}</CardTitle><CardDescription className="text-muted-foreground">{t("superadmin.catalog.marketplaceCatalog", "Marketplace catalog")}</CardDescription></CardHeader>
         <CardContent className="p-0">
-          {products.length === 0 ? (<div className="flex flex-col items-center justify-center py-12"><Package className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No products found</p></div>) : (
+          {products.length === 0 ? (<div className="flex flex-col items-center justify-center py-12"><Package className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">{t("superadmin.catalog.noProducts", "No products found")}</p></div>) : (
             <Table><TableHeader><TableRow className="border-border"><TableHead className="text-muted-foreground">Product</TableHead><TableHead className="text-muted-foreground">Category</TableHead><TableHead className="text-muted-foreground">Model</TableHead><TableHead className="text-muted-foreground text-end">Price</TableHead><TableHead className="text-muted-foreground text-end">Stock</TableHead><TableHead className="text-muted-foreground">Vendor</TableHead><TableHead className="text-muted-foreground">Status</TableHead><TableHead className="text-muted-foreground w-[80px]">View</TableHead></TableRow></TableHeader>
               <TableBody>
                 {products.map((product) => (

@@ -103,36 +103,36 @@ export default function SuperadminVendorsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.vendors") || "Vendor Management"}</h1>
-          <p className="text-muted-foreground">Manage suppliers, contractors, and service providers</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.vendors.title", "Vendor Management")}</h1>
+          <p className="text-muted-foreground">{t("superadmin.vendors.subtitle", "Manage suppliers, contractors, and service providers")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchVendors} disabled={loading} className="border-input text-muted-foreground">
-          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
+          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />{t("superadmin.vendors.refresh", "Refresh")}
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Building2 className="h-8 w-8 text-blue-400" /><div><p className="text-2xl font-bold text-foreground">{stats.total}</p><p className="text-muted-foreground text-sm">Total Vendors</p></div></div></CardContent></Card>
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{stats.active}</p><p className="text-muted-foreground text-sm">Active</p></div></div></CardContent></Card>
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Star className="h-8 w-8 text-yellow-400" /><div><p className="text-2xl font-bold text-foreground">{stats.avgRating.toFixed(1)}</p><p className="text-muted-foreground text-sm">Avg Rating</p></div></div></CardContent></Card>
-        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><TrendingUp className="h-8 w-8 text-purple-400" /><div><p className="text-2xl font-bold text-foreground">{VENDOR_TYPES.length}</p><p className="text-muted-foreground text-sm">Categories</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Building2 className="h-8 w-8 text-blue-400" /><div><p className="text-2xl font-bold text-foreground">{stats.total}</p><p className="text-muted-foreground text-sm">{t("superadmin.vendors.totalVendors", "Total Vendors")}</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{stats.active}</p><p className="text-muted-foreground text-sm">{t("superadmin.vendors.active", "Active")}</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Star className="h-8 w-8 text-yellow-400" /><div><p className="text-2xl font-bold text-foreground">{stats.avgRating.toFixed(1)}</p><p className="text-muted-foreground text-sm">{t("superadmin.vendors.avgRating", "Avg Rating")}</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><TrendingUp className="h-8 w-8 text-purple-400" /><div><p className="text-2xl font-bold text-foreground">{VENDOR_TYPES.length}</p><p className="text-muted-foreground text-sm">{t("superadmin.vendors.categories", "Categories")}</p></div></div></CardContent></Card>
       </div>
 
       <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]"><Input placeholder="Search vendors..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type"><SelectTrigger className="w-[180px] bg-muted border-input text-foreground">{typeFilter === "all" ? "All Types" : typeFilter.replace("_", " ")}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Types</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status"><SelectTrigger className="w-[160px] bg-muted border-input text-foreground">{statusFilter === "all" ? "All Status" : statusFilter}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Status</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="INACTIVE">Inactive</SelectItem><SelectItem value="SUSPENDED">Suspended</SelectItem></SelectContent></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />Search</Button>
+            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.vendors.searchPlaceholder", "Search vendors...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("superadmin.vendors.typePlaceholder", "Type")}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground">{typeFilter === "all" ? t("superadmin.vendors.allTypes", "All Types") : typeFilter.replace("_", " ")}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allTypes", "All Types")}</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.vendors.statusPlaceholder", "Status")}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground">{statusFilter === "all" ? t("superadmin.vendors.allStatus", "All Status") : statusFilter}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.vendors.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="SUSPENDED">{t("common.suspended", "Suspended")}</SelectItem></SelectContent></Select>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}</Button>
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-card border-border">
-        <CardHeader className="border-b border-border"><CardTitle className="text-foreground">Vendors</CardTitle><CardDescription className="text-muted-foreground">All vendors across tenants</CardDescription></CardHeader>
+        <CardHeader className="border-b border-border"><CardTitle className="text-foreground">{t("superadmin.nav.vendors", "Vendors")}</CardTitle><CardDescription className="text-muted-foreground">{t("superadmin.vendors.allVendors", "All vendors across tenants")}</CardDescription></CardHeader>
         <CardContent className="p-0">
-          {vendors.length === 0 ? (<div className="flex flex-col items-center justify-center py-12"><Building2 className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No vendors found</p></div>) : (
+          {vendors.length === 0 ? (<div className="flex flex-col items-center justify-center py-12"><Building2 className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">{t("superadmin.vendors.noVendors", "No vendors found")}</p></div>) : (
             <Table><TableHeader><TableRow className="border-border"><TableHead className="text-muted-foreground">Vendor</TableHead><TableHead className="text-muted-foreground">Type</TableHead><TableHead className="text-muted-foreground">Capabilities</TableHead><TableHead className="text-muted-foreground">Contact</TableHead><TableHead className="text-muted-foreground">Location</TableHead><TableHead className="text-muted-foreground">Rating</TableHead><TableHead className="text-muted-foreground">Status</TableHead><TableHead className="text-muted-foreground w-[80px]">View</TableHead></TableRow></TableHeader>
               <TableBody>
                 {vendors.map((vendor) => (
