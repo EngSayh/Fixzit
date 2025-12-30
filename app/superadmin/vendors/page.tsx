@@ -34,6 +34,11 @@ interface Vendor {
   rating?: { average: number; count: number };
   orgId?: string;
   createdAt: string;
+  /** SA-VENDOR-001: Business capability flags */
+  capabilities?: {
+    b2b?: boolean;
+    b2c?: boolean;
+  };
 }
 
 const VENDOR_TYPES = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"];
@@ -128,12 +133,13 @@ export default function SuperadminVendorsPage() {
         <CardHeader className="border-b border-border"><CardTitle className="text-foreground">Vendors</CardTitle><CardDescription className="text-muted-foreground">All vendors across tenants</CardDescription></CardHeader>
         <CardContent className="p-0">
           {vendors.length === 0 ? (<div className="flex flex-col items-center justify-center py-12"><Building2 className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No vendors found</p></div>) : (
-            <Table><TableHeader><TableRow className="border-border"><TableHead className="text-muted-foreground">Vendor</TableHead><TableHead className="text-muted-foreground">Type</TableHead><TableHead className="text-muted-foreground">Contact</TableHead><TableHead className="text-muted-foreground">Location</TableHead><TableHead className="text-muted-foreground">Rating</TableHead><TableHead className="text-muted-foreground">Status</TableHead><TableHead className="text-muted-foreground w-[80px]">View</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow className="border-border"><TableHead className="text-muted-foreground">Vendor</TableHead><TableHead className="text-muted-foreground">Type</TableHead><TableHead className="text-muted-foreground">Capabilities</TableHead><TableHead className="text-muted-foreground">Contact</TableHead><TableHead className="text-muted-foreground">Location</TableHead><TableHead className="text-muted-foreground">Rating</TableHead><TableHead className="text-muted-foreground">Status</TableHead><TableHead className="text-muted-foreground w-[80px]">View</TableHead></TableRow></TableHeader>
               <TableBody>
                 {vendors.map((vendor) => (
                   <TableRow key={vendor._id} className="border-border hover:bg-muted/50">
                     <TableCell><div className="flex flex-col"><span className="text-foreground font-medium">{vendor.name}</span><span className="text-muted-foreground text-sm">{vendor._id.slice(-8)}</span></div></TableCell>
                     <TableCell><Badge variant="outline" className={TYPE_COLORS[vendor.type] || ""}>{vendor.type?.replace("_", " ")}</Badge></TableCell>
+                    <TableCell><div className="flex gap-1">{(vendor.capabilities?.b2b ?? true) && <Badge className="bg-blue-500/20 text-blue-500">B2B</Badge>}{(vendor.capabilities?.b2c ?? false) && <Badge className="bg-green-500/20 text-green-500">B2C</Badge>}{!vendor.capabilities?.b2b && !vendor.capabilities?.b2c && <span className="text-muted-foreground text-sm">—</span>}</div></TableCell>
                     <TableCell><div className="flex flex-col text-sm"><span className="text-muted-foreground">{vendor.contact?.primary?.name}</span><span className="text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{vendor.contact?.primary?.email}</span></div></TableCell>
                     <TableCell>{vendor.contact?.address?.city ? (<span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-4 w-4 text-muted-foreground" />{vendor.contact.address.city}</span>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{vendor.rating ? (<div className="flex items-center gap-1"><Star className="h-4 w-4 text-yellow-400 fill-yellow-400" /><span className="text-foreground">{vendor.rating.average.toFixed(1)}</span></div>) : <span className="text-muted-foreground">—</span>}</TableCell>
@@ -159,6 +165,7 @@ export default function SuperadminVendorsPage() {
                 <div className="bg-muted p-4 rounded-lg"><p className="text-muted-foreground text-sm mb-1">Type</p><Badge variant="outline" className={TYPE_COLORS[selectedVendor.type] || ""}>{selectedVendor.type}</Badge></div>
                 <div className="bg-muted p-4 rounded-lg"><p className="text-muted-foreground text-sm mb-1">Status</p><Badge variant="outline" className={STATUS_COLORS[selectedVendor.status] || ""}>{selectedVendor.status}</Badge></div>
                 <div className="bg-muted p-4 rounded-lg"><p className="text-muted-foreground text-sm mb-1">Created</p><p className="text-foreground">{formatDate(selectedVendor.createdAt)}</p></div>
+                <div className="bg-muted p-4 rounded-lg col-span-2"><p className="text-muted-foreground text-sm mb-1">Business Capabilities</p><div className="flex gap-2">{(selectedVendor.capabilities?.b2b ?? true) && <Badge className="bg-blue-500/20 text-blue-500">B2B</Badge>}{(selectedVendor.capabilities?.b2c ?? false) && <Badge className="bg-green-500/20 text-green-500">B2C</Badge>}{!selectedVendor.capabilities?.b2b && !selectedVendor.capabilities?.b2c && <span className="text-muted-foreground">No capabilities specified</span>}</div></div>
               </div>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-muted-foreground text-sm mb-2">Primary Contact</p>
