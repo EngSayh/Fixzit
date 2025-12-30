@@ -10,6 +10,13 @@ import {
   mockSessionUser,
 } from "@/tests/helpers/mockAuth";
 
+// Use vi.hoisted to create mock functions that can be accessed in the test
+const { mockGetRecentMetrics } = vi.hoisted(() => ({
+  mockGetRecentMetrics: vi.fn().mockReturnValue([
+    { timestamp: Date.now(), latency: 45, path: "/api/test" },
+  ]),
+}));
+
 // Mock session via getSessionUser
 vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(async () => {
@@ -35,10 +42,7 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
-// Mock performance functions
-const mockGetRecentMetrics = vi.fn().mockReturnValue([
-  { timestamp: Date.now(), latency: 45, path: "/api/test" },
-]);
+// Mock performance functions using hoisted mock for getRecentMetrics
 vi.mock("@/lib/performance", () => ({
   getPerformanceStats: vi.fn().mockReturnValue({
     totalRequests: 1000,

@@ -56,9 +56,14 @@ vi.mock("@/server/models/Benchmark", () => ({
   },
 }));
 
-// Mock pricing
+// Mock pricing - return proper shape that matches route expectation
 vi.mock("@/lib/pricing", () => ({
-  computeQuote: vi.fn().mockReturnValue({ total: 0, items: [] }),
+  computeQuote: vi.fn().mockReturnValue({
+    monthly: 100,
+    annualTotal: 1200,
+    items: [{ moduleCode: "core", amount: 100 }],
+    contactSales: false,
+  }),
 }));
 
 // Mock logger
@@ -188,13 +193,15 @@ describe("API /api/benchmarks/compare", () => {
       // 200 for successful benchmark comparison
       expect(res.status).toBe(200);
       
-      // Validate response structure
+      // Validate response structure - route returns {ours, market, position}
       const body = await res.json();
-      expect(body).toHaveProperty("quote");
-      expect(body.quote).toHaveProperty("total");
-      expect(typeof body.quote.total).toBe("number");
-      expect(body.quote).toHaveProperty("items");
-      expect(Array.isArray(body.quote.items)).toBe(true);
+      expect(body).toHaveProperty("ours");
+      expect(body.ours).toHaveProperty("monthly");
+      expect(typeof body.ours.monthly).toBe("number");
+      expect(body.ours).toHaveProperty("items");
+      expect(Array.isArray(body.ours.items)).toBe(true);
+      expect(body).toHaveProperty("market");
+      expect(body).toHaveProperty("position");
     });
   });
 });

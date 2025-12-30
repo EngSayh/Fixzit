@@ -56,7 +56,7 @@ vi.mock("@/server/models/ExportJob", () => ({
                 _id: "job-1",
                 org_id: "org-123",
                 user_id: "user-123",
-                entity_type: "work-orders",
+                entity_type: "workOrders",
                 format: "csv",
                 status: "completed",
                 created_at: new Date(),
@@ -179,7 +179,7 @@ describe("API /api/export-jobs", () => {
         });
 
         const req = new NextRequest(
-          "http://localhost:3000/api/export-jobs?entity_type=work-orders",
+          "http://localhost:3000/api/export-jobs?entity_type=workOrders",
           { method: "GET" }
         );
         const res = await GET(req);
@@ -197,7 +197,7 @@ describe("API /api/export-jobs", () => {
         const req = new NextRequest("http://localhost:3000/api/export-jobs", {
           method: "POST",
           body: JSON.stringify({
-            entity_type: "work-orders",
+            entity_type: "workOrders",
             format: "csv",
           }),
           headers: { "Content-Type": "application/json" },
@@ -218,7 +218,7 @@ describe("API /api/export-jobs", () => {
         const req = new NextRequest("http://localhost:3000/api/export-jobs", {
           method: "POST",
           body: JSON.stringify({
-            entity_type: "work-orders",
+            entity_type: "workOrders",
             format: "csv",
           }),
           headers: { "Content-Type": "application/json" },
@@ -245,7 +245,7 @@ describe("API /api/export-jobs", () => {
         const req = new NextRequest("http://localhost:3000/api/export-jobs", {
           method: "POST",
           body: JSON.stringify({
-            entity_type: "work-orders",
+            entity_type: "workOrders",
             format: "csv",
           }),
           headers: { "Content-Type": "application/json" },
@@ -289,7 +289,7 @@ describe("API /api/export-jobs", () => {
         const req = new NextRequest("http://localhost:3000/api/export-jobs", {
           method: "POST",
           body: JSON.stringify({
-            entity_type: "work-orders",
+            entity_type: "workOrders",
             format: "pdf", // Only csv/xlsx allowed
           }),
           headers: { "Content-Type": "application/json" },
@@ -315,7 +315,7 @@ describe("API /api/export-jobs", () => {
         const req = new NextRequest("http://localhost:3000/api/export-jobs", {
           method: "POST",
           body: JSON.stringify({
-            entity_type: "work-orders",
+            entity_type: "workOrders", // Use camelCase canonical form
             format: "csv",
           }),
           headers: { "Content-Type": "application/json" },
@@ -324,12 +324,13 @@ describe("API /api/export-jobs", () => {
         const data = await res.json();
 
         expect(res.status).toBe(201);
-        expect(data).toHaveProperty("jobId");
+        // Route returns { job } not { jobId }
+        expect(data).toHaveProperty("job");
         expect(ExportJob.create).toHaveBeenCalledWith(
           expect.objectContaining({
             org_id: "org-123",
             user_id: "user-123",
-            entity_type: "work-orders",
+            entity_type: "workOrders", // Normalized form
             format: "csv",
           })
         );
