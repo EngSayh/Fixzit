@@ -204,12 +204,43 @@ export default function FMDashboardPage() {
     }
     if (!isDemoMode && status !== "authenticated") {
       // In production without demo mode, require authentication
+      // Set loading to false to prevent infinite spinner when unauthenticated
+      if (status === "unauthenticated") {
+        setLoading(false);
+      }
       return;
     }
     fetchDashboardData();
   }, [fetchDashboardData, status]);
 
-  if (status === "loading" || loading) {
+  // Show loading spinner only while session is loading, not when unauthenticated
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue" />
+          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle unauthenticated state when demo mode is off
+  const isDemoModeEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+  if (status === "unauthenticated" && !isDemoModeEnabled) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-gray-600 dark:text-gray-400">Please sign in to access the dashboard.</p>
+          <a href="/login" className="px-4 py-2 bg-brand-blue text-white rounded-lg hover:bg-brand-blue/90 transition-colors">
+            Sign In
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">

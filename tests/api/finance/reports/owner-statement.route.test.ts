@@ -75,7 +75,6 @@ const importRoute = () => import("@/app/api/finance/reports/owner-statement/rout
 const TEST_ORG_ID = "org_test_123";
 const TEST_USER_ID = "user_test_456";
 const TEST_PROPERTY_ID = "prop_test_789";
-const TEST_OWNER_ID = "owner_test_012";
 
 const mockFinanceUser = {
   id: TEST_USER_ID,

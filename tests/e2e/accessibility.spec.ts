@@ -293,12 +293,12 @@ test.describe("Accessibility & Keyboard Navigation", () => {
       const bodyDir = await page.getAttribute("body", "dir");
       const hasRtl = htmlDir === "rtl" || bodyDir === "rtl";
 
-      // Or check if redirected and main page has RTL classes
+      // Or check if main page has RTL classes
       const hasRtlClass = await page.locator(".rtl, [dir='rtl']").count();
 
       // Should have RTL support if Arabic is selected
-      // If page doesn't support /ar path, that's also acceptable
-      expect(hasRtl || hasRtlClass > 0 || page.url().includes("/login")).toBe(true);
+      // Only pass if page actually has RTL direction or RTL classes
+      expect(hasRtl || hasRtlClass > 0).toBe(true);
     });
 
     test("navigation uses logical CSS properties", async ({ page }) => {

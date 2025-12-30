@@ -186,22 +186,23 @@ export async function GET(req: NextRequest) {
       generated_at: new Date().toISOString(),
       operator_id: session.username, // Use username for audit trail
       
-      // System Health - requires monitoring service integration
+      // System Health - PLACEHOLDER DATA
       // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data
       system_health: {
-        status: "healthy",
+        placeholder: true,
+        status: "placeholder",
+        note: "PLACEHOLDER DATA - Health checks require monitoring service integration (Datadog/Prometheus/NewRelic)",
         score: 98,
         uptime_percent: 99.95,
         services: [
-          { name: "API Gateway", status: "healthy", latency_ms: 45 },
-          { name: "MongoDB Atlas", status: "healthy", latency_ms: 12 },
-          { name: "Redis Cache", status: "healthy", latency_ms: 3 },
-          { name: "File Storage (S3)", status: "healthy", latency_ms: 85 },
-          { name: "Payment Gateway (TAP)", status: "healthy", latency_ms: 230 },
-          { name: "SMS Gateway (Taqnyat)", status: "healthy", latency_ms: 180 },
-          { name: "ZATCA API", status: "healthy", latency_ms: 350 },
+          { name: "API Gateway", status: "placeholder", latency_ms: 45 },
+          { name: "MongoDB Atlas", status: "placeholder", latency_ms: 12 },
+          { name: "Redis Cache", status: "placeholder", latency_ms: 3 },
+          { name: "File Storage (S3)", status: "placeholder", latency_ms: 85 },
+          { name: "Payment Gateway (TAP)", status: "placeholder", latency_ms: 230 },
+          { name: "SMS Gateway (Taqnyat)", status: "placeholder", latency_ms: 180 },
+          { name: "ZATCA API", status: "placeholder", latency_ms: 350 },
         ],
-        _note: "Health checks are placeholder - integrate monitoring service for real data",
       },
       
       // Tenant Overview - REAL DATA

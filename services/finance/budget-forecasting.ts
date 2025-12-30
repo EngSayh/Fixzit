@@ -382,6 +382,13 @@ export async function activateBudget(
       
       const record = budget as unknown as BudgetRecord;
       
+      // Only APPROVED budgets can be activated (status guard)
+      if (record.status !== BudgetStatus.APPROVED) {
+        // Keep generic error message per existing pattern
+        result = { success: false, error: "Budget not found" };
+        return;
+      }
+      
       // Close other active budgets for same property/period
       await db.collection(BUDGETS_COLLECTION).updateMany(
         {
@@ -400,9 +407,9 @@ export async function activateBudget(
         { session }
       );
       
-      // Activate this budget
+      // Activate this budget (include status condition for atomic check)
       const updateResult = await db.collection(BUDGETS_COLLECTION).updateOne(
-        { _id: new ObjectId(budgetId), orgId },
+        { _id: new ObjectId(budgetId), orgId, status: BudgetStatus.APPROVED },
         {
           $set: {
             status: BudgetStatus.ACTIVE,

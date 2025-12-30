@@ -1,6 +1,120 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-30 18:30 (Asia/Riyadh) - Comprehensive Code Quality Fixes [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** CODE-QUALITY-BATCH-002
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | (pending commit) | (no PR yet)
+**DB Sync:** pending (retroactive entry per AGENTS.md remediation)
+
+---
+#### MULTI-ROLE VALIDATION RECORD (MRDR)
+**Issue Type:** Bug Fix (Multi-tenant) + Refactor/Tech Debt + Security
+**Required Gates:** 4.2.1, 4.2.4, 4.2.5, 4.2.8, 4.2.9, 4.2.14
+
+---
+
+### PM Gate Analysis (4.2.1)
+- **User Story:** As a platform operator, I need code quality issues fixed so that the platform handles edge cases correctly, has proper error handling, and follows security best practices
+- **Acceptance Criteria:**
+  1. FM Dashboard loading spinner does not persist indefinitely
+  2. MFA routes use extracted helper functions for DRY code
+  3. Compliance dashboard gated behind feature flag
+  4. God-mode health data marked as placeholder
+  5. Rate limit await added to reports route
+  6. All service layer fixes validated
+- **Roadmap Phase:** MVP (code quality)
+- **Roles Affected:** All (platform-wide fixes)
+- **Golden Workflow:** Yes - authentication, compliance
+- **Release Blockers:** None
+
+### Tech Lead Gate Analysis (4.2.4)
+- **Modules Affected:** Auth, Compliance, Superadmin, FM, HR, Finance, Aqar, CRM
+- **Boundary Violations:** None - fixes within existing module boundaries
+- **API Changes:** None (internal logic only)
+- **Multi-Tenancy:** org_id scoping maintained
+- **Tech Debt Impact:** Reduces (addresses 20+ code quality issues)
+- **Observability:** Error logging improved in predictive-maintenance
+
+### Backend Engineer Gate Analysis (4.2.5)
+- **Query Safety:** matchedCount checks fixed, proper validations added
+- **Data Isolation:** Maintained (org_id scoping unchanged)
+- **Race Condition Handling:** vitest reconnect check, prediction counters fixed
+- **Input Validation:** Lease service rent/deposit/date validation added
+- **Type Safety:** MFA unsupported methods now rejected explicitly
+
+### QA Lead Gate Analysis (4.2.8)
+- **Test Coverage:** Fixed test assertions (logs, accessibility, admin-dashboard)
+- **Regression Testing:** pnpm typecheck: 0 errors, pnpm lint: 0 errors
+
+### Security Gate Analysis (4.2.9)
+- **Feature Flag:** Compliance mock data now gated behind ENABLE_MOCK_COMPLIANCE
+- **MFA Error Handling:** trustDevice wrapped in try-catch (graceful degradation)
+- **Placeholder Data:** God-mode health marked as placeholder to prevent misuse
+
+### Developer Task Breakdown (4.2.14)
+| Task ID | File | Change | Status |
+|---------|------|--------|--------|
+| UI-001 | fm-dashboard/page.tsx | Fix infinite loading spinner for unauthenticated users | ✅ Done |
+| AUTH-001 | mfa/status/route.ts | Extract validateSessionAndUser and parseAndValidateCode helpers | ✅ Done |
+| AUTH-002 | mfa/verify/route.ts | Wrap trustDeviceFn in try-catch | ✅ Done |
+| COMP-001 | compliance/dashboard/route.ts | Add ENABLE_MOCK_COMPLIANCE feature flag | ✅ Done |
+| ADMIN-001 | god-mode/route.ts | Mark system_health as placeholder | ✅ Done |
+| ADMIN-002 | reports/route.ts | Add missing await to enforceRateLimit | ✅ Done |
+| UI-002 | OnboardingWizard.tsx | Fix isRTL comment accuracy | ✅ Done |
+| DOC-001 | AGENTS.md | Fix SDD/SSOT terminology | ✅ Done |
+| AUTH-003 | mfaService.ts | Handle unsupported MFA methods | ✅ Done |
+| SCRIPT-001 | update-ssot-issues.mjs | Fix projection and logging consistency | ✅ Done |
+| AQAR-001 | lease-service.ts | Add rent/deposit/date validations | ✅ Done |
+| EJAR-001 | ejar-service.ts | Fix statusHistory shape | ✅ Done |
+| CRM-001 | ticket-management.ts | Fix first response check (exclude private notes) | ✅ Done |
+| FIN-001 | budget-forecasting.ts | Add APPROVED status guard | ✅ Done |
+| FM-001 | inspection-service.ts | Prevent client _id injection | ✅ Done |
+| FM-002 | predictive-maintenance.ts | Add input validation, error logging, atomic counters | ✅ Done |
+| HR-001 | gosi-compliance.ts | Use matchedCount instead of modifiedCount | ✅ Done |
+| TEST-001 | owner-statement.route.test.ts | Remove unused TEST_OWNER_ID | ✅ Done |
+| TEST-002 | logs.route.test.ts | Add response body assertion for message | ✅ Done |
+| TEST-003 | accessibility.spec.ts | Remove /login redirect as valid RTL pass | ✅ Done |
+| TEST-004 | admin-dashboard.spec.ts | Add sidebarBox null check | ✅ Done |
+| TEST-005 | vitest.setup.ts | Add readyState check before reconnect | ✅ Done |
+
+---
+
+**Files Modified (23 total):**
+- app/[locale]/admin/fm-dashboard/page.tsx
+- app/api/auth/mfa/status/route.ts
+- app/api/auth/mfa/verify/route.ts
+- app/api/compliance/dashboard/route.ts
+- app/api/superadmin/god-mode/route.ts
+- app/api/superadmin/reports/route.ts
+- components/onboarding/OnboardingWizard.tsx
+- docs/AGENTS.md
+- lib/auth/mfaService.ts
+- scripts/update-ssot-issues.mjs
+- services/aqar/lease-service.ts
+- services/compliance/ejar-service.ts
+- services/crm/ticket-management.ts
+- services/finance/budget-forecasting.ts
+- services/fm/inspection-service.ts
+- services/fm/predictive-maintenance.ts
+- services/hr/gosi-compliance.ts
+- tests/api/finance/reports/owner-statement.route.test.ts
+- tests/api/logs/logs.route.test.ts
+- tests/e2e/accessibility.spec.ts
+- tests/e2e/admin-dashboard.spec.ts
+- tests/unit/api/admin/notifications/send.test.ts
+- vitest.setup.ts
+
+**Verification Evidence:**
+- pnpm typecheck: 0 errors
+- pnpm lint: 0 errors
+
+**Deferred Items:**
+- AUDIT-001: services/admin/audit-logging.ts atomic sequence counter (complex refactor)
+- HR-002: services/hr/performance-management.ts fetch real employee names (requires data model changes)
+- ZATCA-001: services/zatca/fatoora-service.ts real hash chain validation (requires DB integration)
+
+---
 ### 2025-12-30 16:45 (Asia/Riyadh) - Service Layer & Docs Fixes [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** FIX-GOSI-001, FIX-TENANT-002, FIX-LEASE-003, DOC-MARKETPLACE-004, TEST-UPLOAD-005

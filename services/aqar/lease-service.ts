@@ -233,6 +233,33 @@ export async function createLease(
       }
     }
     
+    // Validate monthlyRent is a positive number
+    if (request.monthlyRent !== undefined) {
+      if (!Number.isFinite(request.monthlyRent) || request.monthlyRent <= 0) {
+        return { success: false, error: "monthlyRent must be a positive number" };
+      }
+    }
+    
+    // Validate securityDeposit is a non-negative number
+    if (request.securityDeposit !== undefined) {
+      if (!Number.isFinite(request.securityDeposit) || request.securityDeposit < 0) {
+        return { success: false, error: "securityDeposit must be a non-negative number" };
+      }
+    }
+    
+    // Validate dates are present and startDate is before endDate
+    if (!request.startDate || !request.endDate) {
+      return { success: false, error: "startDate and endDate are required" };
+    }
+    const startDate = request.startDate instanceof Date ? request.startDate : new Date(request.startDate);
+    const endDate = request.endDate instanceof Date ? request.endDate : new Date(request.endDate);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return { success: false, error: "Invalid date format for startDate or endDate" };
+    }
+    if (startDate >= endDate) {
+      return { success: false, error: "startDate must be before endDate" };
+    }
+    
     const db = await getDatabase();
     const sessionOpts = session ? { session } : {};
     

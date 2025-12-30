@@ -969,8 +969,12 @@ export async function syncOfflineInspection(
     }
     
     // Create new inspection from offline data
+    // Destructure to remove any client-provided _id to let MongoDB assign server _id
+    const { _id: _clientId, ...offlineDataWithoutId } = offlineData as typeof offlineData & { _id?: unknown };
+    void _clientId; // Intentionally discarded - prevents client _id injection
+    
     const inspection: Omit<InspectionRecord, "_id"> = {
-      ...offlineData,
+      ...offlineDataWithoutId,
       syncedFromOffline: true,
       lastSyncAt: new Date(),
       createdAt: offlineData.createdAt || new Date(),

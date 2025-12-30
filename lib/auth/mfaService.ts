@@ -548,6 +548,14 @@ export async function verifyMFACode(
       const result = await consumeRecoveryCode(orgId, userId, code);
       verified = result.valid;
       recoveryCodeUsed = result.valid;
+    } else {
+      // Unsupported MFA method (SMS/EMAIL not yet implemented)
+      logger.warn("Unsupported MFA method requested", {
+        orgId,
+        userId,
+        method,
+      });
+      return { success: false, error: `Unsupported MFA method: ${method}` };
     }
     
     // Audit log

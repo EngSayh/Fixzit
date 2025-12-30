@@ -337,6 +337,7 @@ test.describe("Admin & FM Dashboard Flows", () => {
         // If sidebar visible, verify it doesn't overflow
         if (sidebarVisible) {
           const sidebarBox = await sidebar.boundingBox();
+          expect(sidebarBox).not.toBeNull();
           expect(sidebarBox?.width).toBeLessThanOrEqual(300);
         }
       }

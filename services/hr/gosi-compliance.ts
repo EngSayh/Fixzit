@@ -478,9 +478,11 @@ export async function setGosiNumber(
       }
     );
     
-    if (result.modifiedCount === 0) {
+    if (result.matchedCount === 0) {
       return { success: false, error: "Employee not found" };
     }
+    
+    // matchedCount > 0 but modifiedCount === 0 means document exists but was already up-to-date
     
     logger.info("GOSI number assigned", {
       component: "gosi-compliance",

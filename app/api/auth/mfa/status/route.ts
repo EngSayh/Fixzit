@@ -13,6 +13,72 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { getMFAStatus, disableMFA, regenerateRecoveryCodes } from "@/lib/auth/mfaService";
 
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Validate session and extract orgId/userId/email
+ * Returns NextResponse on failure, or validated data on success
+ */
+type SessionUser = { orgId: string; userId: string; email: string };
+async function validateSessionAndUser(): Promise<NextResponse | SessionUser> {
+  const session = await auth();
+  
+  if (!session?.user) {
+    return NextResponse.json(
+      { error: { code: "FIXZIT-AUTH-001", message: "Unauthorized" } },
+      { status: 401 }
+    );
+  }
+  
+  const orgId = session.user.orgId;
+  if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+    return NextResponse.json(
+      { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
+      { status: 403 }
+    );
+  }
+  
+  const userId = session.user.id;
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    logger.warn("MFA request with missing user ID", { orgId });
+    return NextResponse.json(
+      { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
+      { status: 400 }
+    );
+  }
+  
+  return { orgId, userId, email: session.user.email || "" };
+}
+
+/**
+ * Parse JSON body and validate "code" field
+ * Returns NextResponse on failure, or validated code string on success
+ */
+async function parseAndValidateCode(request: NextRequest): Promise<NextResponse | string> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: { code: "FIXZIT-AUTH-003", message: "Invalid JSON body" } },
+      { status: 400 }
+    );
+  }
+  
+  const { code } = body as { code?: string };
+  
+  if (!code || typeof code !== "string") {
+    return NextResponse.json(
+      { error: { code: "FIXZIT-AUTH-002", message: "Verification code required" } },
+      { status: 400 }
+    );
+  }
+  
+  return code;
+}
+
 /**
  * GET /api/auth/mfa/status
  * 
@@ -20,33 +86,13 @@ import { getMFAStatus, disableMFA, regenerateRecoveryCodes } from "@/lib/auth/mf
  */
 export async function GET() {
   try {
-    const session = await auth();
-    
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-001", message: "Unauthorized" } },
-        { status: 401 }
-      );
+    const sessionResult = await validateSessionAndUser();
+    if (sessionResult instanceof NextResponse) {
+      return sessionResult;
     }
+    const { orgId, userId } = sessionResult;
     
-    const orgId = session.user.orgId;
-    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
-        { status: 403 }
-      );
-    }
-    const userId = session.user.id;
-    
-    if (!userId || typeof userId !== "string" || userId.trim() === "") {
-      logger.warn("MFA status request with missing user ID", { orgId });
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
-        { status: 400 }
-      );
-    }
-    
-    const status = await getMFAStatus(orgId, userId as string);
+    const status = await getMFAStatus(orgId, userId);
     
     return NextResponse.json({
       success: true,
@@ -76,53 +122,18 @@ export async function GET() {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-001", message: "Unauthorized" } },
-        { status: 401 }
-      );
+    const sessionResult = await validateSessionAndUser();
+    if (sessionResult instanceof NextResponse) {
+      return sessionResult;
     }
+    const { orgId, userId, email } = sessionResult;
     
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-003", message: "Invalid JSON body" } },
-        { status: 400 }
-      );
+    const codeResult = await parseAndValidateCode(request);
+    if (codeResult instanceof NextResponse) {
+      return codeResult;
     }
+    const code = codeResult;
     
-    const { code } = body as { code?: string };
-    
-    if (!code || typeof code !== "string") {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-002", message: "Verification code required" } },
-        { status: 400 }
-      );
-    }
-    
-    const orgId = session.user.orgId;
-    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
-        { status: 403 }
-      );
-    }
-    const userId = session.user.id;
-    
-    // Validate userId is a non-empty string (same check as GET handler)
-    if (!userId || typeof userId !== "string" || userId.trim() === "") {
-      logger.warn("MFA disable request with missing user ID", { orgId });
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
-        { status: 400 }
-      );
-    }
-    
-    const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.headers.get("x-real-ip") || 
                       "unknown";
@@ -171,53 +182,18 @@ export async function DELETE(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-001", message: "Unauthorized" } },
-        { status: 401 }
-      );
+    const sessionResult = await validateSessionAndUser();
+    if (sessionResult instanceof NextResponse) {
+      return sessionResult;
     }
+    const { orgId, userId, email } = sessionResult;
     
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-003", message: "Invalid JSON body" } },
-        { status: 400 }
-      );
+    const codeResult = await parseAndValidateCode(request);
+    if (codeResult instanceof NextResponse) {
+      return codeResult;
     }
+    const code = codeResult;
     
-    const { code } = body as { code?: string };
-    
-    if (!code || typeof code !== "string") {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-002", message: "Verification code required" } },
-        { status: 400 }
-      );
-    }
-    
-    const orgId = session.user.orgId;
-    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
-        { status: 403 }
-      );
-    }
-    const userId = session.user.id;
-    
-    // Validate userId is a non-empty string (same check as GET and DELETE handlers)
-    if (!userId || typeof userId !== "string" || userId.trim() === "") {
-      logger.warn("MFA regenerate codes request with missing user ID", { orgId });
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
-        { status: 400 }
-      );
-    }
-    
-    const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.headers.get("x-real-ip") || 
                       "unknown";

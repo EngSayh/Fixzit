@@ -526,6 +526,13 @@ const handleMongoDisconnected = async () => {
   if (shuttingDownMongo) return;
   if (!mongoUriRef) return;
   
+  // Check if already connected or connecting - skip reconnection
+  const readyState = mongoose.connection.readyState;
+  if (readyState === 1 || readyState === 2) {
+    // 1 = connected, 2 = connecting
+    return;
+  }
+  
   // Limit reconnection attempts to prevent infinite loops
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     logger.error(`[MongoMemory] Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached, giving up`);

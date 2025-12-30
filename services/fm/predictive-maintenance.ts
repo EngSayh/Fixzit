@@ -238,6 +238,20 @@ export async function registerEquipment(
     "createdAt" | "updatedAt">
 ): Promise<{ success: boolean; equipmentId?: string; error?: string }> {
   try {
+    // Comprehensive input validation
+    if (!data.orgId || typeof data.orgId !== "string" || data.orgId.trim() === "") {
+      return { success: false, error: "orgId is required and must be a non-empty string" };
+    }
+    if (!data.propertyId || typeof data.propertyId !== "string" || data.propertyId.trim() === "") {
+      return { success: false, error: "propertyId is required and must be a non-empty string" };
+    }
+    if (!data.name || typeof data.name !== "string" || data.name.trim() === "") {
+      return { success: false, error: "name is required and must be a non-empty string" };
+    }
+    if (!data.type || typeof data.type !== "string" || data.type.trim() === "") {
+      return { success: false, error: "type is required and must be a non-empty string" };
+    }
+    
     const db = await getDatabase();
     
     if (!Number.isFinite(data.expectedLifespan) || data.expectedLifespan <= 0) {
@@ -272,8 +286,11 @@ export async function registerEquipment(
     });
     
     return { success: true, equipmentId: result.insertedId.toString() };
-  } catch (_error) {
-    logger.error("Failed to register equipment", { component: "predictive-maintenance" });
+  } catch (error) {
+    logger.error("Failed to register equipment", { 
+      component: "predictive-maintenance",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return { success: false, error: "Failed to register equipment" };
   }
 }
@@ -590,12 +607,23 @@ export async function runOrgPredictionCycle(
     const batch: EquipmentRecord[] = [];
     
     const processBatch = async (items: EquipmentRecord[]) => {
-      // Use atomic counter pattern to prevent race condition with shared index
+      // Use atomic counter pattern to prevent race condition with shared index and counters
       let nextIndex = 0;
+      let atomicProcessed = 0;
+      let atomicPredictions = 0;
+      
       const getNextIndex = () => {
         const idx = nextIndex;
         nextIndex += 1;
         return idx;
+      };
+      
+      const incrementProcessed = () => {
+        atomicProcessed += 1;
+      };
+      
+      const incrementPredictions = (count: number) => {
+        atomicPredictions += count;
       };
       
       const workers = Array.from({ length: Math.min(concurrencyLimit, items.length) }, async () => {
@@ -604,14 +632,14 @@ export async function runOrgPredictionCycle(
           if (currentIndex >= items.length) break;
           
           const current = items[currentIndex];
-          processed += 1;
+          incrementProcessed();
           if (!current._id) {
             continue;
           }
           
           try {
             const predictions = await generatePredictions(current._id.toString(), orgId);
-            totalPredictions += predictions.length;
+            incrementPredictions(predictions.length);
           } catch (error) {
             logger.warn("Prediction generation failed for equipment", {
               component: "predictive-maintenance",
@@ -621,7 +649,12 @@ export async function runOrgPredictionCycle(
           }
         }
       });
+      
       await Promise.all(workers);
+      
+      // Update outer counters after batch is complete (single-threaded)
+      processed += atomicProcessed;
+      totalPredictions += atomicPredictions;
     };
     
     for await (const doc of cursor) {

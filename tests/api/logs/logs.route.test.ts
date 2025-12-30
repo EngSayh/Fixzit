@@ -135,6 +135,8 @@ describe("API /api/logs", () => {
       const res = await POST(req);
 
       expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("message");
     });
   });
 

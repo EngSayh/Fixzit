@@ -1199,8 +1199,7 @@ async function checkAndActivateContract(
       },
       $push: {
         statusHistory: {
-          from: EjarContractStatus.PENDING_SIGNATURES,
-          to: EjarContractStatus.ACTIVE,
+          status: EjarContractStatus.ACTIVE,
           changedBy: "system",
           changedAt: new Date(),
           reason: "All required signatures collected",

@@ -39,9 +39,7 @@ export async function GET() {
     const orgId = isDemo ? 'demo' : userOrgId!;
     
     /**
-     * TODO: PLACEHOLDER DATA - FOR UI/DEV ONLY
-     * 
-     * This entire dashboard response is currently hardcoded mock data for UI development.
+     * PLACEHOLDER DATA - GATED BY FEATURE FLAG
      * 
      * Real data sources required:
      * - ZATCA: Query zatca_submissions collection and ZATCA API status
@@ -49,14 +47,38 @@ export async function GET() {
      * - PDPL: Query pdpl_consents, dsar_requests, data_breaches collections
      * 
      * Follow-up ticket: COMP-001 - Integrate real compliance data sources
-     * 
-     * Gate behind feature flag: process.env.ENABLE_MOCK_COMPLIANCE === 'true'
-     * or remove entirely once real data integration is complete.
      */
-    // Compliance dashboard data
+    const enableMockCompliance = process.env.ENABLE_MOCK_COMPLIANCE === 'true';
+    
+    if (!enableMockCompliance) {
+      // Real data integration not yet available
+      logger.warn('Compliance dashboard requested but ENABLE_MOCK_COMPLIANCE is not enabled', {
+        component: 'compliance-dashboard',
+        orgId,
+      });
+      return NextResponse.json(
+        { 
+          error: { 
+            code: 'FIXZIT-COMP-001', 
+            message: 'Compliance dashboard data integration pending. Enable mock mode for development.' 
+          } 
+        },
+        { status: 501 }
+      );
+    }
+    
+    // Log when serving mock data
+    logger.warn('Serving mock compliance dashboard data', {
+      component: 'compliance-dashboard',
+      orgId,
+      mockMode: true,
+    });
+    
+    // Compliance dashboard data (MOCK)
     const dashboard = {
       orgId,
       generated_at: new Date().toISOString(),
+      _mockData: true, // Flag to indicate this is mock data
       
       // ZATCA Phase 2 Status
       zatca: {

@@ -173,7 +173,7 @@ export default function OnboardingWizard({
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
 
   // Load existing case data
-  // Note: isRTL is captured at call time for error message display
+  // Note: isRTL is captured at mount time due to empty dependency array below
   const loadCaseData = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/onboarding/${id}`);

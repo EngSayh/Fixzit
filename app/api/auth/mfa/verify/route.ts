@@ -98,14 +98,24 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Optionally trust device
+    // Optionally trust device - wrapped in try-catch to not fail MFA verification
     if (body.trustDevice && body.deviceId) {
-      await trustDeviceFn(
-        orgId,
-        userId,
-        body.deviceId,
-        body.deviceName || "Unknown Device"
-      );
+      try {
+        await trustDeviceFn(
+          orgId,
+          userId,
+          body.deviceId,
+          body.deviceName || "Unknown Device"
+        );
+      } catch (trustError) {
+        // Log error but don't fail the MFA verification
+        logger.warn("Failed to trust device after MFA verification", {
+          orgId,
+          userId,
+          deviceId: body.deviceId,
+          error: trustError instanceof Error ? trustError.message : "Unknown error",
+        });
+      }
     }
     
     return NextResponse.json({

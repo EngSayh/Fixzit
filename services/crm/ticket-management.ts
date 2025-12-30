@@ -499,8 +499,8 @@ export async function addMessage(
       return { success: false, error: "Ticket not found" };
     }
     
-    // Check if this is first response
-    const isFirstResponse = message.authorType === "agent" && !ticket.firstResponseAt;
+    // Check if this is first response (public agent message only)
+    const isFirstResponse = message.authorType === "agent" && !ticket.firstResponseAt && !message.isPrivate;
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOp: any = {
