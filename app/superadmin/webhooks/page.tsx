@@ -295,9 +295,11 @@ export default function WebhooksPage() {
       if (response.ok) {
         const data = await response.json();
         setLogs(data.deliveries || []);
+      } else {
+        toast.error("Failed to load delivery logs");
       }
     } catch {
-      // Keep existing logs if fetch fails
+      toast.error("Failed to load delivery logs");
     }
   };
 

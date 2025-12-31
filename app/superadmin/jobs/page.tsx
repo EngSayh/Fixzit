@@ -72,35 +72,27 @@ export default function SuperadminJobsPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.stats) {
-          setStats({
-            pending: data.stats.pending || data.summary?.idle || 0,
-            processing: data.stats.processing || data.summary?.running || 0,
-            completed: data.stats.completed || data.executionStats?.success || 0,
-            failed: data.stats.failed || data.summary?.error || 0,
-          });
-        } else if (data.summary) {
+        // API returns: { jobs, summary, executionStats, recentExecutions }
+        if (data.summary && data.executionStats) {
           setStats({
             pending: data.summary.idle || 0,
             processing: data.summary.running || 0,
-            completed: data.executionStats?.success || 0,
+            completed: data.executionStats.success || 0,
             failed: data.summary.error || 0,
           });
         }
-        // Map tasks/jobs to our format
-        if (data.tasks) {
-          setJobs(data.tasks.map((task: { _id: string; type?: string; name?: string; status: string; lastRunAt?: string; createdAt?: string; error?: string }) => ({
-            _id: task._id,
-            type: task.type || task.name || "task",
-            status: task.status === "running" ? "processing" : task.status === "error" ? "failed" : task.status === "idle" ? "pending" : "completed",
-            priority: 1,
+        // Map jobs to display format
+        if (data.jobs) {
+          setJobs(data.jobs.map((job: { id: string; name: string; status: string; lastRunAt?: string; priority?: number; lastError?: string }) => ({
+            _id: job.id,
+            type: job.name || "task",
+            status: job.status === "running" ? "processing" : job.status === "error" ? "failed" : job.status === "idle" ? "pending" : "completed",
+            priority: job.priority || 1,
             attempts: 1,
             maxAttempts: 3,
-            createdAt: task.lastRunAt || task.createdAt || new Date().toISOString(),
-            error: task.error,
+            createdAt: job.lastRunAt || new Date().toISOString(),
+            error: job.lastError,
           })));
-        } else if (data.jobs) {
-          setJobs(data.jobs);
         }
       }
     } catch {

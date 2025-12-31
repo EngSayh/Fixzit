@@ -100,7 +100,7 @@ export default function SuperadminTranslationsPage() {
       window.URL.revokeObjectURL(url);
       toast.success(`Exported ${localeCode} translations`);
     } catch {
-      toast.success(`Exported ${localeCode} translations`);
+      toast.error(`Failed to export ${localeCode} translations`);
     }
   };
 
@@ -113,12 +113,15 @@ export default function SuperadminTranslationsPage() {
     try {
       const translation = allKeys.find(k => k.key === key);
       if (translation) {
-        await fetch(`/api/superadmin/translations/${encodeURIComponent(key)}`, {
+        const response = await fetch(`/api/superadmin/translations/${encodeURIComponent(key)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ ar: editValue }),
         });
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
       }
       setKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
       setAllKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
