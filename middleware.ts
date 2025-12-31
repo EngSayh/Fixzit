@@ -42,6 +42,7 @@ const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-de
 const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
 // SECURITY: Enable CSRF protection for state-changing requests
 const CSRF_PROTECTION_ENABLED = process.env.CSRF_PROTECTION !== 'false'; // enabled by default
+const ISSUE_API_TOKEN = process.env.ISSUE_API_TOKEN?.trim();
 
 // ---------- CSRF Protection ----------
 // Routes exempt from CSRF validation (auth callbacks, webhooks, etc.)
@@ -69,6 +70,16 @@ function validateCSRF(request: NextRequest): boolean {
   }
   
   const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith('/api/issues') && ISSUE_API_TOKEN) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (token && token === ISSUE_API_TOKEN) {
+        return true;
+      }
+    }
+  }
   
   // Skip for exempt routes
   if (CSRF_EXEMPT_ROUTES.some(route => pathname.startsWith(route))) {

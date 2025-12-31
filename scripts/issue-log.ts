@@ -5,10 +5,17 @@
  *   pnpm issue-log import ./docs/BACKLOG_AUDIT.json [--dry-run]
  */
 
+import { config as loadEnv } from "dotenv";
 import fs from "fs";
 import path from "path";
 
-const API_BASE = process.env.ISSUE_API_URL || "http://localhost:3000/api";
+loadEnv({ path: path.join(process.cwd(), ".env.local") });
+
+const apiBaseFromEnv = process.env.ISSUE_API_URL?.trim();
+const nextAuthUrl = process.env.NEXTAUTH_URL?.trim();
+const API_BASE =
+  apiBaseFromEnv ||
+  (nextAuthUrl ? new URL("/api", nextAuthUrl).toString().replace(/\/$/, "") : "http://localhost:3000/api");
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 function usage(): void {

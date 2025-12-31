@@ -93,6 +93,45 @@ interface IssueLeanDoc {
 
 const REQUIRED_FIELDS = ["key", "title", "sourceRef", "evidenceSnippet", "sourcePath"] as const;
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
+const ISSUE_API_TOKEN = process.env.ISSUE_API_TOKEN?.trim();
+
+function resolveTokenOrgId(): string | null {
+  return (
+    process.env.SUPERADMIN_ORG_ID?.trim() ||
+    process.env.PUBLIC_ORG_ID?.trim() ||
+    process.env.DEFAULT_ORG_ID?.trim() ||
+    process.env.TEST_ORG_ID?.trim() ||
+    null
+  );
+}
+
+function resolveTokenSession(request: NextRequest) {
+  if (!ISSUE_API_TOKEN) return null;
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token || token !== ISSUE_API_TOKEN) return null;
+  const orgId = resolveTokenOrgId();
+  if (!orgId) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: "ISSUE_API_TOKEN configured without SUPERADMIN_ORG_ID/PUBLIC_ORG_ID/DEFAULT_ORG_ID/TEST_ORG_ID" },
+        { status: 500, headers: ROBOTS_HEADER }
+      ),
+    };
+  }
+  return {
+    ok: true as const,
+    session: {
+      id: "issue-api-token",
+      role: "super_admin",
+      orgId,
+      email: "issue-api-token",
+      isSuperAdmin: true,
+    },
+  };
+}
 
 function slugify(value: string): string {
   return value
@@ -195,6 +234,10 @@ function extractModule(location: string): string {
 }
 
 async function resolveSession(request: NextRequest) {
+  const tokenSession = resolveTokenSession(request);
+  if (tokenSession) {
+    return tokenSession;
+  }
   const superadmin = await getSuperadminSession(request);
   if (superadmin) {
     return {
