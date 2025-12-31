@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectItem,
@@ -1083,41 +1084,18 @@ export function WorkOrdersView({
         />
       )}
 
-      <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
-        <span className="text-sm text-muted-foreground">
-          {t(
-            "workOrders.list.pagination.summary",
-            "Showing {{count}} of {{total}} work orders",
-          )
-            .replace("{{count}}", String(workOrders.length))
-            .replace("{{total}}", String(resolvedResponse.total))}
-        </span>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          >
-            {t("workOrders.list.pagination.previous", "Previous")}
-          </Button>
-          <span className="text-sm text-foreground">
-            {t(
-              "workOrders.list.pagination.pageXofY",
-              "Page {{page}} of {{total}}",
-            )
-              .replace("{{page}}", String(page))
-              .replace("{{total}}", String(totalPages))}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-          >
-            {t("workOrders.list.pagination.next", "Next")}
-          </Button>
-        </div>
+      <div className="border-t border-border">
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={resolvedResponse.total}
+          itemsPerPage={resolvedResponse.limit || PAGE_SIZE}
+          onPageChange={setPage}
+          onPageSizeChange={() => {
+            // Page size is controlled by PAGE_SIZE constant in this component
+            setPage(1);
+          }}
+        />
       </div>
     </div>
   );

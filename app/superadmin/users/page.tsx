@@ -14,8 +14,6 @@ import {
   Users,
   Search,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   AlertCircle,
   CheckCircle,
@@ -64,6 +62,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Pagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
 import { useActionFeedback } from "@/components/ui/action-feedback";
 
@@ -145,7 +144,7 @@ export default function SuperadminUsersPage() {
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [userTypeFilter, setUserTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const [pageSize, setPageSize] = useState(25);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -174,7 +173,7 @@ export default function SuperadminUsersPage() {
 
       const params = new URLSearchParams({
         page: String(page),
-        limit: String(limit),
+        limit: String(pageSize),
         sortBy: "createdAt",
         sortOrder: "desc",
       });
@@ -205,7 +204,7 @@ export default function SuperadminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, statusFilter, orgFilter, userTypeFilter]);
+  }, [page, pageSize, search, statusFilter, orgFilter, userTypeFilter]);
 
   // Fetch organizations for filter
   const fetchOrganizations = useCallback(async () => {
@@ -700,33 +699,23 @@ export default function SuperadminUsersPage() {
           )}
 
           {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-border">
-              <p className="text-sm text-muted-foreground">
-                Page {pagination.page} of {pagination.totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!pagination.hasPrev || loading}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="border-input"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!pagination.hasNext || loading}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="border-input"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+          {pagination && (
+            <div className="border-t border-border">
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.total}
+                itemsPerPage={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  if (size === "all") {
+                    setPageSize(pagination.total || 100);
+                  } else {
+                    setPageSize(size);
+                  }
+                  setPage(1);
+                }}
+              />
             </div>
           )}
         </CardContent>

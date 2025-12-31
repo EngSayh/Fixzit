@@ -14,19 +14,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { IconButton } from "@/components/ui/action-feedback";
-import { SimpleTooltip } from "@/components/ui/tooltip";
 import { 
   FileText, 
   RefreshCw, 
   Search, 
   Download, 
   Eye,
-  ChevronLeft,
-  ChevronRight,
   User,
   Clock,
   Shield,
@@ -95,7 +93,7 @@ export default function SuperadminAuditPage() {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [limit] = useState(50);
+  const [pageSize, setPageSize] = useState(50);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
@@ -103,7 +101,7 @@ export default function SuperadminAuditPage() {
     try {
       setLoading(true);
       setError(null);
-      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
       if (search) params.set("userId", search);
       if (actionFilter !== "all") params.set("action", actionFilter);
       if (entityFilter !== "all") params.set("entityType", entityFilter);
@@ -115,7 +113,7 @@ export default function SuperadminAuditPage() {
       }
       const data = await response.json();
       setLogs(data.logs || []);
-      setPagination({ page: data.page || page, limit: data.limit || limit, total: data.total || 0, pages: data.pages || 1 });
+      setPagination({ page: data.page || page, limit: data.limit || pageSize, total: data.total || 0, pages: data.pages || 1 });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load audit logs";
       setError(message);
@@ -123,7 +121,7 @@ export default function SuperadminAuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, actionFilter, entityFilter]);
+  }, [page, pageSize, search, actionFilter, entityFilter]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -239,17 +237,23 @@ export default function SuperadminAuditPage() {
               </TableBody>
             </Table>
           )}
-          {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-border">
-              <p className="text-sm text-muted-foreground">Page {pagination.page} of {pagination.pages}</p>
-              <div className="flex gap-2">
-                <SimpleTooltip content={t("common.previousPage", "Previous page")}>
-                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input"><ChevronLeft className="h-4 w-4" /></Button>
-                </SimpleTooltip>
-                <SimpleTooltip content={t("common.nextPage", "Next page")}>
-                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input"><ChevronRight className="h-4 w-4" /></Button>
-                </SimpleTooltip>
-              </div>
+          {pagination && (
+            <div className="border-t border-border">
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.pages}
+                totalItems={pagination.total}
+                itemsPerPage={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  if (size === "all") {
+                    setPageSize(pagination.total || 100);
+                  } else {
+                    setPageSize(size);
+                  }
+                  setPage(1);
+                }}
+              />
             </div>
           )}
         </CardContent>

@@ -31,6 +31,7 @@ import { useActionFeedback } from "@/components/ui/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
@@ -247,6 +248,8 @@ export default function SuperadminIssuesPage() {
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Selection handlers
   const toggleSelectAll = () => {
@@ -391,7 +394,7 @@ Agent Token: [AGENT-001-A]`;
     try {
       const params = new URLSearchParams();
       params.set("page", page.toString());
-      params.set("limit", "25");
+      params.set("limit", pageSize.toString());
 
       if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
       if (priorityFilter && priorityFilter !== "all") params.set("priority", priorityFilter);
@@ -430,6 +433,7 @@ Agent Token: [AGENT-001-A]`;
       const payload = data.data || data;
       setIssues(payload.issues || []);
       setTotalPages(payload.pagination?.totalPages || 1);
+      setTotalItems(payload.pagination?.total || payload.issues?.length || 0);
     } catch (error) {
       // If we don't already have a connection error set, show generic error
       if (!connectionError) {
@@ -1183,27 +1187,23 @@ Agent Token: [AGENT-001-A]`;
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            {t("superadmin.issues.pagination.previous")}
-          </Button>
-          <span className="flex items-center px-4 text-sm text-muted-foreground">
-            {t("superadmin.issues.pagination.pageOf", { page, total: totalPages })}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            {t("superadmin.issues.pagination.next")}
-          </Button>
+      {totalPages >= 1 && (
+        <div className="border rounded-lg border-border bg-card">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              if (size === "all") {
+                setPageSize(totalItems || 100);
+              } else {
+                setPageSize(size);
+              }
+              setPage(1);
+            }}
+          />
         </div>
       )}
 

@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
@@ -176,13 +177,15 @@ export default function AdminIssuesPage() {
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch issues
   const fetchIssues = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       params.set("page", page.toString());
-      params.set("limit", "25");
+      params.set("limit", pageSize.toString());
 
       if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
       if (priorityFilter && priorityFilter !== "all") params.set("priority", priorityFilter);
@@ -200,6 +203,7 @@ export default function AdminIssuesPage() {
       const data = await response.json();
       setIssues(data.issues || []);
       setTotalPages(data.pagination?.totalPages || 1);
+      setTotalItems(data.pagination?.total || data.issues?.length || 0);
     } catch (_error) {
       toast({
         title: "Error",
@@ -757,27 +761,23 @@ export default function AdminIssuesPage() {
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </Button>
-          <span className="flex items-center px-4 text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </Button>
+      {totalPages >= 1 && (
+        <div className="border rounded-lg border-border bg-card">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              if (size === "all") {
+                setPageSize(totalItems || 100);
+              } else {
+                setPageSize(size);
+              }
+              setPage(1);
+            }}
+          />
         </div>
       )}
     </div>

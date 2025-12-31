@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -69,13 +70,15 @@ export default function SuperadminVendorsPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
 
   const fetchVendors = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       params.append("page", String(page));
-      params.append("limit", "20");
+      params.append("limit", String(pageSize));
       if (searchQuery) params.append("search", searchQuery);
       if (typeFilter !== "all") params.append("type", typeFilter);
       if (statusFilter !== "all") params.append("status", statusFilter);
@@ -85,13 +88,14 @@ export default function SuperadminVendorsPage() {
         const data = await response.json();
         setVendors(data.vendors || data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
+        setTotalItems(data.pagination?.total || data.vendors?.length || 0);
       }
     } catch {
       toast.error("Failed to fetch vendors");
     } finally {
       setLoading(false);
     }
-  }, [page, searchQuery, typeFilter, statusFilter]);
+  }, [page, pageSize, searchQuery, typeFilter, statusFilter]);
 
   useEffect(() => { fetchVendors(); }, [fetchVendors]);
 
@@ -154,7 +158,25 @@ export default function SuperadminVendorsPage() {
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input">Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input">Next</Button></div>)}
+      {totalPages >= 1 && (
+        <div className="border rounded-lg border-border bg-card">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              if (size === "all") {
+                setPageSize(totalItems || 100);
+              } else {
+                setPageSize(size);
+              }
+              setPage(1);
+            }}
+          />
+        </div>
+      )}
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="bg-card border-input max-w-2xl">

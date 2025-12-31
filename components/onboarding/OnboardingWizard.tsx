@@ -34,6 +34,7 @@ import {
   Building2,
   FileText,
   CheckCircle,
+  type LucideIcon,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
 
@@ -53,7 +54,7 @@ interface StepConfig {
   titleAr: string;
   description: string;
   descriptionAr: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }
 
 const STEPS: StepConfig[] = [

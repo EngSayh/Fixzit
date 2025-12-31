@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { 
   Plug, RefreshCw, CheckCircle, XCircle, Settings, ExternalLink,
   CreditCard, Mail, MessageSquare, FileText, Cloud, Shield,
+  type LucideIcon,
 } from "@/components/ui/icons";
 
 interface Integration {
@@ -48,7 +49,7 @@ const STATUS_COLORS: Record<string, string> = {
   error: "bg-red-500/20 text-red-400",
 };
 
-const ICONS: Record<string, React.ElementType> = { CreditCard, Mail, MessageSquare, FileText, Cloud, Shield };
+const ICONS: Record<string, LucideIcon> = { CreditCard, Mail, MessageSquare, FileText, Cloud, Shield };
 
 // Default integrations to show when API fails
 const DEFAULT_INTEGRATIONS: Integration[] = [

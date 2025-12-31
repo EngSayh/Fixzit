@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -21,9 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { IconButton } from "@/components/ui/action-feedback";
-import { SimpleTooltip } from "@/components/ui/tooltip";
 import { 
-  Bell, RefreshCw, Send, Eye, ChevronLeft, ChevronRight,
+  Bell, RefreshCw, Send, Eye,
   Mail, MessageSquare, Smartphone, Clock, AlertCircle, CheckCircle, XCircle,
 } from "@/components/ui/icons";
 
@@ -68,6 +68,8 @@ export default function SuperadminNotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedNotification, setSelectedNotification] = useState<NotificationLog | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -78,7 +80,7 @@ export default function SuperadminNotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({ page: String(page), limit: "20" });
+      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
       if (channelFilter !== "all") params.set("channel", channelFilter);
       
       const response = await fetch(`/api/superadmin/notifications/history?${params}`, { credentials: "include" });
@@ -86,13 +88,14 @@ export default function SuperadminNotificationsPage() {
       const data = await response.json();
       setNotifications(data.notifications || []);
       setTotalPages(data.pages || 1);
+      setTotalItems(data.total || data.notifications?.length || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
       toast.error("Failed to load notifications");
     } finally {
       setLoading(false);
     }
-  }, [page, channelFilter]);
+  }, [page, pageSize, channelFilter]);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -229,17 +232,23 @@ export default function SuperadminNotificationsPage() {
                   </TableBody>
                 </Table>
               )}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <p className="text-sm text-muted-foreground">Page {page} of {totalPages}</p>
-                  <div className="flex gap-2">
-                    <SimpleTooltip content={t("common.previousPage", "Previous page")}>
-                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}><ChevronLeft className="h-4 w-4" /></Button>
-                    </SimpleTooltip>
-                    <SimpleTooltip content={t("common.nextPage", "Next page")}>
-                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}><ChevronRight className="h-4 w-4" /></Button>
-                    </SimpleTooltip>
-                  </div>
+              {totalPages >= 1 && (
+                <div className="border-t border-border">
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => {
+                      if (size === "all") {
+                        setPageSize(totalItems || 100);
+                      } else {
+                        setPageSize(size);
+                      }
+                      setPage(1);
+                    }}
+                  />
                 </div>
               )}
             </CardContent>

@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { ReviewCard } from "./ReviewCard";
 import type { SellerReview } from "@/lib/souq/review-types";
+import { Pagination } from "@/components/ui/pagination";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { logger } from "@/lib/logger";
 
@@ -33,6 +34,8 @@ export function ReviewList({
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState<FilterState>({
     rating: null,
     verifiedOnly: false,
@@ -53,7 +56,7 @@ export function ReviewList({
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "20",
+        limit: pageSize.toString(),
         sortBy: filters.sortBy,
       });
 
@@ -67,6 +70,7 @@ export function ReviewList({
 
       setReviews(data.data || []);
       setTotalPages(data.pagination?.pages || 1);
+      setTotalItems(data.pagination?.total || data.data?.length || 0);
     } catch (error) {
       logger.error("Failed to fetch reviews", error, {
         component: "ReviewList",
@@ -187,27 +191,23 @@ export function ReviewList({
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button type="button"
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1 || loading}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
-          >
-            {auto("Previous", "pagination.previous")}
-          </button>
-          <span className="text-sm text-muted-foreground">
-            {auto("Page {{page}} of {{total}}", "pagination.summary")
-              .replace("{{page}}", String(page))
-              .replace("{{total}}", String(totalPages))}
-          </span>
-          <button type="button"
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages || loading}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
-          >
-            {auto("Next", "pagination.next")}
-          </button>
+      {totalPages >= 1 && (
+        <div className="border rounded-lg border-border bg-card">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              if (size === "all") {
+                setPageSize(totalItems || 100);
+              } else {
+                setPageSize(size);
+              }
+              setPage(1);
+            }}
+          />
         </div>
       )}
     </div>

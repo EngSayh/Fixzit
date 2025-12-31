@@ -14,7 +14,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Clock, AlertTriangle, XCircle, Pause } from "@/components/ui/icons";
+import { Clock, AlertTriangle, XCircle, Pause, type LucideIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 
@@ -39,7 +39,7 @@ const statusConfig: Record<SLAStatus, {
   variant: "default" | "secondary" | "destructive" | "outline";
   bgClass: string;
   textClass: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }> = {
   on_time: {
     labelKey: "fm.sla.onTime",

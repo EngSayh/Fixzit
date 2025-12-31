@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import {
   MessageSquare,
   Mail,
@@ -71,8 +72,8 @@ export default function CommunicationDashboard({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  const limit = 50;
+  const [pageSize, setPageSize] = useState(50);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch communications
   const fetchCommunications = useCallback(async () => {
@@ -80,8 +81,8 @@ export default function CommunicationDashboard({
 
     try {
       const params = new URLSearchParams({
-        limit: limit.toString(),
-        skip: ((page - 1) * limit).toString(),
+        limit: pageSize.toString(),
+        skip: ((page - 1) * pageSize).toString(),
       });
 
       if (channelFilter && channelFilter !== "all") {
@@ -104,6 +105,7 @@ export default function CommunicationDashboard({
         setCommunications(data.data.communications);
         setStatistics(data.data.statistics);
         setTotalPages(pages);
+        setTotalItems(data.data.pagination?.total || data.data.communications?.length || 0);
         if (page > pages) {
           setPage(pages);
         }
@@ -118,7 +120,7 @@ export default function CommunicationDashboard({
     } finally {
       setLoading(false);
     }
-  }, [channelFilter, debouncedSearch, limit, page, statusFilter]);
+  }, [channelFilter, debouncedSearch, pageSize, page, statusFilter]);
 
   // Initial fetch
   useEffect(() => {
@@ -504,30 +506,23 @@ export default function CommunicationDashboard({
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div
-            className={`px-4 py-3 border-t border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
-          >
-            <Button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || loading}
-              variant="outline"
-              size="sm"
-            >
-              {t("communications.previous", "Previous")}
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {t("communications.page", "Page")} {page}{" "}
-              {t("communications.of", "of")} {totalPages}
-            </span>
-            <Button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || loading}
-              variant="outline"
-              size="sm"
-            >
-              {t("communications.next", "Next")}
-            </Button>
+        {totalPages >= 1 && (
+          <div className="border-t border-border">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                if (size === "all") {
+                  setPageSize(totalItems || 100);
+                } else {
+                  setPageSize(size);
+                }
+                setPage(1);
+              }}
+            />
           </div>
         )}
       </div>

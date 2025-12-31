@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import { ShieldAlert, Loader2 } from "@/components/ui/icons";
 import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
 import { HoverTooltip } from "@/components/common/HoverTooltip";
@@ -77,6 +78,7 @@ export default function AuditLogViewer() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(LOGS_PER_PAGE);
   const [totalLogs, setTotalLogs] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -272,8 +274,8 @@ export default function AuditLogViewer() {
     }
   };
 
-  const pageStart = (page - 1) * LOGS_PER_PAGE + 1;
-  const pageEnd = Math.min(page * LOGS_PER_PAGE, totalLogs);
+  const _pageStart = (page - 1) * LOGS_PER_PAGE + 1;
+  const _pageEnd = Math.min(page * LOGS_PER_PAGE, totalLogs);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -861,65 +863,22 @@ export default function AuditLogViewer() {
 
       {/* Pagination */}
       {!loading && !error && logs.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-foreground">
-              {auto(
-                "Showing {{start}} to {{end}} of {{total}} results",
-                "pagination.summary",
-                {
-                  start: pageStart,
-                  end: pageEnd,
-                  total: totalLogs,
-                },
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {auto("Previous", "pagination.previous")}
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Show pages around current page
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-
-                  return (
-                    <button type="button"
-                      key={pageNum}
-                      onClick={() => setPage(pageNum)}
-                      className={`px-4 py-2 text-sm font-medium rounded-2xl ${
-                        page === pageNum
-                          ? "bg-primary text-white"
-                          : "text-foreground bg-background border border-border hover:bg-muted"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {auto("Next", "pagination.next")}
-              </button>
-            </div>
-          </div>
+        <div className="bg-card rounded-2xl border border-border">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalLogs}
+            itemsPerPage={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              if (size === "all") {
+                setPageSize(totalLogs || 100);
+              } else {
+                setPageSize(size);
+              }
+              setPage(1);
+            }}
+          />
         </div>
       )}
 

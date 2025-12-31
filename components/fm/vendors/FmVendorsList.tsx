@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -111,11 +112,11 @@ export function FmVendorsList({
   const [statusFilter, setStatusFilter] = useState("");
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [pageSize, setPageSize] = useState(25);
 
   // Fetch vendors with pagination
   const vendorsUrl = orgId
-    ? `/api/vendors?page=${page}&limit=${limit}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""}${statusFilter ? `&status=${statusFilter}` : ""}`
+    ? `/api/vendors?page=${page}&limit=${pageSize}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""}${statusFilter ? `&status=${statusFilter}` : ""}`
     : null;
 
   const {
@@ -494,26 +495,23 @@ export function FmVendorsList({
           />
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center mt-6">
-              <Button
-                variant="outline"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                {t("common.previous", "Previous")}
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {t("common.pageOf", "Page {{page}} of {{total}}", { page, total: totalPages })} (
-                {vendorsData?.total || 0} {t("vendors.totalVendors", "total vendors")})
-              </span>
-              <Button
-                variant="outline"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                {t("common.next", "Next")}
-              </Button>
+          {totalPages >= 1 && (
+            <div className="mt-6 border rounded-lg border-border bg-card">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={vendorsData?.total || 0}
+                itemsPerPage={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  if (size === "all") {
+                    setPageSize(vendorsData?.total || 100);
+                  } else {
+                    setPageSize(size);
+                  }
+                  setPage(1);
+                }}
+              />
             </div>
           )}
         </>

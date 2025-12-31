@@ -34,6 +34,7 @@ import {
   Shield,
   Webhook,
   Calendar,
+  type LucideIcon,
 } from "@/components/ui/icons";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
 
@@ -127,7 +128,7 @@ function MetricCard({
   title: string; 
   value: string | number; 
   change?: number;
-  icon: React.ElementType; 
+  icon: LucideIcon; 
   loading: boolean;
 }) {
   return (
