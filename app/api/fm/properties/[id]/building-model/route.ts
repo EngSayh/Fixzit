@@ -38,6 +38,7 @@ import {
   attachUnitDbIds,
   type BuildingModel as _BuildingModel,
 } from "@/lib/buildingModel";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const PROPERTIES_COLLECTION = "properties";
 const BUILDING_MODELS_COLLECTION = "building_models";
@@ -62,7 +63,7 @@ const GenerateBuildingModelSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   const rateLimitResponse = enforceRateLimit(req, {
     keyPrefix: "building-model:get",
@@ -72,8 +73,10 @@ export async function GET(
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
+    const { id } = await props.params;
+    
     // Validate property ID
-    if (!ObjectId.isValid(params.id)) {
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid property ID format" },
         { status: 400 }
@@ -105,7 +108,7 @@ export async function GET(
     const property = await db
       .collection(PROPERTIES_COLLECTION)
       .findOne({
-        _id: new ObjectId(params.id),
+        _id: new ObjectId(id),
         orgId: tenantId,
       });
 
@@ -121,7 +124,7 @@ export async function GET(
       .collection(BUILDING_MODELS_COLLECTION)
       .findOne(
         {
-          propertyId: new ObjectId(params.id),
+          propertyId: new ObjectId(id),
           orgId: tenantId,
         },
         { sort: { version: -1 } }
@@ -200,7 +203,7 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   const rateLimitResponse = enforceRateLimit(req, {
     keyPrefix: "building-model:generate",
@@ -210,8 +213,10 @@ export async function POST(
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
+    const { id } = await props.params;
+    
     // Validate property ID
-    if (!ObjectId.isValid(params.id)) {
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid property ID format" },
         { status: 400 }
@@ -254,8 +259,10 @@ export async function POST(
     const { tenantId } = tenantResolution;
 
     // Parse request body
-    const bodyResult = await req.json().catch(() => null);
-    if (!bodyResult) {
+    const { data: bodyResult, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[building-model:POST]",
+    });
+    if (parseError) {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 }
@@ -277,7 +284,7 @@ export async function POST(
     const property = await db
       .collection(PROPERTIES_COLLECTION)
       .findOne({
-        _id: new ObjectId(params.id),
+        _id: new ObjectId(id),
         orgId: tenantId,
       });
 
@@ -336,7 +343,7 @@ export async function POST(
 
       // Update property with synced units
       await db.collection(PROPERTIES_COLLECTION).updateOne(
-        { _id: new ObjectId(params.id), orgId: tenantId },
+        { _id: new ObjectId(id), orgId: tenantId },
         { $set: { units: updatedUnits, updatedAt: new Date() } }
       );
     }
@@ -356,7 +363,7 @@ export async function POST(
     const existingModel = await db
       .collection(BUILDING_MODELS_COLLECTION)
       .findOne(
-        { propertyId: new ObjectId(params.id), orgId: tenantId },
+        { propertyId: new ObjectId(id), orgId: tenantId },
         { sort: { version: -1 } }
       );
 
@@ -372,7 +379,7 @@ export async function POST(
 
     if (modelBytes > MAX_INLINE_BYTES && isS3Configured()) {
       try {
-        const s3Key = buildBuildingModelS3Key(tenantId, params.id, newVersion);
+        const s3Key = buildBuildingModelS3Key(tenantId, id, newVersion);
         const s3Result = await putJsonToS3({
           key: s3Key,
           json: hydratedModel,
@@ -382,7 +389,7 @@ export async function POST(
         modelInline = null;
         modelS3 = { bucket: s3Result.bucket, key: s3Result.key, bytes: s3Result.bytes };
         logger.info("Building model stored in S3", { 
-          propertyId: params.id, 
+          propertyId: id, 
           version: newVersion, 
           originalBytes: modelBytes,
           compressedBytes: s3Result.bytes,
@@ -395,7 +402,7 @@ export async function POST(
 
     // Create building model document
     const modelDoc: Record<string, unknown> = {
-      propertyId: new ObjectId(params.id),
+      propertyId: new ObjectId(id),
       orgId: tenantId,
       version: newVersion,
       status: "DRAFT",
@@ -428,7 +435,7 @@ export async function POST(
       orgId: tenantId,
       success: true,
       meta: {
-        propertyId: params.id,
+        propertyId: id,
         version: newVersion,
         floors: spec.floors,
         apartmentsPerFloor: spec.apartmentsPerFloor,
@@ -444,7 +451,7 @@ export async function POST(
       data: {
         buildingModel: {
           id: result.insertedId.toString(),
-          propertyId: params.id,
+          propertyId: id,
           version: newVersion,
           status: "DRAFT",
           generator: "procedural",

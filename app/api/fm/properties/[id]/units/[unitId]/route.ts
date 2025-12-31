@@ -23,6 +23,7 @@ import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId } from "@/app/api/fm/utils/tenant";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { audit } from "@/lib/audit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const PROPERTIES_COLLECTION = "properties";
 
@@ -201,8 +202,10 @@ export async function PATCH(
     const { tenantId } = tenantResolution;
 
     // Parse request body
-    const bodyResult = await req.json().catch(() => null);
-    if (!bodyResult) {
+    const { data: bodyResult, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[unit:PATCH]",
+    });
+    if (parseError) {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 }
