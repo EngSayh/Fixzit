@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2025-12-31T00:00:00+03:00
+  Last-Sync: 2025-12-31T11:25:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,53 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+### 2025-12-31 11:25 (Asia/Riyadh) - Public Tour Security Fixes [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** SEC-TOUR-001, SEC-TOUR-002, QA-TOUR-001
+**Review Session:** FIXIZIT-REVIEW-20251231-100702-5325ec6fc
+**Context:** feature/building-3d-model | PR #627 | Public tour tenant isolation + PII sanitization
+**DB Sync:** Required (SEC-TOUR-001, SEC-TOUR-002, QA-TOUR-001 → RESOLVED)
+
+#### Multi-Role Validation Summary
+| Gate | Status | Notes |
+|------|--------|-------|
+| PM (4.2.1) | ✅ PASS | Fix aligns with PR #627 3D building feature; affects Public role only |
+| BA (4.2.2) | ✅ PASS | Public tours must not expose tenant PII or meter readings |
+| UX (4.2.3) | N/A | No UI changes |
+| Tech Lead (4.2.4) | ✅ PASS | Maintains modular boundaries; adds tenant scoping |
+| Backend (4.2.5) | ✅ PASS | Added org_id scoping; sanitization for PII |
+| Frontend (4.2.6) | N/A | No frontend changes |
+| Mobile (4.2.7) | N/A | No mobile impact |
+| QA (4.2.8) | ✅ PASS | Added 10 tests for tenant isolation + PII sanitization |
+| Security (4.2.9) | ✅ PASS | Closes Blocker + High findings; tenant isolation enforced |
+| DevOps (4.2.10) | ⚠️ DEFERRED | GH Actions failures need investigation (Finding #4) |
+| Finance (4.2.11) | N/A | No financial data |
+| Integration (4.2.12) | N/A | No external services |
+| Privacy (4.2.13) | ✅ PASS | PII sanitization implemented |
+
+#### Findings from Review
+| Finding | Severity | Status | Description |
+|---------|----------|--------|-------------|
+| F1 | Blocker | ✅ FIXED | Public tour queries lacked tenant scope (orgId) |
+| F2 | High | ✅ FIXED | Public tour returned tenant object + meter numbers in metadata |
+| F3 | Medium | ✅ FIXED | No API tests for public tour endpoint |
+| F4 | Medium | ⏸️ OUT OF SCOPE | CI workflows failing (DevOps action required) |
+| F5 | Low | ⏸️ OUT OF SCOPE | No issue/AC linkage in PR (PM action required) |
+
+#### Fixes Applied
+| Issue ID | File | Change |
+|----------|------|--------|
+| SEC-TOUR-001 | `app/api/fm/properties/[id]/tour/route.ts` | Added PUBLIC_ORG_ID validation + orgId scope to all DB queries |
+| SEC-TOUR-002 | `app/api/fm/properties/[id]/tour/route.ts` | Added `tenant` to sanitizeUnitPublic; added sanitizeModelPublic() for metadata |
+| QA-TOUR-001 | `tests/api/fm/building-model-tour.route.test.ts` | Created 10 tests covering tenant isolation + PII sanitization |
+
+#### Verification
+- pnpm typecheck: 0 errors
+- pnpm lint: 0 errors (25 warnings - pre-existing superadmin routes)
+- pnpm vitest: 10/10 tests pass for public tour endpoint
+- Commits: 55174707d (security fixes), [pending] (tests + SSOT)
 
 ---
 ### 2025-12-31 14:45 (Asia/Riyadh) - P2 Error Logging Fixes [AGENT-001-A]
