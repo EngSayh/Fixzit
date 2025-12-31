@@ -16,6 +16,7 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { exportUserData, anonymizeUserData } from "@/server/utils/gdpr";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ExportSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
@@ -33,6 +34,14 @@ const AnonymizeSchema = z.object({
  * Handle GDPR data requests (export or anonymize)
  */
 export async function POST(request: NextRequest) {
+  // Rate limit: Low limit for sensitive GDPR operations
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "superadmin-gdpr:post",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Verify superadmin session
     const session = await getSuperadminSession(request);

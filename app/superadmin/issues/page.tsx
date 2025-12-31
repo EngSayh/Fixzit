@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
+import { logger } from "@/lib/logger";
 import {
   Bug,
   Clock,
@@ -312,9 +313,10 @@ Agent Token: [AGENT-001-A]`;
 
     try {
       await navigator.clipboard.writeText(fixCommand);
-      copyMdFeedback.showSuccess("Copied", "copy");
-    } catch {
-      copyMdFeedback.showError("Failed");
+      copyMdFeedback.showSuccess(t("common.copied", "Copied"), "copy");
+    } catch (err) {
+      logger.error("Failed to copy markdown to clipboard", { error: err });
+      copyMdFeedback.showError(t("common.failed", "Failed"));
     }
   };
 
@@ -340,9 +342,10 @@ Agent Token: [AGENT-001-A]`;
     const tsv = `${headers.join("\t")}\n${rows.map(row => row.join("\t")).join("\n")}`;
     try {
       await navigator.clipboard.writeText(tsv);
-      copyTsvFeedback.showSuccess("Copied", "copy");
-    } catch {
-      copyTsvFeedback.showError("Failed");
+      copyTsvFeedback.showSuccess(t("common.copied", "Copied"), "copy");
+    } catch (err) {
+      logger.error("Failed to copy TSV to clipboard", { error: err });
+      copyTsvFeedback.showError(t("common.failed", "Failed"));
     }
   };
 
@@ -375,7 +378,7 @@ Agent Token: [AGENT-001-A]`;
     a.click();
     URL.revokeObjectURL(url);
 
-    exportCsvFeedback.showSuccess("Exported", "save");
+    exportCsvFeedback.showSuccess(t("common.exported", "Exported"), "save");
   };
 
   const clearFilters = () => {

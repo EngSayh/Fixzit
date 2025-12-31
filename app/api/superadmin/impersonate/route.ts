@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       await ensureMongoConnection();
       await AuditLogModel.create({
         orgId: orgId, // Target org being impersonated
-        action: "LOGIN", // Using LOGIN as closest action type for impersonation start
+        action: "impersonate_start", // Matches sessions/route.ts query filter
         entityType: "USER",
         entityId: session.username,
         entityName: `Superadmin Impersonation: ${session.username}`,
@@ -78,9 +78,11 @@ export async function POST(request: NextRequest) {
         userEmail: session.username,
         userRole: "SUPER_ADMIN",
         description: `Superadmin ${session.username} started impersonating organization ${orgId}`,
-        ipAddress,
-        userAgent,
         success: true,
+        context: {
+          ipAddress,
+          userAgent,
+        },
         metadata: {
           impersonationType: "START",
           targetOrgId: orgId,
@@ -149,7 +151,7 @@ export async function DELETE(request: NextRequest) {
         await ensureMongoConnection();
         await AuditLogModel.create({
           orgId: currentOrgId, // Org that was being impersonated
-          action: "LOGOUT", // Using LOGOUT as closest action type for impersonation end
+          action: "impersonate_end", // Matches sessions/route.ts query filter
           entityType: "USER",
           entityId: session.username,
           entityName: `Superadmin Impersonation End: ${session.username}`,
@@ -158,9 +160,11 @@ export async function DELETE(request: NextRequest) {
           userEmail: session.username,
           userRole: "SUPER_ADMIN",
           description: `Superadmin ${session.username} ended impersonation of organization ${currentOrgId}`,
-          ipAddress,
-          userAgent,
           success: true,
+          context: {
+            ipAddress,
+            userAgent,
+          },
           metadata: {
             impersonationType: "END",
             previousOrgId: currentOrgId,
