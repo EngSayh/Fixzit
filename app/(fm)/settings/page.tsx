@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/ui/action-feedback";
 import {
   Select,
   SelectContent,
@@ -138,7 +138,13 @@ export default function SettingsPage() {
                   </Label>
                   <Input id="department" defaultValue="IT" />
                 </div>
-                <Button>{t("settings.profile.save", "Save Changes")}</Button>
+                <ActionButton 
+                  actionType="save" 
+                  onClick={async () => { /* Save profile logic */ }}
+                  tooltip={t("settings.profile.saveTooltip", "Save your profile changes")}
+                >
+                  {t("settings.profile.save", "Save Changes")}
+                </ActionButton>
               </CardContent>
             </Card>
           </TabsContent>
@@ -186,9 +192,13 @@ export default function SettingsPage() {
                   </div>
                   <Switch />
                 </div>
-                <Button>
+                <ActionButton 
+                  actionType="save" 
+                  onClick={async () => { /* Update password logic */ }}
+                  tooltip={t("settings.security.updateTooltip", "Update your password")}
+                >
                   {t("settings.security.updatePassword", "Update Password")}
-                </Button>
+                </ActionButton>
               </CardContent>
             </Card>
           </TabsContent>
@@ -218,9 +228,13 @@ export default function SettingsPage() {
                     />
                   </div>
                 ))}
-                <Button>
+                <ActionButton 
+                  actionType="save" 
+                  onClick={async () => { /* Save notification preferences */ }}
+                  tooltip={t("settings.notifications.saveTooltip", "Save notification preferences")}
+                >
                   {t("settings.notifications.save", "Save Preferences")}
-                </Button>
+                </ActionButton>
               </CardContent>
             </Card>
           </TabsContent>
@@ -319,9 +333,13 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button>
+                <ActionButton 
+                  actionType="save" 
+                  onClick={async () => { /* Save app preferences */ }}
+                  tooltip={t("settings.preferences.saveTooltip", "Save your app preferences")}
+                >
                   {t("settings.preferences.save", "Save Preferences")}
-                </Button>
+                </ActionButton>
               </CardContent>
             </Card>
           </TabsContent>
