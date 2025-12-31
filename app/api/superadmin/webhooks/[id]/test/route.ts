@@ -90,12 +90,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       "X-Fixzit-Delivery": crypto.randomUUID(),
     };
 
-    // Add custom headers
-    if (webhook.headers) {
-      const headersMap = webhook.headers as Map<string, string>;
-      headersMap.forEach((value: string, key: string) => {
-        headers[key] = value;
-      });
+    // Add custom headers (Mongoose returns plain objects, not Maps)
+    if (webhook.headers && typeof webhook.headers === "object") {
+      // Type assertion to handle both Map and Record cases from Mongoose
+      const customHeaders = webhook.headers as unknown as Record<string, string>;
+      for (const [key, value] of Object.entries(customHeaders)) {
+        if (typeof key === "string" && typeof value === "string") {
+          headers[key] = value;
+        }
+      }
     }
 
     const startTime = Date.now();

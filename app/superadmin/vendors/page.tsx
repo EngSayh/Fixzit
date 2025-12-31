@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { IconButton } from "@/components/ui/action-feedback";
 import { 
   Building2, RefreshCw, Search, Eye, Star, Phone, Mail, MapPin, 
   Users, CheckCircle, XCircle, TrendingUp,
@@ -144,7 +145,7 @@ export default function SuperadminVendorsPage() {
                     <TableCell>{vendor.contact?.address?.city ? (<span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-4 w-4 text-muted-foreground" />{vendor.contact.address.city}</span>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{vendor.rating ? (<div className="flex items-center gap-1"><Star className="h-4 w-4 text-yellow-400 fill-yellow-400" /><span className="text-foreground">{vendor.rating.average.toFixed(1)}</span></div>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_COLORS[vendor.status] || ""}>{vendor.status === "ACTIVE" ? <CheckCircle className="h-3 w-3 me-1" /> : vendor.status === "SUSPENDED" ? <XCircle className="h-3 w-3 me-1" /> : null}{vendor.status}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => handleViewVendor(vendor)}><Eye className="h-4 w-4" /></Button></TableCell>
+                    <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.vendors.viewDetails", "View vendor details")} onClick={() => handleViewVendor(vendor)} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

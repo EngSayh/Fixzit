@@ -58,11 +58,12 @@ export default function SuperadminDatabasePage() {
       const statsResponse = await fetch("/api/superadmin/database/stats", { credentials: "include" });
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
+        // Read from health object if available, otherwise from top-level properties
         setHealth({
-          connected: statsData.health?.connected ?? true,
-          latencyMs: statsData.health?.latency ?? 0,
-          replicaSet: statsData.health?.replicaSet,
-          serverVersion: statsData.health?.version,
+          connected: statsData.health?.connected ?? statsData.connections?.connected ?? true,
+          latencyMs: statsData.health?.latency ?? statsData.connections?.latency ?? 0,
+          replicaSet: statsData.health?.replicaSet ?? null,
+          serverVersion: statsData.health?.version ?? statsData.version ?? "unknown",
         });
         // Map API response to our format
         if (statsData.collections) {
@@ -77,6 +78,8 @@ export default function SuperadminDatabasePage() {
         }
       } else {
         // Fallback to health endpoint if stats API fails
+        // Clear collections to avoid showing stale data
+        setCollections([]);
         const response = await fetch("/api/health", { credentials: "include" });
         if (response.ok) {
           const data = await response.json();

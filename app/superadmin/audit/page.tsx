@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { IconButton } from "@/components/ui/action-feedback";
+import { SimpleTooltip } from "@/components/ui/tooltip";
 import { 
   FileText, 
   RefreshCw, 
@@ -231,7 +233,7 @@ export default function SuperadminAuditPage() {
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground" />{log.entityType}{log.entityId && <span className="text-muted-foreground text-xs">({log.entityId.slice(-8)})</span>}</div></TableCell>
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />{log.userEmail || log.userName || log.userId?.slice(-8) || "System"}</div></TableCell>
                     <TableCell>{log.success !== false ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} className="text-muted-foreground hover:text-foreground"><Eye className="h-4 w-4" /></Button></TableCell>
+                    <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.audit.viewDetails", "View log details")} onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -241,8 +243,12 @@ export default function SuperadminAuditPage() {
             <div className="flex items-center justify-between p-4 border-t border-border">
               <p className="text-sm text-muted-foreground">Page {pagination.page} of {pagination.pages}</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input"><ChevronLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input"><ChevronRight className="h-4 w-4" /></Button>
+                <SimpleTooltip content={t("common.previousPage", "Previous page")}>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input"><ChevronLeft className="h-4 w-4" /></Button>
+                </SimpleTooltip>
+                <SimpleTooltip content={t("common.nextPage", "Next page")}>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input"><ChevronRight className="h-4 w-4" /></Button>
+                </SimpleTooltip>
               </div>
             </div>
           )}

@@ -413,6 +413,12 @@ export default function SuperadminUsersPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Render feedback components for inline confirmation */}
+      <bulkFeedback.FeedbackComponent />
+      <deleteFeedback.FeedbackComponent />
+      <updateFeedback.FeedbackComponent />
+      <notifyFeedback.FeedbackComponent />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

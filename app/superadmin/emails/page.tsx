@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/icons";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
 import DOMPurify from "dompurify";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // TYPES
@@ -174,13 +175,20 @@ export default function EmailTemplatesPage() {
       if (!response.ok) throw new Error("Failed to save template");
       const data = await response.json();
       
+      // Validate response shape before updating state
+      if (!data || typeof data !== "object" || !data.template || !data.template.id) {
+        logger.error("[Emails] Invalid API response shape", { data });
+        throw new Error("Invalid response from server - template data missing");
+      }
+      
       setTemplates(prev => prev.map(t => 
         t.id === selectedTemplate.id ? data.template : t
       ));
       
       setShowEditDialog(false);
       toast.success("Template saved successfully");
-    } catch {
+    } catch (error) {
+      logger.error("[Emails] Save template failed", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to save template");
     }
   };

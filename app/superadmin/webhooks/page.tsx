@@ -301,7 +301,8 @@ export default function WebhooksPage() {
       const response = await fetch(`/api/superadmin/webhooks/${webhook.id}/logs`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
-        setLogs(data.deliveries || []);
+        // API returns { logs, pagination } - use data.logs instead of data.deliveries
+        setLogs(data.logs || []);
       } else {
         toast.error("Failed to load delivery logs");
       }

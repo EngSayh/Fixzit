@@ -102,6 +102,9 @@ export async function GET(request: NextRequest) {
       current: serverStatus.connections?.current || 0,
       available: serverStatus.connections?.available || 0,
       totalCreated: serverStatus.connections?.totalCreated || 0,
+      // Health-related fields
+      connected: mongoose.connection.readyState === 1,
+      latency: 0, // Will be computed below
     };
 
     // Memory info
@@ -142,6 +145,13 @@ export async function GET(request: NextRequest) {
         uptime: serverStatus.uptime || 0,
         version: serverStatus.version || "unknown",
         ok: dbStats.ok === 1,
+        // Health object for frontend compatibility
+        health: {
+          connected: connectionInfo.connected,
+          latency: connectionInfo.latency || 0,
+          replicaSet: serverStatus.repl?.setName || null,
+          version: serverStatus.version || "unknown",
+        },
       },
       { headers: ROBOTS_HEADER }
     );

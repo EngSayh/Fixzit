@@ -280,3 +280,65 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
     );
   }
 );
+
+// ============================================================================
+// IconButton - Icon-only button with required tooltip for accessibility
+// ============================================================================
+
+interface IconButtonProps extends Omit<ButtonProps, "onClick" | "size" | "children"> {
+  /** Icon element to render (e.g., <Eye className="h-4 w-4" />) */
+  icon: React.ReactNode;
+  /** Tooltip text - REQUIRED for accessibility on icon-only buttons */
+  tooltip: string;
+  /** Click handler */
+  onClick?: () => void;
+  /** Tooltip position */
+  tooltipSide?: "top" | "right" | "bottom" | "left";
+  /** Button size - defaults to "icon" for icon-only buttons, "sm" for small buttons */
+  size?: "icon" | "sm" | "default";
+  /** Aria label - defaults to tooltip text */
+  "aria-label"?: string;
+}
+
+/**
+ * Icon-only button with required tooltip for accessibility.
+ * Use for action buttons in tables (view, edit, delete, etc.)
+ * 
+ * @example
+ * <IconButton 
+ *   icon={<Eye className="h-4 w-4" />} 
+ *   tooltip={t("common.viewDetails", "View details")}
+ *   onClick={() => handleView(item)}
+ * />
+ */
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton({
+    icon,
+    tooltip,
+    onClick,
+    tooltipSide = "top",
+    size = "sm",
+    variant = "ghost",
+    "aria-label": ariaLabel,
+    ...buttonProps
+  }, ref) {
+    const buttonElement = (
+      <Button
+        ref={ref}
+        onClick={onClick}
+        variant={variant}
+        size={size}
+        aria-label={ariaLabel ?? tooltip}
+        {...buttonProps}
+      >
+        {icon}
+      </Button>
+    );
+
+    return (
+      <SimpleTooltip content={tooltip} side={tooltipSide}>
+        {buttonElement}
+      </SimpleTooltip>
+    );
+  }
+);
