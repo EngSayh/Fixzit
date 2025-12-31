@@ -120,24 +120,30 @@ const InvoiceSchema = new Schema(
         description: String,
         quantity: Number,
         unitPrice: Number,
+        unitPriceMinor: Schema.Types.Decimal128, // Precision-safe (halalas/cents)
         discount: Number,
+        discountMinor: Schema.Types.Decimal128, // Precision-safe
         tax: {
           type: String, // VAT, EXCISE, etc.
           rate: Number,
           amount: Number,
+          amountMinor: Schema.Types.Decimal128, // Precision-safe
         },
         total: Number,
+        totalMinor: Schema.Types.Decimal128, // Precision-safe (line item total)
         category: String, // Goods, Services, etc.
         specifications: Schema.Types.Mixed,
       },
     ],
 
-    // Totals
+    // Totals (dual fields: Number for display, Decimal128 for precision)
     subtotal: Number,
+    subtotalMinor: Schema.Types.Decimal128, // Precision-safe
     discounts: [
       {
         type: String, // EARLY_PAYMENT, VOLUME, etc.
         amount: Number,
+        amountMinor: Schema.Types.Decimal128, // Precision-safe
         description: String,
       },
     ],
@@ -146,10 +152,12 @@ const InvoiceSchema = new Schema(
         type: String, // VAT, EXCISE, etc.
         rate: Number,
         amount: Number,
+        amountMinor: Schema.Types.Decimal128, // Precision-safe
         category: String,
       },
     ],
     total: Number,
+    totalMinor: Schema.Types.Decimal128, // Precision-safe (invoice total)
     currency: { type: String, default: "SAR" },
 
     // Payment Information
@@ -229,6 +237,7 @@ const InvoiceSchema = new Schema(
       {
         date: Date,
         amount: Number,
+        amountMinor: Schema.Types.Decimal128, // Precision-safe
         method: String,
         reference: String,
         status: String, // PENDING, COMPLETED, FAILED

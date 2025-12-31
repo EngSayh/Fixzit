@@ -123,8 +123,8 @@ export default function SuperadminJobsPage() {
       const data = await response.json();
       toast.success(`Processed ${data.processed?.total || 0} jobs (${data.processed?.success || 0} success, ${data.processed?.failed || 0} failed)`);
       fetchJobs();
-    } catch {
-      toast.error("Failed to process jobs");
+    } catch (error) {
+      toast.error(`Failed to process jobs: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setProcessing(false);
     }

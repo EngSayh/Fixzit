@@ -5328,6 +5328,25 @@
       "footerContent": "محتوى التذييل",
       "progress": "التقدم"
     },
+    "dashboard": {
+      "title": "نظرة عامة على لوحة التحكم",
+      "subtitle": "صحة النظام والمقاييس والنشاط الأخير",
+      "selectTenant": "فلترة حسب المستأجر",
+      "allTenants": "جميع المستأجرين",
+      "filteringBy": "تصفية حسب المستأجر:",
+      "totalTenants": "إجمالي المستأجرين",
+      "activeUsers": "المستخدمون النشطون اليوم",
+      "systemUptime": "وقت تشغيل النظام",
+      "avgResponseTime": "متوسط وقت الاستجابة",
+      "serviceHealth": "صحة الخدمات",
+      "serviceHealthDesc": "حالة خدمات المنصة في الوقت الفعلي",
+      "noServices": "لا تتوفر بيانات الخدمة",
+      "recentActivity": "النشاط الأخير",
+      "noActivity": "لا يوجد نشاط حديث",
+      "moduleStatus": "حالة الوحدات",
+      "moduleStatusDesc": "وحدات المنصة وصحتها",
+      "quickActions": "إجراءات سريعة"
+    },
     "userLogs": {
       "subtitle": "مراقبة نشاط المستخدمين والجلسات والتفاعلات للدعم",
       "totalLogs": "إجمالي السجلات",
