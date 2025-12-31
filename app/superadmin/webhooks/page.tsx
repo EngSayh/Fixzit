@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { IconButton } from "@/components/ui/IconButton";
 import {
   Table,
   TableBody,
@@ -461,14 +462,14 @@ export default function WebhooksPage() {
                     <TableCell>
                       <div className="flex items-center gap-2 max-w-xs">
                         <code className="text-xs truncate">{webhook.url}</code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6"
+                        <IconButton
+                          icon={<Copy className="h-3 w-3" />}
+                          tooltip={t("common.copySecret", "Copy secret")}
+                          variant="ghost"
+                          size="sm"
                           onClick={() => copySecret(webhook.secret)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          aria-label={t("common.copySecret", "Copy secret")}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>
@@ -492,34 +493,31 @@ export default function WebhooksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
+                        <IconButton
+                          icon={<Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />}
+                          tooltip={t("superadmin.webhooks.test", "Test webhook")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => handleTest(webhook)}
                           disabled={testingId === webhook.id}
-                          aria-label="Test webhook"
-                        >
-                          <Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />
-                        </Button>
-                        <Button
+                          aria-label={t("superadmin.webhooks.test", "Test webhook")}
+                        />
+                        <IconButton
+                          icon={<Eye className="h-4 w-4" />}
+                          tooltip={t("superadmin.webhooks.viewLogs", "View logs")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => viewLogs(webhook)}
-                          aria-label="View logs"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
+                          aria-label={t("superadmin.webhooks.viewLogs", "View logs")}
+                        />
+                        <IconButton
+                          icon={<Trash2 className="h-4 w-4" />}
+                          tooltip={t("common.delete", "Delete")}
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleDelete(webhook.id)}
-                          aria-label="Delete webhook"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          aria-label={t("common.delete", "Delete")}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
