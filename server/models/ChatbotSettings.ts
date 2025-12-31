@@ -54,6 +54,8 @@ const ChatbotSettingsSchema = new Schema(
     },
     primaryColor: {
       type: String,
+      // Database default uses literal hex value (matches --color-platform-fm-blue token)
+      // This is stored in MongoDB and cannot reference CSS variables
       default: "#0061A8",
       comment: "Primary brand color for chatbot UI",
     },

@@ -12,6 +12,7 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 
 // Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
@@ -41,6 +42,14 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDb();
+
+    // SUPER_ADMIN: Cross-tenant visibility - skip tenant filter for aggregate view
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username,
+      skipTenantFilter: true  // Cross-tenant visibility for superadmin
+    });
 
     // Parse query params with safe defaults for NaN handling
     const { searchParams } = new URL(request.url);

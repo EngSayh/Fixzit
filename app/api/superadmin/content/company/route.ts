@@ -13,6 +13,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { CompanyInfo } from "@/server/models/CompanyInfo";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +80,15 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide company info
+    // Set tenant context from superadmin session for per-tenant singleton query
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own company info
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
     const companyInfo = await CompanyInfo.findOne({}).lean();
 
     if (!companyInfo) {
@@ -136,7 +145,15 @@ export async function PUT(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide company info
+    // Set tenant context from superadmin session for per-tenant singleton
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own company info (upsert)
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
     const companyInfo = await CompanyInfo.findOneAndUpdate(
       {},
       { $set: validation.data },

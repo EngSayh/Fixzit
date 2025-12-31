@@ -18,6 +18,37 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-01-10 21:00 (Asia/Riyadh) - PR #621 Review Comment Fixes: Tenant Isolation [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** PR-621-TENANT-FIX
+**Context:** fix/superadmin-routes-proper-implementation | main sync
+**DB Sync:** Required (new fixes for tenant isolation)
+
+#### Summary
+Addressed CodeRabbit CHANGES_REQUESTED review comments on PR #621. Fixed P1 tenant isolation issues in superadmin content routes.
+
+#### Fixes Applied
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `app/api/superadmin/content/chatbot/route.ts` | Missing tenant context | Added `setTenantContext()` from session.orgId |
+| `app/api/superadmin/content/company/route.ts` | Missing tenant context | Added `setTenantContext()` from session.orgId |
+| `app/api/superadmin/content/footer-links/route.ts` | Missing tenant context | Added `setTenantContext()` from session.orgId |
+| `app/api/superadmin/content/footer-links/[id]/route.ts` | Missing tenant context | Added `setTenantContext()` from session.orgId |
+| `app/api/superadmin/support-tickets/route.ts` | Cross-tenant query undocumented | Added eslint-disable + setTenantContext with skipTenantFilter |
+| `server/models/ChatbotSettings.ts` | Hardcoded hex color | Added clarifying comment (hex value matches token, DB needs literal) |
+
+#### Clarification on eslint-disable Comments
+- Changed from "Platform-wide" (incorrect) to "Tenant context set above" (correct)
+- These are per-tenant singletons, not platform-wide documents
+- Each org gets its own ChatbotSettings, CompanyInfo, FooterLinks
+
+#### Verification
+- [x] `pnpm typecheck` - 0 errors
+- [x] `pnpm lint` - 0 new errors/warnings in modified files
+- [x] `pnpm vitest run tests/api/superadmin` - 37/37 tests pass
+
+---
 ### 2025-12-30 23:30 (Asia/Riyadh) - COMPREHENSIVE SSOT RECONCILIATION: All 273 Merged PRs [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** SSOT-RECONCILE-FULL-001

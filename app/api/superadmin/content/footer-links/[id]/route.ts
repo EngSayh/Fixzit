@@ -13,6 +13,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FooterLink } from "@/server/models/FooterLink";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 
@@ -80,6 +81,13 @@ export async function PUT(
 
     await connectDb();
 
+    // Set tenant context from superadmin session for per-tenant link update
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
     const link = await FooterLink.findByIdAndUpdate(
       id,
       { $set: validation.data },
@@ -145,6 +153,13 @@ export async function DELETE(
     }
 
     await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant link deletion
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
 
     const link = await FooterLink.findByIdAndDelete(id).lean();
 

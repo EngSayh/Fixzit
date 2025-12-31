@@ -14,6 +14,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { ChatbotSettings } from "@/server/models/ChatbotSettings";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +73,15 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide chatbot settings
+    // Set tenant context from superadmin session for per-tenant singleton query
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own chatbot settings
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
     const settings = await ChatbotSettings.findOne({}).lean();
 
     if (!settings) {
@@ -137,21 +146,24 @@ export async function PUT(request: NextRequest) {
 
     await connectDb();
 
+    // Set tenant context from superadmin session for per-tenant singleton
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
     // Handle API key update separately
     const { newApiKey, ...updateData } = validation.data;
     const updates: Record<string, unknown> = { ...updateData };
     
     if (newApiKey !== undefined) {
-      if (newApiKey === "") {
-        // Clear API key
-        updates.apiKey = null;
-      } else {
-        // Set new API key (will be encrypted by model plugin)
-        updates.apiKey = newApiKey;
-      }
+      // Clear or set API key (will be encrypted by model plugin)
+      updates.apiKey = newApiKey === "" ? null : newApiKey;
     }
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide chatbot settings
+    // Per-tenant singleton: each org has its own chatbot settings (upsert)
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
     const settings = await ChatbotSettings.findOneAndUpdate(
       {},
       { $set: updates },

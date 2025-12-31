@@ -13,6 +13,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FooterLink } from "@/server/models/FooterLink";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,13 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant links
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
 
     const { searchParams } = new URL(request.url);
     const section = searchParams.get("section");
@@ -112,6 +120,13 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant link creation
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
 
     const link = await FooterLink.create(validation.data);
 
