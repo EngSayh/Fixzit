@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Filter,
 } from "@/components/ui/icons";
 import { useActionFeedback } from "@/components/ui/action-feedback";
 import { Button } from "@/components/ui/button";
@@ -186,6 +187,13 @@ export default function SuperadminIssuesPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"all" | "quickWins" | "stale">("all");
+
+  // Computed: Check if any filter is active
+  const hasActiveFilter = search !== "" || 
+    statusFilter !== "all" || 
+    priorityFilter !== "all" || 
+    categoryFilter !== "all" || 
+    viewMode !== "all";
 
   // Auto-refresh
   const [isTabVisible, setIsTabVisible] = useState(true);
@@ -679,6 +687,25 @@ Agent Token: [AGENT-001-A]`;
         </div>
       </div>
 
+      {/* Active Filter Indicator */}
+      {hasActiveFilter && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg">
+          <Filter className="h-4 w-4 text-primary" />
+          <span className="text-sm text-primary">
+            {t("superadmin.issues.stats.showingFiltered", "Showing filtered results")}
+            {priorityFilter !== "all" && ` • ${getPriorityLabel(priorityFilter.toUpperCase())}`}
+            {statusFilter !== "all" && ` • ${getStatusLabel(statusFilter)}`}
+            {categoryFilter !== "all" && ` • ${getCategoryLabel(categoryFilter)}`}
+            {viewMode !== "all" && ` • ${viewMode === "quickWins" ? t("superadmin.issues.views.quickWins") : t("superadmin.issues.views.stale")}`}
+            {search && ` • "${search}"`}
+          </span>
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="ms-auto h-6 px-2">
+            <XCircle className="h-3 w-3 me-1" />
+            {t("superadmin.issues.clearFilters")}
+          </Button>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {statsLoading ? (
@@ -692,13 +719,20 @@ Agent Token: [AGENT-001-A]`;
           ))
         ) : (
           <>
-            <Card className="bg-card border-border">
+            <Card className={`bg-card border-border ${hasActiveFilter ? 'ring-1 ring-primary/50' : ''}`}>
               <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
-                <div className="mt-2 h-10">
-                  <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="var(--color-sparkline-blue, #0061A8)" />
-                </div>
-                <TrendIndicator value={8.3} className="mt-1" />
+                <p className="text-xs text-muted-foreground">
+                  {hasActiveFilter ? t("superadmin.issues.stats.filtered", "Filtered") : t("superadmin.issues.stats.total")}
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {hasActiveFilter ? totalItems : (stats?.total || 0)}
+                </p>
+                {!hasActiveFilter && (
+                  <div className="mt-2 h-10">
+                    <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="var(--color-sparkline-blue, #0061A8)" />
+                  </div>
+                )}
+                {!hasActiveFilter && <TrendIndicator value={8.3} className="mt-1" />}
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
