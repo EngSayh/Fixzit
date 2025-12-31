@@ -270,10 +270,13 @@ export default function SuperadminDashboardPage() {
       const response = await fetch("/api/superadmin/tenants?limit=100&sortBy=name", {
         credentials: "include",
       });
-      if (response.ok) {
-        const data = await response.json();
-        setTenants(data.organizations || []);
+      if (!response.ok) {
+        throw new Error(
+          t("superadmin.dashboard.tenantsLoadFailed", "Failed to load tenant list")
+        );
       }
+      const data = await response.json();
+      setTenants(data.organizations || []);
     } catch (err) {
       const message =
         err instanceof Error
@@ -302,7 +305,9 @@ export default function SuperadminDashboardPage() {
       });
       
       if (!godModeRes.ok) {
-        throw new Error("Failed to fetch dashboard data");
+        throw new Error(
+          t("superadmin.dashboard.loadFailed", "Failed to load dashboard")
+        );
       }
       
       const godModeData = await godModeRes.json();
@@ -443,7 +448,7 @@ export default function SuperadminDashboardPage() {
               size="sm"
               onClick={() => setSelectedTenant("all")}
             >
-              {t("common.clearFilter", "Clear Filter")}
+              {t("common.clearFilters", "Clear Filters")}
             </Button>
           </CardContent>
         </Card>
