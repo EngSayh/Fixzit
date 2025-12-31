@@ -11,14 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -27,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +36,6 @@ import {
   Clock,
   FileText,
   User,
-  Search,
   Loader2,
   ExternalLink,
   AlertTriangle,
@@ -315,49 +307,47 @@ export default function AdminApprovalQueuePage() {
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={isRTL ? "بحث بالاسم أو البريد..." : "Search by name or email..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="ps-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={isRTL ? "الحالة" : "Status"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{isRTL ? "الكل" : "All"}</SelectItem>
-                <SelectItem value="SUBMITTED">{isRTL ? "مرسل" : "Submitted"}</SelectItem>
-                <SelectItem value="UNDER_REVIEW">{isRTL ? "قيد المراجعة" : "Under Review"}</SelectItem>
-                <SelectItem value="DOCS_PENDING">{isRTL ? "مستندات معلقة" : "Docs Pending"}</SelectItem>
-                <SelectItem value="APPROVED">{isRTL ? "موافق عليه" : "Approved"}</SelectItem>
-                <SelectItem value="REJECTED">{isRTL ? "مرفوض" : "Rejected"}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={isRTL ? "الدور" : "Role"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{isRTL ? "الكل" : "All Roles"}</SelectItem>
-                <SelectItem value="TENANT">{isRTL ? "مستأجر" : "Tenant"}</SelectItem>
-                <SelectItem value="PROPERTY_OWNER">{isRTL ? "مالك عقار" : "Property Owner"}</SelectItem>
-                <SelectItem value="OWNER">{isRTL ? "مالك مؤسسي" : "Corporate Owner"}</SelectItem>
-                <SelectItem value="VENDOR">{isRTL ? "مورد" : "Vendor"}</SelectItem>
-                <SelectItem value="AGENT">{isRTL ? "وكيل" : "Agent"}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <SimpleFilterBar
+        className="mb-6"
+        search={{
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: isRTL ? "بحث بالاسم أو البريد..." : "Search by name or email...",
+        }}
+        filters={[
+          {
+            id: "status",
+            value: statusFilter,
+            placeholder: isRTL ? "الحالة" : "Status",
+            options: [
+              { value: "all", label: isRTL ? "الكل" : "All" },
+              { value: "SUBMITTED", label: isRTL ? "مرسل" : "Submitted" },
+              { value: "UNDER_REVIEW", label: isRTL ? "قيد المراجعة" : "Under Review" },
+              { value: "DOCS_PENDING", label: isRTL ? "مستندات معلقة" : "Docs Pending" },
+              { value: "APPROVED", label: isRTL ? "موافق عليه" : "Approved" },
+              { value: "REJECTED", label: isRTL ? "مرفوض" : "Rejected" },
+            ],
+            onChange: setStatusFilter,
+            width: "w-[140px]",
+          },
+          {
+            id: "role",
+            value: roleFilter,
+            placeholder: isRTL ? "الدور" : "Role",
+            options: [
+              { value: "all", label: isRTL ? "الكل" : "All Roles" },
+              { value: "TENANT", label: isRTL ? "مستأجر" : "Tenant" },
+              { value: "PROPERTY_OWNER", label: isRTL ? "مالك عقار" : "Property Owner" },
+              { value: "OWNER", label: isRTL ? "مالك مؤسسي" : "Corporate Owner" },
+              { value: "VENDOR", label: isRTL ? "مورد" : "Vendor" },
+              { value: "AGENT", label: isRTL ? "وكيل" : "Agent" },
+            ],
+            onChange: setRoleFilter,
+            width: "w-[150px]",
+          },
+        ]}
+        onClear={() => { setSearchQuery(""); setStatusFilter("all"); setRoleFilter("all"); }}
+      />
 
       {/* Cases Table */}
       <Card>

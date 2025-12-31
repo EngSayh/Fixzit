@@ -99,13 +99,14 @@ interface DashboardData {
 // ============================================================================
 
 function StatusBadge({ status }: { status: "healthy" | "degraded" | "down" | "warning" | "error" | "unknown" }) {
+  const { t } = useI18n();
   const config = {
-    healthy: { color: "bg-green-500", label: "Healthy" },
-    degraded: { color: "bg-yellow-500", label: "Degraded" },
-    down: { color: "bg-red-500", label: "Down" },
-    warning: { color: "bg-yellow-500", label: "Warning" },
-    error: { color: "bg-red-500", label: "Error" },
-    unknown: { color: "bg-gray-500", label: "Unknown" },
+    healthy: { color: "bg-success", label: t("superadmin.status.healthy", "Healthy") },
+    degraded: { color: "bg-warning", label: t("superadmin.status.degraded", "Degraded") },
+    down: { color: "bg-destructive", label: t("superadmin.status.down", "Down") },
+    warning: { color: "bg-warning", label: t("superadmin.status.warning", "Warning") },
+    error: { color: "bg-destructive", label: t("superadmin.status.error", "Error") },
+    unknown: { color: "bg-muted-foreground", label: t("superadmin.status.unknown", "Unknown") },
   };
   
   const { color, label } = config[status];
@@ -149,7 +150,7 @@ function MetricCard({
             </div>
           </div>
           {change !== undefined && !loading && (
-            <div className={`text-sm ${change >= 0 ? "text-green-600" : "text-red-600"}`}>
+            <div className={`text-sm ${change >= 0 ? "text-success" : "text-destructive"}`}>
               {change >= 0 ? "+" : ""}{change}%
             </div>
           )}
@@ -161,10 +162,10 @@ function MetricCard({
 
 function ServiceHealthRow({ service, loading }: { service: ServiceHealth; loading: boolean }) {
   const statusIcon = {
-    healthy: <CheckCircle2 className="h-4 w-4 text-green-500" />,
-    degraded: <AlertTriangle className="h-4 w-4 text-yellow-500" />,
-    down: <XCircle className="h-4 w-4 text-red-500" />,
-    unknown: <Clock className="h-4 w-4 text-gray-500" />,
+    healthy: <CheckCircle2 className="h-4 w-4 text-success" />,
+    degraded: <AlertTriangle className="h-4 w-4 text-warning" />,
+    down: <XCircle className="h-4 w-4 text-destructive" />,
+    unknown: <Clock className="h-4 w-4 text-muted-foreground" />,
   };
   
   if (loading) {
@@ -214,6 +215,7 @@ function ActivityRow({ activity }: { activity: RecentActivity }) {
 }
 
 function ModuleRow({ module, loading }: { module: ModuleStatus; loading: boolean }) {
+  const { t } = useI18n();
   if (loading) {
     return (
       <div className="flex items-center justify-between py-2">
@@ -226,12 +228,12 @@ function ModuleRow({ module, loading }: { module: ModuleStatus; loading: boolean
   return (
     <div className="flex items-center justify-between py-2 border-b last:border-0">
       <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${module.enabled ? "bg-green-500" : "bg-gray-400"}`} />
+        <span className={`w-2 h-2 rounded-full ${module.enabled ? "bg-success" : "bg-muted-foreground"}`} />
         <span className="font-medium">{module.name}</span>
         <Badge variant="secondary" className="text-xs">{module.version}</Badge>
       </div>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>{module.routeCount} routes</span>
+        <span>{module.routeCount} {t("superadmin.dashboard.routes", "routes")}</span>
         <StatusBadge status={module.health} />
       </div>
     </div>
@@ -272,12 +274,16 @@ export default function SuperadminDashboardPage() {
         const data = await response.json();
         setTenants(data.organizations || []);
       }
-    } catch {
-      // Silently fail - tenants filter is optional
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : t("superadmin.dashboard.tenantsLoadFailed", "Failed to load tenant list");
+      toast.error(message);
     } finally {
       setTenantsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchTenants();
@@ -289,7 +295,9 @@ export default function SuperadminDashboardPage() {
       setError(null);
 
       // Fetch god-mode data which has system health
-      const godModeRes = await fetch("/api/superadmin/god-mode", {
+      const tenantQuery =
+        selectedTenant === "all" ? "" : `?tenantId=${encodeURIComponent(selectedTenant)}`;
+      const godModeRes = await fetch(`/api/superadmin/god-mode${tenantQuery}`, {
         credentials: "include",
       });
       
@@ -348,13 +356,13 @@ export default function SuperadminDashboardPage() {
       setData(dashboardData);
       setLastRefresh(new Date());
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load dashboard";
+      const message = err instanceof Error ? err.message : t("superadmin.dashboard.loadFailed", "Failed to load dashboard");
       setError(message);
       toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedTenant, t]);
 
   useEffect(() => {
     fetchDashboardData();

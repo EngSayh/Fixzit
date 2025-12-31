@@ -5354,7 +5354,19 @@
       "noActivity": "لا يوجد نشاط حديث",
       "moduleStatus": "حالة الوحدات",
       "moduleStatusDesc": "وحدات المنصة وصحتها",
-      "quickActions": "إجراءات سريعة"
+      "quickActions": "إجراءات سريعة",
+      "routes": "مسارات",
+      "tenantsLoadFailed": "فشل تحميل قائمة المستأجرين",
+      "loadFailed": "فشل تحميل لوحة التحكم",
+      "lastUpdated": "آخر تحديث:"
+    },
+    "status": {
+      "healthy": "سليم",
+      "degraded": "متدهور",
+      "down": "متوقف",
+      "warning": "تحذير",
+      "error": "خطأ",
+      "unknown": "غير معروف"
     },
     "userLogs": {
       "subtitle": "مراقبة نشاط المستخدمين والجلسات والتفاعلات للدعم",

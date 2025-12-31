@@ -12,7 +12,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bug,
   Clock,
-  Search,
   RefreshCw,
   Plus,
   Download,
@@ -21,20 +20,12 @@ import {
   FileCode,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -43,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CompactFilterBar } from "@/components/ui/compact-filter-bar";
 // DropdownMenu imports removed - will add when needed
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -345,95 +337,70 @@ function IssuesDashboardContent() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search issues..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-9"
-                />
-              </div>
-            </div>
-
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="in_review">In Review</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="P0">P0 Critical</SelectItem>
-                <SelectItem value="P1">P1 High</SelectItem>
-                <SelectItem value="P2">P2 Medium</SelectItem>
-                <SelectItem value="P3">P3 Low</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={categoryFilter || "all"}
-              onValueChange={(value) =>
-                setCategoryFilter(value === "all" ? "" : value)
-              }
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="bug">Bug</SelectItem>
-                <SelectItem value="security">Security</SelectItem>
-                <SelectItem value="efficiency">Efficiency</SelectItem>
-                <SelectItem value="missing_test">Missing Tests</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("all")}
-              >
-                All
-              </Button>
-              <Button
-                variant={viewMode === "quickWins" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("quickWins")}
-              >
-                <Zap className="h-4 w-4 me-1" />
-                Quick Wins
-              </Button>
-              <Button
-                variant={viewMode === "stale" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("stale")}
-              >
-                <Clock className="h-4 w-4 me-1" />
-                Stale
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <CompactFilterBar
+        sticky
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search issues...",
+        }}
+        tabs={{
+          items: [
+            { value: "all", label: "All" },
+            { value: "open", label: "Open" },
+            { value: "in_progress", label: "In Progress" },
+            { value: "blocked", label: "Blocked" },
+          ],
+          value: statusFilter,
+          onChange: setStatusFilter,
+        }}
+        dropdowns={[
+          {
+            id: "priority",
+            value: priorityFilter,
+            placeholder: "Priority",
+            options: [
+              { value: "all", label: "All Priority" },
+              { value: "P0", label: "P0 Critical" },
+              { value: "P1", label: "P1 High" },
+              { value: "P2", label: "P2 Medium" },
+              { value: "P3", label: "P3 Low" },
+            ],
+            onChange: setPriorityFilter,
+          },
+          {
+            id: "category",
+            value: categoryFilter || "all",
+            placeholder: "Category",
+            options: [
+              { value: "all", label: "All Categories" },
+              { value: "bug", label: "Bug" },
+              { value: "security", label: "Security" },
+              { value: "efficiency", label: "Efficiency" },
+              { value: "missing_test", label: "Missing Tests" },
+            ],
+            onChange: (v) => setCategoryFilter(v === "all" ? "" : v),
+          },
+        ]}
+        actions={[
+          {
+            id: "quickWins",
+            label: "Quick Wins",
+            icon: <Zap className="h-3.5 w-3.5" />,
+            active: viewMode === "quickWins",
+            onClick: () => setViewMode(viewMode === "quickWins" ? "all" : "quickWins"),
+          },
+          {
+            id: "stale",
+            label: "Stale",
+            icon: <Clock className="h-3.5 w-3.5" />,
+            active: viewMode === "stale",
+            onClick: () => setViewMode(viewMode === "stale" ? "all" : "stale"),
+          },
+        ]}
+        hasActiveFilter={search !== "" || statusFilter !== "all" || priorityFilter !== "all" || categoryFilter !== "" || viewMode !== "all"}
+        onClearFilters={() => { setSearch(""); setStatusFilter("all"); setPriorityFilter("all"); setCategoryFilter(""); setViewMode("all"); }}
+      />
 
       {/* Issues Table */}
       <Card>

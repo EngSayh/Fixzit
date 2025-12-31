@@ -12,14 +12,13 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SimpleTooltip } from "@/components/ui/tooltip";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import { 
-  Package, RefreshCw, Search, Eye, DollarSign,
+  Package, RefreshCw, Eye, DollarSign,
   CheckCircle, XCircle, AlertTriangle,
 } from "@/components/ui/icons";
 
@@ -118,17 +117,53 @@ export default function SuperadminCatalogPage() {
         <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalValue)}</p><p className="text-muted-foreground text-sm">{t("superadmin.catalog.inventoryValue", "Inventory Value")}</p></div></div></CardContent></Card>
       </div>
 
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.catalog.searchPlaceholder", "Search products...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.categoryPlaceholder", "Category")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allCategories", "All Categories")}</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.statusPlaceholder", "Status")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.catalog.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="OUT_OF_STOCK">{t("common.outOfStock", "Out of Stock")}</SelectItem></SelectContent></Select>
-            <Select value={businessModelFilter} onValueChange={setBusinessModelFilter}><SelectTrigger className="w-[140px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.modelPlaceholder", "Model")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allModels", "All Models")}</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></SelectContent></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SimpleFilterBar
+        search={{
+          value: searchQuery,
+          onChange: (v) => { setSearchQuery(v); if (!v) handleSearch(); },
+          placeholder: t("superadmin.catalog.searchPlaceholder", "Search products..."),
+        }}
+        filters={[
+          {
+            id: "category",
+            value: categoryFilter,
+            placeholder: t("superadmin.catalog.allCategories", "All Categories"),
+            options: [
+              { value: "all", label: t("superadmin.catalog.allCategories", "All Categories") },
+              ...CATEGORIES.map(cat => ({ value: cat, label: cat.replace("_", " ") })),
+            ],
+            onChange: (v) => { setCategoryFilter(v); setPage(1); },
+            width: "w-[150px]",
+          },
+          {
+            id: "status",
+            value: statusFilter,
+            placeholder: t("superadmin.catalog.allStatus", "All Status"),
+            options: [
+              { value: "all", label: t("superadmin.catalog.allStatus", "All Status") },
+              { value: "ACTIVE", label: t("superadmin.catalog.active", "Active") },
+              { value: "INACTIVE", label: t("common.inactive", "Inactive") },
+              { value: "OUT_OF_STOCK", label: t("common.outOfStock", "Out of Stock") },
+            ],
+            onChange: (v) => { setStatusFilter(v); setPage(1); },
+            width: "w-[130px]",
+          },
+          {
+            id: "model",
+            value: businessModelFilter,
+            placeholder: t("superadmin.catalog.allModels", "All Models"),
+            options: [
+              { value: "all", label: t("superadmin.catalog.allModels", "All Models") },
+              { value: "B2B", label: "B2B Only" },
+              { value: "B2C", label: "B2C Only" },
+              { value: "BOTH", label: "B2B & B2C" },
+            ],
+            onChange: (v) => { setBusinessModelFilter(v); setPage(1); },
+            width: "w-[120px]",
+          },
+        ]}
+        onClear={() => { setSearchQuery(""); setCategoryFilter("all"); setStatusFilter("all"); setBusinessModelFilter("all"); }}
+      />
 
       <Card className="bg-card border-border">
         <CardHeader className="border-b border-border"><CardTitle className="text-foreground">{t("superadmin.catalog.products", "Products")}</CardTitle><CardDescription className="text-muted-foreground">{t("superadmin.catalog.marketplaceCatalog", "Marketplace catalog")}</CardDescription></CardHeader>
