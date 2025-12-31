@@ -27,6 +27,7 @@ import {
   XCircle,
   AlertTriangle,
 } from "@/components/ui/icons";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -155,6 +156,13 @@ export default function SuperadminIssuesPage() {
   // BUG-001 FIX: Auth now enforced server-side in layout, no client polling needed
   const isAuthenticated = session?.authenticated ?? false;
 
+  // Inline confirmation feedback hooks
+  const copyMdFeedback = useActionFeedback();
+  const copyTsvFeedback = useActionFeedback();
+  const exportCsvFeedback = useActionFeedback();
+  const exportJsonFeedback = useActionFeedback();
+  const importFeedback = useActionFeedback();
+
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -260,31 +268,57 @@ export default function SuperadminIssuesPage() {
   };
 
   // Export handlers
-  const handleCopyMarkdown = () => {
+  const handleCopyMarkdown = async () => {
     const selectedData = issues.filter(i => selectedIssues.has(i._id));
     if (selectedData.length === 0) {
       toast({ title: "No selection", description: "Please select issues to copy", variant: "destructive" });
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
-    const rows = selectedData.map(issue => [
-      issue.issueId || issue.legacyId || issue._id.slice(-6),
-      issue.priority,
-      issue.title,
-      issue.status,
-      issue.category,
-      issue.module,
-      `${issue.mentionCount || 1}×`,
-      new Date(issue.updatedAt).toLocaleDateString(),
-    ]);
+    // Generate a fix command prompt for each issue
+    const issuePrompts = selectedData.map(issue => {
+      const issueId = issue.issueId || issue.legacyId || issue._id.slice(-6);
+      const locationInfo = issue.location?.filePath 
+        ? `File: ${issue.location.filePath}${issue.location.lineStart ? `:${issue.location.lineStart}` : ""}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}`
+        : "";
+      
+      return `## ${issueId} [${issue.priority}] - ${issue.title}
 
-    const markdown = `| ${headers.join(" | ")} |\n| ${headers.map(() => "---").join(" | ")} |\n${rows.map(row => `| ${row.join(" | ")} |`).join("\n")}`;
-    navigator.clipboard.writeText(markdown);
-    toast({ title: "Copied to clipboard", description: `${selectedData.length} issues copied as Markdown table` });
+**Category:** ${issue.category} | **Status:** ${issue.status} | **Effort:** ${issue.effort || "N/A"}
+**Module:** ${issue.module}
+${locationInfo ? `**Location:** ${locationInfo}` : ""}
+${issue.riskTags?.length ? `**Risk Tags:** ${issue.riskTags.join(", ")}` : ""}
+
+**Description:**
+${issue.description || "No description provided."}
+
+---`;
+    }).join("\n\n");
+
+    const fixCommand = `# Fix Request for ${selectedData.length} Issue${selectedData.length > 1 ? "s" : ""}
+
+${issuePrompts}
+
+## Instructions
+
+Please fix the above issue${selectedData.length > 1 ? "s" : ""} following these guidelines:
+1. Read the issue description and understand the problem
+2. Locate the file(s) mentioned in the location field
+3. Implement the fix following project conventions
+4. Run \`pnpm typecheck\` and \`pnpm lint\` to verify
+5. Update the issue status to "resolved" when complete
+
+Agent Token: [AGENT-001-A]`;
+
+    try {
+      await navigator.clipboard.writeText(fixCommand);
+      copyMdFeedback.showSuccess("Copied", "copy");
+    } catch {
+      copyMdFeedback.showError("Failed");
+    }
   };
 
-  const handleCopyTSV = () => {
+  const handleCopyTSV = async () => {
     const selectedData = issues.filter(i => selectedIssues.has(i._id));
     if (selectedData.length === 0) {
       toast({ title: "No selection", description: "Please select issues to copy", variant: "destructive" });
@@ -304,8 +338,12 @@ export default function SuperadminIssuesPage() {
     ]);
 
     const tsv = `${headers.join("\t")}\n${rows.map(row => row.join("\t")).join("\n")}`;
-    navigator.clipboard.writeText(tsv);
-    toast({ title: "Copied to clipboard", description: `${selectedData.length} issues copied as TSV (paste into Excel/Sheets)` });
+    try {
+      await navigator.clipboard.writeText(tsv);
+      copyTsvFeedback.showSuccess("Copied", "copy");
+    } catch {
+      copyTsvFeedback.showError("Failed");
+    }
   };
 
   const handleExportCSV = () => {
@@ -337,7 +375,7 @@ export default function SuperadminIssuesPage() {
     a.click();
     URL.revokeObjectURL(url);
 
-    toast({ title: "Export complete", description: `${selectedData.length} issues exported to CSV` });
+    exportCsvFeedback.showSuccess("Exported", "save");
   };
 
   const clearFilters = () => {
@@ -492,7 +530,6 @@ export default function SuperadminIssuesPage() {
       const response = await fetch("/api/issues?limit=5000");
       const data = await response.json();
       const payload = data.data || data;
-      const issuesCount = (payload.issues || []).length;
       
       const blob = new Blob([JSON.stringify(payload.issues, null, 2)], {
         type: "application/json",
@@ -505,16 +542,9 @@ export default function SuperadminIssuesPage() {
       a.click();
       URL.revokeObjectURL(url);
 
-      toast({
-        title: t("superadmin.issues.toast.exportComplete"),
-        description: t("superadmin.issues.toast.exportSummary", { count: issuesCount }),
-      });
-    } catch (_error) {
-      toast({
-        title: t("superadmin.issues.toast.exportFailedTitle"),
-        description: t("superadmin.issues.toast.exportFailed"),
-        variant: "destructive",
-      });
+      exportJsonFeedback.showSuccess("Exported", "save");
+    } catch {
+      exportJsonFeedback.showError("Failed");
     }
   };
 
@@ -555,16 +585,7 @@ export default function SuperadminIssuesPage() {
       const result = await response.json();
 
       if (result.success) {
-        toast({
-          title: dryRun
-            ? t("superadmin.issues.toast.importDryRunComplete")
-            : t("superadmin.issues.toast.importComplete"),
-          description: t("superadmin.issues.toast.importSummary", {
-            created: result.result.created,
-            updated: result.result.updated,
-            skipped: result.result.skipped,
-          }),
-        });
+        importFeedback.showSuccess(dryRun ? "Validated" : "Imported", "add");
 
         if (!dryRun) {
           setImportDialogOpen(false);
@@ -574,12 +595,8 @@ export default function SuperadminIssuesPage() {
       } else {
         throw new Error("Import failed");
       }
-    } catch (_error) {
-      toast({
-        title: t("superadmin.issues.toast.importFailedTitle"),
-        description: t("superadmin.issues.toast.importFailed"),
-        variant: "destructive",
-      });
+    } catch {
+      importFeedback.showError("Failed");
     } finally {
       setImporting(false);
     }
@@ -606,10 +623,13 @@ export default function SuperadminIssuesPage() {
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             {t("superadmin.issues.refresh")}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 me-2" />
-            {t("superadmin.issues.export")}
-          </Button>
+          <div className="inline-flex items-center">
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 me-2" />
+              {t("superadmin.issues.export")}
+            </Button>
+            <exportJsonFeedback.FeedbackComponent className="ms-2" />
+          </div>
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -635,13 +655,14 @@ export default function SuperadminIssuesPage() {
                     className="font-mono text-sm"
                   />
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
                     {t("superadmin.issues.importDryRun")}
                   </Button>
                   <Button onClick={() => handleImport(false)} disabled={importing}>
                     {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
                   </Button>
+                  <importFeedback.FeedbackComponent className="ms-2" />
                 </div>
               </div>
             </DialogContent>
@@ -949,31 +970,40 @@ export default function SuperadminIssuesPage() {
                 {selectedIssues.size} issues selected
               </span>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyMarkdown}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                >
-                  Copy Markdown
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyTSV}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                >
-                  Copy TSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportCSV}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                >
-                  <Download className="h-4 w-4 me-1" />
-                  Export CSV
-                </Button>
+                <div className="inline-flex items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyMarkdown}
+                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  >
+                    Copy Markdown
+                  </Button>
+                  <copyMdFeedback.FeedbackComponent className="ms-2" />
+                </div>
+                <div className="inline-flex items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyTSV}
+                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  >
+                    Copy TSV
+                  </Button>
+                  <copyTsvFeedback.FeedbackComponent className="ms-2" />
+                </div>
+                <div className="inline-flex items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCSV}
+                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  >
+                    <Download className="h-4 w-4 me-1" />
+                    Export CSV
+                  </Button>
+                  <exportCsvFeedback.FeedbackComponent className="ms-2" />
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"

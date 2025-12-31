@@ -27,6 +27,7 @@ import {
   ExternalLink, Settings,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 interface PolicyPage {
   _id: string;
@@ -139,6 +140,11 @@ export default function SuperadminFooterContentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  
+  // Inline confirmation feedback
+  const saveFeedback = useActionFeedback();
+  const deleteFeedback = useActionFeedback();
+  const createFeedback = useActionFeedback();
   
   // Dialogs
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
@@ -385,15 +391,19 @@ export default function SuperadminFooterContentPage() {
       });
       
       if (response.ok) {
-        toast.success(editingPolicy ? "Policy updated" : "Policy created");
+        if (editingPolicy) {
+          saveFeedback.showSuccess("Saved", "save");
+        } else {
+          createFeedback.showSuccess("Created", "add");
+        }
         setPolicyDialogOpen(false);
         setEditingPolicy(null);
         fetchPolicies();
       } else {
-        toast.error("Failed to save policy");
+        saveFeedback.showError("Failed");
       }
     } catch {
-      toast.error("Error saving policy");
+      saveFeedback.showError("Failed");
     }
   };
 
@@ -435,14 +445,13 @@ export default function SuperadminFooterContentPage() {
         credentials: "include",
       });
       if (response.ok) {
-        toast.success("Policy deleted successfully");
+        deleteFeedback.showSuccess("Deleted", "delete");
         fetchPolicies();
       } else {
-        const data = await response.json().catch(() => ({}));
-        toast.error(data.error || "Failed to delete policy");
+        deleteFeedback.showError("Failed");
       }
     } catch {
-      toast.error("Error deleting policy");
+      deleteFeedback.showError("Failed");
     }
   };
 
@@ -485,15 +494,19 @@ export default function SuperadminFooterContentPage() {
       });
       
       if (response.ok) {
-        toast.success(editingLink ? "Link updated" : "Link created");
+        if (editingLink) {
+          saveFeedback.showSuccess("Saved", "save");
+        } else {
+          createFeedback.showSuccess("Created", "add");
+        }
         setLinkDialogOpen(false);
         setEditingLink(null);
         fetchFooterLinks();
       } else {
-        toast.error("Failed to save link");
+        saveFeedback.showError("Failed");
       }
     } catch {
-      toast.error("Error saving link");
+      saveFeedback.showError("Failed");
     }
   };
 
@@ -559,12 +572,12 @@ export default function SuperadminFooterContentPage() {
       });
       
       if (response.ok) {
-        toast.success("Chatbot settings saved");
+        saveFeedback.showSuccess("Saved", "save");
       } else {
-        toast.error("Failed to save chatbot settings");
+        saveFeedback.showError("Failed");
       }
     } catch {
-      toast.error("Error saving chatbot settings");
+      saveFeedback.showError("Failed");
     } finally {
       setSaving(false);
     }
@@ -606,12 +619,12 @@ export default function SuperadminFooterContentPage() {
       });
       
       if (response.ok) {
-        toast.success("Company info saved");
+        saveFeedback.showSuccess("Saved", "save");
       } else {
-        toast.error("Failed to save company info");
+        saveFeedback.showError("Failed");
       }
     } catch {
-      toast.error("Error saving company info");
+      saveFeedback.showError("Failed");
     }
   };
 
