@@ -3280,7 +3280,16 @@
     "showing": "عرض",
     "to": "إلى",
     "of": "من",
-    "results": "نتيجة"
+    "results": "نتيجة",
+    "previous": "السابق",
+    "next": "التالي",
+    "first": "الأولى",
+    "last": "الأخيرة",
+    "rowsPerPage": "عدد الصفوف",
+    "all": "الكل",
+    "goTo": "انتقل إلى",
+    "page": "صفحة",
+    "pageOf": "صفحة {{current}} من {{total}}"
   },
   "errors": {
     "404": {
