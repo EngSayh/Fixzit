@@ -10,8 +10,15 @@
 
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { formatSSEMessage, createHeartbeat, SSE_CONFIG, type NotificationPayload } from '@/lib/sse';
+import { 
+  formatSSEMessage, 
+  createHeartbeat, 
+  SSE_CONFIG, 
+  subscribeToNotifications,
+  type NotificationPayload 
+} from '@/lib/sse';
 import { logger } from '@/lib/logger';
+import { Types } from 'mongoose';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -29,6 +36,11 @@ export async function GET(request: NextRequest) {
   const userId = session.user.id;
   const orgId = session.user.orgId;
 
+  // Validate we have required IDs
+  if (!orgId) {
+    return new Response('Missing organization context', { status: 403 });
+  }
+
   // Prevent timeout on Vercel
   const encoder = new TextEncoder();
   
@@ -44,6 +56,24 @@ export async function GET(request: NextRequest) {
       });
       controller.enqueue(encoder.encode(connectMessage));
 
+      // Subscribe to notifications for this user's org
+      const unsubscribe = subscribeToNotifications(
+        new Types.ObjectId(orgId),
+        new Types.ObjectId(userId),
+        (notification: NotificationPayload) => {
+          try {
+            const message = formatSSEMessage({
+              id: notification.id,
+              event: notification.type,
+              data: notification,
+            });
+            controller.enqueue(encoder.encode(message));
+          } catch (_err) {
+            // Controller closed, unsubscribe will be called via abort handler
+          }
+        }
+      );
+
       // Heartbeat interval to keep connection alive
       const heartbeatInterval = setInterval(() => {
         try {
@@ -54,14 +84,13 @@ export async function GET(request: NextRequest) {
         }
       }, SSE_CONFIG.HEARTBEAT_INTERVAL_MS);
 
-      // For now, we simulate notifications (real impl would use Redis pub/sub)
-      // This is scaffolding for Q1 2026 full implementation
-      logger.info('SSE connection established', { userId, orgId });
+      logger.info('[SSE] Connection established', { userId, orgId });
 
       // Cleanup on client disconnect
       request.signal.addEventListener('abort', () => {
+        unsubscribe();
         clearInterval(heartbeatInterval);
-        logger.info('SSE connection closed', { userId, orgId });
+        logger.info('[SSE] Connection closed', { userId, orgId });
       });
     },
   });
