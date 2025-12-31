@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -179,12 +178,10 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
             <Select
               value={typeFilter}
               onValueChange={setTypeFilter}
+              placeholder={auto("Project Type", "filters.type")}
               className="w-48"
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={auto("Project Type", "filters.type")}
-                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">
@@ -210,10 +207,10 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
+              placeholder={auto("Status", "filters.status")}
               className="w-48"
             >
               <SelectTrigger>
-                <SelectValue placeholder={auto("Status", "filters.status")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">
@@ -595,11 +592,9 @@ function CreateProjectForm({
           <Select
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
+            placeholder={auto("Select type", "placeholders.type")}
           >
             <SelectTrigger>
-              <SelectValue
-                placeholder={auto("Select type", "placeholders.type")}
-              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="NEW_CONSTRUCTION">

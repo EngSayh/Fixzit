@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { IconButton } from "@/components/ui/action-feedback";
@@ -174,15 +174,15 @@ export default function SuperadminAuditPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Action" /></SelectTrigger>
+            <Select value={actionFilter} onValueChange={setActionFilter} placeholder="Action">
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Actions</SelectItem>
                 {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
               </SelectContent>
             </Select>
-            <Select value={entityFilter} onValueChange={setEntityFilter}>
-              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Entity" /></SelectTrigger>
+            <Select value={entityFilter} onValueChange={setEntityFilter} placeholder="Entity">
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Entities</SelectItem>
                 {ENTITY_TYPES.map((entity) => (<SelectItem key={entity} value={entity}>{entity}</SelectItem>))}

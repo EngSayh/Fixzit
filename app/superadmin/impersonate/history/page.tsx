@@ -29,7 +29,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
@@ -396,10 +395,9 @@ export default function ImpersonationHistoryPage() {
             className="ps-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
           <SelectTrigger className="w-[150px]">
             <Filter className="h-4 w-4 me-2" />
-            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
@@ -408,10 +406,9 @@ export default function ImpersonationHistoryPage() {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={dateRange} onValueChange={setDateRange}>
+        <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range">
           <SelectTrigger className="w-[150px]">
             <Clock className="h-4 w-4 me-2" />
-            <SelectValue placeholder="Date Range" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="24h">Last 24 Hours</SelectItem>

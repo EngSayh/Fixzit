@@ -10,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { toast } from "sonner";
@@ -1155,19 +1154,8 @@ export default function RouteMetricsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto space-y-4">
           <div className="flex flex-wrap gap-3 items-center">
-            <Select value={moduleFilter} onValueChange={setModuleFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue
-                  placeholder={auto(
-                    "Filter by module",
-                    "aliases.filter.placeholder",
-                  )}
-                >
-                  {moduleFilter === "all"
-                    ? auto("All modules", "aliases.filter.all")
-                    : moduleFilter}
-                </SelectValue>
-              </SelectTrigger>
+            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")}>
+              <SelectTrigger className="w-48"></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">
                   {auto("All modules", "aliases.filter.all")}

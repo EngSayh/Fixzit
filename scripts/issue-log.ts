@@ -2,7 +2,7 @@
 /**
  * Minimal Issue Log CLI
  * Usage:
- *   pnpm issue-log import ./BACKLOG_AUDIT.json [--dry-run]
+ *   pnpm issue-log import ./docs/BACKLOG_AUDIT.json [--dry-run]
  */
 
 import fs from "fs";
@@ -12,7 +12,7 @@ const API_BASE = process.env.ISSUE_API_URL || "http://localhost:3000/api";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 function usage(): void {
-  console.log("Usage: pnpm issue-log import <file> [--dry-run]");
+  console.log("Usage: pnpm issue-log import docs/BACKLOG_AUDIT.json [--dry-run]");
 }
 
 type IssueImport = {

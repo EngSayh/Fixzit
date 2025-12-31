@@ -20,7 +20,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { ChevronRight } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
@@ -190,9 +189,8 @@ export function CardList<TData extends Record<string, unknown>>({
         )}
         
         {sortOptions && sortOptions.length > 0 && (
-          <Select value={currentSort} onValueChange={onSortChange}>
+          <Select value={currentSort} onValueChange={onSortChange} placeholder="Sort by...">
             <SelectTrigger className="w-[180px] h-11">
-              <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
               {sortOptions.map((option) => (

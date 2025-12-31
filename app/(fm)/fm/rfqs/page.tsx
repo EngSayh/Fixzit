@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -185,10 +184,10 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
+              placeholder={auto("Status", "filters.status")}
               className="w-48"
             >
               <SelectTrigger>
-                <SelectValue placeholder={auto("Status", "filters.status")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">
@@ -217,12 +216,10 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
             <Select
               value={categoryFilter}
               onValueChange={setCategoryFilter}
+              placeholder={auto("Category", "filters.category")}
               className="w-48"
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={auto("Category", "filters.category")}
-                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">
@@ -669,14 +666,12 @@ function CreateRFQForm({
             onValueChange={(value) =>
               setFormData({ ...formData, category: value })
             }
+            placeholder={auto(
+              "Select category",
+              "form.placeholders.category",
+            )}
           >
             <SelectTrigger>
-              <SelectValue
-                placeholder={auto(
-                  "Select category",
-                  "form.placeholders.category",
-                )}
-              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Construction">

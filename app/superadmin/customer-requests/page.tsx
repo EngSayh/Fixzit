@@ -36,7 +36,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -360,9 +359,9 @@ export default function CustomerRequestsPage() {
                     <Select
                       value={newRequest.requestType}
                       onValueChange={(v) => setNewRequest({ ...newRequest, requestType: v })}
+                      placeholder="Select type..."
                     >
                       <SelectTrigger>
-                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="feature_request">Feature Request</SelectItem>
@@ -396,9 +395,9 @@ export default function CustomerRequestsPage() {
                     <Select
                       value={newRequest.severity}
                       onValueChange={(v) => setNewRequest({ ...newRequest, severity: v })}
+                      placeholder="Select severity..."
                     >
                       <SelectTrigger>
-                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
@@ -413,9 +412,9 @@ export default function CustomerRequestsPage() {
                     <Select
                       value={newRequest.channel}
                       onValueChange={(v) => setNewRequest({ ...newRequest, channel: v })}
+                      placeholder="Select channel..."
                     >
                       <SelectTrigger>
-                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="web">Web</SelectItem>
@@ -508,9 +507,8 @@ export default function CustomerRequestsPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -521,9 +519,8 @@ export default function CustomerRequestsPage() {
                 <SelectItem value="closed">Closed</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+            <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity">
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Severity" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Severity</SelectItem>
@@ -533,9 +530,8 @@ export default function CustomerRequestsPage() {
                 <SelectItem value="low">Low</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type">
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -545,9 +541,8 @@ export default function CustomerRequestsPage() {
                 <SelectItem value="question">Question</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={channelFilter} onValueChange={setChannelFilter}>
+            <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel">
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Channel" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Channels</SelectItem>

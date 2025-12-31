@@ -16,7 +16,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Search,
@@ -319,7 +318,6 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
             <SelectTrigger className="w-40">
-              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">

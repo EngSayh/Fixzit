@@ -14,7 +14,6 @@ import { logger } from "@/lib/logger";
 import {
   Select,
   SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
@@ -470,14 +469,12 @@ export default function LeavePage() {
                     onValueChange={(value) =>
                       handleFormChange("leaveTypeId", value)
                     }
+                    placeholder={t(
+                      "hr.leave.form.leaveTypePlaceholder",
+                      "Select leave type",
+                    )}
                   >
                     <SelectTrigger>
-                      <SelectValue
-                        placeholder={t(
-                          "hr.leave.form.leaveTypePlaceholder",
-                          "Select leave type",
-                        )}
-                      />
                     </SelectTrigger>
                     <SelectContent>
                       {leaveTypes.map((type) => (

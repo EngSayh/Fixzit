@@ -10,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -146,11 +145,9 @@ export default function CreateInspectionPage() {
                   onValueChange={(value) =>
                     setForm((prev) => ({ ...prev, type: value }))
                   }
+                  placeholder={auto("Select type", "form.type.placeholder")}
                 >
                   <SelectTrigger id="type">
-                    <SelectValue
-                      placeholder={auto("Select type", "form.type.placeholder")}
-                    />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="handover">

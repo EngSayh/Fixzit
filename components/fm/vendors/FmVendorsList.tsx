@@ -13,7 +13,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Search,
@@ -532,9 +531,8 @@ export function FmVendorsList({
             <label className="block text-sm font-medium mb-2">
               {t("vendor.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("common.all", "All Status")}>
               <SelectTrigger>
-                <SelectValue placeholder={t("common.all", "All Status")} />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (

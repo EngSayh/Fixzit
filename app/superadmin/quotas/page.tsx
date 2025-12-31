@@ -39,7 +39,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
@@ -211,9 +210,9 @@ function QuotaEditDialog({
                 setPlan(v as TenantQuota["plan"]);
                 applyPlanDefaults(v);
               }}
+              placeholder="Select plan"
             >
               <SelectTrigger>
-                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="starter">Starter</SelectItem>

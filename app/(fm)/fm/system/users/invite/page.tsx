@@ -12,7 +12,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -158,14 +157,11 @@ export default function InviteUserPage() {
                   <Shield className="w-4 h-4" />
                   {auto("Role", "fields.role")}
                 </Label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger id="role">
-                    <SelectValue
-                      placeholder={auto(
+                <Select value={role} onValueChange={setRole} placeholder={auto(
                         "Select a role...",
                         "fields.rolePlaceholder",
-                      )}
-                    />
+                      )}>
+                  <SelectTrigger id="role">
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">

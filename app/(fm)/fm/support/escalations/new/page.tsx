@@ -19,7 +19,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -230,7 +229,6 @@ function NewEscalationContent({
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {SEVERITIES.map((option) => (
@@ -464,7 +462,6 @@ function NewEscalationContent({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {CHANNELS.map((option) => (

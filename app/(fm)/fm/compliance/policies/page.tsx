@@ -14,7 +14,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -231,11 +230,9 @@ export default function CompliancePoliciesPage() {
               onValueChange={(value) =>
                 setStatusFilter(value as PolicyStatus | "ALL")
               }
+              placeholder={auto("All statuses", "filters.status.all")}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={auto("All statuses", "filters.status.all")}
-                />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((option) => (
@@ -258,11 +255,9 @@ export default function CompliancePoliciesPage() {
               onValueChange={(value) =>
                 setCategoryFilter(value as PolicyCategory | "ALL")
               }
+              placeholder={auto("All categories", "filters.category.all")}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={auto("All categories", "filters.category.all")}
-                />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORY_OPTIONS.map((option) => (

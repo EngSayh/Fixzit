@@ -42,7 +42,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -592,10 +591,8 @@ export default function AdminIssuesPage() {
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
+              <SelectTrigger className="w-[140px]"></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="open">Open</SelectItem>
@@ -607,10 +604,8 @@ export default function AdminIssuesPage() {
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority">
+              <SelectTrigger className="w-[140px]"></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Priority</SelectItem>
                 <SelectItem value="P0">P0 Critical</SelectItem>
@@ -620,10 +615,8 @@ export default function AdminIssuesPage() {
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
+              <SelectTrigger className="w-[140px]"></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="bug">Bug</SelectItem>

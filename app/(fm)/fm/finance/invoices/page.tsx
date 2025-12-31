@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Pagination } from "@/components/ui/pagination";
@@ -874,10 +873,9 @@ function CreateInvoiceForm({
           <Select
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
+            placeholder="Select invoice type"
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger></SelectTrigger>
             <SelectContent>
               <SelectItem value="SALES">
                 {t("fm.invoices.sales", "Sales")}
@@ -906,10 +904,9 @@ function CreateInvoiceForm({
             onValueChange={(value) =>
               setFormData({ ...formData, currency: value })
             }
+            placeholder="Select currency"
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger></SelectTrigger>
             <SelectContent>
               <SelectItem value="SAR">SAR</SelectItem>
               <SelectItem value="USD">USD</SelectItem>

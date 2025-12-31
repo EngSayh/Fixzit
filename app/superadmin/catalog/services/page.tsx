@@ -22,7 +22,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -285,9 +284,8 @@ export default function FMServicesCatalogPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
@@ -300,9 +298,8 @@ export default function FMServicesCatalogPage() {
             <SelectItem value="PEST_CONTROL">Pest Control</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={modelFilter} onValueChange={setModelFilter}>
+        <Select value={modelFilter} onValueChange={setModelFilter} placeholder="Model">
           <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="Model" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Models</SelectItem>
@@ -311,9 +308,8 @@ export default function FMServicesCatalogPage() {
             <SelectItem value="BOTH">B2B & B2C</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
           <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>

@@ -9,7 +9,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -251,9 +250,8 @@ export default function SettingsPage() {
                   <Label htmlFor="language">
                     {t("settings.preferences.language", "Language")}
                   </Label>
-                  <Select defaultValue="ar">
+                  <Select defaultValue="ar" placeholder={t("settings.preferences.selectLanguage", "Select language")}>
                     <SelectTrigger id="language">
-                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">
@@ -269,9 +267,8 @@ export default function SettingsPage() {
                   <Label htmlFor="timezone">
                     {t("settings.preferences.timezone", "Timezone")}
                   </Label>
-                  <Select defaultValue="Asia/Riyadh">
+                  <Select defaultValue="Asia/Riyadh" placeholder={t("settings.preferences.selectTimezone", "Select timezone")}>
                     <SelectTrigger id="timezone">
-                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Asia/Riyadh">
@@ -293,9 +290,9 @@ export default function SettingsPage() {
                   <Select
                     value={currency}
                     onValueChange={(value) => setCurrency(value as CurrencyCode)}
+                    placeholder={t("settings.preferences.selectCurrency", "Select currency")}
                   >
                     <SelectTrigger id="currency">
-                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {options.map((option) => (
@@ -316,9 +313,8 @@ export default function SettingsPage() {
                   <Label htmlFor="theme">
                     {t("settings.preferences.theme", "Theme")}
                   </Label>
-                  <Select defaultValue="light">
+                  <Select defaultValue="light" placeholder={t("settings.preferences.selectTheme", "Select theme")}>
                     <SelectTrigger id="theme">
-                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="light">

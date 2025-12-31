@@ -5,7 +5,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,14 +55,12 @@ export default function RoleDetailsStep({
           onValueChange={(value) => onChange("department", value)}
           disabled={loading && lookups.departments.length === 0}
           onFocus={onOpenLookups}
+          placeholder={t(
+            "auto.fm.hr.directory.new.form.department.placeholder",
+            "Select department",
+          )}
         >
           <SelectTrigger>
-            <SelectValue
-              placeholder={t(
-                "auto.fm.hr.directory.new.form.department.placeholder",
-                "Select department",
-              )}
-            />
           </SelectTrigger>
           <SelectContent>
             {lookups.departments.map((department) => (
@@ -88,14 +85,12 @@ export default function RoleDetailsStep({
             onValueChange={(value) => onChange("employmentType", value)}
             disabled={loading && lookups.employmentTypes.length === 0}
             onFocus={onOpenLookups}
+            placeholder={t(
+              "auto.fm.hr.directory.new.form.employmentType.placeholder",
+              "Select type",
+            )}
           >
             <SelectTrigger>
-              <SelectValue
-                placeholder={t(
-                  "auto.fm.hr.directory.new.form.employmentType.placeholder",
-                  "Select type",
-                )}
-              />
             </SelectTrigger>
             <SelectContent>
               {lookups.employmentTypes.map((employmentType) => (
@@ -115,14 +110,12 @@ export default function RoleDetailsStep({
             onValueChange={(value) => onChange("workModel", value)}
             disabled={loading && lookups.workModels.length === 0}
             onFocus={onOpenLookups}
+            placeholder={t(
+              "auto.fm.hr.directory.new.form.workModel.placeholder",
+              "Select model",
+            )}
           >
             <SelectTrigger>
-              <SelectValue
-                placeholder={t(
-                  "auto.fm.hr.directory.new.form.workModel.placeholder",
-                  "Select model",
-                )}
-              />
             </SelectTrigger>
             <SelectContent>
               {lookups.workModels.map((workModel) => (

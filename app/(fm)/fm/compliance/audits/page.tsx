@@ -14,7 +14,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -265,11 +264,9 @@ export default function ComplianceAuditsPage() {
               onValueChange={(value) =>
                 setStatusFilter(value as AuditStatus | "ALL")
               }
+              placeholder={auto("All statuses", "filters.status.all")}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={auto("All statuses", "filters.status.all")}
-                />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_FILTERS.map((option) => (
@@ -289,11 +286,9 @@ export default function ComplianceAuditsPage() {
               onValueChange={(value) =>
                 setRiskFilter(value as AuditRisk | "ALL")
               }
+              placeholder={auto("All risk levels", "filters.risk.all")}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={auto("All risk levels", "filters.risk.all")}
-                />
               </SelectTrigger>
               <SelectContent>
                 {RISK_FILTERS.map((option) => (

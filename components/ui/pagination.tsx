@@ -14,7 +14,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
@@ -174,9 +173,9 @@ export function Pagination({
             <Select
               value={showingAll ? "all" : String(itemsPerPage)}
               onValueChange={handlePageSizeChange}
+              placeholder={String(itemsPerPage)}
             >
               <SelectTrigger className="w-[80px] h-8">
-                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {pageSizeOptions.map((size) => (

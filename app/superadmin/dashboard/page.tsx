@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
@@ -392,9 +392,9 @@ export default function SuperadminDashboardPage() {
               value={selectedTenant}
               onValueChange={setSelectedTenant}
               disabled={tenantsLoading}
+              placeholder={t("superadmin.dashboard.selectTenant", "Filter by tenant")}
             >
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder={t("superadmin.dashboard.selectTenant", "Filter by tenant")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">

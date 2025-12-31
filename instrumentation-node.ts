@@ -117,31 +117,12 @@ export async function registerNode(): Promise<void> {
     }
 
     // Initialize SMS worker if Redis is configured
-    // CRITICAL: Wrapped in try-catch to prevent Redis issues from crashing boot
-    if (process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL) {
-      try {
-        const { startSMSWorker } = await import("@/lib/queues/sms-queue");
-        const worker = startSMSWorker();
-
-        if (worker) {
-          logger.info("[Instrumentation] SMS Worker started successfully");
-        } else {
-          logger.info("[Instrumentation] SMS Worker not started (Redis not configured or disabled)");
-        }
-      } catch (error) {
-        logger.error("[Instrumentation] SMS Worker failed to start - Redis issue, continuing without queues", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Don't throw - app should continue without SMS queue
-      }
-    } else {
-      logger.info("[Instrumentation] Skipping SMS Worker (no Redis configuration)");
-    }
+    // NOTE: Redis has been intentionally removed from the codebase.
+    // SMS Worker uses in-memory queue fallback - no external Redis required.
 
     // Log startup info
     logger.info("[Instrumentation] Server initialization complete", {
       nodeEnv: process.env.NODE_ENV,
-      hasRedis: Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL),
       hasTaqnyatSMS: Boolean(process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME),
       hasEncryption: Boolean(process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY),
     });

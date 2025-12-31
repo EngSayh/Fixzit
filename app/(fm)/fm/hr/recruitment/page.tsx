@@ -13,7 +13,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2 } from "@/components/ui/icons";
@@ -333,12 +332,9 @@ export default function AtsJobsPage() {
               onValueChange={(value) =>
                 setStatusFilter(value as typeof statusFilter)
               }
+              placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
             >
               <SelectTrigger>
-                <SelectValue>
-                  {statusOptions.find((o) => o.value === statusFilter)?.label ||
-                    t("hr.ats.jobs.filters.statusLabel", "Status")}
-                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -356,13 +352,9 @@ export default function AtsJobsPage() {
             <Select
               value={jobTypeFilter}
               onValueChange={(value) => setJobTypeFilter(value)}
+              placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
             >
               <SelectTrigger>
-                <SelectValue>
-                  {jobTypeOptions.find((o) => o.value === jobTypeFilter)
-                    ?.label ||
-                    t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
-                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {jobTypeOptions.map((option) => (

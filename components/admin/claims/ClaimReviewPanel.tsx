@@ -18,7 +18,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -528,11 +527,10 @@ export default function ClaimReviewPanel() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="الحالة">
               <SelectTrigger className="w-full md:w-[200px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="الحالة" />
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -543,11 +541,10 @@ export default function ClaimReviewPanel() {
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="الأولوية">
               <SelectTrigger className="w-full md:w-[200px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="الأولوية" />
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -721,10 +718,9 @@ export default function ClaimReviewPanel() {
                   <Select
                     value={decisionData.outcome}
                     onValueChange={handleOutcomeChange}
+                    placeholder="اختر القرار"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر القرار" />
-                    </SelectTrigger>
+                    <SelectTrigger></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="approve-full">
                         موافقة كاملة (Full Refund)
