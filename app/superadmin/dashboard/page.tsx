@@ -415,7 +415,7 @@ export default function SuperadminDashboardPage() {
           </div>
           {lastRefresh && (
             <span className="text-sm text-muted-foreground">
-              Last updated: {lastRefresh.toLocaleTimeString()}
+              {t("superadmin.dashboard.lastUpdated", "Last updated:")} {lastRefresh.toLocaleTimeString()}
             </span>
           )}
           <Button 

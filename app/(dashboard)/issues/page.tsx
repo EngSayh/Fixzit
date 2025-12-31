@@ -38,6 +38,7 @@ import { CompactFilterBar } from "@/components/ui/compact-filter-bar";
 // DropdownMenu imports removed - will add when needed
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n/useI18n";
 
 // ============================================================================
 // TYPES
@@ -120,6 +121,7 @@ function IssuesDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -168,15 +170,15 @@ function IssuesDashboardContent() {
       setTotalItems(data.pagination?.total || data.issues?.length || 0);
     } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to load issues",
+        title: t("common.toast.error", "Error"),
+        description: t("common.toast.loadIssuesFailed", "Failed to load issues"),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
+  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -232,13 +234,13 @@ function IssuesDashboardContent() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Export Complete",
-        description: `Exported ${data.issues.length} issues`,
+        title: t("common.toast.exportComplete", "Export Complete"),
+        description: t("common.toast.exportedCount", "Exported {{count}} issues").replace("{{count}}", String(data.issues.length)),
       });
     } catch {
       toast({
-        title: "Export Failed",
-        description: "Could not export issues",
+        title: t("common.toast.exportFailed", "Export Failed"),
+        description: t("common.toast.exportFailedDescription", "Could not export issues"),
         variant: "destructive",
       });
     }

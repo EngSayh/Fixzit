@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n/useI18n";
 import {
   Dialog,
   DialogContent,
@@ -155,6 +156,7 @@ const CATEGORY_ICONS: Record<string, typeof Bug> = {
 export default function AdminIssuesPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -206,15 +208,15 @@ export default function AdminIssuesPage() {
       setTotalItems(data.pagination?.total || data.issues?.length || 0);
     } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to load issues",
+        title: t("common.toast.error", "Error"),
+        description: t("common.toast.loadIssuesFailed", "Failed to load issues"),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
+  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -271,13 +273,13 @@ export default function AdminIssuesPage() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Export Complete",
-        description: `Exported ${data.issues.length} issues`,
+        title: t("common.toast.exportComplete", "Export Complete"),
+        description: t("common.toast.exportedCount", "Exported {{count}} issues").replace("{{count}}", String(data.issues.length)),
       });
     } catch (_error) {
       toast({
-        title: "Export Failed",
-        description: "Could not export issues",
+        title: t("common.toast.exportFailed", "Export Failed"),
+        description: t("common.toast.exportFailedDescription", "Could not export issues"),
         variant: "destructive",
       });
     }
@@ -287,8 +289,8 @@ export default function AdminIssuesPage() {
   const handleImport = async (dryRun = false) => {
     if (!importData.trim()) {
       toast({
-        title: "No Data",
-        description: "Please paste issues JSON or markdown",
+        title: t("superadmin.issues.toast.noDataTitle", "No Data"),
+        description: t("superadmin.issues.toast.noDataDescription", "Please paste issues JSON or markdown"),
         variant: "destructive",
       });
       return;

@@ -271,7 +271,7 @@ export default function SuperadminIssuesPage() {
   const handleCopyMarkdown = async () => {
     const selectedData = issues.filter(i => selectedIssues.has(i._id));
     if (selectedData.length === 0) {
-      toast({ title: "No selection", description: "Please select issues to copy", variant: "destructive" });
+      toast({ title: t("superadmin.issues.toast.noSelectionTitle", "No selection"), description: t("superadmin.issues.toast.noSelectionDescription", "Please select issues to copy"), variant: "destructive" });
       return;
     }
 
@@ -321,7 +321,7 @@ Agent Token: [AGENT-001-A]`;
   const handleCopyTSV = async () => {
     const selectedData = issues.filter(i => selectedIssues.has(i._id));
     if (selectedData.length === 0) {
-      toast({ title: "No selection", description: "Please select issues to copy", variant: "destructive" });
+      toast({ title: t("superadmin.issues.toast.noSelectionTitle", "No selection"), description: t("superadmin.issues.toast.noSelectionDescription", "Please select issues to copy"), variant: "destructive" });
       return;
     }
 
@@ -350,7 +350,7 @@ Agent Token: [AGENT-001-A]`;
     const selectedData = selectedIssues.size > 0 ? issues.filter(i => selectedIssues.has(i._id)) : issues;
 
     if (selectedData.length === 0) {
-      toast({ title: "No data", description: "No issues to export", variant: "destructive" });
+      toast({ title: t("superadmin.issues.toast.noDataTitle", "No data"), description: t("superadmin.issues.toast.noDataDescription", "No issues to export"), variant: "destructive" });
       return;
     }
 
@@ -1208,15 +1208,15 @@ Agent Token: [AGENT-001-A]`;
         selectedCount={selectedIssues.size}
         onClearSelection={() => setSelectedIssues(new Set())}
         onMarkResolved={() => {
-          toast({ title: "Bulk action", description: `Marking ${selectedIssues.size} issues as resolved` });
+          toast({ title: t("superadmin.issues.toast.bulkActionTitle", "Bulk action"), description: t("superadmin.issues.toast.markingResolved", "Marking {{count}} issues as resolved").replace("{{count}}", String(selectedIssues.size)) });
           setSelectedIssues(new Set());
         }}
         onArchive={() => {
-          toast({ title: "Bulk action", description: `Archiving ${selectedIssues.size} issues` });
+          toast({ title: t("superadmin.issues.toast.bulkActionTitle", "Bulk action"), description: t("superadmin.issues.toast.archiving", "Archiving {{count}} issues").replace("{{count}}", String(selectedIssues.size)) });
           setSelectedIssues(new Set());
         }}
         onDelete={() => {
-          toast({ title: "Bulk action", description: `Deleting ${selectedIssues.size} issues`, variant: "destructive" });
+          toast({ title: t("superadmin.issues.toast.bulkActionTitle", "Bulk action"), description: t("superadmin.issues.toast.deleting", "Deleting {{count}} issues").replace("{{count}}", String(selectedIssues.size)), variant: "destructive" });
           setSelectedIssues(new Set());
         }}
       />
