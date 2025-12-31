@@ -26,7 +26,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Filter,
 } from "@/components/ui/icons";
 import { useActionFeedback } from "@/components/ui/action-feedback";
 import { Button } from "@/components/ui/button";
@@ -224,17 +223,6 @@ export default function SuperadminIssuesPage() {
     },
     [t],
   );
-
-  const statusOptions = [
-    { value: "all", label: t("superadmin.issues.filters.all") },
-    { value: "open", label: getStatusLabel("open") },
-    { value: "in_progress", label: getStatusLabel("in_progress") },
-    { value: "in_review", label: getStatusLabel("in_review") },
-    { value: "blocked", label: getStatusLabel("blocked") },
-    { value: "resolved", label: getStatusLabel("resolved") },
-    { value: "closed", label: getStatusLabel("closed") },
-    { value: "wont_fix", label: getStatusLabel("wont_fix") },
-  ];
 
   const priorityOptions = [
     { value: "all", label: t("superadmin.issues.filters.all") },
@@ -687,25 +675,6 @@ Agent Token: [AGENT-001-A]`;
         </div>
       </div>
 
-      {/* Active Filter Indicator */}
-      {hasActiveFilter && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg">
-          <Filter className="h-4 w-4 text-primary" />
-          <span className="text-sm text-primary">
-            {t("superadmin.issues.stats.showingFiltered", "Showing filtered results")}
-            {priorityFilter !== "all" && ` • ${getPriorityLabel(priorityFilter.toUpperCase())}`}
-            {statusFilter !== "all" && ` • ${getStatusLabel(statusFilter)}`}
-            {categoryFilter !== "all" && ` • ${getCategoryLabel(categoryFilter)}`}
-            {viewMode !== "all" && ` • ${viewMode === "quickWins" ? t("superadmin.issues.views.quickWins") : t("superadmin.issues.views.stale")}`}
-            {search && ` • "${search}"`}
-          </span>
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="ms-auto h-6 px-2">
-            <XCircle className="h-3 w-3 me-1" />
-            {t("superadmin.issues.clearFilters")}
-          </Button>
-        </div>
-      )}
-
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {statsLoading ? (
@@ -879,92 +848,51 @@ Agent Token: [AGENT-001-A]`;
         </div>
       )}
 
-      {/* Filters - Sticky */}
+      {/* Filters - Compact Single Row */}
       <Card className="bg-muted border-input sticky top-0 z-10">
-        <CardContent className="p-4">
-          {/* Quick Status Tabs */}
-          <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-input">
-            <Button
-              variant={statusFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("all")}
-              className={statusFilter === "all" ? "" : "text-muted-foreground border-input"}
-            >
-              All
-            </Button>
-            <Button
-              variant={statusFilter === "open" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("open")}
-              className={statusFilter === "open" ? "" : "text-muted-foreground border-input"}
-            >
-              Open
-            </Button>
-            <Button
-              variant={statusFilter === "closed" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("closed")}
-              className={statusFilter === "closed" ? "" : "text-muted-foreground border-input"}
-            >
-              Closed
-            </Button>
-            <Button
-              variant={statusFilter === "blocked" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("blocked")}
-              className={statusFilter === "blocked" ? "" : "text-muted-foreground border-input"}
-            >
-              Blocked
-            </Button>
-            <Button
-              variant={viewMode === "stale" ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
-              className={viewMode === "stale" ? "" : "text-muted-foreground border-input"}
-            >
-              <Clock className="h-4 w-4 me-1" />
-              Stale
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-muted-foreground hover:text-foreground ms-auto"
-            >
-              Clear filters
-            </Button>
-          </div>
-
-          {/* Detailed Filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t("superadmin.issues.search")}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-9 bg-muted border-input text-white"
-                />
-              </div>
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search - Compact */}
+            <div className="relative w-[180px] lg:w-[220px]">
+              <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder={t("superadmin.issues.search")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 ps-8 text-sm bg-background border-input"
+              />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")}>
-              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                {statusOptions.find(o => o.value === statusFilter)?.label || t("superadmin.issues.filters.status")}
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Divider */}
+            <div className="h-6 w-px bg-border hidden sm:block" />
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")}>
-              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                {priorityOptions.find(o => o.value === priorityFilter)?.label || t("superadmin.issues.filters.priority")}
+            {/* Status Tabs - Inline */}
+            <div className="flex items-center gap-1">
+              {[
+                { value: "all", label: "All" },
+                { value: "open", label: "Open" },
+                { value: "closed", label: "Closed" },
+                { value: "blocked", label: "Blocked" },
+              ].map(({ value, label }) => (
+                <Button
+                  key={value}
+                  variant={statusFilter === value && viewMode === "all" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => { setStatusFilter(value); setViewMode("all"); }}
+                  className={`h-7 px-2.5 text-xs ${statusFilter === value && viewMode === "all" ? "" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-border hidden sm:block" />
+
+            {/* Priority Dropdown - Compact */}
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="h-8 w-[110px] text-xs bg-background border-input">
+                {priorityFilter === "all" ? "Priority" : priorityOptions.find(o => o.value === priorityFilter)?.label}
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((option) => (
@@ -975,9 +903,10 @@ Agent Token: [AGENT-001-A]`;
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")}>
-              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                {categoryOptions.find(o => o.value === categoryFilter)?.label || t("superadmin.issues.filters.category")}
+            {/* Category Dropdown - Compact */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-8 w-[110px] text-xs bg-background border-input">
+                {categoryFilter === "all" ? "Category" : categoryOptions.find(o => o.value === categoryFilter)?.label}
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((option) => (
@@ -988,14 +917,43 @@ Agent Token: [AGENT-001-A]`;
               </SelectContent>
             </Select>
 
-            <Button
-              variant={viewMode === "quickWins" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("quickWins")}
-            >
-              <Zap className="h-4 w-4 me-1" />
-              {t("superadmin.issues.views.quickWins")}
-            </Button>
+            {/* Divider */}
+            <div className="h-6 w-px bg-border hidden sm:block" />
+
+            {/* View Mode Buttons */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant={viewMode === "quickWins" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => { setViewMode(viewMode === "quickWins" ? "all" : "quickWins"); setStatusFilter("all"); }}
+                className={`h-7 px-2 text-xs ${viewMode === "quickWins" ? "" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Zap className="h-3.5 w-3.5 me-1" />
+                Quick Wins
+              </Button>
+              <Button
+                variant={viewMode === "stale" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => { setViewMode(viewMode === "stale" ? "all" : "stale"); setStatusFilter("all"); }}
+                className={`h-7 px-2 text-xs ${viewMode === "stale" ? "" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Clock className="h-3.5 w-3.5 me-1" />
+                Stale
+              </Button>
+            </div>
+
+            {/* Clear Filters - Right aligned */}
+            {hasActiveFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground ms-auto"
+              >
+                <XCircle className="h-3.5 w-3.5 me-1" />
+                Clear
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
