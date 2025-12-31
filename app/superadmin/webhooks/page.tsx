@@ -59,6 +59,7 @@ import {
   Copy,
 } from "@/components/ui/icons";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 // ============================================================================
 // TYPES
@@ -150,6 +151,13 @@ export default function WebhooksPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   
+  // Inline confirmation feedback
+  const createFeedback = useActionFeedback();
+  const deleteFeedback = useActionFeedback();
+  const toggleFeedback = useActionFeedback();
+  const testFeedback = useActionFeedback();
+  const copyFeedback = useActionFeedback();
+  
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // Edit dialog reserved for future implementation
@@ -221,9 +229,9 @@ export default function WebhooksPage() {
       setWebhooks(prev => [...prev, data.webhook]);
       setShowCreateDialog(false);
       setFormData({ name: "", url: "", events: [], retryPolicy: "exponential", maxRetries: 3 });
-      toast.success("Webhook created successfully");
+      createFeedback.showSuccess("Created", "add");
     } catch {
-      toast.error("Failed to create webhook");
+      createFeedback.showError("Failed");
     }
   };
 
@@ -239,9 +247,9 @@ export default function WebhooksPage() {
       setWebhooks(prev => prev.map(w => 
         w.id === id ? { ...w, enabled, status: enabled ? "active" : "paused" } : w
       ));
-      toast.success(enabled ? "Webhook enabled" : "Webhook paused");
+      toggleFeedback.showSuccess(enabled ? "Enabled" : "Paused", "save");
     } catch {
-      toast.error("Failed to toggle webhook");
+      toggleFeedback.showError("Failed");
     }
   };
 
@@ -255,9 +263,9 @@ export default function WebhooksPage() {
       });
       if (!response.ok) throw new Error("Failed to delete webhook");
       setWebhooks(prev => prev.filter(w => w.id !== id));
-      toast.success("Webhook deleted");
+      deleteFeedback.showSuccess("Deleted", "delete");
     } catch {
-      toast.error("Failed to delete webhook");
+      deleteFeedback.showError("Failed");
     }
   };
 
@@ -269,10 +277,9 @@ export default function WebhooksPage() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Test failed");
-      const data = await response.json();
-      toast.success(data.message || `Test payload sent to ${webhook.name}`);
+      testFeedback.showSuccess("Sent", "generic");
     } catch {
-      toast.error("Test failed");
+      testFeedback.showError("Failed");
     } finally {
       setTestingId(null);
     }
@@ -281,9 +288,9 @@ export default function WebhooksPage() {
   const copySecret = async (secret: string) => {
     try {
       await navigator.clipboard.writeText(secret);
-      toast.success("Secret copied to clipboard");
+      copyFeedback.showSuccess("Copied", "copy");
     } catch {
-      toast.error("Failed to copy to clipboard");
+      copyFeedback.showError("Failed");
     }
   };
 
