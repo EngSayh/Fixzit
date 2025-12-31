@@ -178,6 +178,7 @@ export default function AdminIssuesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showingAll, setShowingAll] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
 
   // Fetch issues
@@ -768,11 +769,14 @@ export default function AdminIssuesPage() {
             totalPages={totalPages}
             totalItems={totalItems}
             itemsPerPage={pageSize}
+            showingAll={showingAll}
             onPageChange={setPage}
             onPageSizeChange={(size) => {
               if (size === "all") {
+                setShowingAll(true);
                 setPageSize(totalItems || 100);
               } else {
+                setShowingAll(false);
                 setPageSize(size);
               }
               setPage(1);

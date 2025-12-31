@@ -131,6 +131,7 @@ export default function SuperadminTenantsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showingAll, setShowingAll] = useState(false);
 
   // Dialog state
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
@@ -446,11 +447,14 @@ export default function SuperadminTenantsPage() {
                 totalPages={pagination.totalPages}
                 totalItems={pagination.total}
                 itemsPerPage={pageSize}
+                showingAll={showingAll}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   if (size === "all") {
+                    setShowingAll(true);
                     setPageSize(pagination.total || 100);
                   } else {
+                    setShowingAll(false);
                     setPageSize(size);
                   }
                   setPage(1);

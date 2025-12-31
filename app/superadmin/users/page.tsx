@@ -145,6 +145,7 @@ export default function SuperadminUsersPage() {
   const [userTypeFilter, setUserTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showingAll, setShowingAll] = useState(false);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -706,11 +707,14 @@ export default function SuperadminUsersPage() {
                 totalPages={pagination.totalPages}
                 totalItems={pagination.total}
                 itemsPerPage={pageSize}
+                showingAll={showingAll}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   if (size === "all") {
+                    setShowingAll(true);
                     setPageSize(pagination.total || 100);
                   } else {
+                    setShowingAll(false);
                     setPageSize(size);
                   }
                   setPage(1);

@@ -73,6 +73,7 @@ export default function CommunicationDashboard({
   const [totalPages, setTotalPages] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [pageSize, setPageSize] = useState(50);
+  const [showingAll, setShowingAll] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
 
   // Fetch communications
@@ -513,11 +514,14 @@ export default function CommunicationDashboard({
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={pageSize}
+              showingAll={showingAll}
               onPageChange={setPage}
               onPageSizeChange={(size) => {
                 if (size === "all") {
+                  setShowingAll(true);
                   setPageSize(totalItems || 100);
                 } else {
+                  setShowingAll(false);
                   setPageSize(size);
                 }
                 setPage(1);

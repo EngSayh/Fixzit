@@ -113,6 +113,7 @@ export function FmVendorsList({
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showingAll, setShowingAll] = useState(false);
 
   // Fetch vendors with pagination
   const vendorsUrl = orgId
@@ -502,11 +503,14 @@ export function FmVendorsList({
                 totalPages={totalPages}
                 totalItems={vendorsData?.total || 0}
                 itemsPerPage={pageSize}
+                showingAll={showingAll}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   if (size === "all") {
+                    setShowingAll(true);
                     setPageSize(vendorsData?.total || 100);
                   } else {
+                    setShowingAll(false);
                     setPageSize(size);
                   }
                   setPage(1);

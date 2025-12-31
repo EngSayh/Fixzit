@@ -69,6 +69,7 @@ export default function SuperadminNotificationsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showingAll, setShowingAll] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedNotification, setSelectedNotification] = useState<NotificationLog | null>(null);
@@ -239,11 +240,14 @@ export default function SuperadminNotificationsPage() {
                     totalPages={totalPages}
                     totalItems={totalItems}
                     itemsPerPage={pageSize}
+                    showingAll={showingAll}
                     onPageChange={setPage}
                     onPageSizeChange={(size) => {
                       if (size === "all") {
+                        setShowingAll(true);
                         setPageSize(totalItems || 100);
                       } else {
+                        setShowingAll(false);
                         setPageSize(size);
                       }
                       setPage(1);

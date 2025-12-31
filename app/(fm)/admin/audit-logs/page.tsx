@@ -79,6 +79,7 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(LOGS_PER_PAGE);
+  const [showingAll, setShowingAll] = useState(false);
   const [totalLogs, setTotalLogs] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -869,11 +870,14 @@ export default function AuditLogViewer() {
             totalPages={totalPages}
             totalItems={totalLogs}
             itemsPerPage={pageSize}
+            showingAll={showingAll}
             onPageChange={setPage}
             onPageSizeChange={(size) => {
               if (size === "all") {
+                setShowingAll(true);
                 setPageSize(totalLogs || 100);
               } else {
+                setShowingAll(false);
                 setPageSize(size);
               }
               setPage(1);

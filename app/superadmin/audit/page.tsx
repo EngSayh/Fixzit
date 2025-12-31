@@ -94,6 +94,7 @@ export default function SuperadminAuditPage() {
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [showingAll, setShowingAll] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
@@ -244,11 +245,14 @@ export default function SuperadminAuditPage() {
                 totalPages={pagination.pages}
                 totalItems={pagination.total}
                 itemsPerPage={pageSize}
+                showingAll={showingAll}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   if (size === "all") {
+                    setShowingAll(true);
                     setPageSize(pagination.total || 100);
                   } else {
+                    setShowingAll(false);
                     setPageSize(size);
                   }
                   setPage(1);

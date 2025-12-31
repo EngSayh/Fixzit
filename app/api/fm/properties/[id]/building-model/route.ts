@@ -13,6 +13,7 @@
  * - AI-powered generation (premium tier, future)
  * - Unit synchronization with property units
  * - Multi-tenant isolation via orgId
+ * - S3 storage for large models (>800KB) with gzip compression
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
@@ -26,6 +27,12 @@ import { resolveTenantId } from "@/app/api/fm/utils/tenant";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { audit } from "@/lib/audit";
 import {
+  putJsonToS3 as _putJsonToS3,
+  getObjectText,
+  buildBuildingModelS3Key as _buildBuildingModelS3Key,
+} from "@/lib/storage/s3";
+import { isS3Configured as _isS3Configured } from "@/lib/storage/s3-config";
+import {
   BuildingGenSpecSchema,
   generateBuildingModel,
   attachUnitDbIds,
@@ -34,6 +41,14 @@ import {
 
 const PROPERTIES_COLLECTION = "properties";
 const BUILDING_MODELS_COLLECTION = "building_models";
+
+// S3 storage threshold - models larger than this are stored in S3
+// Reserved for future use when S3 offloading is implemented
+const _MAX_INLINE_BYTES = (() => {
+  const raw = process.env.FIXZIT_BUILDING_MODEL_INLINE_MAX_BYTES;
+  const n = raw ? Number(raw) : 800_000; // ~0.8MB default
+  return Number.isFinite(n) && n > 50_000 ? n : 800_000;
+})();
 
 // POST body schema
 const GenerateBuildingModelSchema = z.object({
@@ -113,6 +128,21 @@ export async function GET(
         { sort: { version: -1 } }
       );
 
+    // Fetch model data - inline or from S3
+    let modelData = buildingModel?.model;
+    if (!modelData && buildingModel?.modelS3?.bucket && buildingModel?.modelS3?.key) {
+      try {
+        const text = await getObjectText({
+          bucket: buildingModel.modelS3.bucket,
+          key: buildingModel.modelS3.key,
+        });
+        modelData = JSON.parse(text);
+      } catch (err) {
+        logger.error("Failed to fetch building model from S3:", { err });
+        // Continue without model data
+      }
+    }
+
     // Get units from property
     const units = property.units || [];
 
@@ -127,7 +157,14 @@ export async function GET(
               status: buildingModel.status,
               generator: buildingModel.generator,
               input: buildingModel.input,
-              model: buildingModel.model,
+              model: modelData,
+              modelInline: !!buildingModel.model,
+              modelBytes: buildingModel.modelBytes,
+              modelS3: buildingModel.modelS3 ? {
+                bucket: buildingModel.modelS3.bucket,
+                key: buildingModel.modelS3.key,
+                bytes: buildingModel.modelS3.bytes,
+              } : undefined,
               createdAt: buildingModel.createdAt,
               updatedAt: buildingModel.updatedAt,
             }

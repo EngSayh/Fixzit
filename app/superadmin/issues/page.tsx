@@ -249,6 +249,7 @@ export default function SuperadminIssuesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showingAll, setShowingAll] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
 
   // Selection handlers
@@ -1194,11 +1195,14 @@ Agent Token: [AGENT-001-A]`;
             totalPages={totalPages}
             totalItems={totalItems}
             itemsPerPage={pageSize}
+            showingAll={showingAll}
             onPageChange={setPage}
             onPageSizeChange={(size) => {
               if (size === "all") {
+                setShowingAll(true);
                 setPageSize(totalItems || 100);
               } else {
+                setShowingAll(false);
                 setPageSize(size);
               }
               setPage(1);
