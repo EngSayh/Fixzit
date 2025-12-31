@@ -48,8 +48,8 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | F1 | Blocker | ✅ FIXED | Public tour queries lacked tenant scope (orgId) |
 | F2 | High | ✅ FIXED | Public tour returned tenant object + meter numbers in metadata |
 | F3 | Medium | ✅ FIXED | No API tests for public tour endpoint |
-| F4 | Medium | ⏸️ OUT OF SCOPE | CI workflows failing (DevOps action required) |
-| F5 | Low | ⏸️ OUT OF SCOPE | No issue/AC linkage in PR (PM action required) |
+| F4 | Medium | ⚠️ BLOCKED | CI workflows failing - **Root Cause: GitHub billing/spending limit** (requires org admin) |
+| F5 | Low | ✅ FIXED | No issue/AC linkage in PR - Updated PR #627 body with issue table + AC checklist |
 
 #### Fixes Applied
 | Issue ID | File | Change |
