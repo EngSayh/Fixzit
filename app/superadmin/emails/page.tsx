@@ -86,172 +86,8 @@ interface EmailTemplate {
 }
 
 // ============================================================================
-// MOCK DATA
+// CONSTANTS
 // ============================================================================
-
-const MOCK_TEMPLATES: EmailTemplate[] = [
-  {
-    id: "tpl-1",
-    key: "welcome",
-    name: "Welcome Email",
-    subject: "Welcome to Fixzit, {{userName}}!",
-    category: "auth",
-    bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Welcome to Fixzit!</h1>
-  <p>Hi {{userName}},</p>
-  <p>Thank you for joining Fixzit. Your account has been created successfully.</p>
-  <p><a href="{{loginUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Get Started</a></p>
-  <p>If you have any questions, contact us at {{supportEmail}}</p>
-  <p>Best regards,<br>The Fixzit Team</p>
-</div>`,
-    bodyText: `Welcome to Fixzit!
-
-Hi {{userName}},
-
-Thank you for joining Fixzit. Your account has been created successfully.
-
-Get Started: {{loginUrl}}
-
-If you have any questions, contact us at {{supportEmail}}
-
-Best regards,
-The Fixzit Team`,
-    variables: ["userName", "loginUrl", "supportEmail"],
-    lastUpdated: "2025-01-15T10:00:00Z",
-    updatedBy: "superadmin",
-    version: 3,
-    isActive: true,
-  },
-  {
-    id: "tpl-2",
-    key: "password_reset",
-    name: "Password Reset",
-    subject: "Reset your Fixzit password",
-    category: "auth",
-    bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Password Reset Request</h1>
-  <p>Hi {{userName}},</p>
-  <p>We received a request to reset your password. Click the button below to proceed:</p>
-  <p><a href="{{resetUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a></p>
-  <p>This link expires in {{expiryTime}}.</p>
-  <p>If you didn't request this, please ignore this email.</p>
-</div>`,
-    bodyText: `Password Reset Request
-
-Hi {{userName}},
-
-We received a request to reset your password. Click the link below:
-
-{{resetUrl}}
-
-This link expires in {{expiryTime}}.
-
-If you didn't request this, please ignore this email.`,
-    variables: ["userName", "resetUrl", "expiryTime"],
-    lastUpdated: "2025-01-10T14:30:00Z",
-    updatedBy: "superadmin",
-    version: 2,
-    isActive: true,
-  },
-  {
-    id: "tpl-3",
-    key: "invoice",
-    name: "Invoice Notification",
-    subject: "Invoice #{{invoiceNumber}} - {{amount}}",
-    category: "billing",
-    bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Invoice #{{invoiceNumber}}</h1>
-  <p>Hi {{customerName}},</p>
-  <p>Your invoice for {{amount}} is now available.</p>
-  <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Invoice Date:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{invoiceDate}}</td></tr>
-    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Due Date:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{dueDate}}</td></tr>
-    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Amount:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{amount}}</strong></td></tr>
-  </table>
-  <p><a href="{{invoiceUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Invoice</a></p>
-</div>`,
-    bodyText: `Invoice #{{invoiceNumber}}
-
-Hi {{customerName}},
-
-Your invoice for {{amount}} is now available.
-
-Invoice Date: {{invoiceDate}}
-Due Date: {{dueDate}}
-Amount: {{amount}}
-
-View Invoice: {{invoiceUrl}}`,
-    variables: ["invoiceNumber", "customerName", "amount", "invoiceDate", "dueDate", "invoiceUrl"],
-    lastUpdated: "2025-01-12T09:00:00Z",
-    updatedBy: "superadmin",
-    version: 5,
-    isActive: true,
-  },
-  {
-    id: "tpl-4",
-    key: "work_order_assigned",
-    name: "Work Order Assigned",
-    subject: "New Work Order: {{workOrderTitle}}",
-    category: "notifications",
-    bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">New Work Order Assigned</h1>
-  <p>Hi {{technicianName}},</p>
-  <p>A new work order has been assigned to you:</p>
-  <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-    <p><strong>{{workOrderTitle}}</strong></p>
-    <p>Property: {{propertyName}}</p>
-    <p>Priority: {{priority}}</p>
-    <p>Due: {{dueDate}}</p>
-  </div>
-  <p><a href="{{workOrderUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Details</a></p>
-</div>`,
-    bodyText: `New Work Order Assigned
-
-Hi {{technicianName}},
-
-A new work order has been assigned to you:
-
-{{workOrderTitle}}
-Property: {{propertyName}}
-Priority: {{priority}}
-Due: {{dueDate}}
-
-View Details: {{workOrderUrl}}`,
-    variables: ["technicianName", "workOrderTitle", "propertyName", "priority", "dueDate", "workOrderUrl"],
-    lastUpdated: "2025-01-18T16:00:00Z",
-    updatedBy: "superadmin",
-    version: 4,
-    isActive: true,
-  },
-  {
-    id: "tpl-5",
-    key: "subscription_renewal",
-    name: "Subscription Renewal Reminder",
-    subject: "Your Fixzit subscription renews soon",
-    category: "billing",
-    bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Subscription Renewal</h1>
-  <p>Hi {{customerName}},</p>
-  <p>Your {{planName}} subscription will renew on {{renewalDate}} for {{amount}}.</p>
-  <p>No action needed - your card ending in {{cardLast4}} will be charged automatically.</p>
-  <p><a href="{{billingUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Manage Subscription</a></p>
-</div>`,
-    bodyText: `Subscription Renewal
-
-Hi {{customerName}},
-
-Your {{planName}} subscription will renew on {{renewalDate}} for {{amount}}.
-
-No action needed - your card ending in {{cardLast4}} will be charged automatically.
-
-Manage Subscription: {{billingUrl}}`,
-    variables: ["customerName", "planName", "renewalDate", "amount", "cardLast4", "billingUrl"],
-    lastUpdated: "2025-01-08T11:00:00Z",
-    updatedBy: "superadmin",
-    version: 2,
-    isActive: true,
-  },
-];
 
 const CATEGORY_COLORS: Record<string, string> = {
   auth: "bg-blue-500/10 text-blue-500",
@@ -291,9 +127,10 @@ export default function EmailTemplatesPage() {
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      // In production: fetch from /api/superadmin/email-templates
-      await new Promise(r => setTimeout(r, 500));
-      setTemplates(MOCK_TEMPLATES);
+      const response = await fetch("/api/superadmin/email-templates", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch templates");
+      const data = await response.json();
+      setTemplates(data.templates || []);
     } catch {
       toast.error("Failed to load templates");
     } finally {
@@ -324,18 +161,21 @@ export default function EmailTemplatesPage() {
     if (!selectedTemplate) return;
     
     try {
-      // In production: PUT to /api/superadmin/email-templates/:id
+      const response = await fetch(`/api/superadmin/email-templates/${selectedTemplate.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          subject: editForm.subject,
+          bodyHtml: editForm.bodyHtml,
+          bodyText: editForm.bodyText,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save template");
+      const data = await response.json();
+      
       setTemplates(prev => prev.map(t => 
-        t.id === selectedTemplate.id 
-          ? { 
-              ...t, 
-              subject: editForm.subject,
-              bodyHtml: editForm.bodyHtml,
-              bodyText: editForm.bodyText,
-              lastUpdated: new Date().toISOString(),
-              version: t.version + 1,
-            } 
-          : t
+        t.id === selectedTemplate.id ? data.template : t
       ));
       
       setShowEditDialog(false);
@@ -347,8 +187,11 @@ export default function EmailTemplatesPage() {
 
   const handleSendTest = async (template: EmailTemplate) => {
     try {
-      // In production: POST to /api/superadmin/email-templates/:id/test
-      await new Promise(r => setTimeout(r, 1000));
+      const response = await fetch(`/api/superadmin/email-templates/${template.id}/test`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to send test email");
       toast.success(`Test email sent for "${template.name}"`);
     } catch {
       toast.error("Failed to send test email");

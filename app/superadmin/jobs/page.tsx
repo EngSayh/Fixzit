@@ -66,32 +66,49 @@ export default function SuperadminJobsPage() {
   const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
-      // Get job stats from processing endpoint (stats-only, no side effects)
-      const response = await fetch("/api/jobs/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Fetch jobs from superadmin API
+      const response = await fetch(`/api/superadmin/jobs${typeFilter !== "all" ? `?status=${typeFilter}` : ""}`, {
         credentials: "include",
-        body: JSON.stringify({ maxJobs: 0, retryStuckJobs: false }), // Stats only, no processing
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.stats) setStats(data.stats);
+        if (data.stats) {
+          setStats({
+            pending: data.stats.pending || data.summary?.idle || 0,
+            processing: data.stats.processing || data.summary?.running || 0,
+            completed: data.stats.completed || data.executionStats?.success || 0,
+            failed: data.stats.failed || data.summary?.error || 0,
+          });
+        } else if (data.summary) {
+          setStats({
+            pending: data.summary.idle || 0,
+            processing: data.summary.running || 0,
+            completed: data.executionStats?.success || 0,
+            failed: data.summary.error || 0,
+          });
+        }
+        // Map tasks/jobs to our format
+        if (data.tasks) {
+          setJobs(data.tasks.map((task: { _id: string; type?: string; name?: string; status: string; lastRunAt?: string; createdAt?: string; error?: string }) => ({
+            _id: task._id,
+            type: task.type || task.name || "task",
+            status: task.status === "running" ? "processing" : task.status === "error" ? "failed" : task.status === "idle" ? "pending" : "completed",
+            priority: 1,
+            attempts: 1,
+            maxAttempts: 3,
+            createdAt: task.lastRunAt || task.createdAt || new Date().toISOString(),
+            error: task.error,
+          })));
+        } else if (data.jobs) {
+          setJobs(data.jobs);
+        }
       }
-
-      // Simulated recent jobs (would come from dedicated endpoint)
-      setJobs([
-        { _id: "1", type: "email", status: "completed", priority: 1, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 60000).toISOString(), processedAt: new Date().toISOString() },
-        { _id: "2", type: "s3-cleanup", status: "completed", priority: 2, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 120000).toISOString(), processedAt: new Date(Date.now() - 30000).toISOString() },
-        { _id: "3", type: "notification", status: "pending", priority: 1, attempts: 0, maxAttempts: 3, createdAt: new Date().toISOString() },
-        { _id: "4", type: "email", status: "failed", priority: 1, attempts: 3, maxAttempts: 3, createdAt: new Date(Date.now() - 300000).toISOString(), error: "SMTP connection timeout" },
-        { _id: "5", type: "report", status: "processing", priority: 2, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 45000).toISOString() },
-      ]);
     } catch {
       toast.error(t("superadmin.jobs.fetchError", "Failed to load job stats; showing defaults"));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, typeFilter]);
 
   useEffect(() => { fetchJobs(); const interval = setInterval(fetchJobs, 30000); return () => clearInterval(interval); }, [fetchJobs]);
 

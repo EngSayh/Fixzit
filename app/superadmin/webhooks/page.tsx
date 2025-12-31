@@ -109,97 +109,6 @@ const AVAILABLE_EVENTS = [
 ];
 
 // ============================================================================
-// MOCK DATA
-// ============================================================================
-
-const MOCK_WEBHOOKS: WebhookConfig[] = [
-  {
-    id: "wh-1",
-    name: "CRM Integration",
-    url: "https://crm.example.com/webhooks/fixzit",
-    secret: "wh_sec_placeholder_1", // Mock data - actual secrets stored securely
-    enabled: true,
-    events: ["tenant.created", "user.created"],
-    createdAt: "2025-01-01T00:00:00Z",
-    lastTriggered: "2025-01-20T14:30:00Z",
-    successCount: 142,
-    failureCount: 3,
-    retryPolicy: "exponential",
-    maxRetries: 3,
-    status: "active",
-  },
-  {
-    id: "wh-2",
-    name: "Billing Sync",
-    url: "https://billing.example.com/api/webhooks",
-    secret: "wh_sec_placeholder_2", // Mock data - actual secrets stored securely
-    enabled: true,
-    events: ["payment.completed", "payment.failed", "invoice.generated"],
-    createdAt: "2025-01-05T00:00:00Z",
-    lastTriggered: "2025-01-20T12:00:00Z",
-    successCount: 89,
-    failureCount: 0,
-    retryPolicy: "linear",
-    maxRetries: 5,
-    status: "active",
-  },
-  {
-    id: "wh-3",
-    name: "Analytics Pipeline",
-    url: "https://analytics.internal/ingest",
-    secret: "wh_sec_placeholder_3", // Mock data - actual secrets stored securely
-    enabled: false,
-    events: ["workorder.created", "workorder.completed"],
-    createdAt: "2025-01-10T00:00:00Z",
-    lastTriggered: null,
-    successCount: 0,
-    failureCount: 0,
-    retryPolicy: "none",
-    maxRetries: 0,
-    status: "paused",
-  },
-];
-
-const MOCK_LOGS: DeliveryLog[] = [
-  {
-    id: "log-1",
-    webhookId: "wh-1",
-    event: "tenant.created",
-    status: "success",
-    statusCode: 200,
-    responseTime: 145,
-    attemptCount: 1,
-    createdAt: "2025-01-20T14:30:00Z",
-    payload: '{"event":"tenant.created","data":{"id":"t-123"}}',
-    response: '{"received":true}',
-  },
-  {
-    id: "log-2",
-    webhookId: "wh-2",
-    event: "payment.completed",
-    status: "success",
-    statusCode: 200,
-    responseTime: 89,
-    attemptCount: 1,
-    createdAt: "2025-01-20T12:00:00Z",
-    payload: '{"event":"payment.completed","data":{"amount":150}}',
-    response: '{"ok":true}',
-  },
-  {
-    id: "log-3",
-    webhookId: "wh-1",
-    event: "user.created",
-    status: "failed",
-    statusCode: 500,
-    responseTime: 2000,
-    attemptCount: 3,
-    createdAt: "2025-01-20T10:15:00Z",
-    payload: '{"event":"user.created","data":{"id":"u-456"}}',
-    response: '{"error":"Internal server error"}',
-  },
-];
-
-// ============================================================================
 // COMPONENTS
 // ============================================================================
 
@@ -260,10 +169,11 @@ export default function WebhooksPage() {
   const fetchWebhooks = useCallback(async () => {
     try {
       setLoading(true);
-      // In production: fetch from /api/superadmin/webhooks
-      await new Promise(r => setTimeout(r, 500));
-      setWebhooks(MOCK_WEBHOOKS);
-      setLogs(MOCK_LOGS);
+      const response = await fetch("/api/superadmin/webhooks", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch webhooks");
+      const data = await response.json();
+      setWebhooks(data.webhooks || []);
+      setLogs(data.recentDeliveries || []);
     } catch {
       toast.error("Failed to load webhooks");
     } finally {
@@ -294,24 +204,21 @@ export default function WebhooksPage() {
     }
     
     try {
-      // In production: POST to /api/superadmin/webhooks
-      const newWebhook: WebhookConfig = {
-        id: `wh-${Date.now()}`,
-        name: formData.name,
-        url: formData.url,
-        secret: `wh_sec_${crypto.randomUUID().replace(/-/g, "").substring(0, 16)}`, // Mock secret format
-        enabled: true,
-        events: formData.events,
-        createdAt: new Date().toISOString(),
-        lastTriggered: null,
-        successCount: 0,
-        failureCount: 0,
-        retryPolicy: formData.retryPolicy,
-        maxRetries: formData.maxRetries,
-        status: "active",
-      };
-      
-      setWebhooks(prev => [...prev, newWebhook]);
+      const response = await fetch("/api/superadmin/webhooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: formData.name,
+          url: formData.url,
+          events: formData.events,
+          retryPolicy: formData.retryPolicy,
+          maxRetries: formData.maxRetries,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to create webhook");
+      const data = await response.json();
+      setWebhooks(prev => [...prev, data.webhook]);
       setShowCreateDialog(false);
       setFormData({ name: "", url: "", events: [], retryPolicy: "exponential", maxRetries: 3 });
       toast.success("Webhook created successfully");
@@ -321,25 +228,49 @@ export default function WebhooksPage() {
   };
 
   const handleToggle = async (id: string, enabled: boolean) => {
-    setWebhooks(prev => prev.map(w => 
-      w.id === id ? { ...w, enabled, status: enabled ? "active" : "paused" } : w
-    ));
-    toast.success(enabled ? "Webhook enabled" : "Webhook paused");
+    try {
+      const response = await fetch(`/api/superadmin/webhooks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ enabled }),
+      });
+      if (!response.ok) throw new Error("Failed to toggle webhook");
+      setWebhooks(prev => prev.map(w => 
+        w.id === id ? { ...w, enabled, status: enabled ? "active" : "paused" } : w
+      ));
+      toast.success(enabled ? "Webhook enabled" : "Webhook paused");
+    } catch {
+      toast.error("Failed to toggle webhook");
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this webhook?")) return;
     
-    setWebhooks(prev => prev.filter(w => w.id !== id));
-    toast.success("Webhook deleted");
+    try {
+      const response = await fetch(`/api/superadmin/webhooks/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete webhook");
+      setWebhooks(prev => prev.filter(w => w.id !== id));
+      toast.success("Webhook deleted");
+    } catch {
+      toast.error("Failed to delete webhook");
+    }
   };
 
   const handleTest = async (webhook: WebhookConfig) => {
     setTestingId(webhook.id);
     try {
-      // Simulate test request
-      await new Promise(r => setTimeout(r, 1500));
-      toast.success(`Test payload sent to ${webhook.name}`);
+      const response = await fetch(`/api/superadmin/webhooks/${webhook.id}/test`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Test failed");
+      const data = await response.json();
+      toast.success(data.message || `Test payload sent to ${webhook.name}`);
     } catch {
       toast.error("Test failed");
     } finally {
@@ -356,9 +287,18 @@ export default function WebhooksPage() {
     }
   };
 
-  const viewLogs = (webhook: WebhookConfig) => {
+  const viewLogs = async (webhook: WebhookConfig) => {
     setSelectedWebhook(webhook);
     setShowLogsDialog(true);
+    try {
+      const response = await fetch(`/api/superadmin/webhooks/${webhook.id}/logs`, { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.deliveries || []);
+      }
+    } catch {
+      // Keep existing logs if fetch fails
+    }
   };
 
   const filteredWebhooks = webhooks.filter(w => 

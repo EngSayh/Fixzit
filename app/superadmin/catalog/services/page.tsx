@@ -83,137 +83,8 @@ interface FMService {
 }
 
 // ============================================================================
-// MOCK DATA
+// CONSTANTS
 // ============================================================================
-
-const MOCK_SERVICES: FMService[] = [
-  {
-    id: "svc-1",
-    name: "AC Maintenance",
-    nameAr: "صيانة التكييف",
-    description: "Regular HVAC maintenance including filter replacement and system inspection",
-    category: "HVAC",
-    pricing: { type: "FIXED", basePrice: 150, currency: "SAR" },
-    estimatedDuration: 60,
-    isActive: true,
-    isOnDemand: true,
-    isContractBased: true,
-    requiresCertification: true,
-    assignedVendors: 12,
-    completedJobs: 1450,
-    avgRating: 4.7,
-    businessModel: "BOTH",
-    createdAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "svc-2",
-    name: "Electrical Repair",
-    nameAr: "إصلاحات كهربائية",
-    description: "General electrical repairs and troubleshooting",
-    category: "ELECTRICAL",
-    pricing: { type: "HOURLY", basePrice: 80, currency: "SAR" },
-    estimatedDuration: 90,
-    isActive: true,
-    isOnDemand: true,
-    isContractBased: false,
-    requiresCertification: true,
-    assignedVendors: 8,
-    completedJobs: 890,
-    avgRating: 4.5,
-    businessModel: "BOTH",
-    createdAt: "2024-01-15T00:00:00Z",
-  },
-  {
-    id: "svc-3",
-    name: "Plumbing Services",
-    nameAr: "خدمات السباكة",
-    description: "Pipe repairs, drain cleaning, and water heater services",
-    category: "PLUMBING",
-    pricing: { type: "HOURLY", basePrice: 70, currency: "SAR" },
-    estimatedDuration: 120,
-    isActive: true,
-    isOnDemand: true,
-    isContractBased: true,
-    requiresCertification: false,
-    assignedVendors: 15,
-    completedJobs: 2100,
-    avgRating: 4.6,
-    businessModel: "BOTH",
-    createdAt: "2024-02-01T00:00:00Z",
-  },
-  {
-    id: "svc-4",
-    name: "Office Deep Cleaning",
-    nameAr: "تنظيف المكاتب العميق",
-    description: "Commercial deep cleaning for offices and facilities",
-    category: "CLEANING",
-    pricing: { type: "CUSTOM", basePrice: 500, currency: "SAR" },
-    estimatedDuration: 240,
-    isActive: true,
-    isOnDemand: false,
-    isContractBased: true,
-    requiresCertification: false,
-    assignedVendors: 6,
-    completedJobs: 320,
-    avgRating: 4.8,
-    businessModel: "B2B",
-    createdAt: "2024-03-01T00:00:00Z",
-  },
-  {
-    id: "svc-5",
-    name: "Security System Installation",
-    nameAr: "تركيب أنظمة الأمن",
-    description: "CCTV, access control, and alarm system installation",
-    category: "SECURITY",
-    pricing: { type: "CUSTOM", basePrice: 2000, currency: "SAR" },
-    estimatedDuration: 480,
-    isActive: true,
-    isOnDemand: false,
-    isContractBased: true,
-    requiresCertification: true,
-    assignedVendors: 4,
-    completedJobs: 85,
-    avgRating: 4.9,
-    businessModel: "B2B",
-    createdAt: "2024-04-01T00:00:00Z",
-  },
-  {
-    id: "svc-6",
-    name: "Pest Control",
-    nameAr: "مكافحة الآفات",
-    description: "Residential and commercial pest control services",
-    category: "PEST_CONTROL",
-    pricing: { type: "FIXED", basePrice: 200, currency: "SAR" },
-    estimatedDuration: 90,
-    isActive: true,
-    isOnDemand: true,
-    isContractBased: true,
-    requiresCertification: true,
-    assignedVendors: 5,
-    completedJobs: 650,
-    avgRating: 4.4,
-    businessModel: "BOTH",
-    createdAt: "2024-05-01T00:00:00Z",
-  },
-  {
-    id: "svc-7",
-    name: "Garden Maintenance",
-    nameAr: "صيانة الحدائق",
-    description: "Lawn care, irrigation, and landscape maintenance",
-    category: "LANDSCAPING",
-    pricing: { type: "HOURLY", basePrice: 50, currency: "SAR" },
-    estimatedDuration: 180,
-    isActive: false,
-    isOnDemand: false,
-    isContractBased: true,
-    requiresCertification: false,
-    assignedVendors: 3,
-    completedJobs: 120,
-    avgRating: 4.3,
-    businessModel: "B2C",
-    createdAt: "2024-06-01T00:00:00Z",
-  },
-];
 
 const CATEGORY_COLORS: Record<string, string> = {
   HVAC: "bg-blue-500/20 text-blue-500",
@@ -274,9 +145,10 @@ export default function FMServicesCatalogPage() {
   const fetchServices = useCallback(async () => {
     try {
       setLoading(true);
-      // In production: fetch from /api/souq/services or /api/fm/services
-      await new Promise(r => setTimeout(r, 500));
-      setServices(MOCK_SERVICES);
+      const response = await fetch("/api/superadmin/catalog/services", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch services");
+      const data = await response.json();
+      setServices(data.services || []);
     } catch {
       toast.error("Failed to load services");
     } finally {
@@ -289,8 +161,19 @@ export default function FMServicesCatalogPage() {
   }, [fetchServices]);
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, isActive } : s));
-    toast.success(isActive ? "Service activated" : "Service deactivated");
+    try {
+      const response = await fetch(`/api/superadmin/catalog/services/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isActive }),
+      });
+      if (!response.ok) throw new Error("Failed to toggle service");
+      setServices(prev => prev.map(s => s.id === id ? { ...s, isActive } : s));
+      toast.success(isActive ? "Service activated" : "Service deactivated");
+    } catch {
+      toast.error("Failed to toggle service");
+    }
   };
 
   const viewDetails = (service: FMService) => {

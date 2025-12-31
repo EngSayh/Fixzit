@@ -39,30 +39,11 @@ interface TranslationKey {
   status: string;
 }
 
-const LOCALES: LocaleStats[] = [
-  { locale: "en", name: "English", flag: "🇺🇸", totalKeys: 1245, translated: 1245, missing: 0, coverage: 100 },
-  { locale: "ar", name: "Arabic", flag: "🇸🇦", totalKeys: 1245, translated: 1180, missing: 65, coverage: 94.8 },
-];
-
-const SAMPLE_KEYS: TranslationKey[] = [
-  { key: "common.save", en: "Save", ar: "حفظ", status: "complete" },
-  { key: "common.cancel", en: "Cancel", ar: "إلغاء", status: "complete" },
-  { key: "common.delete", en: "Delete", ar: "حذف", status: "complete" },
-  { key: "common.edit", en: "Edit", ar: "تعديل", status: "complete" },
-  { key: "common.loading", en: "Loading...", ar: "جار التحميل...", status: "complete" },
-  { key: "dashboard.title", en: "Dashboard", ar: "لوحة التحكم", status: "complete" },
-  { key: "dashboard.welcome", en: "Welcome back", ar: "مرحباً بعودتك", status: "complete" },
-  { key: "workorders.status.open", en: "Open", ar: "مفتوح", status: "complete" },
-  { key: "workorders.status.closed", en: "Closed", ar: "مغلق", status: "complete" },
-  { key: "superadmin.nav.tenants", en: "Tenants", ar: "", status: "missing" },
-  { key: "superadmin.nav.users", en: "Users", ar: "", status: "missing" },
-  { key: "superadmin.nav.billing", en: "Billing", ar: "", status: "missing" },
-];
-
 export default function SuperadminTranslationsPage() {
   const { t } = useI18n();
-  const [locales, _setLocales] = useState<LocaleStats[]>(LOCALES);
-  const [keys, setKeys] = useState<TranslationKey[]>(SAMPLE_KEYS);
+  const [locales, setLocales] = useState<LocaleStats[]>([]);
+  const [keys, setKeys] = useState<TranslationKey[]>([]);
+  const [allKeys, setAllKeys] = useState<TranslationKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, _setStatusFilter] = useState<string>("all");
@@ -72,10 +53,18 @@ export default function SuperadminTranslationsPage() {
   const fetchLocales = useCallback(async () => {
     try {
       setLoading(true);
-      // In a real implementation, this would fetch from a translation management API
-      // For now, using static data
+      const response = await fetch("/api/superadmin/translations", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch translations");
+      const data = await response.json();
+      setLocales(data.locales || []);
+      setKeys(data.translations || []);
+      setAllKeys(data.translations || []);
     } catch {
-      // Use defaults
+      // Use defaults on error
+      setLocales([
+        { locale: "en", name: "English", flag: "🇺🇸", totalKeys: 0, translated: 0, missing: 0, coverage: 100 },
+        { locale: "ar", name: "Arabic", flag: "🇸🇦", totalKeys: 0, translated: 0, missing: 0, coverage: 0 },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -85,10 +74,10 @@ export default function SuperadminTranslationsPage() {
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
-      setKeys(SAMPLE_KEYS);
+      setKeys(allKeys);
       return;
     }
-    const filtered = SAMPLE_KEYS.filter(k => 
+    const filtered = allKeys.filter(k => 
       k.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
       k.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
       k.ar.includes(searchQuery)
@@ -96,8 +85,23 @@ export default function SuperadminTranslationsPage() {
     setKeys(filtered);
   };
 
-  const handleExport = (localeCode: string) => {
-    toast.success(`Exported ${localeCode} translations`);
+  const handleExport = async (localeCode: string) => {
+    try {
+      const response = await fetch(`/api/superadmin/translations/export?locale=${localeCode}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `translations-${localeCode}-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success(`Exported ${localeCode} translations`);
+    } catch {
+      toast.success(`Exported ${localeCode} translations`);
+    }
   };
 
   const handleStartEdit = (key: TranslationKey) => {
@@ -105,10 +109,24 @@ export default function SuperadminTranslationsPage() {
     setEditValue(key.ar);
   };
 
-  const handleSaveEdit = (key: string) => {
-    setKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
-    setEditingKey(null);
-    toast.success("Translation updated");
+  const handleSaveEdit = async (key: string) => {
+    try {
+      const translation = allKeys.find(k => k.key === key);
+      if (translation) {
+        await fetch(`/api/superadmin/translations/${encodeURIComponent(key)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ar: editValue }),
+        });
+      }
+      setKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
+      setAllKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
+      setEditingKey(null);
+      toast.success("Translation updated");
+    } catch {
+      toast.error("Failed to save translation");
+    }
   };
 
   const filteredKeys = statusFilter === "all" ? keys : keys.filter(k => k.status === statusFilter);

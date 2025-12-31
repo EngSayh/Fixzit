@@ -93,182 +93,8 @@ interface TaskExecution {
 }
 
 // ============================================================================
-// MOCK DATA
+// CONSTANTS
 // ============================================================================
-
-const MOCK_TASKS: ScheduledTask[] = [
-  {
-    id: "task-1",
-    name: "Daily Backup",
-    description: "Full database backup to S3",
-    type: "cron",
-    schedule: "0 2 * * *",
-    scheduleHuman: "Every day at 2:00 AM",
-    enabled: true,
-    lastRun: "2025-01-20T02:00:00Z",
-    nextRun: "2025-01-21T02:00:00Z",
-    lastStatus: "success",
-    lastDuration: 45000,
-    successCount: 365,
-    failureCount: 2,
-    category: "maintenance",
-  },
-  {
-    id: "task-2",
-    name: "Weekly Usage Report",
-    description: "Generate and email weekly usage statistics",
-    type: "cron",
-    schedule: "0 9 * * 1",
-    scheduleHuman: "Every Monday at 9:00 AM",
-    enabled: true,
-    lastRun: "2025-01-13T09:00:00Z",
-    nextRun: "2025-01-20T09:00:00Z",
-    lastStatus: "success",
-    lastDuration: 12000,
-    successCount: 52,
-    failureCount: 0,
-    category: "reports",
-  },
-  {
-    id: "task-3",
-    name: "Sync External Integrations",
-    description: "Synchronize data with QuickBooks, Xero",
-    type: "interval",
-    schedule: "*/15 * * * *",
-    scheduleHuman: "Every 15 minutes",
-    enabled: true,
-    lastRun: "2025-01-20T14:45:00Z",
-    nextRun: "2025-01-20T15:00:00Z",
-    lastStatus: "running",
-    lastDuration: null,
-    successCount: 8640,
-    failureCount: 23,
-    category: "sync",
-  },
-  {
-    id: "task-4",
-    name: "Cleanup Expired Sessions",
-    description: "Remove expired user sessions and tokens",
-    type: "cron",
-    schedule: "0 */6 * * *",
-    scheduleHuman: "Every 6 hours",
-    enabled: true,
-    lastRun: "2025-01-20T12:00:00Z",
-    nextRun: "2025-01-20T18:00:00Z",
-    lastStatus: "success",
-    lastDuration: 3500,
-    successCount: 1460,
-    failureCount: 0,
-    category: "cleanup",
-  },
-  {
-    id: "task-5",
-    name: "Monthly Invoice Generation",
-    description: "Generate monthly invoices for all tenants",
-    type: "cron",
-    schedule: "0 0 1 * *",
-    scheduleHuman: "1st of every month at midnight",
-    enabled: true,
-    lastRun: "2025-01-01T00:00:00Z",
-    nextRun: "2025-02-01T00:00:00Z",
-    lastStatus: "success",
-    lastDuration: 180000,
-    successCount: 12,
-    failureCount: 0,
-    category: "reports",
-  },
-  {
-    id: "task-6",
-    name: "Subscription Renewal Reminders",
-    description: "Send email reminders for upcoming renewals",
-    type: "cron",
-    schedule: "0 10 * * *",
-    scheduleHuman: "Every day at 10:00 AM",
-    enabled: true,
-    lastRun: "2025-01-20T10:00:00Z",
-    nextRun: "2025-01-21T10:00:00Z",
-    lastStatus: "success",
-    lastDuration: 8500,
-    successCount: 30,
-    failureCount: 1,
-    category: "notifications",
-  },
-  {
-    id: "task-7",
-    name: "ZATCA Compliance Sync",
-    description: "Submit pending e-invoices to ZATCA",
-    type: "interval",
-    schedule: "*/30 * * * *",
-    scheduleHuman: "Every 30 minutes",
-    enabled: false,
-    lastRun: "2025-01-15T08:30:00Z",
-    nextRun: null,
-    lastStatus: "failed",
-    lastDuration: 5000,
-    successCount: 200,
-    failureCount: 15,
-    category: "sync",
-  },
-  {
-    id: "task-8",
-    name: "Audit Log Archival",
-    description: "Archive audit logs older than 90 days",
-    type: "cron",
-    schedule: "0 3 * * 0",
-    scheduleHuman: "Every Sunday at 3:00 AM",
-    enabled: true,
-    lastRun: "2025-01-19T03:00:00Z",
-    nextRun: "2025-01-26T03:00:00Z",
-    lastStatus: "success",
-    lastDuration: 65000,
-    successCount: 52,
-    failureCount: 0,
-    category: "maintenance",
-  },
-];
-
-const MOCK_EXECUTIONS: TaskExecution[] = [
-  {
-    id: "exec-1",
-    taskId: "task-1",
-    startedAt: "2025-01-20T02:00:00Z",
-    completedAt: "2025-01-20T02:00:45Z",
-    status: "success",
-    duration: 45000,
-    output: "Backup completed. Size: 2.3GB. Uploaded to s3://fixzit-backups/2025-01-20.sql.gz",
-    error: null,
-  },
-  {
-    id: "exec-2",
-    taskId: "task-1",
-    startedAt: "2025-01-19T02:00:00Z",
-    completedAt: "2025-01-19T02:00:42Z",
-    status: "success",
-    duration: 42000,
-    output: "Backup completed. Size: 2.2GB. Uploaded to s3://fixzit-backups/2025-01-19.sql.gz",
-    error: null,
-  },
-  {
-    id: "exec-3",
-    taskId: "task-3",
-    startedAt: "2025-01-20T14:45:00Z",
-    completedAt: null,
-    status: "running",
-    duration: null,
-    output: "Syncing 3 integrations...",
-    error: null,
-  },
-  {
-    id: "exec-4",
-    taskId: "task-7",
-    startedAt: "2025-01-15T08:30:00Z",
-    completedAt: "2025-01-15T08:30:05Z",
-    status: "failed",
-    duration: 5000,
-    output: "Attempting to connect to ZATCA...",
-    error: "Connection timeout: ZATCA API unreachable",
-  },
-];
 
 const CATEGORY_ICONS: Record<string, typeof Clock> = {
   reports: BarChart3,
@@ -351,10 +177,11 @@ export default function ScheduledTasksPage() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
-      // In production: fetch from /api/superadmin/scheduled-tasks
-      await new Promise(r => setTimeout(r, 500));
-      setTasks(MOCK_TASKS);
-      setExecutions(MOCK_EXECUTIONS);
+      const response = await fetch("/api/superadmin/scheduled-tasks", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch tasks");
+      const data = await response.json();
+      setTasks(data.tasks || []);
+      setExecutions(data.recentExecutions || []);
     } catch {
       toast.error("Failed to load scheduled tasks");
     } finally {
@@ -367,27 +194,42 @@ export default function ScheduledTasksPage() {
   }, [fetchTasks]);
 
   const handleToggle = async (id: string, enabled: boolean) => {
-    setTasks(prev => prev.map(t => 
-      t.id === id 
-        ? { 
-            ...t, 
-            enabled,
-            nextRun: enabled ? new Date(Date.now() + 3600000).toISOString() : null,
-          } 
-        : t
-    ));
-    toast.success(enabled ? "Task enabled" : "Task paused");
+    try {
+      const response = await fetch(`/api/superadmin/scheduled-tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ enabled }),
+      });
+      if (!response.ok) throw new Error("Failed to toggle task");
+      setTasks(prev => prev.map(t => 
+        t.id === id 
+          ? { 
+              ...t, 
+              enabled,
+              nextRun: enabled ? new Date(Date.now() + 3600000).toISOString() : null,
+            } 
+          : t
+      ));
+      toast.success(enabled ? "Task enabled" : "Task paused");
+    } catch {
+      toast.error("Failed to toggle task");
+    }
   };
 
   const handleRunNow = async (task: ScheduledTask) => {
     setRunningTask(task.id);
     try {
-      // In production: POST to /api/superadmin/scheduled-tasks/:id/run
-      await new Promise(r => setTimeout(r, 2000));
+      const response = await fetch(`/api/superadmin/scheduled-tasks/${task.id}/run`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to run task");
+      const data = await response.json();
       
       setTasks(prev => prev.map(t => 
         t.id === task.id 
-          ? { ...t, lastRun: new Date().toISOString(), lastStatus: "success" }
+          ? { ...t, lastRun: new Date().toISOString(), lastStatus: data.execution?.status || "success" }
           : t
       ));
       
