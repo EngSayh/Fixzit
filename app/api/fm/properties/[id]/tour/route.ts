@@ -27,7 +27,7 @@ const BUILDING_MODELS_COLLECTION = "building_models";
 
 /**
  * Sanitize unit data for public access
- * Removes sensitive fields like meter readings
+ * Removes sensitive fields like meter readings and tenant info
  */
 function sanitizeUnitPublic(unit: Record<string, unknown>): Record<string, unknown> {
   const { 
@@ -35,9 +35,32 @@ function sanitizeUnitPublic(unit: Record<string, unknown>): Record<string, unkno
     waterMeter: _w, 
     orgId: _o,
     tenantId: _t,
+    tenant: _tenant,
     ...safe 
   } = unit;
   return safe;
+}
+
+/**
+ * Sanitize model metadata for public access
+ * Removes internal unit IDs and meter numbers from model metadata
+ */
+function sanitizeModelPublic(model: unknown): unknown {
+  if (!model || typeof model !== "object") return model;
+  const clone = JSON.parse(JSON.stringify(model)) as {
+    floors?: Array<{ units?: Array<{ metadata?: Record<string, unknown> }> }>;
+  };
+  if (!Array.isArray(clone.floors)) return clone;
+  for (const floor of clone.floors) {
+    if (!Array.isArray(floor.units)) continue;
+    for (const unit of floor.units) {
+      if (!unit?.metadata) continue;
+      delete unit.metadata.unitDbId;
+      delete unit.metadata.electricityMeter;
+      delete unit.metadata.waterMeter;
+    }
+  }
+  return clone;
 }
 
 /**
@@ -69,6 +92,18 @@ export async function GET(
       );
     }
 
+    // Require PUBLIC_ORG_ID for tenant-scoped public tours
+    const publicOrgId = process.env.PUBLIC_ORG_ID;
+    if (!publicOrgId) {
+      logger.warn("Public tour requested without PUBLIC_ORG_ID configured", {
+        propertyId: params.id,
+      });
+      return NextResponse.json(
+        { error: "Tour not available for this property" },
+        { status: 404 }
+      );
+    }
+
     const db = await getDatabase();
 
     // Get published building model (latest version with PUBLISHED status)
@@ -77,6 +112,7 @@ export async function GET(
       .findOne(
         {
           propertyId: new ObjectId(params.id),
+          orgId: publicOrgId,
           status: "PUBLISHED",
         },
         { sort: { version: -1 } }
@@ -118,11 +154,11 @@ export async function GET(
       );
     }
 
-    // Get property for units and basic info
+    // Get property for units and basic info (scoped to public org)
     const property = await db
       .collection(PROPERTIES_COLLECTION)
       .findOne(
-        { _id: new ObjectId(params.id) },
+        { _id: new ObjectId(params.id), orgId: publicOrgId },
         { 
           projection: { 
             name: 1, 
@@ -139,11 +175,14 @@ export async function GET(
     // Sanitize units for public access
     const units = (property?.units || []).map(sanitizeUnitPublic);
 
+    // Sanitize model metadata to remove internal IDs and meter numbers
+    const sanitizedModel = sanitizeModelPublic(model);
+
     // Build response with caching headers
     const response = NextResponse.json({
       success: true,
       data: {
-        model,
+        model: sanitizedModel,
         version: record.version,
         propertyId: params.id,
         propertyName: property?.name,
