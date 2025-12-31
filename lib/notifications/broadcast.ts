@@ -61,12 +61,25 @@ function generateNotificationId(prefix: string): string {
 
 /**
  * Convert string or ObjectId array to ObjectId array
+ * Validates string IDs before conversion and filters out invalid ones
  */
 function toObjectIdArray(ids?: (string | Types.ObjectId)[]): Types.ObjectId[] | undefined {
   if (!ids || ids.length === 0) return undefined;
-  return ids.map(id => 
-    typeof id === 'string' ? new Types.ObjectId(id) : id
-  );
+  
+  const validIds: Types.ObjectId[] = [];
+  for (const id of ids) {
+    if (typeof id === 'string') {
+      if (Types.ObjectId.isValid(id)) {
+        validIds.push(new Types.ObjectId(id));
+      }
+      // Skip invalid string IDs silently (defensive approach)
+    } else {
+      // Already an ObjectId
+      validIds.push(id);
+    }
+  }
+  
+  return validIds.length > 0 ? validIds : undefined;
 }
 
 // ============================================================================

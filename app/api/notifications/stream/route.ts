@@ -41,6 +41,20 @@ export async function GET(request: NextRequest) {
     return new Response('Missing organization context', { status: 403 });
   }
 
+  // Validate ObjectId format before creating instances
+  if (!Types.ObjectId.isValid(orgId)) {
+    logger.warn('[SSE] Invalid orgId format', { orgId });
+    return new Response('Invalid organization ID format', { status: 400 });
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    logger.warn('[SSE] Invalid userId format', { userId });
+    return new Response('Invalid user ID format', { status: 400 });
+  }
+
+  // Convert to ObjectId after validation
+  const orgObjectId = new Types.ObjectId(orgId);
+  const userObjectId = new Types.ObjectId(userId);
+
   // Prevent timeout on Vercel
   const encoder = new TextEncoder();
   
@@ -58,8 +72,8 @@ export async function GET(request: NextRequest) {
 
       // Subscribe to notifications for this user's org
       const unsubscribe = subscribeToNotifications(
-        new Types.ObjectId(orgId),
-        new Types.ObjectId(userId),
+        orgObjectId,
+        userObjectId,
         (notification: NotificationPayload) => {
           try {
             const message = formatSSEMessage({

@@ -3021,6 +3021,18 @@
     "notAvailable": "غير متاح",
     "email": "البريد الإلكتروني",
     "viewDetails": "عرض التفاصيل",
+    "preview": "معاينة",
+    "copy": "نسخ",
+    "copySecret": "نسخ المفتاح السري",
+    "increase": "زيادة",
+    "decrease": "تقليل",
+    "sendTest": "إرسال اختبار",
+    "runNow": "تشغيل الآن",
+    "viewHistory": "عرض السجل",
+    "viewLogs": "عرض السجلات",
+    "testWebhook": "اختبار الويب هوك",
+    "tableView": "عرض الجدول",
+    "cardView": "عرض البطاقات",
     "vendors": "الموردين",
     "retry": "إعادة المحاولة",
     "na": "غير متاح",
@@ -5394,6 +5406,35 @@
     },
     "jobs": {
       "fetchError": "فشل تحميل المهام الخلفية"
+    },
+    "tasks": {
+      "title": "المهام المجدولة",
+      "runNow": "تشغيل الآن",
+      "viewHistory": "عرض السجل",
+      "enabled": "مفعّل",
+      "disabled": "معطّل"
+    },
+    "webhooks": {
+      "title": "الويب هوكس",
+      "test": "اختبار الويب هوك",
+      "viewLogs": "عرض السجلات",
+      "copySecret": "نسخ المفتاح السري",
+      "addWebhook": "إضافة ويب هوك"
+    },
+    "emails": {
+      "title": "قوالب البريد الإلكتروني",
+      "sendTest": "إرسال اختبار",
+      "preview": "معاينة",
+      "edit": "تعديل"
+    },
+    "vendors": {
+      "title": "الموردون",
+      "viewDetails": "عرض تفاصيل المورد"
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "viewDetails": "عرض تفاصيل الإشعار",
+      "send": "إرسال إشعار"
     },
     "subscriptions": {
       "fetchError": "فشل تحميل الاشتراكات",

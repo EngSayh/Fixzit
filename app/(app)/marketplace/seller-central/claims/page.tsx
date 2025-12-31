@@ -4,7 +4,6 @@ import { useState } from "react";
 import ClaimList from "@/components/souq/claims/ClaimList";
 import ClaimDetails from "@/components/souq/claims/ClaimDetails";
 import ResponseForm from "@/components/souq/claims/ResponseForm";
-import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/IconButton";
 import { ArrowLeft, AlertCircle } from "@/components/ui/icons";
 import { useI18n } from "@/i18n/useI18n";
