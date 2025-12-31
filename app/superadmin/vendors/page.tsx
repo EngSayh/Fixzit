@@ -12,15 +12,14 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { IconButton } from "@/components/ui/action-feedback";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import { 
-  Building2, RefreshCw, Search, Eye, Star, Phone, Mail, MapPin, 
+  Building2, RefreshCw, Eye, Star, Mail, MapPin, Phone,
   Users, CheckCircle, XCircle, TrendingUp,
 } from "@/components/ui/icons";
 
@@ -100,7 +99,7 @@ export default function SuperadminVendorsPage() {
 
   useEffect(() => { fetchVendors(); }, [fetchVendors]);
 
-  const handleSearch = () => { setPage(1); fetchVendors(); };
+  const _handleSearch = () => { setPage(1); fetchVendors(); };
   const handleViewVendor = (vendor: Vendor) => { setSelectedVendor(vendor); setViewDialogOpen(true); };
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   const stats = { total: vendors.length, active: vendors.filter(v => v.status === "ACTIVE").length, avgRating: vendors.filter(v => v.rating).reduce((sum, v) => sum + (v.rating?.average || 0), 0) / (vendors.filter(v => v.rating).length || 1) };
@@ -124,16 +123,45 @@ export default function SuperadminVendorsPage() {
         <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><TrendingUp className="h-8 w-8 text-purple-400" /><div><p className="text-2xl font-bold text-foreground">{VENDOR_TYPES.length}</p><p className="text-muted-foreground text-sm">{t("superadmin.vendors.categories", "Categories")}</p></div></div></CardContent></Card>
       </div>
 
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.vendors.searchPlaceholder", "Search vendors...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("superadmin.vendors.typePlaceholder", "Type")}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground">{typeFilter === "all" ? t("superadmin.vendors.allTypes", "All Types") : typeFilter.replace("_", " ")}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allTypes", "All Types")}</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.vendors.statusPlaceholder", "Status")}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground">{statusFilter === "all" ? t("superadmin.vendors.allStatus", "All Status") : statusFilter}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.vendors.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="SUSPENDED">{t("common.suspended", "Suspended")}</SelectItem></SelectContent></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SimpleFilterBar
+        search={{
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: t("superadmin.vendors.searchPlaceholder", "Search vendors..."),
+        }}
+        filters={[
+          {
+            id: "type",
+            value: typeFilter,
+            placeholder: t("superadmin.vendors.allTypes", "All Types"),
+            options: [
+              { value: "all", label: t("superadmin.vendors.allTypes", "All Types") },
+              ...VENDOR_TYPES.map((type) => ({ value: type, label: type.replace("_", " ") })),
+            ],
+            onChange: setTypeFilter,
+            width: "w-[150px]",
+          },
+          {
+            id: "status",
+            value: statusFilter,
+            placeholder: t("superadmin.vendors.allStatus", "All Status"),
+            options: [
+              { value: "all", label: t("superadmin.vendors.allStatus", "All Status") },
+              { value: "ACTIVE", label: t("superadmin.vendors.active", "Active") },
+              { value: "INACTIVE", label: t("common.inactive", "Inactive") },
+              { value: "SUSPENDED", label: t("common.suspended", "Suspended") },
+            ],
+            onChange: setStatusFilter,
+            width: "w-[130px]",
+          },
+        ]}
+        onClear={() => {
+          setSearchQuery("");
+          setTypeFilter("all");
+          setStatusFilter("all");
+          setPage(1);
+        }}
+      />
 
       <Card className="bg-card border-border">
         <CardHeader className="border-b border-border"><CardTitle className="text-foreground">{t("superadmin.nav.vendors", "Vendors")}</CardTitle><CardDescription className="text-muted-foreground">{t("superadmin.vendors.allVendors", "All vendors across tenants")}</CardDescription></CardHeader>

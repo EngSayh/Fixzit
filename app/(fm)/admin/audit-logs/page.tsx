@@ -118,7 +118,7 @@ export default function AuditLogViewer() {
         params.append("endDate", endDate.toISOString());
       }
       params.append("page", page.toString());
-      params.append("limit", LOGS_PER_PAGE.toString());
+      params.append("limit", pageSize.toString());
 
       const response = await fetch(`${API_ENDPOINT}?${params}`, {
         credentials: "include", // Ensure cookies are sent for authentication
@@ -214,7 +214,7 @@ export default function AuditLogViewer() {
     } finally {
       setLoading(false);
     }
-  }, [auto, filters, page]);
+  }, [auto, filters, page, pageSize]);
 
   useEffect(() => {
     fetchLogs();
@@ -275,8 +275,8 @@ export default function AuditLogViewer() {
     }
   };
 
-  const _pageStart = (page - 1) * LOGS_PER_PAGE + 1;
-  const _pageEnd = Math.min(page * LOGS_PER_PAGE, totalLogs);
+  const _pageStart = (page - 1) * pageSize + 1;
+  const _pageEnd = Math.min(page * pageSize, totalLogs);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">

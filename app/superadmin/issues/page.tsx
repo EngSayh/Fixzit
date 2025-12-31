@@ -454,7 +454,7 @@ Agent Token: [AGENT-001-A]`;
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t, connectionError]);
+  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t, connectionError]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {

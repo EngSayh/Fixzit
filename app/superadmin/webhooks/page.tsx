@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { IconButton } from "@/components/ui/IconButton";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Table,
   TableBody,
@@ -55,7 +56,6 @@ import {
   Clock,
   AlertTriangle,
   Webhook,
-  Search,
   Eye,
   Copy,
 } from "@/components/ui/icons";
@@ -404,15 +404,14 @@ export default function WebhooksPage() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={t("superadmin.webhooks.search", "Search webhooks...")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="ps-9"
-        />
-      </div>
+      <SimpleFilterBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: t("superadmin.webhooks.search", "Search webhooks..."),
+        }}
+        onClear={() => setSearch("")}
+      />
 
       {/* Webhooks Table */}
       <Card>

@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { IconButton } from "@/components/ui/IconButton";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Table,
   TableBody,
@@ -41,20 +42,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
   Edit,
   Eye,
   Send,
-  Search,
   Mail,
   FileText,
   Clock,
@@ -351,30 +344,34 @@ export default function EmailTemplatesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("superadmin.emails.search", "Search templates...")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="ps-9"
-          />
-        </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="auth">Authentication</SelectItem>
-            <SelectItem value="billing">Billing</SelectItem>
-            <SelectItem value="notifications">Notifications</SelectItem>
-            <SelectItem value="marketing">Marketing</SelectItem>
-            <SelectItem value="system">System</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <SimpleFilterBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: t("superadmin.emails.search", "Search templates..."),
+        }}
+        filters={[
+          {
+            id: "category",
+            value: categoryFilter,
+            placeholder: "All Categories",
+            options: [
+              { value: "all", label: "All Categories" },
+              { value: "auth", label: "Authentication" },
+              { value: "billing", label: "Billing" },
+              { value: "notifications", label: "Notifications" },
+              { value: "marketing", label: "Marketing" },
+              { value: "system", label: "System" },
+            ],
+            onChange: setCategoryFilter,
+            width: "w-[150px]",
+          },
+        ]}
+        onClear={() => {
+          setSearch("");
+          setCategoryFilter("all");
+        }}
+      />
 
       {/* Templates Table */}
       <Card>

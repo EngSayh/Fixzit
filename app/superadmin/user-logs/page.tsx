@@ -13,12 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
-  History, RefreshCw, Search, Eye, User, Clock, Globe,
+  History, RefreshCw, Eye, User, Clock, Globe,
   MousePointer, LogIn, Settings, FileText, AlertCircle,
   CheckCircle, XCircle, Download,
   Monitor, Smartphone, Tablet, MapPin, Activity,
@@ -611,50 +610,63 @@ export default function SuperadminUserLogsPage() {
 
         {/* Activity Logs Tab */}
         <TabsContent value="logs" className="space-y-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder={t("superadmin.userLogs.searchPlaceholder", "Search by user, email, action, or tenant...")} value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
-              </div>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
-                <SelectTrigger className="w-[150px] bg-muted border-input">
-                  {categoryFilter === "all" ? t("superadmin.userLogs.filters.allCategories", "All Categories") : t(`superadmin.userLogs.filters.categories.${categoryFilter}`, categoryFilter)}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("superadmin.userLogs.filters.allCategories", "All Categories")}</SelectItem>
-                  <SelectItem value="auth">{t("superadmin.userLogs.filters.categories.auth", "Authentication")}</SelectItem>
-                  <SelectItem value="navigation">{t("superadmin.userLogs.filters.categories.navigation", "Navigation")}</SelectItem>
-                  <SelectItem value="crud">{t("superadmin.userLogs.filters.categories.crud", "CRUD")}</SelectItem>
-                  <SelectItem value="settings">{t("superadmin.userLogs.filters.categories.settings", "Settings")}</SelectItem>
-                  <SelectItem value="api">{t("superadmin.userLogs.filters.categories.api", "API")}</SelectItem>
-                  <SelectItem value="error">{t("superadmin.userLogs.filters.categories.error", "Error")}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
-                <SelectTrigger className="w-[130px] bg-muted border-input">
-                  {statusFilter === "all" ? t("superadmin.userLogs.filters.allStatus", "All Status") : t(`superadmin.userLogs.filters.status.${statusFilter}`, statusFilter)}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("superadmin.userLogs.filters.allStatus", "All Status")}</SelectItem>
-                  <SelectItem value="success">{t("superadmin.userLogs.filters.status.success", "Success")}</SelectItem>
-                  <SelectItem value="warning">{t("superadmin.userLogs.filters.status.warning", "Warning")}</SelectItem>
-                  <SelectItem value="error">{t("superadmin.userLogs.filters.status.error", "Error")}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range">
-                <SelectTrigger className="w-[130px] bg-muted border-input">
-                  {dateRange === "today" ? t("superadmin.userLogs.filters.dateRange.today", "Today") : dateRange === "week" ? t("superadmin.userLogs.filters.dateRange.week", "This Week") : dateRange === "month" ? t("superadmin.userLogs.filters.dateRange.month", "This Month") : t("superadmin.userLogs.filters.dateRange.all", "All Time")}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">{t("superadmin.userLogs.filters.dateRange.today", "Today")}</SelectItem>
-                  <SelectItem value="week">{t("superadmin.userLogs.filters.dateRange.week", "This Week")}</SelectItem>
-                  <SelectItem value="month">{t("superadmin.userLogs.filters.dateRange.month", "This Month")}</SelectItem>
-                  <SelectItem value="all">{t("superadmin.userLogs.filters.dateRange.all", "All Time")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+          <SimpleFilterBar
+            search={{
+              value: search,
+              onChange: setSearch,
+              placeholder: t("superadmin.userLogs.searchPlaceholder", "Search by user, email, action, or tenant..."),
+            }}
+            filters={[
+              {
+                id: "category",
+                value: categoryFilter,
+                placeholder: t("superadmin.userLogs.filters.allCategories", "All Categories"),
+                options: [
+                  { value: "all", label: t("superadmin.userLogs.filters.allCategories", "All Categories") },
+                  { value: "auth", label: t("superadmin.userLogs.filters.categories.auth", "Authentication") },
+                  { value: "navigation", label: t("superadmin.userLogs.filters.categories.navigation", "Navigation") },
+                  { value: "crud", label: t("superadmin.userLogs.filters.categories.crud", "CRUD") },
+                  { value: "settings", label: t("superadmin.userLogs.filters.categories.settings", "Settings") },
+                  { value: "api", label: t("superadmin.userLogs.filters.categories.api", "API") },
+                  { value: "error", label: t("superadmin.userLogs.filters.categories.error", "Error") },
+                ],
+                onChange: setCategoryFilter,
+                width: "w-[140px]",
+              },
+              {
+                id: "status",
+                value: statusFilter,
+                placeholder: t("superadmin.userLogs.filters.allStatus", "All Status"),
+                options: [
+                  { value: "all", label: t("superadmin.userLogs.filters.allStatus", "All Status") },
+                  { value: "success", label: t("superadmin.userLogs.filters.status.success", "Success") },
+                  { value: "warning", label: t("superadmin.userLogs.filters.status.warning", "Warning") },
+                  { value: "error", label: t("superadmin.userLogs.filters.status.error", "Error") },
+                ],
+                onChange: setStatusFilter,
+                width: "w-[120px]",
+              },
+              {
+                id: "dateRange",
+                value: dateRange,
+                placeholder: t("superadmin.userLogs.filters.dateRange.today", "Today"),
+                options: [
+                  { value: "today", label: t("superadmin.userLogs.filters.dateRange.today", "Today") },
+                  { value: "week", label: t("superadmin.userLogs.filters.dateRange.week", "This Week") },
+                  { value: "month", label: t("superadmin.userLogs.filters.dateRange.month", "This Month") },
+                  { value: "all", label: t("superadmin.userLogs.filters.dateRange.all", "All Time") },
+                ],
+                onChange: setDateRange,
+                width: "w-[120px]",
+              },
+            ]}
+            onClear={() => {
+              setSearch("");
+              setCategoryFilter("all");
+              setStatusFilter("all");
+              setDateRange("today");
+            }}
+          />
 
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">

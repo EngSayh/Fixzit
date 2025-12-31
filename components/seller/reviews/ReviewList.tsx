@@ -48,7 +48,7 @@ export function ReviewList({
     if (productId) {
       fetchReviews();
     }
-  }, [productId, page, filters]);
+  }, [productId, page, pageSize, filters]);
 
   const fetchReviews = async () => {
     if (!productId) return;

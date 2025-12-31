@@ -215,7 +215,7 @@ export default function AdminIssuesPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
+  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {

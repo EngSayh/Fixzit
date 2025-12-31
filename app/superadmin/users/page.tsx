@@ -12,7 +12,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import {
   Users,
-  Search,
   RefreshCw,
   Eye,
   AlertCircle,
@@ -37,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Table,
   TableBody,
@@ -478,64 +478,54 @@ export default function SuperadminUsersPage() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Search row */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by email, name, phone, or organization..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            {/* Filter row */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select 
-                value={statusFilter} 
-                onValueChange={setStatusFilter}
-                placeholder="Status"
-                className="w-full sm:w-40 bg-muted border-input text-foreground"
-              >
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-              </Select>
-              
-              <Select 
-                value={orgFilter} 
-                onValueChange={setOrgFilter}
-                placeholder="Organization"
-                className="w-full sm:w-48 bg-muted border-input text-foreground"
-              >
-                <SelectItem value="all">All Organizations</SelectItem>
-                {organizations.map((org) => (
-                  <SelectItem key={org._id} value={org._id}>
-                    {org.name}
-                  </SelectItem>
-                ))}
-              </Select>
-              
-              <Select 
-                value={userTypeFilter} 
-                onValueChange={setUserTypeFilter}
-                placeholder="User Type"
-                className="w-full sm:w-40 bg-muted border-input text-foreground"
-              >
-                {USER_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SimpleFilterBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search by email, name, phone, or organization...",
+        }}
+        filters={[
+          {
+            id: "status",
+            value: statusFilter,
+            placeholder: "All Status",
+            options: [
+              { value: "all", label: "All Status" },
+              { value: "ACTIVE", label: "Active" },
+              { value: "PENDING", label: "Pending" },
+              { value: "INACTIVE", label: "Inactive" },
+              { value: "SUSPENDED", label: "Suspended" },
+            ],
+            onChange: setStatusFilter,
+            width: "w-[120px]",
+          },
+          {
+            id: "org",
+            value: orgFilter,
+            placeholder: "All Organizations",
+            options: [
+              { value: "all", label: "All Organizations" },
+              ...organizations.map((org) => ({ value: org._id, label: org.name })),
+            ],
+            onChange: setOrgFilter,
+            width: "w-[160px]",
+          },
+          {
+            id: "userType",
+            value: userTypeFilter,
+            placeholder: "User Type",
+            options: USER_TYPES.map((type) => ({ value: type.value, label: type.label })),
+            onChange: setUserTypeFilter,
+            width: "w-[120px]",
+          },
+        ]}
+        onClear={() => {
+          setSearch("");
+          setStatusFilter("all");
+          setOrgFilter("all");
+          setUserTypeFilter("all");
+        }}
+      />
 
       {/* Table */}
       <Card className="bg-card border-border">
