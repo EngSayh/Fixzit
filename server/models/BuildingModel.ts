@@ -100,11 +100,26 @@ const BuildingModelSchema = new Schema(
       seed: { type: String, maxlength: 128 },
     },
 
-    // Full 3D model data (JSON blob)
+    // Full 3D model data (JSON blob) - stored inline if small
     // Structure: { schemaVersion, generatedAt, spec, bounds, floors[] }
+    // NOTE: model is NOT required - may be null if stored in S3
     model: {
       type: Schema.Types.Mixed,
-      required: true,
+      required: false,
+    },
+
+    // Model size in bytes (for deciding inline vs S3 storage)
+    modelBytes: {
+      type: Number,
+      required: false,
+    },
+
+    // S3 storage reference for large models (>800KB)
+    // When set, model field is null and data is fetched from S3
+    modelS3: {
+      bucket: { type: String },
+      key: { type: String },
+      bytes: { type: Number },
     },
 
     // Optional metadata

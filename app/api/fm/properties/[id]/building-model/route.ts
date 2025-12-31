@@ -27,11 +27,11 @@ import { resolveTenantId } from "@/app/api/fm/utils/tenant";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { audit } from "@/lib/audit";
 import {
-  putJsonToS3 as _putJsonToS3,
+  putJsonToS3,
   getObjectText,
-  buildBuildingModelS3Key as _buildBuildingModelS3Key,
+  buildBuildingModelS3Key,
 } from "@/lib/storage/s3";
-import { isS3Configured as _isS3Configured } from "@/lib/storage/s3-config";
+import { isS3Configured } from "@/lib/storage/s3-config";
 import {
   BuildingGenSpecSchema,
   generateBuildingModel,
@@ -43,8 +43,7 @@ const PROPERTIES_COLLECTION = "properties";
 const BUILDING_MODELS_COLLECTION = "building_models";
 
 // S3 storage threshold - models larger than this are stored in S3
-// Reserved for future use when S3 offloading is implemented
-const _MAX_INLINE_BYTES = (() => {
+const MAX_INLINE_BYTES = (() => {
   const raw = process.env.FIXZIT_BUILDING_MODEL_INLINE_MAX_BYTES;
   const n = raw ? Number(raw) : 800_000; // ~0.8MB default
   return Number.isFinite(n) && n > 50_000 ? n : 800_000;
@@ -363,19 +362,56 @@ export async function POST(
 
     const newVersion = existingModel ? existingModel.version + 1 : 1;
 
-    // Upsert building model
-    const modelDoc = {
+    // Calculate model size and determine storage location
+    const modelJson = JSON.stringify(hydratedModel);
+    const modelBytes = Buffer.byteLength(modelJson, "utf8");
+
+    // Decide: inline or S3 storage
+    let modelInline: typeof hydratedModel | null = hydratedModel;
+    let modelS3: { bucket: string; key: string; bytes: number } | undefined;
+
+    if (modelBytes > MAX_INLINE_BYTES && isS3Configured()) {
+      try {
+        const s3Key = buildBuildingModelS3Key(tenantId, params.id, newVersion);
+        const s3Result = await putJsonToS3({
+          key: s3Key,
+          json: hydratedModel,
+          gzip: true,
+          cacheControl: "private, max-age=31536000",
+        });
+        modelInline = null;
+        modelS3 = { bucket: s3Result.bucket, key: s3Result.key, bytes: s3Result.bytes };
+        logger.info("Building model stored in S3", { 
+          propertyId: params.id, 
+          version: newVersion, 
+          originalBytes: modelBytes,
+          compressedBytes: s3Result.bytes,
+        });
+      } catch (err) {
+        logger.warn("Failed to store building model in S3, falling back to inline", { err });
+        // Keep modelInline as-is if S3 fails
+      }
+    }
+
+    // Create building model document
+    const modelDoc: Record<string, unknown> = {
       propertyId: new ObjectId(params.id),
       orgId: tenantId,
       version: newVersion,
       status: "DRAFT",
       generator: "procedural",
       input: spec,
-      model: hydratedModel,
+      model: modelInline,
+      modelBytes,
       createdAt: new Date(),
       updatedAt: new Date(),
       createdBy: actor.userId,
     };
+
+    // Add S3 reference if model was stored in S3
+    if (modelS3) {
+      modelDoc.modelS3 = modelS3;
+    }
 
     const result = await db
       .collection(BUILDING_MODELS_COLLECTION)
@@ -398,6 +434,8 @@ export async function POST(
         apartmentsPerFloor: spec.apartmentsPerFloor,
         template: spec.template,
         syncUnits,
+        modelBytes,
+        storedIn: modelS3 ? "s3" : "inline",
       },
     });
 
@@ -412,6 +450,9 @@ export async function POST(
           generator: "procedural",
           input: spec,
           model: hydratedModel,
+          modelInline: !!modelInline,
+          modelBytes,
+          modelS3,
           createdAt: modelDoc.createdAt,
           updatedAt: modelDoc.updatedAt,
         },
