@@ -25,13 +25,16 @@ describe("postingService Unit Tests", () => {
   let revenueAccountId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    // Connect to test database
-    const MONGODB_URI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+    // Connection is managed by vitest.setup.ts (MongoMemoryServer)
+    // Wait for connection to be ready (set by global setup)
+    const maxWait = 30000;
+    const start = Date.now();
+    while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWait) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
-    await mongoose.connect(MONGODB_URI);
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error(`Mongoose not connected after ${maxWait}ms - setup may have failed`);
+    }
 
     // Set context - TYPESCRIPT FIX: Context functions expect string IDs
     setTenantIsolationContext({ orgId: TEST_ORG_ID, skipTenantFilter: true });
@@ -68,13 +71,13 @@ describe("postingService Unit Tests", () => {
   });
 
   afterAll(async () => {
-    // Cleanup test data
+    // Cleanup test data (connection is managed by vitest.setup.ts)
     await Journal.deleteMany({ orgId: TEST_ORG_ID });
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
     await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
     clearContext();
     setTenantIsolationContext({});
-    await mongoose.disconnect();
+    // Don't disconnect - managed by vitest.setup.ts global teardown
   });
 
   beforeEach(async () => {

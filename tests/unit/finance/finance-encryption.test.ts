@@ -104,11 +104,18 @@ describe("Finance Model PII Encryption", () => {
   let mongoServer: MongoMemoryServer;
   const testKey = generateEncryptionKey();
 
+  // Store original URI before disconnecting for restoration
+  let originalMongoUri: string | undefined;
+
   beforeAll(async () => {
     // Allow reconnect to dedicated MongoMemoryServer for this suite
     Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "true");
     // Set encryption key
     process.env.ENCRYPTION_KEY = testKey;
+
+    // Save original connection URI for restoration in afterAll
+    // Capture from both env var AND current connection (whichever is available)
+    originalMongoUri = process.env.MONGODB_URI || (mongoose.connection.readyState === 1 ? mongoose.connection.host && mongoose.connection.db?.databaseName ? `mongodb://${mongoose.connection.host}/${mongoose.connection.db.databaseName}` : undefined : undefined);
 
     // Reset any existing connections (guards against accidental shared connection across tests)
     if (mongoose.connection.readyState !== 0) {
@@ -130,6 +137,17 @@ describe("Finance Model PII Encryption", () => {
       await mongoServer.stop();
     }
     delete process.env.ENCRYPTION_KEY;
+    
+    // Restore original global MongoMemoryServer connection for subsequent tests
+    // IMPORTANT: This is required to prevent breaking tests that run after this suite
+    Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "false");
+    if (originalMongoUri && mongoose.connection.readyState === 0) {
+      try {
+        await mongoose.connect(originalMongoUri);
+      } catch (err) {
+        console.warn('[finance-encryption.test.ts] Failed to restore MongoDB connection:', (err as Error).message);
+      }
+    }
   });
 
   describe("Invoice Model Encryption", () => {
