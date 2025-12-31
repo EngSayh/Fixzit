@@ -18,6 +18,42 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-31 14:45 (Asia/Riyadh) - P2 Error Logging Fixes [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** CR-2025-12-29-001, CR-2025-12-29-002, CR-2025-12-29-003
+**Context:** fix/superadmin-full-implementation | 8956ebadc | P2 error context fixes
+**DB Sync:** Required (CR-2025-12-29-001, CR-2025-12-29-002 → RESOLVED; CR-2025-12-29-003 → ALREADY_FIXED)
+
+#### Summary
+Fixed P2 error logging issues in superadmin pages. CR-2025-12-29-003 was already fixed.
+
+#### Fixes Applied
+| Issue ID | File | Change |
+|----------|------|--------|
+| CR-2025-12-29-001 | `app/superadmin/jobs/page.tsx` | Added error context to processJobs catch block |
+| CR-2025-12-29-002 | `app/superadmin/subscriptions/page.tsx` | Added error context to saveTier catch blocks |
+
+#### Already Fixed (No Action Needed)
+| Issue ID | File | Evidence |
+|----------|------|----------|
+| CR-2025-12-29-003 | `services/souq/vendor-intelligence.ts` | Line 958 already has `error: error instanceof Error ? error.message : String(error)` |
+
+#### Additional Fixes
+- Fixed 5 lint errors in `server/utils/gdpr.ts` (unused variables in sanitizePersonalInfo)
+
+#### P2 Issues Analysis (User's 25 items)
+| Category | Count | Status |
+|----------|-------|--------|
+| Fixed this session | 2 | CR-2025-12-29-001, CR-2025-12-29-002 |
+| Already fixed | 4 | e2e-runner-bash, CR-2025-12-29-003, TENANT-SCOPE-VENDOR-APPLY, TEST-ASSERT-500 |
+| Doc-only/Deferred | 19 | Test coverage, DevOps access required, documentation items |
+
+#### Verification
+- pnpm typecheck: 0 errors
+- pnpm lint: 0 errors (27 warnings - pre-existing)
+- Commit: 8956ebadc
+
+---
 ### 2025-12-31 07:35 (Asia/Riyadh) - FEATURE-001 SSE Implementation Complete [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** FEATURE-001
