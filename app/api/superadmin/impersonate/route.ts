@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { AuditLogModel } from "@/server/models/AuditLog";
-import { ensureMongoConnection } from "@/server/lib/db";
+import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
 
 const ImpersonateSchema = z.object({
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Persist to AuditLog for compliance (P1 security enhancement)
     try {
-      await ensureMongoConnection();
+      await connectToDatabase();
       await AuditLogModel.create({
         orgId: orgId, // Target org being impersonated
         action: "LOGIN", // Using LOGIN as closest action type for impersonation start
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     // Persist to AuditLog for compliance (P1 security enhancement)
     if (currentOrgId) {
       try {
-        await ensureMongoConnection();
+        await connectToDatabase();
         await AuditLogModel.create({
           orgId: currentOrgId, // Org that was being impersonated
           action: "LOGOUT", // Using LOGOUT as closest action type for impersonation end
