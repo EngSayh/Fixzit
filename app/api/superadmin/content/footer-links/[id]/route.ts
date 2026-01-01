@@ -80,6 +80,7 @@ export async function PUT(
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide footer links
     const link = await FooterLink.findByIdAndUpdate(
       id,
       { $set: validation.data },
@@ -146,6 +147,7 @@ export async function DELETE(
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide footer links
     const link = await FooterLink.findByIdAndDelete(id).lean();
 
     if (!link) {

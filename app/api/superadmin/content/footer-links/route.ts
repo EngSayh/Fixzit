@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
       filter.section = section;
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide footer links
     const links = await FooterLink.find(filter)
       .sort({ section: 1, sortOrder: 1 })
       .lean();
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide footer links
     const link = await FooterLink.create(validation.data);
 
     logger.info("[Superadmin:FooterLinks] Link created", {
