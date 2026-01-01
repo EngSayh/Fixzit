@@ -17,6 +17,7 @@ import { formatDistanceToNowStrict, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconButton } from "@/components/ui/IconButton";
 import { Calendar, Plus, RefreshCcw, CheckCircle, XCircle, Clock } from "@/components/ui/icons";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
@@ -377,14 +378,14 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
+          <IconButton
+            icon={<RefreshCcw className={isValidating ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
+            tooltip={t("common.refresh", "Refresh")}
             variant="ghost"
-            size="icon"
             onClick={() => mutate()}
             disabled={isValidating}
-          >
-            <RefreshCcw className={isValidating ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-          </Button>
+            aria-label={t("common.refresh", "Refresh")}
+          />
         </div>
       </div>
 

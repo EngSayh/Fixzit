@@ -12,24 +12,38 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FooterLink } from "@/server/models/FooterLink";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const CreateFooterLinkSchema = z.object({
-  label: z.string().min(1).max(100),
-  labelAr: z.string().max(100).optional(),
-  url: z.string().min(1),
+  label: z.string().trim().min(1).max(100),
+  labelAr: z.string().trim().max(100).optional(),
+  url: z.string().trim().min(1).refine(
+    (val) => val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: "URL must be a valid relative path or absolute URL" }
+  ),
   section: z.enum(["company", "support", "legal", "social"]),
-  icon: z.string().optional(),
+  icon: z.string().trim().optional(),
   isExternal: z.boolean().default(false),
   isActive: z.boolean().default(true),
   sortOrder: z.number().default(0),
 });
 
+type FooterLinkSection = "company" | "support" | "legal" | "social";
+
 // Default footer links to seed if collection is empty
-const DEFAULT_FOOTER_LINKS = [
+const DEFAULT_FOOTER_LINKS: Array<{
+  label: string;
+  labelAr: string;
+  url: string;
+  section: FooterLinkSection;
+  sortOrder: number;
+  icon?: string;
+  isExternal?: boolean;
+}> = [
   { label: "About Us", labelAr: "من نحن", url: "/about", section: "company", sortOrder: 1 },
   { label: "Careers", labelAr: "الوظائف", url: "/careers", section: "company", sortOrder: 2 },
   { label: "Contact", labelAr: "اتصل بنا", url: "/contact", section: "company", sortOrder: 3 },
@@ -42,14 +56,23 @@ const DEFAULT_FOOTER_LINKS = [
 ];
 
 /**
- * Seed default footer links if collection is empty
+ * Seed default footer links if collection is empty.
+ * Uses atomic upserts to prevent race conditions under concurrent requests.
+ * SUPER_ADMIN: Platform-wide content (no tenant scope required)
  */
 async function seedDefaultLinksIfEmpty(): Promise<void> {
-  // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide content
-  const count = await FooterLink.countDocuments({});
-  if (count === 0) {
-    logger.info("[FooterLinks] Seeding default footer links");
-    await FooterLink.insertMany(DEFAULT_FOOTER_LINKS);
+  // Use bulkWrite with upserts keyed on (label, section, url) to ensure idempotent seeding
+  const bulkOps = DEFAULT_FOOTER_LINKS.map((link) => ({
+    updateOne: {
+      filter: { label: link.label, section: link.section, url: link.url },
+      update: { $setOnInsert: { ...link, createdAt: new Date(), updatedAt: new Date() } },
+      upsert: true,
+    },
+  }));
+
+  const result = await FooterLink.bulkWrite(bulkOps, { ordered: false });
+  if (result.upsertedCount > 0) {
+    logger.info("[FooterLinks] Seeded default footer links", { upserted: result.upsertedCount });
   }
 }
 
@@ -89,6 +112,7 @@ export async function GET(request: NextRequest) {
       filter.section = section;
     }
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const links = await FooterLink.find(filter)
       .sort({ section: 1, sortOrder: 1 })
       .lean();
@@ -133,12 +157,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
+    const { data: body, error: parseError } = await parseBodySafe(request, {
+      logPrefix: "[Superadmin:FooterLinks]",
+    });
+    if (parseError || !body) {
       return NextResponse.json(
-        { error: "Invalid JSON body" },
+        { error: parseError || "Invalid JSON body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
@@ -153,6 +177,7 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const link = await FooterLink.create(validation.data);
 
     logger.info("[Superadmin:FooterLinks] Link created", {

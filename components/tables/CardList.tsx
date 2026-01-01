@@ -12,7 +12,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/IconButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -276,10 +276,10 @@ export function CardList<TData extends Record<string, unknown>>({
 
                 {/* Action Button */}
                 <div data-action className="shrink-0 pt-1">
-                  <Button
+                  <IconButton
+                    icon={<ChevronRight className="h-5 w-5" />}
+                    tooltip="View details"
                     variant="ghost"
-                    size="icon"
-                    className="hit-target"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onRowAction) {
@@ -288,9 +288,8 @@ export function CardList<TData extends Record<string, unknown>>({
                         onRowClick(row);
                       }
                     }}
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
+                    aria-label="View details"
+                  />
                 </div>
               </div>
             </CardContent>

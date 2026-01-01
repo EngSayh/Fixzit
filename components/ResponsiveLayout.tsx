@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useResponsiveLayout } from "@/contexts/ResponsiveContext";
 import { Menu, X } from "@/components/ui/icons";
 
-// ✅ FIXED: Use standard Button component
-import { Button } from "./ui/button";
+// ✅ FIXED: Use IconButton component for toggle
+import { IconButton } from "./ui/IconButton";
 
 // ✅ FIXED: Define sidebar width constant (no magic numbers)
 const SIDEBAR_WIDTH_CLASS = "md:w-64";
@@ -57,22 +57,18 @@ export default function ResponsiveLayout({
       {/* Header */}
       {header && <div className="sticky top-0 z-40">{header}</div>}
 
-      {/* Mobile sidebar toggle - ✅ FIXED: Use standard Button */}
+      {/* Mobile sidebar toggle - ✅ FIXED: Use IconButton with tooltip */}
       {sidebar &&
         showSidebarToggle &&
         (screenInfo.isMobile || screenInfo.isTablet) && (
-          <Button
+          <IconButton
+            icon={sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            tooltip={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            size="icon"
             className="fixed top-16 start-4 z-50 md:hidden shadow-lg"
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-          >
-            {sidebarOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </Button>
+            variant="primary"
+          />
         )}
 
       <div className="flex flex-1">

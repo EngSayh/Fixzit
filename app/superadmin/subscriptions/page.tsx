@@ -406,10 +406,11 @@ export default function SuperadminSubscriptionsPage() {
         setEditingTier(null);
         fetchTiers();
       } else {
-        toast.error("Failed to save tier");
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        toast.error(`Failed to save tier: ${errorData.error || response.statusText}`);
       }
-    } catch {
-      toast.error("Error saving tier");
+    } catch (error) {
+      toast.error(`Error saving tier: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 

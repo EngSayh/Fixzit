@@ -65,6 +65,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 // Types
 interface UserData {
@@ -124,6 +125,12 @@ const USER_TYPES = [
 
 export default function SuperadminUsersPage() {
   const { t } = useI18n();
+
+  // Inline confirmation feedback
+  const bulkFeedback = useActionFeedback();
+  const deleteFeedback = useActionFeedback();
+  const updateFeedback = useActionFeedback();
+  const notifyFeedback = useActionFeedback();
 
   // State
   const [users, setUsers] = useState<UserData[]>([]);
@@ -283,15 +290,13 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to update users");
       }
 
-      const result = await response.json();
-      const updatedCount = result.modifiedCount ?? selectedIds.size;
-      toast.success(`Updated ${updatedCount} users`);
+      bulkFeedback.showSuccess("Updated", "save");
       setBulkStatusDialogOpen(false);
       setBulkStatus("");
       setSelectedIds(new Set());
       fetchUsers();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update users");
+    } catch {
+      bulkFeedback.showError("Failed");
     } finally {
       setActionLoading(false);
     }
@@ -320,13 +325,13 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to send notifications");
       }
 
-      toast.success(`Sent notification to ${targetIds.length} user${targetIds.length !== 1 ? "s" : ""}`);
+      notifyFeedback.showSuccess("Sent", "generic");
       setNotificationDialogOpen(false);
       setNotificationSubject("");
       setNotificationMessage("");
       setSingleNotificationUserId(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send notifications");
+    } catch {
+      notifyFeedback.showError("Failed");
     } finally {
       setActionLoading(false);
     }
@@ -351,14 +356,12 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to delete users");
       }
 
-      const result = await response.json();
-      const deletedCount = result.deletedCount ?? result.modifiedCount ?? selectedIds.size;
-      toast.success(`Deleted ${deletedCount} users`);
+      deleteFeedback.showSuccess("Deleted", "delete");
       setDeleteDialogOpen(false);
       setSelectedIds(new Set());
       fetchUsers();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete users");
+    } catch {
+      deleteFeedback.showError("Failed");
     } finally {
       setActionLoading(false);
     }
@@ -379,11 +382,11 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to update user");
       }
 
-      toast.success("User status updated");
+      updateFeedback.showSuccess("Updated", "save");
       setEditStatusDialogOpen(false);
       fetchUsers();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update user");
+    } catch {
+      updateFeedback.showError("Failed");
     } finally {
       setActionLoading(false);
     }
@@ -410,6 +413,12 @@ export default function SuperadminUsersPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Render feedback components for inline confirmation */}
+      <bulkFeedback.FeedbackComponent />
+      <deleteFeedback.FeedbackComponent />
+      <updateFeedback.FeedbackComponent />
+      <notifyFeedback.FeedbackComponent />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

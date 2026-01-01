@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SimpleTooltip } from "@/components/ui/tooltip";
 import { 
   Package, RefreshCw, Search, Eye, DollarSign,
   CheckCircle, XCircle, AlertTriangle,
@@ -98,9 +99,11 @@ export default function SuperadminCatalogPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.catalog.title", "Product Catalog")}</h1>
           <p className="text-muted-foreground">{t("superadmin.catalog.subtitle", "Manage Fixzit Souq marketplace products")}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground">
-          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
-        </Button>
+        <SimpleTooltip content={t("superadmin.catalog.refreshTooltip", "Refresh product list")}>
+          <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground">
+            <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
+          </Button>
+        </SimpleTooltip>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -137,7 +140,11 @@ export default function SuperadminCatalogPage() {
                     <TableCell className="text-end"><span className={`font-medium ${(product.inventory?.quantity || 0) < 10 ? "text-yellow-400" : "text-muted-foreground"}`}>{product.inventory?.quantity || 0}</span></TableCell>
                     <TableCell className="text-muted-foreground">{product.vendorName || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_COLORS[product.status] || ""}>{product.status === "ACTIVE" ? <CheckCircle className="h-3 w-3 me-1" /> : product.status === "OUT_OF_STOCK" ? <XCircle className="h-3 w-3 me-1" /> : null}{product.status}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)}><Eye className="h-4 w-4" /></Button></TableCell>
+                    <TableCell>
+                      <SimpleTooltip content={t("superadmin.catalog.viewDetails", "View product details")}>
+                        <Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)}><Eye className="h-4 w-4" /></Button>
+                      </SimpleTooltip>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

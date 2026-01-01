@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   Zap, RefreshCw, Search, AlertCircle, CheckCircle, XCircle, 
@@ -112,10 +112,10 @@ export default function SuperadminFeaturesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.features")}</h1>
-          <p className="text-muted-foreground">Manage feature toggles system-wide</p>
+          <p className="text-muted-foreground">{t("superadmin.features.description", "Manage feature toggles system-wide")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchFlags} disabled={loading} className="border-input text-muted-foreground">
-          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
+          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />{t("common.refresh", "Refresh")}
         </Button>
       </div>
 
@@ -125,7 +125,7 @@ export default function SuperadminFeaturesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-muted"><Zap className="h-5 w-5 text-muted-foreground" /></div>
-              <div><p className="text-2xl font-bold text-foreground">{flags.length}</p><p className="text-sm text-muted-foreground">Total Flags</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{flags.length}</p><p className="text-sm text-muted-foreground">{t("superadmin.features.stats.totalFlags", "Total Flags")}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -133,7 +133,7 @@ export default function SuperadminFeaturesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-500/20"><CheckCircle className="h-5 w-5 text-green-400" /></div>
-              <div><p className="text-2xl font-bold text-foreground">{enabledCount}</p><p className="text-sm text-muted-foreground">Enabled</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{enabledCount}</p><p className="text-sm text-muted-foreground">{t("superadmin.features.stats.enabled", "Enabled")}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -141,7 +141,7 @@ export default function SuperadminFeaturesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-yellow-500/20"><Beaker className="h-5 w-5 text-yellow-400" /></div>
-              <div><p className="text-2xl font-bold text-foreground">{betaCount}</p><p className="text-sm text-muted-foreground">Beta</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{betaCount}</p><p className="text-sm text-muted-foreground">{t("superadmin.features.stats.beta", "Beta")}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -149,7 +149,7 @@ export default function SuperadminFeaturesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gray-500/20"><XCircle className="h-5 w-5 text-gray-400" /></div>
-              <div><p className="text-2xl font-bold text-foreground">{flags.length - enabledCount}</p><p className="text-sm text-muted-foreground">Disabled</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{flags.length - enabledCount}</p><p className="text-sm text-muted-foreground">{t("superadmin.features.stats.disabled", "Disabled")}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -161,14 +161,11 @@ export default function SuperadminFeaturesPage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search flags..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
+              <Input placeholder={t("superadmin.features.searchPlaceholder", "Search flags...")} value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Category" /></SelectTrigger>
-              <SelectContent className="bg-muted border-input">
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (<SelectItem key={cat} value={cat!}>{cat}</SelectItem>))}
-              </SelectContent>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.features.categoryPlaceholder", "Category")} className="w-[160px] bg-muted border-input text-foreground">
+              <SelectItem value="all">{t("common.allCategories", "All Categories")}</SelectItem>
+              {categories.map((cat) => (<SelectItem key={cat} value={cat!}>{cat}</SelectItem>))}
             </Select>
           </div>
         </CardContent>
@@ -177,8 +174,8 @@ export default function SuperadminFeaturesPage() {
       {/* Flags Table */}
       <Card className="bg-card border-border">
         <CardHeader className="border-b border-border">
-          <CardTitle className="flex items-center gap-2 text-foreground"><Zap className="h-5 w-5" />Feature Flags</CardTitle>
-          <CardDescription className="text-muted-foreground">Toggle features on/off across the platform</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-foreground"><Zap className="h-5 w-5" />{t("superadmin.features.tableTitle", "Feature Flags")}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t("superadmin.features.tableDescription", "Toggle features on/off across the platform")}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -186,7 +183,7 @@ export default function SuperadminFeaturesPage() {
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12"><AlertCircle className="h-12 w-12 text-red-500 mb-4" /><p className="text-red-400">{error}</p></div>
           ) : filteredFlags.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12"><Zap className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No feature flags found</p></div>
+            <div className="flex flex-col items-center justify-center py-12"><Zap className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">{t("superadmin.features.noFlags", "No feature flags found")}</p></div>
           ) : (
             <Table>
               <TableHeader>

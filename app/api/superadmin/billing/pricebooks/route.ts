@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import PriceBook from "@/server/models/PriceBook";
@@ -17,6 +18,30 @@ export const dynamic = "force-dynamic";
 
 // Response headers
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
+
+// Zod schema for price per module
+const PricePerModuleSchema = z.object({
+  module_key: z.string().min(1),
+  monthly_usd: z.number().min(0),
+  monthly_sar: z.number().min(0),
+});
+
+// Zod schema for seat tier
+const SeatTierSchema = z.object({
+  min_seats: z.number().int().min(0),
+  max_seats: z.number().int().min(0),
+  discount_pct: z.number().min(0).max(100).default(0),
+  prices: z.array(PricePerModuleSchema).default([]),
+});
+
+// Zod schema for pricebook creation
+const CreatePriceBookSchema = z.object({
+  name: z.string().min(1).max(200),
+  currency: z.enum(["USD", "SAR"]).default("USD"),
+  effective_from: z.string().datetime().optional().transform((val) => val ? new Date(val) : new Date()),
+  active: z.boolean().default(true),
+  tiers: z.array(SeatTierSchema).default([]),
+});
 
 /**
  * GET /api/superadmin/billing/pricebooks
@@ -72,8 +97,29 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    const body = await request.json();
-    const pricebook = await PriceBook.create(body);
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    // Validate request body with Zod schema
+    const parseResult = CreatePriceBookSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { 
+          error: "Validation failed", 
+          details: parseResult.error.flatten().fieldErrors 
+        },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    const pricebook = await PriceBook.create(parseResult.data);
 
     return NextResponse.json(
       { pricebook },

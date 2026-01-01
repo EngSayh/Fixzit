@@ -16,11 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
+import { toast as _toast } from "sonner";
 import { 
   RefreshCw, Search, CheckCircle, AlertTriangle, Languages,
   Download, Edit, Save,
 } from "@/components/ui/icons";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 interface LocaleStats {
   locale: string;
@@ -39,43 +40,36 @@ interface TranslationKey {
   status: string;
 }
 
-const LOCALES: LocaleStats[] = [
-  { locale: "en", name: "English", flag: "🇺🇸", totalKeys: 1245, translated: 1245, missing: 0, coverage: 100 },
-  { locale: "ar", name: "Arabic", flag: "🇸🇦", totalKeys: 1245, translated: 1180, missing: 65, coverage: 94.8 },
-];
-
-const SAMPLE_KEYS: TranslationKey[] = [
-  { key: "common.save", en: "Save", ar: "حفظ", status: "complete" },
-  { key: "common.cancel", en: "Cancel", ar: "إلغاء", status: "complete" },
-  { key: "common.delete", en: "Delete", ar: "حذف", status: "complete" },
-  { key: "common.edit", en: "Edit", ar: "تعديل", status: "complete" },
-  { key: "common.loading", en: "Loading...", ar: "جار التحميل...", status: "complete" },
-  { key: "dashboard.title", en: "Dashboard", ar: "لوحة التحكم", status: "complete" },
-  { key: "dashboard.welcome", en: "Welcome back", ar: "مرحباً بعودتك", status: "complete" },
-  { key: "workorders.status.open", en: "Open", ar: "مفتوح", status: "complete" },
-  { key: "workorders.status.closed", en: "Closed", ar: "مغلق", status: "complete" },
-  { key: "superadmin.nav.tenants", en: "Tenants", ar: "", status: "missing" },
-  { key: "superadmin.nav.users", en: "Users", ar: "", status: "missing" },
-  { key: "superadmin.nav.billing", en: "Billing", ar: "", status: "missing" },
-];
-
 export default function SuperadminTranslationsPage() {
   const { t } = useI18n();
-  const [locales, _setLocales] = useState<LocaleStats[]>(LOCALES);
-  const [keys, setKeys] = useState<TranslationKey[]>(SAMPLE_KEYS);
+  const [locales, setLocales] = useState<LocaleStats[]>([]);
+  const [keys, setKeys] = useState<TranslationKey[]>([]);
+  const [allKeys, setAllKeys] = useState<TranslationKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, _setStatusFilter] = useState<string>("all");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  // Inline confirmation feedback
+  const exportFeedback = useActionFeedback();
+  const saveFeedback = useActionFeedback();
+
   const fetchLocales = useCallback(async () => {
     try {
       setLoading(true);
-      // In a real implementation, this would fetch from a translation management API
-      // For now, using static data
+      const response = await fetch("/api/superadmin/translations", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch translations");
+      const data = await response.json();
+      setLocales(data.locales || []);
+      setKeys(data.translations || []);
+      setAllKeys(data.translations || []);
     } catch {
-      // Use defaults
+      // Use defaults on error
+      setLocales([
+        { locale: "en", name: "English", flag: "🇺🇸", totalKeys: 0, translated: 0, missing: 0, coverage: 100 },
+        { locale: "ar", name: "Arabic", flag: "🇸🇦", totalKeys: 0, translated: 0, missing: 0, coverage: 0 },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -85,10 +79,10 @@ export default function SuperadminTranslationsPage() {
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
-      setKeys(SAMPLE_KEYS);
+      setKeys(allKeys);
       return;
     }
-    const filtered = SAMPLE_KEYS.filter(k => 
+    const filtered = allKeys.filter(k => 
       k.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
       k.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
       k.ar.includes(searchQuery)
@@ -96,8 +90,23 @@ export default function SuperadminTranslationsPage() {
     setKeys(filtered);
   };
 
-  const handleExport = (localeCode: string) => {
-    toast.success(`Exported ${localeCode} translations`);
+  const handleExport = async (localeCode: string) => {
+    try {
+      const response = await fetch(`/api/superadmin/translations/export?locale=${localeCode}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `translations-${localeCode}-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      exportFeedback.showSuccess("Exported", "save");
+    } catch {
+      exportFeedback.showError("Failed");
+    }
   };
 
   const handleStartEdit = (key: TranslationKey) => {
@@ -105,10 +114,27 @@ export default function SuperadminTranslationsPage() {
     setEditValue(key.ar);
   };
 
-  const handleSaveEdit = (key: string) => {
-    setKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
-    setEditingKey(null);
-    toast.success("Translation updated");
+  const handleSaveEdit = async (key: string) => {
+    try {
+      const translation = allKeys.find(k => k.key === key);
+      if (translation) {
+        const response = await fetch(`/api/superadmin/translations/${encodeURIComponent(key)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ar: editValue }),
+        });
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+      }
+      setKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
+      setAllKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
+      setEditingKey(null);
+      saveFeedback.showSuccess("Saved", "save");
+    } catch {
+      saveFeedback.showError("Failed");
+    }
   };
 
   const filteredKeys = statusFilter === "all" ? keys : keys.filter(k => k.status === statusFilter);
@@ -121,10 +147,13 @@ export default function SuperadminTranslationsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.translations") || "Translations"}</h1>
           <p className="text-muted-foreground">Manage i18n translations for all locales</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground">
-            <Download className="h-4 w-4 me-2" />Export All
-          </Button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center">
+            <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground">
+              <Download className="h-4 w-4 me-2" />Export All
+            </Button>
+            <exportFeedback.FeedbackComponent className="ms-2" />
+          </div>
           <Button variant="outline" size="sm" onClick={fetchLocales} disabled={loading} className="border-input text-muted-foreground">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
@@ -209,7 +238,7 @@ export default function SuperadminTranslationsPage() {
                       <TableCell className="text-muted-foreground">{key.en}</TableCell>
                       <TableCell>
                         {editingKey === key.key ? (
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-2">
                             <Input
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
@@ -219,6 +248,7 @@ export default function SuperadminTranslationsPage() {
                             <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600">
                               <Save className="h-4 w-4" />
                             </Button>
+                            <saveFeedback.FeedbackComponent />
                           </div>
                         ) : (
                           <span className={`${key.ar ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`} dir="rtl">

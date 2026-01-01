@@ -33,6 +33,7 @@ import {
   Filter,
   WifiOff,
 } from "@/components/ui/icons";
+import { SimpleTooltip } from "@/components/ui/tooltip";
 import { WorkOrderPriority } from "@/lib/sla";
 import ClientDate from "@/components/ClientDate";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
@@ -709,26 +710,30 @@ export function WorkOrdersView({
                   density={density}
                   onChange={(next) => setDensity(next)}
                 />
-                <Button
-                  variant="outline"
-                  onClick={() => setFilterDrawerOpen(true)}
-                >
-                  <Filter className="me-2 h-4 w-4" />
-                  {filtersLabel}
-                  {activeFilters.length > 0
-                    ? ` (${activeFilters.length})`
-                    : ""}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => mutate()}
-                  disabled={isValidating}
-                >
-                  <RefreshCcw
-                    className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
-                  />
-                  {refreshLabel}
-                </Button>
+                <SimpleTooltip content={t("workOrders.filters.openDrawer", "Open filters")}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setFilterDrawerOpen(true)}
+                  >
+                    <Filter className="me-2 h-4 w-4" />
+                    {filtersLabel}
+                    {activeFilters.length > 0
+                      ? ` (${activeFilters.length})`
+                      : ""}
+                  </Button>
+                </SimpleTooltip>
+                <SimpleTooltip content={t("workOrders.refresh.tooltip", "Refresh work orders list")}>
+                  <Button
+                    variant="outline"
+                    onClick={() => mutate()}
+                    disabled={isValidating}
+                  >
+                    <RefreshCcw
+                      className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
+                    />
+                    {refreshLabel}
+                  </Button>
+                </SimpleTooltip>
               </div>
             }
           />

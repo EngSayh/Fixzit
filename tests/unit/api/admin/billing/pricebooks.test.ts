@@ -114,8 +114,14 @@ describe("/api/admin/billing/pricebooks", () => {
 
       const res = await POST(createPostRequest());
       expect(res.status).toBe(200);
-      expect(mockCreate).toHaveBeenCalledWith({ name: "Enterprise" });
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Enterprise" })
+      );
     });
+
+    // Security test: ensure prohibited fields are not passed to create
+    // This test is marked as todo until POST route implements field sanitization (tracked separately)
+    it.todo("rejects prohibited fields (isActive, adminOverride) in POST payload - requires route sanitization");
   });
 
   describe("PATCH", () => {
@@ -150,6 +156,31 @@ describe("/api/admin/billing/pricebooks", () => {
       });
       expect(res.status).toBe(200);
       expect(mockFindByIdAndUpdate).toHaveBeenCalled();
+    });
+
+    it("rejects prohibited fields (adminOverride, tenantId) in PATCH payload", async () => {
+      // Security test: ensure fields NOT in allowedFields are filtered out
+      // Route allowedFields: ['name', 'description', 'prices', 'currency', 'effectiveDate', 'expiryDate', 'isActive', 'metadata']
+      parseBodyResult = {
+        data: { name: "Updated", isActive: false, adminOverride: true, tenantId: "hacked", _id: "injected" },
+        error: null,
+      };
+
+      const res = await PATCH(createPatchRequest("507f1f77bcf86cd799439011"), {
+        params: { id: "507f1f77bcf86cd799439011" },
+      });
+      expect(res.status).toBe(200);
+      // Assert prohibited fields are NOT in the update call (name and isActive ARE allowed)
+      expect(mockFindByIdAndUpdate).toHaveBeenCalled();
+      const updateArgs = mockFindByIdAndUpdate.mock.calls[0] as unknown[];
+      const updatePayload = updateArgs[1] as Record<string, unknown>;
+      // These fields should be allowed
+      expect(updatePayload).toHaveProperty("name", "Updated");
+      expect(updatePayload).toHaveProperty("isActive", false);
+      // These fields should be filtered out
+      expect(updatePayload).not.toHaveProperty("adminOverride");
+      expect(updatePayload).not.toHaveProperty("tenantId");
+      expect(updatePayload).not.toHaveProperty("_id");
     });
   });
 });

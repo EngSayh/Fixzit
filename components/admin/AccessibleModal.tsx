@@ -15,7 +15,7 @@
 
 import { ReactNode, useEffect, useRef } from 'react';
 import { X } from '@/components/ui/icons';
-import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 
 export interface AccessibleModalProps {
   isOpen: boolean;
@@ -176,15 +176,14 @@ export default function AccessibleModal({
             )}
           </div>
           {showCloseButton && (
-            <Button
+            <IconButton
+              icon={<X className="h-5 w-5" />}
+              tooltip="Close dialog"
               variant="ghost"
-              size="icon"
               onClick={onClose}
               aria-label="Close dialog"
               className="ms-4"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            />
           )}
         </div>
         

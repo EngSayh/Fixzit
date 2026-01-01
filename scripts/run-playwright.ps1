@@ -29,7 +29,7 @@ $null = Register-EngineEvent PowerShell.Exiting -Action { Cleanup }
 # Ensure auth secrets exist for Auth.js JWT encoding in Playwright helpers
 if (-not $env:AUTH_SECRET) {
     $env:AUTH_SECRET = (node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-    Write-Host "🔐 Generated ephemeral AUTH_SECRET for Playwright run." -ForegroundColor Yellow
+    Write-Host "[OK] Generated ephemeral AUTH_SECRET for Playwright run." -ForegroundColor Yellow
 }
 
 if (-not $env:NEXTAUTH_SECRET) {
@@ -59,14 +59,14 @@ $env:PLAYWRIGHT_GLOBAL = "true"
 $ConfigFile = if ($env:PLAYWRIGHT_CONFIG) { $env:PLAYWRIGHT_CONFIG } else { "tests/playwright.config.ts" }
 $Workers = if ($env:PLAYWRIGHT_WORKERS) { $env:PLAYWRIGHT_WORKERS } else { "1" }
 
-$cmd = @("npx", "playwright", "test", "--config=$ConfigFile", "--workers=$Workers")
+$cmdArgs = @("exec", "playwright", "test", "--config=$ConfigFile", "--workers=$Workers")
 
 if ($TestArgs.Count -gt 0) {
-    $cmd += $TestArgs
+    $cmdArgs += $TestArgs
 }
 
-Write-Host "Running: $($cmd -join ' ')" -ForegroundColor Cyan
-& $cmd[0] $cmd[1..($cmd.Count - 1)]
+Write-Host "Running: pnpm $($cmdArgs -join ' ')" -ForegroundColor Cyan
+& pnpm @cmdArgs
 
 $exitCode = $LASTEXITCODE
 

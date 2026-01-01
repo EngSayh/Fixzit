@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, ArrowRight, Send, Phone, Mail, Building2, Users, CreditCard, Minus, Plus } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -239,14 +240,14 @@ export default function PricingPage() {
                   {t("pricing.checkout.users", "Number of Users")}
                 </label>
                 <div className="flex items-center gap-4">
-                  <Button
+                  <IconButton
+                    icon={<Minus className="h-4 w-4" />}
+                    tooltip={t("common.decrease", "Decrease")}
                     variant="outline"
-                    size="icon"
                     onClick={() => setUserCount(Math.max(1, userCount - 1))}
                     disabled={userCount <= 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
+                    aria-label={t("common.decrease", "Decrease")}
+                  />
                   <Input
                     type="number"
                     min={1}
@@ -255,14 +256,14 @@ export default function PricingPage() {
                     onChange={(e) => setUserCount(Math.min(selectedPlanDetails.maxUsers, Math.max(1, parseInt(e.target.value) || 1)))}
                     className="w-24 text-center"
                   />
-                  <Button
+                  <IconButton
+                    icon={<Plus className="h-4 w-4" />}
+                    tooltip={t("common.increase", "Increase")}
                     variant="outline"
-                    size="icon"
                     onClick={() => setUserCount(Math.min(selectedPlanDetails.maxUsers, userCount + 1))}
                     disabled={userCount >= selectedPlanDetails.maxUsers}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    aria-label={t("common.increase", "Increase")}
+                  />
                   <span className="text-sm text-muted-foreground">
                     {t("pricing.checkout.maxUsers", "Max")}: {selectedPlanDetails.maxUsers}
                   </span>

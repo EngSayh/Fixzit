@@ -11,6 +11,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { SubscriptionTier } from "@/server/models/SubscriptionTier";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -196,12 +197,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
+    const { data: body, error: parseError } = await parseBodySafe(request, {
+      logPrefix: "[Superadmin:Tiers]",
+    });
+    if (parseError || !body) {
       return NextResponse.json(
-        { error: "Invalid JSON body" },
+        { error: parseError || "Invalid JSON body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
