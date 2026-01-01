@@ -18,6 +18,46 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2026-01-01 22:00 (Asia/Riyadh) - PR #623 Review Comments Audit [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** PR-623-REVIEW-AUDIT
+**Context:** fix/superadmin-full-implementation | 2a96174e6 | Review comments triage
+**DB Sync:** Required (status updates)
+
+#### Summary
+Audited all review comments on PR #623 from Gemini, CodeRabbit, and other bots. Most comments are **already addressed** or **false positives**.
+
+#### Previously Fixed (This Session)
+| Issue | File | Fix Applied |
+|-------|------|-------------|
+| Critical: Wrong query | `impersonate/sessions/route.ts` | Changed to `metadata.impersonationType` |
+| High: Map iteration | `webhooks/[id]/test/route.ts` | Added `instanceof Map` check |
+| Medium: Empty catch | `database/stats/route.ts` | Added `logger.warn` |
+
+#### False Positives / Already Correct
+| Comment | File | Evidence |
+|---------|------|----------|
+| "tiers delete counts all subscriptions" | `tiers/[id]/route.ts` | Query HAS `tierId: id` filter (line 237) |
+| "Use parseBodySafe in footer-links" | `footer-links/route.ts` | ALREADY uses parseBodySafe (line 161) |
+| "Use parseBodySafe in footer-links/[id]" | `footer-links/[id]/route.ts` | ALREADY uses parseBodySafe (line 125) |
+| "Use parseBodySafe in tiers/route" | `tiers/route.ts` | ALREADY uses parseBodySafe (line 200) |
+| "Use parseBodySafe in tiers/[id]/route" | `tiers/[id]/route.ts` | ALREADY uses parseBodySafe (line 136) |
+| "fulfillment updated count wrong" | `fulfillment-service.ts` | Returns `modifiedCount` correctly (line 812) |
+| "parseInt NaN handling" | `impersonate/sessions` | HAS `Number.isNaN()` checks (lines 46-48) |
+
+#### Intentional / Documented Patterns
+| Pattern | Justification |
+|---------|--------------|
+| Hardcoded hex `#0061A8` | DB default value, matches `--color-platform-fm-blue` token |
+| Simple email regex | Sufficient for model validation; Zod validates on route |
+| eslint-disable tenant-scope | SUPER_ADMIN routes have cross-tenant visibility |
+
+#### Verification
+- [x] `pnpm typecheck` - 0 errors
+- [x] `pnpm lint` - 0 new errors (25 intentional superadmin warnings)
+- [x] 37/37 superadmin tests pass
+
+---
 ### 2025-12-31 14:45 (Asia/Riyadh) - P2 Error Logging Fixes [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** CR-2025-12-29-001, CR-2025-12-29-002, CR-2025-12-29-003
