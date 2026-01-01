@@ -286,11 +286,11 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
       description="Adjust filters or create a new invoice to get started."
       action={
         activeFilters.length > 0 ? (
-          <Button variant="outline" onClick={() => resetState()}>
+          <Button variant="outline" onClick={() => resetState()} aria-label="Clear all filters" title="Clear all filters">
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Create invoice flow")}>
+          <Button onClick={() => toast.info("Create invoice flow")} aria-label="Create new invoice" title="Create a new invoice">
             <Plus className="w-4 h-4 me-2" />
             Create Invoice
           </Button>
@@ -324,11 +324,11 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh invoices" title="Refresh invoices list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create new invoice" title="Create a new invoice">
             <Plus className="w-4 h-4 me-2" />
             Create Invoice
           </Button>
@@ -376,7 +376,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)} aria-label="Open filter options" title="Open filter options">
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -446,6 +446,8 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
               size="sm"
               disabled={(state.page || 1) === 1}
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
+              aria-label="Go to previous page"
+              title="Go to previous page"
             >
               Previous
             </Button>
@@ -457,6 +459,8 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
               size="sm"
               disabled={(state.page || 1) >= totalPages}
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
+              aria-label="Go to next page"
+              title="Go to next page"
             >
               Next
             </Button>
@@ -471,8 +475,8 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         title="Filter Invoices"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={handleResetFilters} aria-label="Reset all filters" title="Reset all filters">Reset</Button>
+            <Button onClick={handleApplyFilters} aria-label="Apply selected filters" title="Apply selected filters">Apply Filters</Button>
           </div>
         }
       >

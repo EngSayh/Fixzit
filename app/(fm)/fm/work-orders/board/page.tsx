@@ -87,10 +87,10 @@ export default function WorkOrdersBoardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn-secondary">
+          <button type="button" className="btn-secondary" aria-label={t("workOrders.filterAria", "Filter work orders")} title={t("workOrders.filterAria", "Filter work orders")}>
             {t("workOrders.filter", "Filter")}
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("workOrders.board.newWOAria", "Create new work order")} title={t("workOrders.board.newWOAria", "Create new work order")}>
             + {t("workOrders.board.newWO", "New Work Order")}
           </button>
         </div>

@@ -121,6 +121,8 @@ export default function SellerKYCPage() {
             onClick={() =>
               (window.location.href = "/marketplace/seller-central")
             }
+            aria-label={auto("Go to Seller Dashboard", "approved.cta")}
+            title={auto("Go to Seller Dashboard", "approved.cta")}
           >
             {auto("Go to Seller Dashboard", "approved.cta")}
           </Button>
@@ -164,6 +166,8 @@ export default function SellerKYCPage() {
               setCurrentStep("company_info");
             }}
             className="w-full"
+            aria-label={auto("Resubmit KYC", "rejected.cta")}
+            title={auto("Resubmit your KYC application", "rejected.ctaTitle")}
           >
             {auto("Resubmit KYC", "rejected.cta")}
           </Button>

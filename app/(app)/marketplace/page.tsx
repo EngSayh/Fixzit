@@ -104,7 +104,12 @@ export default async function MarketplaceHome() {
             placeholder="Search materials, SKUs, ASTM, BS EN…"
             className="border rounded-md px-3 py-2"
           />
-          <button type="button" className="btn btn-primary px-4 py-2 bg-primary text-white rounded-md">
+          <button
+            type="button"
+            className="btn btn-primary px-4 py-2 bg-primary text-white rounded-md"
+            aria-label="Search marketplace"
+            title="Search marketplace"
+          >
             Search
           </button>
         </div>
@@ -122,7 +127,12 @@ export default async function MarketplaceHome() {
                 Playwright Demo Product {i}
               </a>
               <p className="text-sm text-muted-foreground">SAR {i * 100}.00</p>
-              <button type="button" className="mt-2 rounded-md bg-primary text-white px-3 py-1">
+              <button
+                type="button"
+                className="mt-2 rounded-md bg-primary text-white px-3 py-1"
+                aria-label={`Add Playwright Demo Product ${i} to cart`}
+                title={`Add Playwright Demo Product ${i} to cart`}
+              >
                 Add to Cart
               </button>
             </div>

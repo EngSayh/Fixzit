@@ -165,7 +165,7 @@ export default function DirectoryPage() {
             {auto("Browse and search employee information", "header.subtitle")}
           </p>
         </div>
-        <Button onClick={() => router.push("/fm/hr/directory/new")}>
+        <Button onClick={() => router.push("/fm/hr/directory/new")} aria-label={auto("Add new employee", "actions.addEmployeeAria")} title={auto("Add new employee", "actions.addEmployeeAria")}>
           <Plus className="w-4 h-4 me-2" />
           {auto("Add Employee", "actions.addEmployee")}
         </Button>
@@ -211,6 +211,8 @@ export default function DirectoryPage() {
             size="sm"
             onClick={() => void fetchEmployees()}
             disabled={loading}
+            aria-label={loading ? auto("Retrying employee fetch", "errors.retryingAria") : auto("Retry loading employees", "errors.retryAria")}
+            title={auto("Retry loading employees", "errors.retryAria")}
           >
             {loading
               ? auto("Retrying...", "errors.retrying")
@@ -297,7 +299,7 @@ export default function DirectoryPage() {
                   </div>
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full">
+                <Button variant="outline" size="sm" className="w-full" aria-label={`${t("common.viewDetails", "View Details")} ${employee.firstName} ${employee.lastName}`} title={`${t("common.viewDetails", "View Details")} ${employee.firstName} ${employee.lastName}`}>
                   <Eye className="w-4 h-4 me-2" />
                   {t("common.viewDetails", "View Details")}
                 </Button>

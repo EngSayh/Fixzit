@@ -129,10 +129,10 @@ export default function WorkOrderApprovalsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn-secondary">
+          <button type="button" className="btn-secondary" aria-label={t("workOrders.approvals.rulesAria", "Configure approval rules")} title={t("workOrders.approvals.rulesAria", "Configure approval rules")}>
             {t("workOrders.approvals.rules", "Approval Rules")}
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("workOrders.approvals.bulkApproveAria", "Bulk approve selected work orders")} title={t("workOrders.approvals.bulkApproveAria", "Bulk approve selected work orders")}>
             📋 {t("workOrders.approvals.bulkApprove", "Bulk Approve")}
           </button>
         </div>
@@ -263,13 +263,13 @@ export default function WorkOrderApprovalsPage() {
                 </div>
 
                 <div className="flex gap-2 ms-4">
-                  <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
+                  <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors" aria-label={`${t("common.approve", "Approve")} ${item.id}`} title={`${t("common.approve", "Approve")} ${item.id}`}>
                     {t("common.approve", "Approve")}
                   </button>
-                  <button type="button" className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
+                  <button type="button" className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors" aria-label={`${t("common.reject", "Reject")} ${item.id}`} title={`${t("common.reject", "Reject")} ${item.id}`}>
                     {t("common.reject", "Reject")}
                   </button>
-                  <button type="button" className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors">
+                  <button type="button" className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors" aria-label={`${t("common.review", "Review")} ${item.id}`} title={`${t("common.review", "Review")} ${item.id}`}>
                     {t("common.review", "Review")}
                   </button>
                 </div>
@@ -285,7 +285,7 @@ export default function WorkOrderApprovalsPage() {
           <h3 className="text-lg font-semibold">
             {t("workOrders.approvals.recent", "Recent Approvals")}
           </h3>
-          <button type="button" className="btn-ghost">
+          <button type="button" className="btn-ghost" aria-label={t("workOrders.approvals.viewAllAria", "View all approved work orders")} title={t("workOrders.approvals.viewAllAria", "View all approved work orders")}>
             {t("workOrders.approvals.viewAll", "View All")}
           </button>
         </div>

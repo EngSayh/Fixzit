@@ -1,8 +1,44 @@
 {
-  "extractedAt": "2025-12-30 12:59 (Asia/Riyadh)",
-  "extractedBy": "[AGENT-003-A]",
+  "extractedAt": "2026-01-01 00:00 (Asia/Riyadh)",
+  "extractedBy": "[AGENT-001-A]",
   "sourceFile": "docs/PENDING_MASTER.md",
   "appliedFlags": {},
+  "accessibilityAudit": {
+    "auditDate": "2026-01-01",
+    "totalPages": 257,
+    "totalButtons": 1391,
+    "buttonsWithAriaLabels": 246,
+    "actionButtons": 306,
+    "overallCoverage": "18%",
+    "targetCoverage": "100%",
+    "byModule": {
+      "app/(app)": { "pages": 75, "buttons": 169, "ariaLabels": 37, "coverage": "22%" },
+      "app/(fm)": { "pages": 137, "buttons": 476, "ariaLabels": 56, "coverage": "12%" },
+      "app/superadmin": { "pages": 40, "buttons": 209, "ariaLabels": 37, "coverage": "18%" },
+      "app/support": { "pages": 4, "buttons": 4, "ariaLabels": 1, "coverage": "25%" },
+      "app/(marketing)": { "pages": 1, "buttons": 0, "ariaLabels": 1, "coverage": "100%" },
+      "components": { "pages": null, "buttons": 533, "ariaLabels": 114, "coverage": "21%" }
+    },
+    "criticalModules": [
+      { "path": "app/(fm)/fm/hr", "buttons": 26, "ariaLabels": 0, "coverage": "0%", "priority": "P0" },
+      { "path": "app/(fm)/fm/reports", "buttons": 2, "ariaLabels": 0, "coverage": "0%", "priority": "P0" },
+      { "path": "app/(fm)/fm/work-orders", "buttons": 47, "ariaLabels": 3, "coverage": "6%", "priority": "P0" },
+      { "path": "app/(app)/marketplace", "buttons": 29, "ariaLabels": 2, "coverage": "7%", "priority": "P0" },
+      { "path": "app/(fm)/fm/properties", "buttons": 30, "ariaLabels": 2, "coverage": "7%", "priority": "P0" },
+      { "path": "components/finance", "buttons": 37, "ariaLabels": 3, "coverage": "8%", "priority": "P0" },
+      { "path": "app/(fm)/admin", "buttons": 57, "ariaLabels": 6, "coverage": "11%", "priority": "P1" },
+      { "path": "app/superadmin/user-logs", "buttons": 9, "ariaLabels": 1, "coverage": "11%", "priority": "P1" },
+      { "path": "components/souq", "buttons": 25, "ariaLabels": 3, "coverage": "12%", "priority": "P1" },
+      { "path": "app/(app)/notifications", "buttons": 21, "ariaLabels": 3, "coverage": "14%", "priority": "P1" },
+      { "path": "app/(app)/login", "buttons": 14, "ariaLabels": 2, "coverage": "14%", "priority": "P1" }
+    ],
+    "completedModules": [
+      { "path": "app/(app)/profile", "buttons": 10, "ariaLabels": 10, "coverage": "100%" },
+      { "path": "app/(fm)/administration", "buttons": 15, "ariaLabels": 17, "coverage": "100%" },
+      { "path": "components/i18n", "buttons": 5, "ariaLabels": 7, "coverage": "100%" },
+      { "path": "components/accessibility", "buttons": 0, "ariaLabels": 1, "coverage": "100%" }
+    ]
+  },
   "counts": {
     "total": 1847,
     "byPriorityLabel": {

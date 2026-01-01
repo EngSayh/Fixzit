@@ -368,6 +368,8 @@ export default function TrialBalanceReport({
               size="sm"
               onClick={() => handleExport("csv")}
               disabled={!data || loading}
+              aria-label={t("common.exportCsv", "Export CSV")}
+              title={t("common.exportCsv", "Export CSV")}
             >
               <Download className="w-4 h-4 me-2" />
               {t("common.exportCsv", "Export CSV")}
@@ -377,6 +379,8 @@ export default function TrialBalanceReport({
               size="sm"
               onClick={loadTrialBalance}
               disabled={loading}
+              aria-label={t("finance.trialBalance.refresh", "Refresh trial balance")}
+              title={t("finance.trialBalance.refresh", "Refresh trial balance")}
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 me-2 animate-spin" />
@@ -471,10 +475,10 @@ export default function TrialBalanceReport({
 
           {groupByType && data && (
             <div className="flex gap-2 border-t pt-4">
-              <Button variant="outline" size="sm" onClick={expandAll}>
+              <Button variant="outline" size="sm" onClick={expandAll} aria-label={t("common.expandAll", "Expand All")} title={t("common.expandAll", "Expand All")}>
                 {t("common.expandAll", "Expand All")}
               </Button>
-              <Button variant="outline" size="sm" onClick={collapseAll}>
+              <Button variant="outline" size="sm" onClick={collapseAll} aria-label={t("common.collapseAll", "Collapse All")} title={t("common.collapseAll", "Collapse All")}>
                 {t("common.collapseAll", "Collapse All")}
               </Button>
             </div>
@@ -624,7 +628,7 @@ export default function TrialBalanceReport({
                 "No trial balance data available",
               )}
             </p>
-            <Button variant="default" onClick={loadTrialBalance}>
+            <Button variant="default" onClick={loadTrialBalance} aria-label={t("finance.trialBalance.loadData", "Load Trial Balance")} title={t("finance.trialBalance.loadData", "Load Trial Balance")}>
               {t("finance.trialBalance.loadData", "Load Trial Balance")}
             </Button>
           </CardContent>

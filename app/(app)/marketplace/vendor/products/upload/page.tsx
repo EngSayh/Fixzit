@@ -324,6 +324,8 @@ export default function VendorProductUploadPage() {
                     type="button"
                     onClick={() => removeImage(index)}
                     className="absolute top-2 end-2 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
+                    aria-label={`Remove image ${index + 1}`}
+                    title="Remove image"
                   >
                     <X size={16} />
                   </button>

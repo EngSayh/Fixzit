@@ -144,11 +144,11 @@ export default function LeaveApprovalsHub() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={auto("Open playbook settings", "actions.playbookAria")} title={auto("Open playbook settings", "actions.playbookAria")}>
             <ListChecks className="me-2 h-4 w-4" />
             {auto("Playbook settings", "actions.playbook")}
           </Button>
-          <Button>
+          <Button aria-label={auto("Assign a reviewer", "actions.assignAria")} title={auto("Assign a reviewer", "actions.assignAria")}>
             <UserCheck className="me-2 h-4 w-4" />
             {auto("Assign reviewer", "actions.assign")}
           </Button>
@@ -178,6 +178,8 @@ export default function LeaveApprovalsHub() {
                   variant="outline"
                   className="mt-3"
                   onClick={() => refresh()}
+                  aria-label={auto("Retry loading approvals", "queue.retryAria")}
+                  title={auto("Retry loading approvals", "queue.retryAria")}
                 >
                   {auto("Retry", "queue.retry")}
                 </Button>
@@ -271,11 +273,11 @@ export default function LeaveApprovalsHub() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1" variant="outline">
+                  <Button className="flex-1" variant="outline" aria-label={auto("Decline leave request", "detail.declineAria")} title={auto("Decline leave request", "detail.declineAria")}>
                     <X className="me-2 h-4 w-4" />
                     {auto("Decline", "detail.decline")}
                   </Button>
-                  <Button className="flex-1">
+                  <Button className="flex-1" aria-label={auto("Approve and sync to payroll", "detail.approveAria")} title={auto("Approve and sync to payroll", "detail.approveAria")}>
                     <Check className="me-2 h-4 w-4" />
                     {auto("Approve & sync", "detail.approve")}
                   </Button>

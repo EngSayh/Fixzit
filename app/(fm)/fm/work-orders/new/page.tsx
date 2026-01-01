@@ -194,6 +194,8 @@ export default function NewWorkOrderPage() {
               }
             }}
             disabled={creating || !title || !propertyId}
+            aria-label={creating ? t("common.savingAria", "Saving work order") : t("workOrders.board.createWOAria", "Create new work order")}
+            title={t("workOrders.board.createWOAria", "Create new work order")}
           >
             {creating
               ? t("common.saving", "Saving...")
