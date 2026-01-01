@@ -6,6 +6,7 @@ import { auditPlugin } from "../plugins/auditPlugin";
 /**
  * CompanyInfo Model
  * Manages company information displayed in footer and contact pages
+ * Per-tenant singleton: each organization has its own company info
  * Super Admin only access for editing
  * 
  * @module server/models/CompanyInfo
@@ -57,6 +58,11 @@ const CompanyInfoSchema = new Schema(
       required: false,
       comment: "Contact phone number",
     },
+    alternatePhone: {
+      type: String,
+      required: false,
+      comment: "Alternate contact phone number",
+    },
     address: {
       type: String,
       required: false,
@@ -77,6 +83,16 @@ const CompanyInfoSchema = new Schema(
       required: false,
       comment: "Commercial registration number",
     },
+    logoUrl: {
+      type: String,
+      required: false,
+      comment: "Company logo image URL",
+    },
+    faviconUrl: {
+      type: String,
+      required: false,
+      comment: "Favicon image URL",
+    },
     socialLinks: {
       type: SocialLinksSchema,
       default: () => ({}),
@@ -86,7 +102,7 @@ const CompanyInfoSchema = new Schema(
   },
   {
     timestamps: true,
-    comment: "Company contact and branding information",
+    comment: "Company contact and branding information (per-tenant singleton)",
   },
 );
 

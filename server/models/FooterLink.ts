@@ -6,6 +6,7 @@ import { auditPlugin } from "../plugins/auditPlugin";
 /**
  * FooterLink Model
  * Manages footer navigation links organized by section
+ * Per-tenant: each organization manages its own footer links
  * Super Admin only access for editing
  * 
  * @module server/models/FooterLink

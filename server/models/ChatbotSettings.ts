@@ -7,6 +7,7 @@ import { encryptionPlugin } from "../plugins/encryptionPlugin";
 /**
  * ChatbotSettings Model
  * Manages AI chatbot configuration for customer support
+ * Per-tenant singleton: each organization has its own chatbot settings
  * Super Admin only access for editing
  * 
  * @module server/models/ChatbotSettings
@@ -92,7 +93,7 @@ const ChatbotSettingsSchema = new Schema(
   },
   {
     timestamps: true,
-    comment: "AI chatbot configuration with encrypted API keys",
+    comment: "AI chatbot configuration with encrypted API keys (per-tenant singleton)",
   },
 );
 
