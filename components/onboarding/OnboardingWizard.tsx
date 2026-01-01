@@ -771,6 +771,8 @@ export default function OnboardingWizard({
           variant="outline"
           onClick={prevStep}
           disabled={currentStep === 1 || isLoading}
+          aria-label={t("onboarding.previous", "Go to previous step")}
+          title={t("onboarding.previous", "Go to previous step")}
         >
           {isRTL ? (
             <>
@@ -786,7 +788,7 @@ export default function OnboardingWizard({
         </Button>
 
         {currentStep < STEPS.length ? (
-          <Button onClick={nextStep} disabled={isLoading}>
+          <Button onClick={nextStep} disabled={isLoading} aria-label={t("onboarding.next", "Go to next step")} title={t("onboarding.next", "Go to next step")}>
             {isLoading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
             {t("onboarding.next", isRTL ? "التالي" : "Next")}
             {isRTL ? (
@@ -796,7 +798,7 @@ export default function OnboardingWizard({
             )}
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading} aria-label={t("onboarding.submit", "Submit onboarding form")} title={t("onboarding.submit", "Submit onboarding form")}>
             {isLoading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
             {t("onboarding.submit", isRTL ? "إرسال" : "Submit")}
           </Button>

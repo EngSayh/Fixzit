@@ -79,6 +79,8 @@ export function HubNavigationCard({
               variant="ghost" 
               size="sm" 
               className="ms-auto group-hover:translate-x-1 transition-transform"
+              aria-label={`View ${title}`}
+              title={`View ${title}`}
             >
               View <ChevronRight className="h-4 w-4 ms-1" />
             </Button>

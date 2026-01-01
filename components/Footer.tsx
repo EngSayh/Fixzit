@@ -270,6 +270,7 @@ export default function Footer({ hidePlatformLinks = false }: FooterProps) {
                     type="button"
                     onClick={() => setActiveGroup(section.id)}
                     aria-pressed={activeGroup === section.id}
+                    aria-label={`${activeGroup === section.id ? 'Collapse' : 'Expand'} ${section.label} section`}
                     className={cn(
                       "group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-all duration-150",
                       activeGroup === section.id
