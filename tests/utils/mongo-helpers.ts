@@ -5,6 +5,8 @@
  * @module tests/utils/mongo-helpers
  */
 
+/* eslint-disable no-console -- Test utilities need console output for debugging connection issues */
+
 import mongoose from 'mongoose';
 
 // Track reconnection attempts to prevent infinite loops

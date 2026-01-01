@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
     const forwarded = request.headers.get("x-forwarded-for");
     const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
 
+    // Superadmin audit logs are platform-wide (cross-tenant) by design - tracks all admin actions
+    // eslint-disable-next-line local/require-tenant-scope
     const auditLog = await AuditLogModel.create({
       userId: session.username,
       action: body.action,
