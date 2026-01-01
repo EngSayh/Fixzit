@@ -468,11 +468,20 @@ export function generateBuildingModel(input: BuildingGenSpec): BuildingModel {
 export async function generateBuildingModelAI(
   input: BuildingGenSpec
 ): Promise<BuildingModel> {
-  // TODO: Implement AI-powered generation using LLM
-  // For now, fall back to procedural generation
-  // This will be a paid feature that interprets the prompt field
-  
-  // Placeholder: Use procedural generator
+  /**
+   * AI-powered generation (Premium Feature - Future Enhancement)
+   * 
+   * @see ISSUE-FM-3D-001 - AI Generation Implementation
+   * @status PLANNED - Currently falls back to procedural generation
+   * 
+   * When implemented, this will:
+   * - Interpret the `prompt` field using LLM (e.g., GPT-4, Claude)
+   * - Generate optimized room layouts based on natural language descriptions
+   * - Provide building code compliance hints
+   * - Suggest energy-efficient positioning
+   * 
+   * Until then, procedural generation provides consistent, fast results.
+   */
   return generateBuildingModel(input);
 }
 

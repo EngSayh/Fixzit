@@ -258,7 +258,7 @@ export function BuildingTourClient({
           </div>
 
           {/* Left controls panel */}
-          <div className="absolute left-4 top-24 pointer-events-none">
+          <div className="absolute start-4 top-24 pointer-events-none">
             <div className="rounded-xl bg-white/90 backdrop-blur shadow-lg p-3 pointer-events-auto space-y-3 w-48">
               <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 View Options
@@ -332,7 +332,7 @@ export function BuildingTourClient({
 
           {/* Right info panel - selected unit */}
           {selectedUnitInfo && (
-            <div className="absolute right-4 top-24 pointer-events-none">
+            <div className="absolute end-4 top-24 pointer-events-none">
               <div className="rounded-xl bg-white/90 backdrop-blur shadow-lg p-4 pointer-events-auto w-56">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Selected Unit
