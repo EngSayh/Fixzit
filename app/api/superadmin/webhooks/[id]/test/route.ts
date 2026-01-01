@@ -90,14 +90,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
       "X-Fixzit-Delivery": crypto.randomUUID(),
     };
 
-    // Add custom headers (Mongoose returns plain objects, not Maps)
-    if (webhook.headers && typeof webhook.headers === "object") {
-      // Type assertion to handle both Map and Record cases from Mongoose
-      const customHeaders = webhook.headers as unknown as Record<string, string>;
-      for (const [key, value] of Object.entries(customHeaders)) {
-        if (typeof key === "string" && typeof value === "string") {
-          headers[key] = value;
+    // Add custom headers (handle both Mongoose Map and plain object cases)
+    if (webhook.headers) {
+      if (webhook.headers instanceof Map) {
+        // Mongoose Map type - iterate using Map methods
+        for (const [key, value] of webhook.headers.entries()) {
+          if (typeof key === "string" && typeof value === "string") {
+            headers[key] = value;
+          }
         }
+      } else if (typeof webhook.headers === "object") {
+        // Plain object fallback (e.g., from .lean() query)
+        Object.assign(headers, webhook.headers as Record<string, string>);
       }
     }
 

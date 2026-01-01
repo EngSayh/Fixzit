@@ -48,10 +48,11 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Query audit logs for impersonation events
+    // Impersonation logs use LOGIN/LOGOUT action with metadata.impersonationType
     /* eslint-disable local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant audit visibility */
     const [sessions, total] = await Promise.all([
       AuditLogModel.find({
-        action: { $in: ["impersonate_start", "impersonate_end", "tenant_switch"] },
+        "metadata.impersonationType": { $in: ["START", "END"] },
       })
         .sort({ timestamp: -1 })
         .skip(skip)
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
         .select("action userId userName userEmail orgId metadata timestamp context")
         .lean(),
       AuditLogModel.countDocuments({
-        action: { $in: ["impersonate_start", "impersonate_end", "tenant_switch"] },
+        "metadata.impersonationType": { $in: ["START", "END"] },
       }),
     ]);
     /* eslint-enable local/require-tenant-scope */
