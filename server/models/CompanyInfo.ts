@@ -58,7 +58,7 @@ const CompanyInfoSchema = new Schema(
     email: {
       type: String,
       lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, "Must be valid email"],
+      match: [/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/, "Must be valid email"],
       comment: "Primary contact email",
     },
     phone: {
