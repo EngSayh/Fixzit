@@ -179,6 +179,7 @@ export function ReviewCard({
         <button type="button"
           onClick={handleMarkHelpful}
           disabled={isSubmitting || !onMarkHelpful}
+          aria-label="Mark as helpful"
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-primary disabled:opacity-50"
         >
           <ThumbsUp className="w-4 h-4" />
@@ -193,6 +194,7 @@ export function ReviewCard({
         <button type="button"
           onClick={() => setShowReportDialog(true)}
           disabled={!onReport}
+          aria-label="Report this review"
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-destructive disabled:opacity-50"
         >
           <Flag className="w-4 h-4" />
@@ -220,6 +222,7 @@ export function ReviewCard({
             <div className="flex gap-3">
               <button type="button"
                 onClick={() => setShowReportDialog(false)}
+                aria-label="Cancel"
                 className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
                 {auto("Cancel", "dialog.cancel")}
@@ -227,6 +230,7 @@ export function ReviewCard({
               <button type="button"
                 onClick={handleReport}
                 disabled={isSubmitting || !reportReason}
+                aria-label="Submit report"
                 className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark disabled:opacity-50"
               >
                 {isSubmitting

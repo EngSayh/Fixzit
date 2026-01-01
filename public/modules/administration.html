@@ -546,11 +546,11 @@
       <div class="page-header">
         <h1 class="page-title">Administration</h1>
         <div class="header-actions">
-          <button class="btn btn-secondary">
+          <button class="btn btn-secondary" aria-label="Settings">
             <i class="fas fa-cog"></i>
             Settings
           </button>
-          <button class="btn btn-primary">
+          <button class="btn btn-primary" aria-label="Create new policy">
             <i class="fas fa-plus"></i>
             New Policy
           </button>
@@ -560,23 +560,23 @@
       <!-- Tabs -->
       <div class="tabs-container">
         <div class="tabs">
-          <button class="tab active" onclick="switchTab('delegation')">
+          <button class="tab active" onclick="switchTab('delegation')" aria-label="Delegation of Authority tab">
             <i class="fas fa-sitemap"></i>
             Delegation of Authority
           </button>
-          <button class="tab" onclick="switchTab('policies')">
+          <button class="tab" onclick="switchTab('policies')" aria-label="Policies and Procedures tab">
             <i class="fas fa-file-alt"></i>
             Policies & Procedures
           </button>
-          <button class="tab" onclick="switchTab('assets')">
+          <button class="tab" onclick="switchTab('assets')" aria-label="Asset and Inventory tab">
             <i class="fas fa-boxes"></i>
             Asset & Inventory
           </button>
-          <button class="tab" onclick="switchTab('facilities')">
+          <button class="tab" onclick="switchTab('facilities')" aria-label="Facilities and Fleet tab">
             <i class="fas fa-building"></i>
             Facilities & Fleet
           </button>
-          <button class="tab" onclick="switchTab('vendors')">
+          <button class="tab" onclick="switchTab('vendors')" aria-label="Vendors tab">
             <i class="fas fa-handshake"></i>
             Vendors
           </button>
@@ -587,7 +587,7 @@
       <div class="delegation-container">
         <div class="delegation-header">
           <h2 class="section-title">Delegation of Authority Matrix</h2>
-          <button class="btn btn-primary">
+          <button class="btn btn-primary" aria-label="Edit delegation matrix">
             <i class="fas fa-edit"></i>
             Edit Matrix
           </button>
