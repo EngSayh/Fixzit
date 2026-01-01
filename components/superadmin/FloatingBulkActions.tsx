@@ -1,10 +1,11 @@
 /**
  * Floating Bulk Actions Bar
  * Appears at bottom-center when rows are selected
+ * Shows confirmation feedback after actions
  */
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Trash2, Archive, CheckCircle, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 
@@ -23,7 +24,29 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
   onArchive,
   onDelete,
 }) => {
+  const [resolvedConfirm, setResolvedConfirm] = useState(false);
+  const [archivedConfirm, setArchivedConfirm] = useState(false);
+  const [deletedConfirm, setDeletedConfirm] = useState(false);
+
   if (selectedCount === 0) return null;
+
+  const handleMarkResolved = () => {
+    onMarkResolved?.();
+    setResolvedConfirm(true);
+    setTimeout(() => setResolvedConfirm(false), 2000);
+  };
+
+  const handleArchive = () => {
+    onArchive?.();
+    setArchivedConfirm(true);
+    setTimeout(() => setArchivedConfirm(false), 2000);
+  };
+
+  const handleDelete = () => {
+    onDelete?.();
+    setDeletedConfirm(true);
+    setTimeout(() => setDeletedConfirm(false), 2000);
+  };
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
@@ -41,39 +64,63 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
 
         <div className="flex items-center gap-2">
           {onMarkResolved && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMarkResolved}
-              className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-            >
-              <CheckCircle className="w-4 h-4 me-2" />
-              Mark Resolved
-            </Button>
+            <div className="flex flex-col items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkResolved}
+                className={resolvedConfirm 
+                  ? "text-green-500 hover:text-green-500 bg-green-50 dark:bg-green-900/30" 
+                  : "text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                }
+              >
+                <CheckCircle className="w-4 h-4 me-2" />
+                {resolvedConfirm ? "✓ Marked!" : "Mark Resolved"}
+              </Button>
+              {resolvedConfirm && (
+                <span className="text-xs text-green-500 mt-1">Action completed</span>
+              )}
+            </div>
           )}
           
           {onArchive && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onArchive}
-              className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <Archive className="w-4 h-4 me-2" />
-              Archive
-            </Button>
+            <div className="flex flex-col items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleArchive}
+                className={archivedConfirm 
+                  ? "text-blue-500 hover:text-blue-500 bg-blue-50 dark:bg-blue-900/30" 
+                  : "text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }
+              >
+                <Archive className="w-4 h-4 me-2" />
+                {archivedConfirm ? "✓ Archived!" : "Archive"}
+              </Button>
+              {archivedConfirm && (
+                <span className="text-xs text-blue-500 mt-1">Action completed</span>
+              )}
+            </div>
           )}
           
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              <Trash2 className="w-4 h-4 me-2" />
-              Delete
-            </Button>
+            <div className="flex flex-col items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                className={deletedConfirm 
+                  ? "text-orange-500 hover:text-orange-500 bg-orange-50 dark:bg-orange-900/30" 
+                  : "text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                }
+              >
+                <Trash2 className="w-4 h-4 me-2" />
+                {deletedConfirm ? "✓ Deleted!" : "Delete"}
+              </Button>
+              {deletedConfirm && (
+                <span className="text-xs text-orange-500 mt-1">Action completed</span>
+              )}
+            </div>
           )}
         </div>
 

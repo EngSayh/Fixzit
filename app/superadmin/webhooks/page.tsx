@@ -56,8 +56,8 @@ import {
   Webhook,
   Search,
   Eye,
-  Copy,
 } from "@/components/ui/icons";
+import { CopyButton } from "@/components/ui/copy-button";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
 
 // ============================================================================
@@ -347,15 +347,6 @@ export default function WebhooksPage() {
     }
   };
 
-  const copySecret = async (secret: string) => {
-    try {
-      await navigator.clipboard.writeText(secret);
-      toast.success("Secret copied to clipboard");
-    } catch {
-      toast.error("Failed to copy to clipboard");
-    }
-  };
-
   const viewLogs = (webhook: WebhookConfig) => {
     setSelectedWebhook(webhook);
     setShowLogsDialog(true);
@@ -511,14 +502,13 @@ export default function WebhooksPage() {
                     <TableCell>
                       <div className="flex items-center gap-2 max-w-xs">
                         <code className="text-xs truncate">{webhook.url}</code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <CopyButton 
+                          value={webhook.secret}
+                          iconOnly
+                          size="icon"
                           className="h-6 w-6"
-                          onClick={() => copySecret(webhook.secret)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          successMessage={t("superadmin.webhooks.secretCopied", "Secret copied to clipboard")}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>

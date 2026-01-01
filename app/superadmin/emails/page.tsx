@@ -58,11 +58,11 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  Copy,
   Code,
   Smartphone,
   Monitor,
 } from "@/components/ui/icons";
+import { CopyButton } from "@/components/ui/copy-button";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
 import DOMPurify from "dompurify";
 
@@ -355,28 +355,6 @@ export default function EmailTemplatesPage() {
     }
   };
 
-  const copyTemplateKey = async (key: string) => {
-    try {
-      await navigator.clipboard.writeText(key);
-      toast.success("Template key copied");
-    } catch {
-      // Fallback for insecure context or permission denied
-      try {
-        const textArea = document.createElement("textarea");
-        textArea.value = key;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-        toast.success("Template key copied");
-      } catch {
-        toast.error("Failed to copy. Please copy manually: " + key);
-      }
-    }
-  };
-
   const getPreviewHtml = () => {
     if (!selectedTemplate) return "";
     
@@ -572,14 +550,13 @@ export default function EmailTemplatesPage() {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{template.key}</code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <CopyButton 
+                          value={template.key}
+                          iconOnly
+                          size="icon"
                           className="h-6 w-6"
-                          onClick={() => copyTemplateKey(template.key)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          successMessage={t("superadmin.emails.keyCopied", "Template key copied")}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>

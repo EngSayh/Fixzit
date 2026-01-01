@@ -171,6 +171,11 @@ export default function SuperadminIssuesPage() {
   // Selection state
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
 
+  // Action confirmation states
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [copiedTSV, setCopiedTSV] = useState(false);
+  const [exportedCSV, setExportedCSV] = useState(false);
+
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -267,21 +272,57 @@ export default function SuperadminIssuesPage() {
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
-    const rows = selectedData.map(issue => [
-      issue.issueId || issue.legacyId || issue._id.slice(-6),
-      issue.priority,
-      issue.title,
-      issue.status,
-      issue.category,
-      issue.module,
-      `${issue.mentionCount || 1}×`,
-      new Date(issue.updatedAt).toLocaleDateString(),
-    ]);
+    // Generate detailed fix instructions for each issue
+    const fixInstructions = selectedData.map((issue, idx) => {
+      const issueNum = idx + 1;
+      const location = issue.location?.filePath 
+        ? `\`${issue.location.filePath}${issue.location.lineStart ? `:${issue.location.lineStart}` : ""}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}\``
+        : "Location not specified";
+      
+      return `### ${issueNum}. ${issue.title}
 
-    const markdown = `| ${headers.join(" | ")} |\n| ${headers.map(() => "---").join(" | ")} |\n${rows.map(row => `| ${row.join(" | ")} |`).join("\n")}`;
+**ID:** ${issue.issueId || issue.legacyId || issue._id.slice(-6)}  
+**Priority:** ${issue.priority}  
+**Status:** ${issue.status}  
+**Category:** ${issue.category}  
+**Module:** ${issue.module}  
+**Location:** ${location}  
+**Seen:** ${issue.mentionCount || 1}×  
+**Updated:** ${new Date(issue.updatedAt).toLocaleDateString()}
+
+**Description:**  
+${issue.description || "No description provided."}
+
+**Fix Instructions:**
+1. Navigate to ${location}
+2. Review the ${issue.category} issue: "${issue.title}"
+3. Apply the necessary fix based on the category type
+4. Test the changes to ensure the issue is resolved
+5. Update the issue status to "resolved" after verification
+
+---`;
+    }).join("\n\n");
+
+    const markdown = `# Fix Instructions for Selected Issues
+
+**Total Issues:** ${selectedData.length}  
+**Generated:** ${new Date().toLocaleString()}  
+**Agent Token:** [AGENT-001-A]
+
+---
+
+${fixInstructions}
+
+## Summary Table
+
+| ID | Priority | Title | Status | Category | Module | Location |
+| --- | --- | --- | --- | --- | --- | --- |
+${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.slice(-6)} | ${issue.priority} | ${issue.title} | ${issue.status} | ${issue.category} | ${issue.module} | ${issue.location?.filePath || "N/A"} |`).join("\n")}
+`;
     navigator.clipboard.writeText(markdown);
-    toast({ title: "Copied to clipboard", description: `${selectedData.length} issues copied as Markdown table` });
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
+    toast({ title: "✓ Copied to clipboard", description: `${selectedData.length} issues copied with fix instructions` });
   };
 
   const handleCopyTSV = () => {
@@ -291,7 +332,7 @@ export default function SuperadminIssuesPage() {
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
+    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Location", "Line", "Seen", "Updated", "Description"];
     const rows = selectedData.map(issue => [
       issue.issueId || issue.legacyId || issue._id.slice(-6),
       issue.priority,
@@ -299,13 +340,18 @@ export default function SuperadminIssuesPage() {
       issue.status,
       issue.category,
       issue.module,
+      issue.location?.filePath || "",
+      issue.location?.lineStart ? `${issue.location.lineStart}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}` : "",
       `${issue.mentionCount || 1}×`,
       new Date(issue.updatedAt).toLocaleDateString(),
+      (issue.description || "").replace(/\t/g, " ").replace(/\n/g, " "),
     ]);
 
     const tsv = `${headers.join("\t")}\n${rows.map(row => row.join("\t")).join("\n")}`;
     navigator.clipboard.writeText(tsv);
-    toast({ title: "Copied to clipboard", description: `${selectedData.length} issues copied as TSV (paste into Excel/Sheets)` });
+    setCopiedTSV(true);
+    setTimeout(() => setCopiedTSV(false), 2000);
+    toast({ title: "✓ Copied to clipboard", description: `${selectedData.length} issues copied as TSV (paste into Excel/Sheets)` });
   };
 
   const handleExportCSV = () => {
@@ -316,7 +362,7 @@ export default function SuperadminIssuesPage() {
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
+    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "FilePath", "LineStart", "LineEnd", "Description", "Seen", "Updated"];
     const rows = selectedData.map(issue => [
       issue.issueId || issue.legacyId || issue._id.slice(-6),
       issue.priority,
@@ -324,6 +370,10 @@ export default function SuperadminIssuesPage() {
       issue.status,
       issue.category,
       issue.module,
+      issue.location?.filePath || "",
+      issue.location?.lineStart || "",
+      issue.location?.lineEnd || "",
+      (issue.description || "").replace(/"/g, '""'),
       issue.mentionCount || 1,
       new Date(issue.updatedAt).toISOString(),
     ]);
@@ -337,7 +387,9 @@ export default function SuperadminIssuesPage() {
     a.click();
     URL.revokeObjectURL(url);
 
-    toast({ title: "Export complete", description: `${selectedData.length} issues exported to CSV` });
+    setExportedCSV(true);
+    setTimeout(() => setExportedCSV(false), 2000);
+    toast({ title: "✓ Export complete", description: `${selectedData.length} issues exported to CSV` });
   };
 
   const clearFilters = () => {
@@ -953,26 +1005,49 @@ export default function SuperadminIssuesPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleCopyMarkdown}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  className={copiedMarkdown ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
                 >
-                  Copy Markdown
+                  {copiedMarkdown ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    "Copy Fix Instructions"
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleCopyTSV}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  className={copiedTSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
                 >
-                  Copy TSV
+                  {copiedTSV ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    "Copy TSV"
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleExportCSV}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  className={exportedCSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
                 >
-                  <Download className="h-4 w-4 me-1" />
-                  Export CSV
+                  {exportedCSV ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Exported!
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 me-1" />
+                      Export CSV
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
