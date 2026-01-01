@@ -604,7 +604,7 @@ export default function OnboardingWizard({
                         }}
                       />
                       <Button variant="outline" size="sm" asChild>
-                        <span>
+                        <span aria-label={isRTL ? `تحميل ${docType}` : `Upload ${docType}`}>
                           <Upload className="h-4 w-4 me-2" />
                           {isRTL ? "تحميل" : "Upload"}
                         </span>
