@@ -141,11 +141,8 @@ GhostSessionSchema.index({ started_at: -1 });
 // Auto-expire sessions after 24 hours
 GhostSessionSchema.pre("save", function (next) {
   if (this.isNew && !this.ended_at) {
-    // Set automatic expiration to 24 hours from start
-    const expirationTime = new Date(this.started_at.getTime() + 24 * 60 * 60 * 1000);
-    if (!this.ended_at || this.ended_at > expirationTime) {
-      // Note: This is informational - actual expiration should be handled by application logic
-    }
+    // Note: ended_at is not set for new sessions
+    // Actual expiration (24h from start) should be handled by application logic
   }
   next();
 });

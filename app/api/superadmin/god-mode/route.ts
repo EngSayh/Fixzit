@@ -10,6 +10,8 @@
  * @route GET /api/superadmin/god-mode
  */
 
+/* eslint-disable local/require-tenant-scope -- Superadmin route: intentionally queries across all tenants */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
@@ -19,6 +21,7 @@ import { KillSwitchEvent } from "@/server/models/KillSwitchEvent";
 import { GhostSession } from "@/server/models/GhostSession";
 import { TenantSnapshot } from "@/server/models/TenantSnapshot";
 import { connectDb } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
 
 export async function GET(req: NextRequest) {
   try {
@@ -88,12 +91,13 @@ export async function GET(req: NextRequest) {
       .exec();
     
     // Enrich kill switch events with tenant names - batch query to avoid N+1
-    const killSwitchTenantIds = activeKillSwitchEvents.map(e => e.tenant_id).filter(Boolean);
+    const killSwitchTenantIds = activeKillSwitchEvents
+      .map(e => e.tenant_id?.toString())
+      .filter((id): id is string => Boolean(id));
     const killSwitchTenants = killSwitchTenantIds.length > 0 
       ? await db.collection("organizations").find(
-          { _id: { $in: killSwitchTenantIds } },
-          { projection: { name: 1 } }
-        ).toArray()
+          { _id: { $in: killSwitchTenantIds.map(id => new ObjectId(id)) } }
+        ).project({ name: 1 }).toArray()
       : [];
     const killSwitchTenantMap = new Map(killSwitchTenants.map(t => [String(t._id), t.name]));
     
@@ -122,12 +126,13 @@ export async function GET(req: NextRequest) {
     ]);
     
     // Enrich snapshots with tenant names - batch query to avoid N+1
-    const snapshotTenantIds = recentSnapshots.map(s => s.tenant_id).filter(Boolean);
+    const snapshotTenantIds = recentSnapshots
+      .map(s => s.tenant_id?.toString())
+      .filter((id): id is string => Boolean(id));
     const snapshotTenants = snapshotTenantIds.length > 0
       ? await db.collection("organizations").find(
-          { _id: { $in: snapshotTenantIds } },
-          { projection: { name: 1 } }
-        ).toArray()
+          { _id: { $in: snapshotTenantIds.map(id => new ObjectId(id)) } }
+        ).project({ name: 1 }).toArray()
       : [];
     const snapshotTenantMap = new Map(snapshotTenants.map(t => [String(t._id), t.name]));
     
@@ -199,7 +204,7 @@ export async function GET(req: NextRequest) {
     // - MongoDB Atlas monitoring API
     // - External service status endpoints
     // Current implementation provides basic database connectivity check only
-    let systemHealth: {
+    const systemHealth: {
       status: "operational" | "degraded";
       note: string;
       database_connected: boolean;

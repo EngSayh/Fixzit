@@ -6,6 +6,8 @@
  * @module api/superadmin/audit-log
  */
 
+/* eslint-disable local/require-tenant-scope -- Superadmin route: intentionally queries across all tenants */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { connectDb } from "@/lib/mongodb-unified";
