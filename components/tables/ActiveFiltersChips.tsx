@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { Chip } from "@/components/ui/chip";
+import { useTranslation } from "@/lib/i18n/client";
 
 export interface ActiveFilter {
   key: string;
@@ -21,6 +24,8 @@ export function ActiveFiltersChips({
   onClearAll,
   className,
 }: ActiveFiltersChipsProps) {
+  const { t } = useTranslation();
+  
   if (!filters.length) {
     return null;
   }
@@ -43,9 +48,9 @@ export function ActiveFiltersChips({
           type="button"
           className="text-sm font-medium text-primary hover:underline"
           onClick={onClearAll}
-          aria-label="Clear all filters"
+          aria-label={t("common.clearAllFilters", "Clear all filters")}
         >
-          Clear all
+          {t("common.clearAll", "Clear all")}
         </button>
       ) : null}
     </div>

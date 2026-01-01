@@ -13,6 +13,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, LayoutList } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/client";
 
 export type ViewMode = "table" | "cards";
 
@@ -31,6 +32,7 @@ export function ViewModeToggle({
   className,
   size = "md",
 }: ViewModeToggleProps) {
+  const { t } = useTranslation();
   const iconSizes = {
     sm: "h-3 w-3",
     md: "h-4 w-4",
@@ -50,7 +52,7 @@ export function ViewModeToggle({
         size="icon"
         onClick={() => onChange("table")}
         disabled={disabled}
-        aria-label="Switch to table view"
+        aria-label={t("common.switchToTableView", "Switch to table view")}
         aria-pressed={value === "table"}
         className={cn(
           buttonSizes[size],
@@ -66,7 +68,7 @@ export function ViewModeToggle({
         size="icon"
         onClick={() => onChange("cards")}
         disabled={disabled}
-        aria-label="Switch to card view"
+        aria-label={t("common.switchToCardView", "Switch to card view")}
         aria-pressed={value === "cards"}
         className={cn(
           buttonSizes[size],

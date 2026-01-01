@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/client";
 
 /**
  * Accessible Tabs Component
@@ -33,6 +34,7 @@ interface TabsProps {
 export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
   const [active, setActive] = useState(defaultTab || tabs[0]?.id);
   const tabRefs = useRef<HTMLButtonElement[]>([]);
+  const { t } = useTranslation();
 
   // Keyboard shortcuts (Cmd/Ctrl + 1-9)
   useEffect(() => {
@@ -64,7 +66,7 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
   };
 
   return (
-    <div className={cn("tabs-container", className)} aria-label="Tabs">
+    <div className={cn("tabs-container", className)} aria-label={t("common.tabs", "Tabs")}>
       {/* Tab List */}
       <div
         className="flex gap-2 border-b border-border bg-card/50"

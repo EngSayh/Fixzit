@@ -757,7 +757,7 @@ function TopBarContent() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setMobileSearchOpen(false)}
-                  aria-label="Close search"
+                  aria-label={t("common.close", "Close")}
                 >
                   <X className="w-5 h-5" />
                 </Button>
@@ -897,7 +897,7 @@ function NotificationPopup({
                 size="icon"
                 onClick={() => setNotifOpen(false)}
                 className="h-6 w-6 text-muted-foreground"
-                aria-label="Close notifications"
+                aria-label={t("common.close", "Close")}
               >
                 <X className="w-4 h-4" />
               </Button>
