@@ -15,6 +15,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { ChatbotSettings } from "@/server/models/ChatbotSettings";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
@@ -41,7 +42,7 @@ const DEFAULT_SETTINGS = {
   welcomeMessage: "Hello! How can I help you today?",
   welcomeMessageAr: "مرحباً! كيف يمكنني مساعدتك اليوم؟",
   position: "bottom-right" as const,
-  primaryColor: "#0061A8",
+  primaryColor: BRAND_COLORS.primary,
   offlineMessage: "We're currently offline. Please leave a message.",
   maxTokens: 1000,
   temperature: 0.7,
@@ -136,6 +137,7 @@ export async function PUT(request: NextRequest) {
     const { newApiKey, ...updateData } = validation.data;
     const updates: Record<string, unknown> = { ...updateData };
     
+    // Handle API key updates: undefined = no change, empty string or null = clear key
     if (newApiKey !== undefined) {
       updates.apiKey = newApiKey === "" ? null : newApiKey;
     }
@@ -147,13 +149,21 @@ export async function PUT(request: NextRequest) {
       { new: true, upsert: true, runValidators: true }
     ).lean();
 
+    if (!settings) {
+      logger.error("[Superadmin:Chatbot] Failed to create/update settings");
+      return NextResponse.json(
+        { error: "Failed to update chatbot settings" },
+        { status: 500, headers: ROBOTS_HEADER }
+      );
+    }
+
     logger.info("[Superadmin:Chatbot] Settings updated", {
       updates: Object.keys(updates).filter(k => k !== "apiKey"),
       apiKeyChanged: newApiKey !== undefined,
       by: session.username,
     });
 
-    const { apiKey, ...safeSettings } = settings || {};
+    const { apiKey, ...safeSettings } = settings;
     return NextResponse.json(
       { settings: { ...safeSettings, hasApiKey: !!apiKey }, message: "Chatbot settings updated" },
       { headers: ROBOTS_HEADER }
