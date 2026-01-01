@@ -271,7 +271,6 @@ export default function OtherOffersTab({
                       onClick={() => onAddToCart(offer._id, quantity)}
                       variant={isWinner ? "default" : "outline"}
                       size="sm"
-                      aria-label={auto("Add this offer to cart", "actions.addToCart.ariaLabel")}
                       title={auto("Add to Cart", "actions.addToCart")}
                     >
                       {auto("Add to Cart", "actions.addToCart")}

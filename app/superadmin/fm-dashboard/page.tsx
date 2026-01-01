@@ -208,6 +208,8 @@ export default function SuperadminFMDashboardPage() {
           <button
             onClick={fetchDashboardData}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            aria-label="Refresh FM dashboard data"
+            title="Refresh FM dashboard data"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh

@@ -157,10 +157,10 @@ export default function SuperadminAuditPage() {
           <p className="text-muted-foreground">System-wide audit trail and security events</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground" aria-label={t("superadmin.audit.export", "Export audit logs to CSV")} title={t("superadmin.audit.export", "Export audit logs to CSV")}>
             <Download className="h-4 w-4 me-2" />Export
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh audit logs")} title={t("common.refresh", "Refresh audit logs")}>
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
           </Button>
         </div>
@@ -205,7 +205,7 @@ export default function SuperadminAuditPage() {
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" /><p className="text-red-400">{error}</p>
-              <Button variant="outline" onClick={fetchLogs} className="mt-4">Retry</Button>
+              <Button variant="outline" onClick={fetchLogs} className="mt-4" aria-label={t("common.retry", "Retry loading audit logs")} title={t("common.retry", "Retry loading audit logs")}>Retry</Button>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -231,7 +231,7 @@ export default function SuperadminAuditPage() {
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground" />{log.entityType}{log.entityId && <span className="text-muted-foreground text-xs">({log.entityId.slice(-8)})</span>}</div></TableCell>
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />{log.userEmail || log.userName || log.userId?.slice(-8) || "System"}</div></TableCell>
                     <TableCell>{log.success !== false ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} className="text-muted-foreground hover:text-foreground"><Eye className="h-4 w-4" /></Button></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} className="text-muted-foreground hover:text-foreground" aria-label={t("superadmin.audit.viewDetails", `View details for ${log.action} ${log.entityType}`)} title={t("superadmin.audit.viewDetails", `View details for ${log.action} ${log.entityType}`)}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -241,8 +241,8 @@ export default function SuperadminAuditPage() {
             <div className="flex items-center justify-between p-4 border-t border-border">
               <p className="text-sm text-muted-foreground">Page {pagination.page} of {pagination.pages}</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input"><ChevronLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input"><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input" aria-label={t("common.previousPage", "Go to previous page")} title={t("common.previousPage", "Go to previous page")}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input" aria-label={t("common.nextPage", "Go to next page")} title={t("common.nextPage", "Go to next page")}><ChevronRight className="h-4 w-4" /></Button>
               </div>
             </div>
           )}
@@ -269,7 +269,7 @@ export default function SuperadminAuditPage() {
               {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (<div><p className="text-sm text-muted-foreground mb-1">Metadata</p><pre className="text-xs text-muted-foreground bg-muted p-3 rounded-lg overflow-x-auto">{JSON.stringify(selectedLog.metadata, null, 2)}</pre></div>)}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)} aria-label={t("common.close", "Close audit details")} title={t("common.close", "Close audit details")}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

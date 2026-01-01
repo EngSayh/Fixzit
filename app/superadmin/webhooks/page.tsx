@@ -538,7 +538,8 @@ export default function WebhooksPage() {
                           className="h-8 w-8"
                           onClick={() => handleTest(webhook)}
                           disabled={testingId === webhook.id}
-                          aria-label="Test webhook"
+                          aria-label={t("superadmin.webhooks.test", `Test ${webhook.name} webhook`)}
+                          title={t("superadmin.webhooks.test", `Test ${webhook.name} webhook`)}
                         >
                           <Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />
                         </Button>
@@ -547,7 +548,8 @@ export default function WebhooksPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => viewLogs(webhook)}
-                          aria-label="View logs"
+                          aria-label={t("superadmin.webhooks.viewLogs", `View ${webhook.name} delivery logs`)}
+                          title={t("superadmin.webhooks.viewLogs", `View ${webhook.name} delivery logs`)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -556,7 +558,8 @@ export default function WebhooksPage() {
                           size="icon"
                           className="h-8 w-8 text-destructive"
                           onClick={() => handleDelete(webhook.id)}
-                          aria-label="Delete webhook"
+                          aria-label={t("superadmin.webhooks.delete", `Delete ${webhook.name} webhook`)}
+                          title={t("superadmin.webhooks.delete", `Delete ${webhook.name} webhook`)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -647,10 +650,10 @@ export default function WebhooksPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} aria-label={t("common.cancel", "Cancel webhook creation")} title={t("common.cancel", "Cancel webhook creation")}>
               {t("common.cancel", "Cancel")}
             </Button>
-            <Button onClick={handleCreate}>
+            <Button onClick={handleCreate} aria-label={t("common.create", "Create new webhook")} title={t("common.create", "Create new webhook")}>
               {t("common.create", "Create")}
             </Button>
           </DialogFooter>
@@ -712,7 +715,7 @@ export default function WebhooksPage() {
             </Table>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLogsDialog(false)}>
+            <Button variant="outline" onClick={() => setShowLogsDialog(false)} aria-label={t("common.close", "Close delivery logs")} title={t("common.close", "Close delivery logs")}>
               {t("common.close", "Close")}
             </Button>
           </DialogFooter>

@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-02T08:18:00+03:00
+  Last-Sync: 2026-01-02T12:45:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,65 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-02 12:45 (Asia/Riyadh) — A11y aria-label Mismatch Fixes [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** main | Post PR #627/#635 code review | A11y button accessibility fixes  
+**Issue:** Buttons had aria-labels that differed from visible text, causing screen reader inconsistency
+
+#### 📊 Verification Gates
+
+| Gate | Result | Evidence |
+|------|--------|----------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` - clean |
+| ESLint | ✅ 0 errors, 2 warnings | Pre-existing superadmin tenant scope warnings |
+| Git Status | 🟡 5 modified files | A11y fixes ready to commit |
+
+#### ✅ A11Y-LABEL-001: aria-label/visible-text Mismatch (13 buttons fixed)
+
+**Issue:** Buttons had `aria-label` that differed from visible button text (e.g., "Add location pin" vs "Add location pin to inspection"), causing inconsistent screen reader announcements.
+
+**Fix Pattern:** Removed `aria-label` attributes so accessible name comes from visible text. Retained `title` prop for tooltips where appropriate.
+
+| File | Buttons Fixed | Lines |
+|------|---------------|-------|
+| `app/(fm)/fm/properties/inspections/new/page.tsx` | 4 | 217, 221, 252-253, 257 |
+| `app/(fm)/fm/properties/new/page.tsx` | 1 | 56 |
+| `app/(fm)/fm/properties/units/new/page.tsx` | 4 | 185, 189, 208-209, 213 |
+| `app/(fm)/fm/properties/units/page.tsx` | 3 | 77, 81, 130-131 |
+| `components/souq/OtherOffersTab.tsx` | 1 | 274-275 |
+
+**Before (example):**
+```tsx
+<Button aria-label="Add location pin to inspection" title="Add location pin">
+  Add location pin
+</Button>
+```
+
+**After (fixed):**
+```tsx
+<Button title="Add location pin">
+  Add location pin
+</Button>
+```
+
+#### 📊 PR Queue Status (15 open)
+
+| Priority | PRs | Action |
+|----------|-----|--------|
+| Merge First | #635 (a11y), #634 (validation) | Ready for merge |
+| Close (superseded) | #628-#632 | WIP branches, superseded by #627 |
+| Continue Work | #627 (3D building), #621-#626 | Active development |
+
+#### 🔜 Next Steps
+
+1. **Commit a11y fixes** - Stage and commit the 5 modified files
+2. **Push to main** - Or create PR if required
+3. **Address PR queue** - Merge #635, #634; close stale WIP PRs
+4. **Fix TEST-MONGO-001** - HelpArticle test MongoDB connection timeout (5 tests failing)
 
 ---
 

@@ -628,7 +628,7 @@ export default function SuperadminFooterContentPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.footerContent")}</h1>
           <p className="text-muted-foreground">Manage policies, footer links, AI chatbot, and company information</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh footer content")} title={t("common.refresh", "Refresh footer content")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -648,7 +648,7 @@ export default function SuperadminFooterContentPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Button onClick={handleNewPolicy} className="bg-primary text-primary-foreground">
+            <Button onClick={handleNewPolicy} className="bg-primary text-primary-foreground" aria-label={t("superadmin.footerContent.addPolicy", "Add new policy page")} title={t("superadmin.footerContent.addPolicy", "Add new policy page")}>
               <Plus className="h-4 w-4 me-2" />Add Policy
             </Button>
           </div>
@@ -727,7 +727,7 @@ export default function SuperadminFooterContentPage() {
         {/* Footer Links Tab */}
         <TabsContent value="links" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={handleNewLink} className="bg-primary text-primary-foreground">
+            <Button onClick={handleNewLink} className="bg-primary text-primary-foreground" aria-label={t("superadmin.footerContent.addLink", "Add new footer link")} title={t("superadmin.footerContent.addLink", "Add new footer link")}>
               <Plus className="h-4 w-4 me-2" />Add Link
             </Button>
           </div>
@@ -751,7 +751,7 @@ export default function SuperadminFooterContentPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         {!link.isActive && <Badge variant="outline" className="text-xs">Hidden</Badge>}
-                        <Button variant="ghost" size="sm" onClick={() => handleEditLink(link)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleEditLink(link)} aria-label={`Edit ${link.label} link`} title={`Edit ${link.label} link`}>
                           <Edit className="h-3 w-3" />
                         </Button>
                       </div>

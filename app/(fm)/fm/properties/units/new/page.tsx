@@ -182,11 +182,11 @@ export default function CreatePropertyUnitPage() {
               />
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button type="button" variant="outline" aria-label={auto("Attach floor plan to unit", "form.attachFloorPlan.ariaLabel")} title={auto("Attach floor plan", "form.attachFloorPlan")}>
+              <Button type="button" variant="outline" title={auto("Attach floor plan", "form.attachFloorPlan")}>
                 <Upload className="me-2 h-4 w-4" />
                 {auto("Attach floor plan", "form.attachFloorPlan")}
               </Button>
-              <Button type="button" variant="outline" aria-label={auto("Pin unit location on map", "form.pinLocation.ariaLabel")} title={auto("Pin location", "form.pinLocation")}>
+              <Button type="button" variant="outline" title={auto("Pin location", "form.pinLocation")}>
                 <Compass className="me-2 h-4 w-4" />
                 {auto("Pin location", "form.pinLocation")}
               </Button>
@@ -205,12 +205,11 @@ export default function CreatePropertyUnitPage() {
               onClick={() =>
                 setForm({ name: "", type: "", size: "", rent: "", notes: "" })
               }
-              aria-label={auto("Clear unit form", "next.clear.ariaLabel")}
               title={auto("Clear form", "next.clear")}
             >
               {auto("Clear form", "next.clear")}
             </Button>
-            <Button type="submit" disabled={submitting} aria-label={auto("Publish new unit", "next.publish.ariaLabel")} title={auto("Publish unit", "next.publish")}>
+            <Button type="submit" disabled={submitting} title={auto("Publish unit", "next.publish")}>
               <ClipboardCheck className="me-2 h-4 w-4" />
               {submitting
                 ? auto("Publishing...", "next.submitting")
