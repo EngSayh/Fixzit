@@ -536,6 +536,7 @@ export default function ClaimDetails({
                       key={index}
                       onClick={() => setSelectedMedia(evidence)}
                       className="relative group aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors"
+                      aria-label={`View evidence ${index + 1}: ${evidence.type}`}
                     >
                       {evidence.type === "photo" ? (
                         <img

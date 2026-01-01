@@ -45,18 +45,21 @@ export function UnsavedChangesWarning({
           <button type="button"
             onClick={onSave}
             className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            aria-label={saveText}
           >
             {saveText}
           </button>
           <button type="button"
             onClick={onDiscard}
             className="flex-1 bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-colors"
+            aria-label={discardText}
           >
             {discardText}
           </button>
           <button type="button"
             onClick={onStay}
             className="flex-1 bg-background text-secondary-foreground border border-border px-4 py-2 rounded-md hover:bg-muted transition-colors"
+            aria-label={stayText}
           >
             {stayText}
           </button>

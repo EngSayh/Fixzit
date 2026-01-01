@@ -370,6 +370,7 @@ export default function FeatureSettingsPage() {
             onClick={() => refreshFlags()}
             disabled={loading}
             className="flex items-center gap-2"
+            aria-label={auto("Refresh feature flags", "admin.featureFlags.refreshAria")}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {auto("Refresh", "admin.featureFlags.refresh")}
@@ -389,6 +390,7 @@ export default function FeatureSettingsPage() {
               <button type="button"
                 onClick={() => refreshFlags()}
                 className="text-sm font-medium underline"
+                aria-label={auto("Retry loading feature flags", "errors.retryAria")}
               >
                 {auto("Retry", "errors.retry")}
               </button>

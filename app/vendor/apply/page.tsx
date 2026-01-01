@@ -161,7 +161,7 @@ export default function VendorApplyPage() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Button type="submit" disabled={status === "submitting"}>
+              <Button type="submit" disabled={status === "submitting"} aria-label={status === "submitting" ? "Submitting vendor application" : "Submit vendor application"}>
                 {status === "submitting"
                   ? t("vendor.apply.submitting", "Submitting...")
                   : t("vendor.apply.submit", "Submit application")}

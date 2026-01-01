@@ -408,7 +408,7 @@ export default function AdminIssueDetailPage({
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>{t("common.cancel", "Cancel")}</Button>
+                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} aria-label={t("accessibility.cancelDelete", "Cancel delete action")}>{t("common.cancel", "Cancel")}</Button>
                 <Button onClick={handleDelete} variant="destructive" aria-label={t("accessibility.confirmDelete", "Confirm delete")}>
                   {t("common.delete", "Delete")}
                 </Button>
@@ -707,7 +707,7 @@ export default function AdminIssueDetailPage({
                   rows={2}
                   className="flex-1"
                 />
-                <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+                <Button onClick={handleAddComment} disabled={!newComment.trim()} aria-label={t("accessibility.postComment", "Post comment to this issue")}>
                   {t("issues.details.postComment", "Post")}
                 </Button>
               </div>

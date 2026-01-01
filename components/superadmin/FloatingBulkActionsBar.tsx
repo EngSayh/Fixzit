@@ -142,6 +142,7 @@ export function FloatingBulkActionsBar({
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={onClearSelection}
+              aria-label="Clear selection"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -153,6 +154,7 @@ export function FloatingBulkActionsBar({
               <button type="button"
                 onClick={allSelected ? onClearSelection : onSelectAll}
                 className="text-xs text-primary hover:underline"
+                aria-label={allSelected ? 'Deselect all items' : `Select all ${totalCount} items`}
               >
                 {allSelected ? 'Deselect all' : `Select all ${totalCount}`}
               </button>
@@ -170,6 +172,7 @@ export function FloatingBulkActionsBar({
                       size="sm"
                       disabled={isProcessing}
                       className="gap-2 text-muted-foreground hover:text-foreground"
+                      aria-label="Change status"
                     >
                       <CheckCircle className="h-4 w-4" />
                       <span className="hidden sm:inline">Status</span>
@@ -207,6 +210,7 @@ export function FloatingBulkActionsBar({
                       size="sm"
                       disabled={isProcessing}
                       className="gap-2 text-muted-foreground hover:text-foreground"
+                      aria-label="Change priority"
                     >
                       <AlertCircle className="h-4 w-4" />
                       <span className="hidden sm:inline">Priority</span>
@@ -246,6 +250,7 @@ export function FloatingBulkActionsBar({
                       size="sm"
                       disabled={isProcessing}
                       className="gap-2 text-muted-foreground hover:text-foreground"
+                      aria-label="Assign to user"
                     >
                       <UserPlus className="h-4 w-4" />
                       <span className="hidden sm:inline">Assign</span>
@@ -296,6 +301,7 @@ export function FloatingBulkActionsBar({
                       size="sm"
                       disabled={isProcessing}
                       className="gap-2 text-muted-foreground hover:text-foreground"
+                      aria-label="More actions"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                       <span className="hidden sm:inline">More</span>

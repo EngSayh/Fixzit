@@ -33,6 +33,7 @@ export const SlideOverDrawer: React.FC<SlideOverDrawerProps> = ({
               size="icon"
               onClick={onClose}
               className="h-8 w-8"
+              aria-label="Close drawer"
             >
               <X className="h-4 w-4" />
             </Button>

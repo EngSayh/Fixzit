@@ -246,7 +246,7 @@ export default function AuditLogViewer() {
                 "noPermission"
               )}
             </p>
-            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+            <Button variant="outline" onClick={() => router.push("/dashboard")} aria-label={auto("Go back to dashboard", "backToDashboardAria")}>
               {auto("Back to Dashboard", "backToDashboard")}
             </Button>
           </CardContent>
@@ -328,6 +328,7 @@ export default function AuditLogViewer() {
                     fetchLogs();
                   }}
                   className="inline-flex items-center gap-1 text-sm font-medium text-destructive-foreground dark:text-destructive-foreground hover:text-destructive-foreground dark:hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
+                  aria-label={auto("Try Again", "common.tryAgain")}
                 >
                   <svg
                     className="w-4 h-4"
@@ -347,6 +348,7 @@ export default function AuditLogViewer() {
                 <button type="button"
                   onClick={() => setError(null)}
                   className="text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
+                  aria-label={auto("Dismiss", "common.dismiss")}
                 >
                   {auto("Dismiss", "common.dismiss")}
                 </button>
@@ -695,6 +697,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 transition-colors"
+              aria-label={auto("Tenant Escalations", "presets.tenantEscalations")}
             >
               🏢 {auto("Tenant Escalations", "presets.tenantEscalations")}
             </button>
@@ -710,6 +713,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors"
+              aria-label={auto("RBAC Changes", "presets.rbacChanges")}
             >
               🛡️ {auto("RBAC Changes", "presets.rbacChanges")}
             </button>
@@ -724,6 +728,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
+              aria-label={auto("Recent Deletions", "presets.recentDeletions")}
             >
               🗑️ {auto("Recent Deletions", "presets.recentDeletions")}
             </button>
@@ -738,6 +743,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+              aria-label={auto("Today's Logins", "presets.todaysLogins")}
             >
               🔑 {auto("Today's Logins", "presets.todaysLogins")}
             </button>
@@ -748,6 +754,7 @@ export default function AuditLogViewer() {
               setPage(1);
             }}
             className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-2xl"
+            aria-label={auto("Clear Filters", "filters.clear")}
           >
             {auto("Clear Filters", "filters.clear")}
           </button>
@@ -847,6 +854,7 @@ export default function AuditLogViewer() {
                       <button type="button"
                         onClick={() => setSelectedLog(log)}
                         className="text-primary hover:text-primary-foreground dark:text-primary dark:hover:text-primary/80"
+                        aria-label={auto("View Details", "table.actions.viewDetails")}
                       >
                         {auto("View Details", "table.actions.viewDetails")}
                       </button>
@@ -879,6 +887,7 @@ export default function AuditLogViewer() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={auto("Previous", "pagination.previous")}
               >
                 {auto("Previous", "pagination.previous")}
               </button>
@@ -905,6 +914,7 @@ export default function AuditLogViewer() {
                           ? "bg-primary text-white"
                           : "text-foreground bg-background border border-border hover:bg-muted"
                       }`}
+                      aria-label={`Page ${pageNum}`}
                     >
                       {pageNum}
                     </button>
@@ -915,6 +925,7 @@ export default function AuditLogViewer() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={auto("Next", "pagination.next")}
               >
                 {auto("Next", "pagination.next")}
               </button>

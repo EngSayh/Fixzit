@@ -309,7 +309,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center justify-between gap-3">
             <span>{loadError}</span>
-            <Button variant="outline" onClick={fetchProfileData} size="sm">
+            <Button variant="outline" onClick={fetchProfileData} size="sm" aria-label={t("profile.retry", "Retry loading profile data")} title={t("profile.retry", "Retry")}>
               {t("profile.retry", "Retry")}
             </Button>
           </div>

@@ -360,11 +360,11 @@ export function ProductsList({ orgId }: ProductsListProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh products list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Add a new product to the marketplace">
             <Plus className="w-4 h-4 me-2" />
             Add Product
           </Button>
@@ -397,15 +397,15 @@ export function ProductsList({ orgId }: ProductsListProps) {
         end={
           <>
             <div className="hidden md:flex gap-2">
-              <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")}>
+              <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")} aria-label="Switch to table view" aria-pressed={viewMode === "table"}>
                 Table
               </Button>
-              <Button variant={viewMode === "cards" ? "default" : "outline"} size="sm" onClick={() => setViewMode("cards")}>
+              <Button variant={viewMode === "cards" ? "default" : "outline"} size="sm" onClick={() => setViewMode("cards")} aria-label="Switch to cards view" aria-pressed={viewMode === "cards"}>
                 Cards
               </Button>
             </div>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)} aria-label="Open filters drawer">
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -454,6 +454,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
               size="sm"
               disabled={(state.page || 1) === 1}
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
+              aria-label="Go to previous page"
             >
               Previous
             </Button>
@@ -465,6 +466,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
               size="sm"
               disabled={(state.page || 1) >= totalPages}
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
+              aria-label="Go to next page"
             >
               Next
             </Button>

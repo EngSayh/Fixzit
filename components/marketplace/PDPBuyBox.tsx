@@ -190,6 +190,7 @@ export default function PDPBuyBox({
           onClick={handleAddToCart}
           disabled={submitting || available <= 0}
           className="flex items-center justify-center gap-2 rounded-full bg-warning px-6 py-3 text-sm font-semibold text-black transition hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label={`Add product ${product.sku} to cart`}
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -202,6 +203,7 @@ export default function PDPBuyBox({
           type="button"
           onClick={onRequestRFQ}
           className="flex items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
+          aria-label={`Request a quote for product ${product.sku}`}
         >
           {auto("Request RFQ", "actions.requestRfq")}
         </button>

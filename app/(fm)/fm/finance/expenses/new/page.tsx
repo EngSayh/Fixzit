@@ -581,6 +581,7 @@ export default function NewExpensePage() {
             onClick={handleSaveDraft}
             disabled={isSubmitting}
             className="btn-secondary"
+            aria-label={t("common.save", "Save Draft")}
           >
             💾 {t("common.save", "Save Draft")}
           </button>
@@ -588,6 +589,7 @@ export default function NewExpensePage() {
             onClick={handleSubmitForApproval}
             disabled={isSubmitting}
             className="btn-primary"
+            aria-label={t("finance.expense.submitForApproval", "Submit for Approval")}
           >
             ✓ {t("finance.expense.submitForApproval", "Submit for Approval")}
           </button>
@@ -785,7 +787,7 @@ export default function NewExpensePage() {
               <h3 className="text-lg font-semibold">
                 {t("finance.expense.lineItems", "Line Items")}
               </h3>
-              <button type="button" onClick={addLineItem} className="btn-sm btn-primary">
+              <button type="button" onClick={addLineItem} className="btn-sm btn-primary" aria-label={t("finance.expense.addLineItem", "Add Item")}>
                 + {t("finance.expense.addLineItem", "Add Item")}
               </button>
             </div>
@@ -958,6 +960,7 @@ export default function NewExpensePage() {
                             onClick={() => removeLineItem(item.id)}
                             className="text-destructive hover:text-destructive"
                             title={t("common.remove", "Remove")}
+                            aria-label={t("common.remove", "Remove")}
                           >
                             ✕
                           </button>
@@ -1001,6 +1004,7 @@ export default function NewExpensePage() {
                   document.getElementById("receipt-upload")?.click()
                 }
                 className="btn-sm btn-secondary"
+                aria-label={t("finance.chooseFiles", "Choose Files")}
               >
                 {t("finance.chooseFiles", "Choose Files")}
               </button>
@@ -1032,6 +1036,7 @@ export default function NewExpensePage() {
                     <button type="button"
                       onClick={() => removeReceipt(receipt.id)}
                       className="absolute top-1 end-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
+                      aria-label={t("common.remove", "Remove receipt")}
                     >
                       ✕
                     </button>
@@ -1254,13 +1259,13 @@ export default function NewExpensePage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.expense.viewBudget", "View Budget")}>
                 📊 {t("finance.expense.viewBudget", "View Budget")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.expense.bulkEntry", "Bulk Expense Entry")}>
                 📋 {t("finance.expense.bulkEntry", "Bulk Expense Entry")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.expense.templates", "Expense Templates")}>
                 📄 {t("finance.expense.templates", "Expense Templates")}
               </button>
             </div>

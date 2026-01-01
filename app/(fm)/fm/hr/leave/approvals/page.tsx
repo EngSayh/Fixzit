@@ -195,6 +195,7 @@ export default function LeaveApprovalsHub() {
                       ? "border-primary bg-primary/5"
                       : "border-border"
                   }`}
+                  aria-label={auto("Select request from {{requester}}", "queue.selectAria", { requester: request.requester })}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-medium">

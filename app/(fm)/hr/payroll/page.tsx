@@ -195,7 +195,7 @@ export default function PayrollPage() {
             {t("hr.payroll.subtitle", "Create and manage monthly payroll runs")}
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary text-white">
+        <Button className="bg-primary hover:bg-primary text-white" aria-label={t("hr.payroll.createNewAria", "Create new payroll run")}>
           <Plus className="h-4 w-4 me-2" />
           {t("hr.payroll.createNew", "Create New Run")}
         </Button>
@@ -291,6 +291,7 @@ export default function PayrollPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleCalculate(run._id)}
+                    aria-label={t("hr.payroll.actions.recalculateAria", "Recalculate payroll for this run")}
                   >
                     <Calculator className="h-4 w-4 me-2" />
                     {t("hr.payroll.actions.recalculate", "Recalculate")}
@@ -299,6 +300,7 @@ export default function PayrollPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleExportWPS(run._id)}
+                    aria-label={t("hr.payroll.actions.exportAria", "Export WPS file for this payroll run")}
                   >
                     <Download className="h-4 w-4 me-2" />
                     {t("hr.payroll.actions.export", "Export WPS")}
@@ -307,6 +309,7 @@ export default function PayrollPage() {
                     variant={selectedRun?._id === run._id ? "default" : "ghost"}
                     size="sm"
                     onClick={() => setSelectedRunId(run._id)}
+                    aria-label={t("hr.payroll.actions.viewDetailsAria", "View payroll run details")}
                   >
                     <Eye className="h-4 w-4 me-2" />
                     {selectedRun?._id === run._id
@@ -345,6 +348,7 @@ export default function PayrollPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleCalculate(selectedRun._id)}
+                  aria-label={t("hr.payroll.actions.recalculateAria", "Recalculate payroll for this run")}
                 >
                   <Calculator className="h-4 w-4 me-2" />
                   {t("hr.payroll.actions.recalculate", "Recalculate")}
@@ -353,11 +357,12 @@ export default function PayrollPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleExportWPS(selectedRun._id)}
+                  aria-label={t("hr.payroll.actions.exportAria", "Export WPS file for this payroll run")}
                 >
                   <Download className="h-4 w-4 me-2" />
                   {t("hr.payroll.actions.export", "Export WPS")}
                 </Button>
-                <Button variant="outline" size="sm" disabled>
+                <Button variant="outline" size="sm" disabled aria-label={t("hr.payroll.actions.postFinanceAria", "Post payroll to finance system")}>
                   <FileText className="h-4 w-4 me-2" />
                   {t("hr.payroll.actions.postFinance", "Post to finance")}
                 </Button>

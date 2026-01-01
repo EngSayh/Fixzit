@@ -53,6 +53,7 @@ export default function SupportPage() {
                 const supportBtn = footer?.querySelector("button");
                 supportBtn?.click();
               }}
+              aria-label={auto("Open support ticket form", "help.ticketAria")}
             >
               <h3 className="font-medium text-foreground">
                 {auto("Create Support Ticket", "help.ticketTitle")}

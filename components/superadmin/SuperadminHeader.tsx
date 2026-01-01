@@ -156,6 +156,7 @@ export function SuperadminHeader() {
           size="sm"
           onClick={() => router.push("/superadmin/tenants")}
           className="text-muted-foreground hover:text-foreground ms-2"
+          aria-label={t("superadmin.switchTenant", "Switch tenant")}
         >
           {t("superadmin.switchTenant", "Switch tenant")}
         </Button>
@@ -193,6 +194,7 @@ export function SuperadminHeader() {
           }}
           className="text-muted-foreground hover:text-foreground"
           title={t("superadmin.themeTitle", `Theme: ${theme} (click to change)`)}
+          aria-label={t("superadmin.themeToggle", `Switch theme, currently ${theme}`)}
         >
           {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
         </Button>
@@ -204,6 +206,7 @@ export function SuperadminHeader() {
           onClick={() => router.push("/superadmin/notifications")}
           className="text-muted-foreground hover:text-foreground relative"
           title={t("superadmin.notificationsTitle", "Notifications")}
+          aria-label={t("superadmin.notificationsTitle", "Notifications")}
         >
           <Bell className="h-4 w-4" />
           {/* TODO: Add notification count badge when API is available */}
@@ -228,6 +231,7 @@ export function SuperadminHeader() {
           size="sm"
           onClick={() => router.push("/superadmin/system")}
           className="text-muted-foreground hover:text-foreground"
+          aria-label={t("superadmin.settings", "Settings")}
         >
           <Settings className="h-4 w-4" />
         </Button>
@@ -239,6 +243,7 @@ export function SuperadminHeader() {
           onClick={handleLogout}
           disabled={loggingOut}
           className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+          aria-label={loggingOut ? t("superadmin.loggingOut", "Logging out") : t("superadmin.logout", "Log out")}
         >
           <LogOut className="h-4 w-4 me-2" />
           {loggingOut ? t("superadmin.loggingOut") : t("superadmin.logout")}

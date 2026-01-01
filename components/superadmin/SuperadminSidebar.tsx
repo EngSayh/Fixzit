@@ -215,6 +215,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                   type="button"
                   onClick={() => router.push("/superadmin")}
                   className="p-2 rounded-lg hover:bg-muted"
+                  aria-label="Go to superadmin home"
                 >
                   <Shield className="h-6 w-6 text-primary" />
                 </button>
@@ -263,6 +264,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                             ? "bg-primary/20 text-primary"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
+                        aria-label={`Navigate to ${group.id} section`}
                       >
                         <GroupIcon className="h-5 w-5" />
                       </button>
@@ -282,6 +284,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                     onClick={() => toggleGroup(group.id)}
                     aria-expanded={isExpanded}
                     aria-controls={`group-${group.id}-items`}
+                    aria-label={`Toggle ${group.id} group`}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                       groupActive
@@ -314,6 +317,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                           type="button"
                           key={item.href}
                           onClick={() => router.push(item.href)}
+                          aria-label={`Navigate to ${label}`}
                           className={cn(
                             "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
                             isActive
@@ -343,6 +347,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
           <button
             type="button"
             onClick={toggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             {collapsed ? (

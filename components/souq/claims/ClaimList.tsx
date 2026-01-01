@@ -476,6 +476,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                             e.stopPropagation();
                             onSelectClaim?.(claim.claimId);
                           }}
+                          aria-label={`View claim ${claim.claimId} details`}
                         >
                           عرض
                         </Button>

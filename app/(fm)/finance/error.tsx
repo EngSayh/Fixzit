@@ -65,13 +65,13 @@ export default function FinanceError({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={reset} variant="default">
+          <Button onClick={reset} variant="default" aria-label={t("common.tryAgainAria", "Retry the failed operation")}>
             <RefreshCw className="w-4 h-4 me-2" />
             {t("common.actions.tryAgain", "Try Again")}
           </Button>
 
           <Link href="/dashboard">
-            <Button variant="outline">
+            <Button variant="outline" aria-label={t("common.goToDashboardAria", "Navigate to dashboard")}>
               <Home className="w-4 h-4 me-2" />
               {t("common.actions.goToDashboard", "Dashboard")}
             </Button>

@@ -617,6 +617,7 @@ export function WorkOrdersView({
                   size="sm"
                   onClick={handleManualSync}
                   disabled={manualSyncing}
+                  aria-label={t("workOrders.offline.syncNow.ariaLabel", "Sync offline work orders now")}
                 >
                   {manualSyncing
                     ? t("workOrders.offline.syncing", "Syncing...")
@@ -712,6 +713,7 @@ export function WorkOrdersView({
                 <Button
                   variant="outline"
                   onClick={() => setFilterDrawerOpen(true)}
+                  aria-label={t("workOrders.list.filters.open.ariaLabel", "Open filter options")}
                 >
                   <Filter className="me-2 h-4 w-4" />
                   {filtersLabel}
@@ -723,6 +725,7 @@ export function WorkOrdersView({
                   variant="outline"
                   onClick={() => mutate()}
                   disabled={isValidating}
+                  aria-label={t("workOrders.list.filters.refresh.ariaLabel", "Refresh work orders list")}
                 >
                   <RefreshCcw
                     className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
@@ -765,6 +768,7 @@ export function WorkOrdersView({
                 setPage(1);
                 setFilterDrawerOpen(false);
               }}
+              aria-label={t("common.reset.ariaLabel", "Reset all filters")}
             >
               {t("common.reset", "Reset")}
             </Button>
@@ -773,6 +777,7 @@ export function WorkOrdersView({
                 setPage(1);
                 setFilterDrawerOpen(false);
               }}
+              aria-label={t("common.apply.ariaLabel", "Apply filters and close")}
             >
               {t("common.apply", "Apply")}
             </Button>

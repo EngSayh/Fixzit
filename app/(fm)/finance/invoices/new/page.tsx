@@ -540,6 +540,7 @@ export default function NewInvoicePage() {
             onClick={handleSaveDraft}
             disabled={isSubmitting}
             className="btn-secondary"
+            aria-label={t("common.save", "Save Draft")}
           >
             💾 {t("common.save", "Save Draft")}
           </button>
@@ -547,6 +548,7 @@ export default function NewInvoicePage() {
             onClick={handleCreateInvoice}
             disabled={isSubmitting}
             className="btn-primary"
+            aria-label={t("finance.invoice.createInvoice", "Create Invoice")}
           >
             ✓ {t("finance.invoice.createInvoice", "Create Invoice")}
           </button>
@@ -711,7 +713,7 @@ export default function NewInvoicePage() {
               <h3 className="text-lg font-semibold">
                 {t("finance.invoice.itemsServices", "Items & Services")}
               </h3>
-              <button type="button" onClick={addLineItem} className="btn-sm btn-primary">
+              <button type="button" onClick={addLineItem} className="btn-sm btn-primary" aria-label={t("finance.invoice.addItem", "Add Item")}>
                 + {t("finance.invoice.addItem", "Add Item")}
               </button>
             </div>
@@ -865,6 +867,7 @@ export default function NewInvoicePage() {
                             onClick={() => removeLineItem(item.id)}
                             className="text-destructive hover:text-destructive"
                             title={t("common.remove", "Remove")}
+                            aria-label={t("common.remove", "Remove")}
                           >
                             ✕
                           </button>
@@ -1107,17 +1110,17 @@ export default function NewInvoicePage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.invoice.createFromTemplate", "Create from Template")}>
                 📋{" "}
                 {t(
                   "finance.invoice.createFromTemplate",
                   "Create from Template",
                 )}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.invoice.costCalculator", "View Cost Calculator")}>
                 📊 {t("finance.invoice.costCalculator", "View Cost Calculator")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.invoice.paymentSchedule", "Payment Schedule")}>
                 💰 {t("finance.invoice.paymentSchedule", "Payment Schedule")}
               </button>
             </div>

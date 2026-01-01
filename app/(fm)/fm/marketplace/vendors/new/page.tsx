@@ -154,7 +154,7 @@ export default function MarketplaceNewVendorPage() {
             )}
           </p>
         </div>
-        <Button onClick={submit} disabled={!canSubmit || submitting}>
+        <Button onClick={submit} disabled={!canSubmit || submitting} aria-label={auto("Create vendor profile", "actions.submitAria")}>
           {submitting
             ? auto("Saving…", "actions.submitting")
             : auto("Create vendor profile", "actions.submit")}
@@ -291,6 +291,7 @@ export default function MarketplaceNewVendorPage() {
                     <button type="button"
                       className="text-destructive text-xs font-medium"
                       onClick={() => removeContact(contact.id)}
+                      aria-label={auto("Remove contact", "sections.contacts.removeAria")}
                     >
                       {auto("Remove", "sections.contacts.remove")}
                     </button>
@@ -347,7 +348,7 @@ export default function MarketplaceNewVendorPage() {
                   "sections.contacts.addHint",
                 )}
               </p>
-              <Button variant="secondary" onClick={addContact}>
+              <Button variant="secondary" onClick={addContact} aria-label={auto("Add contact", "sections.contacts.addAria")}>
                 {auto("Add contact", "sections.contacts.add")}
               </Button>
             </div>

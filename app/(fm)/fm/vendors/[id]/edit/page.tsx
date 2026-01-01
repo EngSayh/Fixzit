@@ -647,11 +647,11 @@ export default function EditVendorPage() {
         {/* Actions */}
         <div className="flex justify-end gap-4 mt-6">
           <Link href={vendorId ? `/fm/vendors/${vendorId}` : "/fm/vendors"}>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" aria-label={auto("Cancel", "actions.cancelAria")}>
               {auto("Cancel", "actions.cancel")}
             </Button>
           </Link>
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} aria-label={auto("Save Changes", "actions.saveAria")}>
             <Save className="h-4 w-4 me-2" />
             {isSaving
               ? auto("Saving...", "actions.saving")

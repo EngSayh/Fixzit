@@ -313,6 +313,7 @@ export default function LogoUpload() {
                   onClick={handleUpload}
                   disabled={uploading}
                   className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  aria-label={t("admin.logo.uploadButtonAria", "Upload selected logo file")}
                 >
                   {uploading
                     ? t("admin.logo.uploading", "Uploading...")
@@ -322,6 +323,7 @@ export default function LogoUpload() {
                   onClick={handleCancel}
                   disabled={uploading}
                   className="px-6 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  aria-label={t("admin.logo.cancelUploadAria", "Cancel logo upload")}
                 >
                   {t("common.cancel", "Cancel")}
                 </button>

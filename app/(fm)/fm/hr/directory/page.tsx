@@ -188,6 +188,7 @@ export default function DirectoryPage() {
           <Button
             variant={statusFilter === "all" ? "default" : "outline"}
             onClick={() => setStatusFilter("all")}
+            aria-label={t("common.allAria", "Show all employees")}
           >
             {t("common.all", "All")}
           </Button>
@@ -196,6 +197,7 @@ export default function DirectoryPage() {
               key={option.value}
               variant={statusFilter === option.value ? "default" : "outline"}
               onClick={() => setStatusFilter(option.value)}
+              aria-label={t("common.filterByAria", `Filter by ${option.label}`)}
             >
               {option.label}
             </Button>

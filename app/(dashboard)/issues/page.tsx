@@ -258,15 +258,15 @@ function IssuesDashboardContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label="Refresh issues list">
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export issues to JSON file">
             <Download className="h-4 w-4 me-2" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create new issue">
             <Plus className="h-4 w-4 me-2" />
             New Issue
           </Button>
@@ -406,6 +406,8 @@ function IssuesDashboardContent() {
                 variant={viewMode === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("all")}
+                aria-label="Show all issues"
+                aria-pressed={viewMode === "all"}
               >
                 All
               </Button>
@@ -413,6 +415,8 @@ function IssuesDashboardContent() {
                 variant={viewMode === "quickWins" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("quickWins")}
+                aria-label="Show quick win issues"
+                aria-pressed={viewMode === "quickWins"}
               >
                 <Zap className="h-4 w-4 me-1" />
                 Quick Wins
@@ -421,6 +425,8 @@ function IssuesDashboardContent() {
                 variant={viewMode === "stale" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("stale")}
+                aria-label="Show stale issues"
+                aria-pressed={viewMode === "stale"}
               >
                 <Clock className="h-4 w-4 me-1" />
                 Stale
@@ -519,6 +525,7 @@ function IssuesDashboardContent() {
             size="sm"
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
+            aria-label="Go to previous page"
           >
             Previous
           </Button>
@@ -530,6 +537,7 @@ function IssuesDashboardContent() {
             size="sm"
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
+            aria-label="Go to next page"
           >
             Next
           </Button>

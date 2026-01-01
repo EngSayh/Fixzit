@@ -209,6 +209,7 @@ export default function PropertiesLeasesPage() {
                 variant={statusFilter === status ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter(status)}
+                aria-label={t(`fm.properties.leases.filter.${status}Aria`, `Show ${status} leases`)}
               >
                 {t(
                   `fm.properties.leases.filter.${status}`,
@@ -246,6 +247,7 @@ export default function PropertiesLeasesPage() {
                 className="mt-2"
                 variant="outline"
                 onClick={() => refresh()}
+                aria-label={t("common.retryAria", "Retry loading leases")}
               >
                 {t("common.retry", "Retry")}
               </Button>
@@ -312,7 +314,7 @@ export default function PropertiesLeasesPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" aria-label={t("common.viewLeaseAria", `View lease for ${lease.unit}`)}>
                           {t("common.view", "View")}
                         </Button>
                       </td>

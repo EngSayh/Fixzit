@@ -187,7 +187,7 @@ function VendorDetailsContent({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/fm/vendors">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" aria-label={t("fm.vendors.detail.backAria", "Go back to vendors list")}>
               <ChevronLeft className="w-4 h-4 me-1" />
               Back
             </Button>

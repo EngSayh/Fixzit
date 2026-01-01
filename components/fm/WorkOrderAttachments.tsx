@@ -504,6 +504,7 @@ export function WorkOrderAttachments({
                 size="sm"
                 className="h-7 px-2"
                 onClick={() => handleCancel(file.key)}
+                aria-label={`Cancel upload for ${file.name}`}
               >
                 Cancel
               </Button>
@@ -564,6 +565,7 @@ export function WorkOrderAttachments({
                 onClick={() => handleRemove(att.key)}
                 disabled={uploading}
                 className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                aria-label={`Remove attachment ${att.name}`}
               >
                 <X className="h-4 w-4" />
               </Button>

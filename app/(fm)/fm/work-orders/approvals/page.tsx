@@ -364,37 +364,37 @@ export default function WorkOrderApprovalsPage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.approvals.bulkApproveAria", "Bulk approve selected work orders")}>
             <div className="text-2xl mb-2">✅</div>
             <div className="text-sm font-medium">
               {t("workOrders.approvals.bulkApprove", "Bulk Approve")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.approvals.rulesAria", "Configure approval rules")}>
             <div className="text-2xl mb-2">📋</div>
             <div className="text-sm font-medium">
               {t("workOrders.approvals.rules", "Approval Rules")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.reportsAria", "View work order reports")}>
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.reports", "Reports")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.approvals.workflowAria", "Configure approval workflow")}>
             <div className="text-2xl mb-2">🔄</div>
             <div className="text-sm font-medium">
               {t("workOrders.approvals.workflow", "Workflow")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.settingsAria", "Work order settings")}>
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.settings", "Settings")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.exportAria", "Export work orders")}>
             <div className="text-2xl mb-2">📤</div>
             <div className="text-sm font-medium">
               {t("workOrders.export", "Export")}

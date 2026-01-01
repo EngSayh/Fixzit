@@ -307,11 +307,11 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh employee list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Add a new employee">
             <Plus className="w-4 h-4 me-2" />
             Add Employee
           </Button>
@@ -344,7 +344,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)} aria-label="Open filters drawer">
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -411,6 +411,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
               size="sm"
               disabled={(state.page || 1) === 1}
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
+              aria-label="Go to previous page"
             >
               Previous
             </Button>
@@ -422,6 +423,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
               size="sm"
               disabled={(state.page || 1) >= totalPages}
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
+              aria-label="Go to next page"
             >
               Next
             </Button>

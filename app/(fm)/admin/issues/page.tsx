@@ -382,17 +382,17 @@ export default function AdminIssuesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label="Refresh issues">
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export issues">
             <Download className="h-4 w-4 me-2" />
             Export
           </Button>
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" aria-label="Import issues">
                 <Upload className="h-4 w-4 me-2" />
                 Import
               </Button>
@@ -416,15 +416,15 @@ export default function AdminIssuesPage() {
                   />
                 </div>
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={handleSyncPendingMaster} disabled={importing}>
+                  <Button variant="outline" onClick={handleSyncPendingMaster} disabled={importing} aria-label="Sync from PENDING_MASTER">
                     <Database className="h-4 w-4 me-2" />
                     Sync PENDING_MASTER
                   </Button>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
+                    <Button variant="outline" onClick={() => handleImport(true)} disabled={importing} aria-label="Dry run import">
                       Dry Run
                     </Button>
-                    <Button onClick={() => handleImport(false)} disabled={importing}>
+                    <Button onClick={() => handleImport(false)} disabled={importing} aria-label="Import issues">
                       {importing ? "Importing..." : "Import"}
                     </Button>
                   </div>
@@ -432,7 +432,7 @@ export default function AdminIssuesPage() {
               </div>
             </DialogContent>
           </Dialog>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create new issue">
             <Plus className="h-4 w-4 me-2" />
             New Issue
           </Button>
@@ -634,6 +634,7 @@ export default function AdminIssuesPage() {
                 variant={viewMode === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("all")}
+                aria-label="Show all issues"
               >
                 All
               </Button>
@@ -641,6 +642,7 @@ export default function AdminIssuesPage() {
                 variant={viewMode === "quickWins" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("quickWins")}
+                aria-label="Show quick wins"
               >
                 <Zap className="h-4 w-4 me-1" />
                 Quick Wins
@@ -649,6 +651,7 @@ export default function AdminIssuesPage() {
                 variant={viewMode === "stale" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("stale")}
+                aria-label="Show stale issues"
               >
                 <Clock className="h-4 w-4 me-1" />
                 Stale
@@ -764,6 +767,7 @@ export default function AdminIssuesPage() {
             size="sm"
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
+            aria-label="Previous page"
           >
             Previous
           </Button>
@@ -775,6 +779,7 @@ export default function AdminIssuesPage() {
             size="sm"
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
+            aria-label="Next page"
           >
             Next
           </Button>

@@ -135,10 +135,10 @@ export default function ServiceHistoryPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn-secondary">
+          <button type="button" className="btn-secondary" aria-label={t("workOrders.history.exportReport", "Export Report")}>
             {t("workOrders.history.exportReport", "Export Report")}
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("common.analytics", "Analytics")}>
             📊 {t("common.analytics", "Analytics")}
           </button>
         </div>
@@ -234,7 +234,7 @@ export default function ServiceHistoryPage() {
               className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("workOrders.filter", "Filter")}>
             {t("workOrders.filter", "Filter")}
           </button>
         </div>
@@ -247,10 +247,10 @@ export default function ServiceHistoryPage() {
             {t("workOrders.history.title", "Service History")}
           </h3>
           <div className="flex gap-2">
-            <button type="button" className="btn-ghost">
+            <button type="button" className="btn-ghost" aria-label={t("common.exportCsv", "Export CSV")}>
               📄 {t("common.exportCsv", "Export CSV")}
             </button>
-            <button type="button" className="btn-ghost">
+            <button type="button" className="btn-ghost" aria-label={t("common.viewCharts", "View Charts")}>
               📊 {t("common.viewCharts", "View Charts")}
             </button>
           </div>
@@ -339,10 +339,10 @@ export default function ServiceHistoryPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button type="button" className="text-primary hover:text-primary">
+                      <button type="button" className="text-primary hover:text-primary" aria-label={t("workOrders.history.view", "View")}>
                         {t("workOrders.history.view", "View")}
                       </button>
-                      <button type="button" className="text-success hover:text-success-foreground">
+                      <button type="button" className="text-success hover:text-success-foreground" aria-label={t("workOrders.history.invoice", "Invoice")}>
                         {t("workOrders.history.invoice", "Invoice")}
                       </button>
                     </div>
@@ -360,25 +360,25 @@ export default function ServiceHistoryPage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.history.quickActions.analytics", "Analytics")}>
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.history.quickActions.analytics", "Analytics")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.history.quickActions.trends", "Trends")}>
             <div className="text-2xl mb-2">📈</div>
             <div className="text-sm font-medium">
               {t("workOrders.history.quickActions.trends", "Trends")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.history.quickActions.cost", "Cost Analysis")}>
             <div className="text-2xl mb-2">💰</div>
             <div className="text-sm font-medium">
               {t("workOrders.history.quickActions.cost", "Cost Analysis")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.history.quickActions.techPerformance", "Tech Performance")}>
             <div className="text-2xl mb-2">👥</div>
             <div className="text-sm font-medium">
               {t(
@@ -387,13 +387,13 @@ export default function ServiceHistoryPage() {
               )}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.history.quickActions.reports", "Reports")}>
             <div className="text-2xl mb-2">📄</div>
             <div className="text-sm font-medium">
               {t("workOrders.history.quickActions.reports", "Reports")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.history.quickActions.settings", "Settings")}>
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.history.quickActions.settings", "Settings")}

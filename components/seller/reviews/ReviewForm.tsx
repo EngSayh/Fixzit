@@ -149,6 +149,8 @@ export function ReviewForm({
               onClick={() => setRating(star)}
               onMouseEnter={() => setHoveredRating(star)}
               onMouseLeave={() => setHoveredRating(0)}
+              aria-label={`${auto("Rate", "rating.rate")} ${star} ${star === 1 ? auto("star", "rating.star") : auto("stars", "rating.stars")}`}
+              aria-pressed={rating === star}
               className="transition-transform hover:scale-110"
             >
               <Star
@@ -243,6 +245,7 @@ export function ReviewForm({
             <button
               type="button"
               onClick={() => removePro(index)}
+              aria-label={auto("Remove", "actions.remove")}
               className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
               {auto("Remove", "actions.remove")}
@@ -252,6 +255,7 @@ export function ReviewForm({
         <button
           type="button"
           onClick={addPro}
+          aria-label={auto("+ Add Pro", "actions.addPro")}
           className="text-sm text-primary hover:underline"
         >
           {auto("+ Add Pro", "actions.addPro")}
@@ -278,6 +282,7 @@ export function ReviewForm({
             <button
               type="button"
               onClick={() => removeCon(index)}
+              aria-label={auto("Remove", "actions.remove")}
               className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
               {auto("Remove", "actions.remove")}
@@ -287,6 +292,7 @@ export function ReviewForm({
         <button
           type="button"
           onClick={addCon}
+          aria-label={auto("+ Add Con", "actions.addCon")}
           className="text-sm text-primary hover:underline"
         >
           {auto("+ Add Con", "actions.addCon")}
@@ -307,6 +313,7 @@ export function ReviewForm({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
+            aria-label={auto("Cancel", "actions.cancel")}
             className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
             {auto("Cancel", "actions.cancel")}
@@ -315,6 +322,7 @@ export function ReviewForm({
         <button
           type="submit"
           disabled={isSubmitting}
+          aria-label={isSubmitting ? auto("Submitting...", "actions.submitting") : auto("Submit Review", "actions.submit")}
           className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting

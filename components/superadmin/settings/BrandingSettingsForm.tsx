@@ -342,6 +342,7 @@ export function BrandingSettingsForm() {
               disabled={!isDirty}
               variant="outline"
               className="border-slate-700 text-slate-200"
+              aria-label="Reset branding settings to saved values"
             >
               <RotateCcw className="w-4 h-4 me-2" />
               Reset

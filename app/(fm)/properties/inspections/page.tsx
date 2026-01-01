@@ -167,8 +167,8 @@ export default function PropertiesInspectionsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn-secondary">Inspection Templates</button>
-          <button type="button" className="btn-primary">+ Schedule Inspection</button>
+          <button type="button" className="btn-secondary" aria-label={t("properties.inspections.actions.templates", "Inspection Templates")} title={t("properties.inspections.actions.templates", "Inspection Templates")}>Inspection Templates</button>
+          <button type="button" className="btn-primary" aria-label={t("properties.inspections.actions.schedule", "Schedule Inspection")} title={t("properties.inspections.actions.schedule", "Schedule Inspection")}>+ Schedule Inspection</button>
         </div>
       </div>
 
@@ -250,7 +250,7 @@ export default function PropertiesInspectionsPage() {
               ))}
             </select>
           </div>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("common.filter", "Filter")}>
             {t("common.filter", "Filter")}
           </button>
         </div>
@@ -261,8 +261,8 @@ export default function PropertiesInspectionsPage() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Inspection Schedule</h3>
           <div className="flex gap-2">
-            <button type="button" className="btn-ghost">📄 Export</button>
-            <button type="button" className="btn-ghost">📊 Reports</button>
+            <button type="button" className="btn-ghost" aria-label={t("common.export", "Export")} title={t("common.export", "Export")}>📄 Export</button>
+            <button type="button" className="btn-ghost" aria-label={t("common.reports", "Reports")} title={t("common.reports", "Reports")}>📊 Reports</button>
           </div>
         </div>
 
@@ -342,13 +342,13 @@ export default function PropertiesInspectionsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button type="button" className="text-primary hover:text-primary">
+                      <button type="button" className="text-primary hover:text-primary" aria-label={t("common.edit", "Edit")}>
                         {t("common.edit", "Edit")}
                       </button>
-                      <button type="button" className="text-success hover:text-success-foreground">
+                      <button type="button" className="text-success hover:text-success-foreground" aria-label={t("properties.inspections.actions.start", "Start inspection")}>
                         Start
                       </button>
-                      <button type="button" className="text-warning hover:text-warning">
+                      <button type="button" className="text-warning hover:text-warning" aria-label={t("properties.inspections.actions.report", "View report")}>
                         Report
                       </button>
                     </div>
@@ -374,7 +374,7 @@ export default function PropertiesInspectionsPage() {
               </p>
             </div>
           </div>
-          <button type="button" className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
+          <button type="button" className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors" aria-label={t("properties.inspections.actions.reschedule", "Reschedule Now")} title={t("properties.inspections.actions.reschedule", "Reschedule Now")}>
             Reschedule Now
           </button>
         </div>
@@ -384,7 +384,7 @@ export default function PropertiesInspectionsPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Upcoming Inspections</h3>
-          <button type="button" className="btn-ghost">View Calendar</button>
+          <button type="button" className="btn-ghost" aria-label={t("properties.inspections.actions.viewCalendar", "View Calendar")}>View Calendar</button>
         </div>
         <div className="space-y-3">
           {inspections
@@ -406,7 +406,7 @@ export default function PropertiesInspectionsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
+                  <button type="button" className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90" aria-label={t("common.viewDetails", "View Details")}>
                     View Details
                   </button>
                 </div>
@@ -419,27 +419,27 @@ export default function PropertiesInspectionsPage() {
       <div className="card">
         <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("properties.inspections.quickActions.schedule", "Schedule")}>
             <div className="text-2xl mb-2">📅</div>
             <div className="text-sm font-medium">Schedule</div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("properties.inspections.quickActions.templates", "Templates")}>
             <div className="text-2xl mb-2">📋</div>
             <div className="text-sm font-medium">Templates</div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("properties.inspections.quickActions.reports", "Reports")}>
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">Reports</div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("properties.inspections.quickActions.checklists", "Checklists")}>
             <div className="text-2xl mb-2">🔧</div>
             <div className="text-sm font-medium">Checklists</div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("properties.inspections.quickActions.settings", "Settings")}>
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">Settings</div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("properties.inspections.quickActions.export", "Export")}>
             <div className="text-2xl mb-2">📤</div>
             <div className="text-sm font-medium">Export</div>
           </button>

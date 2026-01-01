@@ -86,13 +86,13 @@ export default function PlanPage() {
               </ul>
               <div className="flex items-center gap-3">
                 <Link href="/pricing">
-                  <Button variant={plan.highlight ? "default" : "outline"} className="flex items-center gap-2">
+                  <Button variant={plan.highlight ? "default" : "outline"} className="flex items-center gap-2" aria-label={t("billing.plan.viewPricing", "View pricing plans")} title={t("billing.plan.viewPricing", "View pricing")}>
                     {t("billing.plan.viewPricing", "View pricing")}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <Link href="/billing/history">
-                  <Button variant="ghost" className="text-primary">
+                  <Button variant="ghost" className="text-primary" aria-label={t("billing.plan.manageBilling", "Manage billing")} title={t("billing.plan.manageBilling", "Billing")}>
                     {t("billing.plan.manageBilling", "Billing")}
                   </Button>
                 </Link>

@@ -204,6 +204,8 @@ export default function PricingPage() {
                 className="w-full flex items-center justify-center gap-2"
                 variant={plan.highlight ? "default" : "outline"}
                 onClick={() => handleSelectPlan(plan.id)}
+                aria-label={`${t("pricing.selectPlan", "Select")} ${plan.name} ${t("pricing.plan", "Plan")}`}
+                title={plan.cta}
               >
                 {plan.cta}
                 <ArrowRight className="h-4 w-4" />
@@ -244,6 +246,8 @@ export default function PricingPage() {
                     size="icon"
                     onClick={() => setUserCount(Math.max(1, userCount - 1))}
                     disabled={userCount <= 1}
+                    aria-label={t("pricing.checkout.decreaseUsers", "Decrease number of users")}
+                    title={t("pricing.checkout.decreaseUsers", "Decrease users")}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
@@ -260,6 +264,8 @@ export default function PricingPage() {
                     size="icon"
                     onClick={() => setUserCount(Math.min(selectedPlanDetails.maxUsers, userCount + 1))}
                     disabled={userCount >= selectedPlanDetails.maxUsers}
+                    aria-label={t("pricing.checkout.increaseUsers", "Increase number of users")}
+                    title={t("pricing.checkout.increaseUsers", "Increase users")}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -284,12 +290,16 @@ export default function PricingPage() {
                   variant="outline"
                   onClick={() => setSelectedPlan(null)}
                   className="flex-1"
+                  aria-label={t("pricing.checkout.back", "Back to Plans")}
+                  title={t("pricing.checkout.back", "Back to Plans")}
                 >
                   {t("pricing.checkout.back", "Back to Plans")}
                 </Button>
                 <Button
                   onClick={handleProceedToCheckout}
                   className="flex-1 flex items-center justify-center gap-2"
+                  aria-label={t("pricing.checkout.proceed", "Proceed to Payment")}
+                  title={t("pricing.checkout.proceed", "Proceed to Payment")}
                 >
                   <CreditCard className="h-4 w-4" />
                   {t("pricing.checkout.proceed", "Proceed to Payment")}
@@ -396,6 +406,8 @@ export default function PricingPage() {
                   type="submit"
                   disabled={status === "submitting"}
                   className="flex items-center gap-2"
+                  aria-label={t("pricing.trial.submit", "Submit trial request")}
+                  title={t("pricing.trial.submit", "Submit request")}
                 >
                   {status === "submitting"
                     ? t("pricing.trial.submitting", "Submitting...")
@@ -442,7 +454,7 @@ export default function PricingPage() {
                 <span>{t("pricing.vendor.benefit3", "Track settlements and payouts")}</span>
               </div>
             </div>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" aria-label={t("pricing.vendor.apply", "Apply as vendor")} title={t("pricing.vendor.apply", "Apply as vendor")}>
               <a href="/vendor/apply" className="flex items-center gap-2">
                 {t("pricing.vendor.apply", "Apply as vendor")}
                 <ArrowRight className="h-4 w-4" />

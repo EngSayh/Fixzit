@@ -309,13 +309,14 @@ export default function InvoiceCreationForOpsPage() {
                 variant="outline"
                 data-action="review"
                 disabled={isSubmitting}
+                aria-label={auto("Request finance review", "form.requestReviewAria")}
               >
                 <ClipboardCheck className="me-2 h-4 w-4" />
                 {isSubmitting && activeAction === "review"
                   ? auto("Requesting...", "form.requestReview.loading")
                   : auto("Request finance review", "form.requestReview")}
               </Button>
-              <Button type="submit" data-action="send" disabled={isSubmitting}>
+              <Button type="submit" data-action="send" disabled={isSubmitting} aria-label={auto("Send to customer", "form.sendAria")}>
                 <Mail className="me-2 h-4 w-4" />
                 {isSubmitting && activeAction === "send"
                   ? auto("Sending...", "form.send.loading")

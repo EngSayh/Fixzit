@@ -93,6 +93,7 @@ export default function GoogleSignInButton() {
           isRTL ? "flex-row-reverse" : ""
         }`}
         type="button"
+        aria-label={t("login.continueWithGoogle", "Continue with Google")}
       >
         {/* ✅ FIX: Use GoogleIcon component */}
         <GoogleIcon />

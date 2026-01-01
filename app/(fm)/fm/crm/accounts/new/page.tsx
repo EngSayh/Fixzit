@@ -279,13 +279,14 @@ export default function CreateCrmAccountPage() {
             variant="outline"
             onClick={shareWithSuccessTeam}
             disabled={isSubmitting || shareLoading}
+            aria-label={auto("Share with success team", "actions.shareAria")}
           >
             <Share className="me-2 h-4 w-4" />
             {shareLoading
               ? auto("Sharing...", "actions.share.loading")
               : auto("Share with success team", "actions.share")}
           </Button>
-          <Button type="submit" disabled={isSubmitting || shareLoading}>
+          <Button type="submit" disabled={isSubmitting || shareLoading} aria-label={auto("Create account", "actions.createAria")}>
             <Building className="me-2 h-4 w-4" />
             {isSubmitting
               ? auto("Submitting...", "actions.submitting")

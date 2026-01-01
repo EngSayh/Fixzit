@@ -358,6 +358,7 @@ export function FmVendorsList({
               e.stopPropagation();
               handleRowClick(row);
             }}
+            aria-label={t("vendors.viewVendor.ariaLabel", "View vendor details")}
           >
             <Eye className="w-4 h-4" />
           </Button>
@@ -368,6 +369,7 @@ export function FmVendorsList({
               e.stopPropagation();
               handleEditClick(row);
             }}
+            aria-label={t("vendors.editVendor.ariaLabel", "Edit vendor")}
           >
             <Edit className="w-4 h-4" />
           </Button>
@@ -379,6 +381,7 @@ export function FmVendorsList({
               e.stopPropagation();
               handleDelete(row);
             }}
+            aria-label={t("vendors.deleteVendor.ariaLabel", "Delete vendor")}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
