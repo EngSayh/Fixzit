@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [tickets, total] = await Promise.all([
+      // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant support ticket visibility
       SupportTicket.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)

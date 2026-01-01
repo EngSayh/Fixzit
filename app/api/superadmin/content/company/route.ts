@@ -59,7 +59,7 @@ const DEFAULT_COMPANY_INFO = {
 
 /**
  * GET /api/superadmin/content/company
- * Retrieve company information (singleton per platform)
+ * Retrieve company information (per-tenant singleton)
  */
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
