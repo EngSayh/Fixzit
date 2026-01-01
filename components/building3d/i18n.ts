@@ -41,6 +41,11 @@ const DICT = {
     modeWalk: "Walk",
     tourTitle: "Fixzit Tour",
     tourHint: "Click a unit to view details.",
+    errorNoModel: "No building model found for this property.",
+    errorNoModelAvailable: "No building model available.",
+    errorNotPublished: "Building model not yet published.",
+    errorUnknown: "Unknown error",
+    errorDefault: "No building model found.",
   },
   ar: {
     title: "مبنى ثلاثي الأبعاد",
@@ -73,6 +78,11 @@ const DICT = {
     modeWalk: "تجول",
     tourTitle: "جولة فيكزت",
     tourHint: "انقر على وحدة لعرض التفاصيل.",
+    errorNoModel: "لم يتم العثور على نموذج للمبنى.",
+    errorNoModelAvailable: "لا يوجد نموذج متاح.",
+    errorNotPublished: "نموذج المبنى غير منشور بعد.",
+    errorUnknown: "خطأ غير معروف",
+    errorDefault: "لم يتم العثور على نموذج للمبنى.",
   },
 } as const;
 

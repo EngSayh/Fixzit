@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BuildingModel } from "@/lib/buildingModel";
 import type { BuildingSelection, BuildingViewerOptions } from "@/components/building3d/BuildingViewer";
+import { useBuilding3dI18n } from "./i18n";
 
 // Dynamic import for 3D viewer (no SSR)
 const BuildingViewer = dynamic(
@@ -85,6 +86,7 @@ export function BuildingTourClient({
   showControls = true,
   propertyName,
 }: BuildingTourClientProps) {
+  const { t } = useBuilding3dI18n();
   const [model, setModel] = useState<BuildingModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +117,7 @@ export function BuildingTourClient({
       });
       if (!res.ok) {
         if (res.status === 404) {
-          setError("No building model found for this property.");
+          setError(t("errorNoModel"));
         } else {
           throw new Error(`Failed to load model (HTTP ${res.status})`);
         }
@@ -124,24 +126,24 @@ export function BuildingTourClient({
 
       const data: ApiResponse = await res.json();
       if (!data.data.buildingModel?.model) {
-        setError("No building model available.");
+        setError(t("errorNoModelAvailable"));
         return;
       }
 
       // Only show published models to tenants
       if (data.data.buildingModel.status !== "PUBLISHED") {
-        setError("Building model not yet published.");
+        setError(t("errorNotPublished"));
         return;
       }
 
       const parsedModel = safeParseModel(data.data.buildingModel.model);
       setModel(parsedModel);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      setError(e instanceof Error ? e.message : t("errorUnknown"));
     } finally {
       setLoading(false);
     }
-  }, [propertyId]);
+  }, [propertyId, t]);
 
   useEffect(() => {
     void load();
@@ -193,7 +195,7 @@ export function BuildingTourClient({
           <div className="text-4xl mb-3">🏠</div>
           <div className="font-semibold text-gray-900 mb-2">3D Tour Unavailable</div>
           <div className="text-sm text-gray-600">
-            {error ?? "No building model found."}
+            {error ?? t("errorDefault")}
           </div>
         </div>
       </div>
@@ -258,7 +260,7 @@ export function BuildingTourClient({
           </div>
 
           {/* Left controls panel */}
-          <div className="absolute left-4 top-24 pointer-events-none">
+          <div className="absolute start-4 top-24 pointer-events-none">
             <div className="rounded-xl bg-white/90 backdrop-blur shadow-lg p-3 pointer-events-auto space-y-3 w-48">
               <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 View Options
@@ -332,7 +334,7 @@ export function BuildingTourClient({
 
           {/* Right info panel - selected unit */}
           {selectedUnitInfo && (
-            <div className="absolute right-4 top-24 pointer-events-none">
+            <div className="absolute end-4 top-24 pointer-events-none">
               <div className="rounded-xl bg-white/90 backdrop-blur shadow-lg p-4 pointer-events-auto w-56">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Selected Unit
