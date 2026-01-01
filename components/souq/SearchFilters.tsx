@@ -229,6 +229,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                       ? "bg-primary/10 text-primary font-medium"
                       : "text-foreground"
                   }`}
+                  aria-label={`Filter by price range: ${range}`}
                 >
                   <span className="text-sm">{range}</span>
                   <span className="text-xs text-gray-500">({count})</span>
@@ -261,6 +262,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-foreground"
               }`}
+              aria-label={`Filter by ${rating} stars and up`}
             >
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (

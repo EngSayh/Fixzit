@@ -328,6 +328,8 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               onClick={() => {
                 /* Navigate to new claim form */
               }}
+              aria-label="Submit a new claim (تقديم مطالبة جديدة)"
+              title="Submit a new claim"
             >
               تقديم مطالبة جديدة
             </Button>
@@ -524,7 +526,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                       <p className="text-xs text-muted-foreground">
                         {new Date(claim.createdAt).toLocaleDateString("ar-SA")}
                       </p>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" aria-label="View claim details" title="View claim details">
                         عرض التفاصيل
                       </Button>
                     </div>
@@ -545,6 +547,8 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                     size="sm"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
+                    aria-label="Go to previous page"
+                    title="Previous page"
                   >
                     السابق
                   </Button>
@@ -555,6 +559,8 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                       setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
                     disabled={currentPage === totalPages}
+                    aria-label="Go to next page"
+                    title="Next page"
                   >
                     التالي
                   </Button>
