@@ -98,16 +98,19 @@ interface DashboardData {
 // ============================================================================
 
 function StatusBadge({ status }: { status: "healthy" | "degraded" | "down" | "warning" | "error" | "unknown" }) {
+  const { t } = useI18n();
   const config = {
-    healthy: { color: "bg-green-500", label: "Healthy" },
-    degraded: { color: "bg-yellow-500", label: "Degraded" },
-    down: { color: "bg-red-500", label: "Down" },
-    warning: { color: "bg-yellow-500", label: "Warning" },
-    error: { color: "bg-red-500", label: "Error" },
-    unknown: { color: "bg-gray-500", label: "Unknown" },
+    healthy: { color: "bg-green-500", labelKey: "superadmin.dashboard.status.healthy" },
+    degraded: { color: "bg-yellow-500", labelKey: "superadmin.dashboard.status.degraded" },
+    down: { color: "bg-red-500", labelKey: "superadmin.dashboard.status.down" },
+    warning: { color: "bg-yellow-500", labelKey: "superadmin.dashboard.status.warning" },
+    error: { color: "bg-red-500", labelKey: "superadmin.dashboard.status.error" },
+    unknown: { color: "bg-gray-500", labelKey: "superadmin.dashboard.status.unknown" },
   };
   
-  const { color, label } = config[status];
+  const { color, labelKey } = config[status];
+  // Fallback to capitalized status if key not found
+  const label = t(labelKey, status.charAt(0).toUpperCase() + status.slice(1));
   
   return (
     <Badge variant="outline" className="gap-1.5">
