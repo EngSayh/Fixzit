@@ -413,7 +413,7 @@ export function FmVendorsList({
               {t("vendors.description", "Manage your vendor relationships and service providers")}
             </p>
           </div>
-          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90">
+          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90" aria-label={t("vendors.addVendor.ariaLabel", "Add a new vendor")} title={t("vendors.addVendor", "Add Vendor")}>
             <Plus className="w-4 h-4 me-2" />
             {t("vendors.addVendor", "Add Vendor")}
           </Button>
@@ -442,6 +442,7 @@ export function FmVendorsList({
               variant="outline"
               size="sm"
               onClick={() => setFilterDrawerOpen(true)}
+              aria-label={t("common.openFilters", "Open filter options")}
             >
               <Filter className="h-4 w-4 me-2" />
               {t("common.filters", "Filters")}
@@ -451,7 +452,7 @@ export function FmVendorsList({
                 </Badge>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={exportVendorsCsv}>
+            <Button variant="outline" size="sm" onClick={exportVendorsCsv} aria-label={t("common.exportCsv", "Export vendors to CSV file")}>
               <Download className="h-4 w-4 me-2" />
               {t("common.export", "Export")}
             </Button>
@@ -479,7 +480,7 @@ export function FmVendorsList({
           <p className="text-muted-foreground mb-4">
             {t("vendors.empty.description", "No vendors match your search criteria")}
           </p>
-          <Button onClick={handleAddClick}>
+          <Button onClick={handleAddClick} aria-label={t("vendors.empty.cta.ariaLabel", "Add your first vendor")}>
             {t("vendors.empty.cta", "Add First Vendor")}
           </Button>
         </div>
@@ -500,6 +501,7 @@ export function FmVendorsList({
                 variant="outline"
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
+                aria-label={t("common.previous.ariaLabel", "Go to previous page")}
               >
                 {t("common.previous", "Previous")}
               </Button>
@@ -511,6 +513,7 @@ export function FmVendorsList({
                 variant="outline"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
+                aria-label={t("common.next.ariaLabel", "Go to next page")}
               >
                 {t("common.next", "Next")}
               </Button>
@@ -544,10 +547,10 @@ export function FmVendorsList({
             </Select>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1">
+            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1" aria-label={t("common.clearFilters.ariaLabel", "Clear all filters")}>
               {t("common.clearFilters", "Clear Filters")}
             </Button>
-            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1">
+            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1" aria-label={t("common.apply.ariaLabel", "Apply filters and close")}>
               {t("common.apply", "Apply")}
             </Button>
           </div>
