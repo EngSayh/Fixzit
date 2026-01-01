@@ -353,6 +353,7 @@ export function FmPropertiesList({
           <Button
             variant="ghost"
             size="sm"
+            aria-label="View property"
             onClick={(e) => {
               e.stopPropagation();
               handleRowClick(row);
@@ -363,6 +364,7 @@ export function FmPropertiesList({
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Edit property"
             onClick={(e) => {
               e.stopPropagation();
               handleEditClick(row);
@@ -374,6 +376,7 @@ export function FmPropertiesList({
             variant="ghost"
             size="sm"
             className="text-destructive hover:text-destructive/90"
+            aria-label="Delete property"
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(row);
@@ -398,13 +401,13 @@ export function FmPropertiesList({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" aria-label="View map">
               <Map className="w-4 h-4" />
               {t("fm.properties.viewMap", "View Map")}
             </Button>
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-success hover:bg-success/90" onClick={handleAddClick}>
+                <Button className="bg-success hover:bg-success/90" onClick={handleAddClick} aria-label="Add new property">
                   <Plus className="w-4 h-4 me-2" />
                   {t("fm.properties.newProperty", "New Property")}
                 </Button>
@@ -476,7 +479,7 @@ export function FmPropertiesList({
           <p className="text-muted-foreground mb-4">
             {t("fm.properties.noPropertiesText", "Get started by adding your first property to the portfolio.")}
           </p>
-          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90">
+          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90" aria-label="Add property">
             <Plus className="w-4 h-4 me-2" />
             {t("fm.properties.addProperty", "Add Property")}
           </Button>
@@ -533,10 +536,10 @@ export function FmPropertiesList({
             </Select>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1">
+            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1" aria-label="Clear filters">
               {t("common.clearFilters", "Clear Filters")}
             </Button>
-            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1">
+            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1" aria-label="Apply filters">
               {t("common.apply", "Apply")}
             </Button>
           </div>

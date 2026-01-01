@@ -16,11 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
+import { toast as _toast } from "sonner";
 import { 
   RefreshCw, Search, CheckCircle, AlertTriangle, Languages,
   Download, Edit, Save,
 } from "@/components/ui/icons";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 interface LocaleStats {
   locale: string;
@@ -49,6 +50,10 @@ export default function SuperadminTranslationsPage() {
   const [statusFilter, _setStatusFilter] = useState<string>("all");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  // Inline confirmation feedback
+  const exportFeedback = useActionFeedback();
+  const saveFeedback = useActionFeedback();
 
   const fetchLocales = useCallback(async () => {
     try {
@@ -98,9 +103,9 @@ export default function SuperadminTranslationsPage() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      toast.success(`Exported ${localeCode} translations`);
+      exportFeedback.showSuccess("Exported", "save");
     } catch {
-      toast.error(`Failed to export ${localeCode} translations`);
+      exportFeedback.showError("Failed");
     }
   };
 
@@ -126,9 +131,9 @@ export default function SuperadminTranslationsPage() {
       setKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
       setAllKeys(prev => prev.map(k => k.key === key ? { ...k, ar: editValue, status: editValue ? "complete" : "missing" } : k));
       setEditingKey(null);
-      toast.success("Translation updated");
+      saveFeedback.showSuccess("Saved", "save");
     } catch {
-      toast.error("Failed to save translation");
+      saveFeedback.showError("Failed");
     }
   };
 
@@ -142,10 +147,13 @@ export default function SuperadminTranslationsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.translations") || "Translations"}</h1>
           <p className="text-muted-foreground">Manage i18n translations for all locales</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground">
-            <Download className="h-4 w-4 me-2" />Export All
-          </Button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center">
+            <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground">
+              <Download className="h-4 w-4 me-2" />Export All
+            </Button>
+            <exportFeedback.FeedbackComponent className="ms-2" />
+          </div>
           <Button variant="outline" size="sm" onClick={fetchLocales} disabled={loading} className="border-input text-muted-foreground">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
@@ -230,7 +238,7 @@ export default function SuperadminTranslationsPage() {
                       <TableCell className="text-muted-foreground">{key.en}</TableCell>
                       <TableCell>
                         {editingKey === key.key ? (
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-2">
                             <Input
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
@@ -240,6 +248,7 @@ export default function SuperadminTranslationsPage() {
                             <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600">
                               <Save className="h-4 w-4" />
                             </Button>
+                            <saveFeedback.FeedbackComponent />
                           </div>
                         ) : (
                           <span className={`${key.ar ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`} dir="rtl">

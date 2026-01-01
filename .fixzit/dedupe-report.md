@@ -2,7 +2,8 @@
 
 Found 5 duplicate groups.
 
-## Group (23 files)
+## Group 1: Error Components (23 files)
+
 - app/support/error.tsx
 - app/vendors/error.tsx
 - app/vendor/error.tsx
@@ -27,11 +28,13 @@ Found 5 duplicate groups.
 - app/(fm)/reports/error.tsx
 - app/(fm)/system/error.tsx
 
-## Group (2 files)
+## Group 2: Support/CRM Pages (2 files)
+
 - app/support/page.tsx
 - app/(fm)/crm/page.tsx
 
-## Group (22 files)
+## Group 3: Feature Pages (22 files)
+
 - app/(fm)/admin/page.tsx
 - app/(fm)/hr/employees/page.tsx
 - app/(fm)/properties/documents/page.tsx
@@ -55,11 +58,13 @@ Found 5 duplicate groups.
 - app/(fm)/finance/payments/new/page.tsx
 - app/(fm)/hr/directory/new/page.tsx
 
-## Group (2 files)
+## Group 4: Settings/WorkOrders Error (2 files)
+
 - app/(fm)/settings/error.tsx
 - app/(fm)/work-orders/error.tsx
 
-## Group (2 files)
+## Group 5: Tutorial Pages (2 files)
+
 - app/(app)/help/tutorial/financial-reporting/page.tsx
 - app/(app)/help/tutorial/tenant-relations/page.tsx
 

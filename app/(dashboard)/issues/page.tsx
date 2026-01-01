@@ -29,10 +29,7 @@ import {
 } from "@/components/ui/card";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -355,32 +352,22 @@ function IssuesDashboardContent() {
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="in_review">In Review</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[150px]">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="in_review">In Review</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="P0">P0 Critical</SelectItem>
-                <SelectItem value="P1">P1 High</SelectItem>
-                <SelectItem value="P2">P2 Medium</SelectItem>
-                <SelectItem value="P3">P3 Low</SelectItem>
-              </SelectContent>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-[150px]">
+              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="P0">P0 Critical</SelectItem>
+              <SelectItem value="P1">P1 High</SelectItem>
+              <SelectItem value="P2">P2 Medium</SelectItem>
+              <SelectItem value="P3">P3 Low</SelectItem>
             </Select>
 
             <Select
@@ -388,17 +375,14 @@ function IssuesDashboardContent() {
               onValueChange={(value) =>
                 setCategoryFilter(value === "all" ? "" : value)
               }
+              placeholder="Category"
+              className="w-[180px]"
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="bug">Bug</SelectItem>
-                <SelectItem value="security">Security</SelectItem>
-                <SelectItem value="efficiency">Efficiency</SelectItem>
-                <SelectItem value="missing_test">Missing Tests</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="bug">Bug</SelectItem>
+              <SelectItem value="security">Security</SelectItem>
+              <SelectItem value="efficiency">Efficiency</SelectItem>
+              <SelectItem value="missing_test">Missing Tests</SelectItem>
             </Select>
 
             <div className="flex items-center gap-2">

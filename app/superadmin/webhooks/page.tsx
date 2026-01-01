@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { IconButton } from "@/components/ui/IconButton";
 import {
   Table,
   TableBody,
@@ -59,6 +60,7 @@ import {
   Copy,
 } from "@/components/ui/icons";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 // ============================================================================
 // TYPES
@@ -150,6 +152,13 @@ export default function WebhooksPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   
+  // Inline confirmation feedback
+  const createFeedback = useActionFeedback();
+  const deleteFeedback = useActionFeedback();
+  const toggleFeedback = useActionFeedback();
+  const testFeedback = useActionFeedback();
+  const copyFeedback = useActionFeedback();
+  
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // Edit dialog reserved for future implementation
@@ -221,9 +230,9 @@ export default function WebhooksPage() {
       setWebhooks(prev => [...prev, data.webhook]);
       setShowCreateDialog(false);
       setFormData({ name: "", url: "", events: [], retryPolicy: "exponential", maxRetries: 3 });
-      toast.success("Webhook created successfully");
+      createFeedback.showSuccess("Created", "add");
     } catch {
-      toast.error("Failed to create webhook");
+      createFeedback.showError("Failed");
     }
   };
 
@@ -239,9 +248,9 @@ export default function WebhooksPage() {
       setWebhooks(prev => prev.map(w => 
         w.id === id ? { ...w, enabled, status: enabled ? "active" : "paused" } : w
       ));
-      toast.success(enabled ? "Webhook enabled" : "Webhook paused");
+      toggleFeedback.showSuccess(enabled ? "Enabled" : "Paused", "save");
     } catch {
-      toast.error("Failed to toggle webhook");
+      toggleFeedback.showError("Failed");
     }
   };
 
@@ -255,9 +264,9 @@ export default function WebhooksPage() {
       });
       if (!response.ok) throw new Error("Failed to delete webhook");
       setWebhooks(prev => prev.filter(w => w.id !== id));
-      toast.success("Webhook deleted");
+      deleteFeedback.showSuccess("Deleted", "delete");
     } catch {
-      toast.error("Failed to delete webhook");
+      deleteFeedback.showError("Failed");
     }
   };
 
@@ -269,10 +278,9 @@ export default function WebhooksPage() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Test failed");
-      const data = await response.json();
-      toast.success(data.message || `Test payload sent to ${webhook.name}`);
+      testFeedback.showSuccess("Sent", "generic");
     } catch {
-      toast.error("Test failed");
+      testFeedback.showError("Failed");
     } finally {
       setTestingId(null);
     }
@@ -281,9 +289,9 @@ export default function WebhooksPage() {
   const copySecret = async (secret: string) => {
     try {
       await navigator.clipboard.writeText(secret);
-      toast.success("Secret copied to clipboard");
+      copyFeedback.showSuccess("Copied", "copy");
     } catch {
-      toast.error("Failed to copy to clipboard");
+      copyFeedback.showError("Failed");
     }
   };
 
@@ -294,7 +302,8 @@ export default function WebhooksPage() {
       const response = await fetch(`/api/superadmin/webhooks/${webhook.id}/logs`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
-        setLogs(data.deliveries || []);
+        // API returns { logs, pagination } - use data.logs instead of data.deliveries
+        setLogs(data.logs || []);
       } else {
         toast.error("Failed to load delivery logs");
       }
@@ -453,14 +462,14 @@ export default function WebhooksPage() {
                     <TableCell>
                       <div className="flex items-center gap-2 max-w-xs">
                         <code className="text-xs truncate">{webhook.url}</code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6"
+                        <IconButton
+                          icon={<Copy className="h-3 w-3" />}
+                          tooltip={t("common.copySecret", "Copy secret")}
+                          variant="ghost"
+                          size="sm"
                           onClick={() => copySecret(webhook.secret)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          aria-label={t("common.copySecret", "Copy secret")}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>
@@ -484,34 +493,31 @@ export default function WebhooksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
+                        <IconButton
+                          icon={<Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />}
+                          tooltip={t("superadmin.webhooks.test", "Test webhook")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => handleTest(webhook)}
                           disabled={testingId === webhook.id}
-                          aria-label="Test webhook"
-                        >
-                          <Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />
-                        </Button>
-                        <Button
+                          aria-label={t("superadmin.webhooks.test", "Test webhook")}
+                        />
+                        <IconButton
+                          icon={<Eye className="h-4 w-4" />}
+                          tooltip={t("superadmin.webhooks.viewLogs", "View logs")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => viewLogs(webhook)}
-                          aria-label="View logs"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
+                          aria-label={t("superadmin.webhooks.viewLogs", "View logs")}
+                        />
+                        <IconButton
+                          icon={<Trash2 className="h-4 w-4" />}
+                          tooltip={t("common.delete", "Delete")}
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleDelete(webhook.id)}
-                          aria-label="Delete webhook"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          aria-label={t("common.delete", "Delete")}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { IconButton } from "@/components/ui/IconButton";
 import {
   Table,
   TableBody,
@@ -459,23 +460,23 @@ export default function ScheduledTasksPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button
+                          <IconButton
+                            icon={<Play className={`h-4 w-4 ${runningTask === task.id ? "animate-pulse" : ""}`} />}
+                            tooltip={t("superadmin.tasks.runNow", "Run now")}
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
                             onClick={() => handleRunNow(task)}
                             disabled={runningTask === task.id || task.lastStatus === "running"}
-                          >
-                            <Play className={`h-4 w-4 ${runningTask === task.id ? "animate-pulse" : ""}`} />
-                          </Button>
-                          <Button
+                            aria-label={t("superadmin.tasks.runNow", "Run now")}
+                          />
+                          <IconButton
+                            icon={<Eye className="h-4 w-4" />}
+                            tooltip={t("superadmin.tasks.viewHistory", "View history")}
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
                             onClick={() => viewHistory(task)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                            aria-label={t("superadmin.tasks.viewHistory", "View history")}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

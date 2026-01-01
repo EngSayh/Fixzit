@@ -98,6 +98,23 @@ for (const group of report.duplicates) {
     continue;
   }
   
+  // Verify toKeep file exists before deleting others
+  if (!toKeep || !fs.existsSync(toKeep)) {
+    // If the chosen file doesn't exist, try to find an alternative
+    const existingFile = files.find(f => fs.existsSync(f));
+    if (existingFile) {
+      toKeep = existingFile;
+      toDelete = files.filter(f => f !== toKeep);
+    } else {
+      console.warn(`  ⚠️ No files exist in group, skipping`);
+      skippedGroups++;
+      continue;
+    }
+  }
+  
+  // Ensure toDelete doesn't include the file we're keeping and all files exist
+  toDelete = toDelete.filter(f => f !== toKeep);
+  
   // Process deletions
   for (const file of toDelete) {
     const filePath = file.replace(/^\.\\/g, '').replace(/^\.\//g, '');

@@ -53,6 +53,7 @@ const STATUS_COLORS: Record<string, string> = {
   processing: "bg-blue-500/20 text-blue-400",
   completed: "bg-green-500/20 text-green-400",
   failed: "bg-red-500/20 text-red-400",
+  paused: "bg-gray-500/20 text-gray-400",
 };
 
 export default function SuperadminJobsPage() {
@@ -66,8 +67,9 @@ export default function SuperadminJobsPage() {
   const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
-      // Fetch jobs from superadmin API
-      const response = await fetch(`/api/superadmin/jobs${typeFilter !== "all" ? `?status=${typeFilter}` : ""}`, {
+      // Fetch all jobs from superadmin API (filter by type client-side)
+      // Note: typeFilter is for job types (email, report, etc), not statuses
+      const response = await fetch("/api/superadmin/jobs", {
         credentials: "include",
       });
       if (response.ok) {
@@ -81,12 +83,16 @@ export default function SuperadminJobsPage() {
             failed: data.summary.error || 0,
           });
         }
-        // Map jobs to display format
+        // Map jobs to display format with proper paused status handling
         if (data.jobs) {
           setJobs(data.jobs.map((job: { id: string; name: string; status: string; lastRunAt?: string; priority?: number; lastError?: string }) => ({
             _id: job.id,
             type: job.name || "task",
-            status: job.status === "running" ? "processing" : job.status === "error" ? "failed" : job.status === "idle" ? "pending" : "completed",
+            status: job.status === "running" ? "processing" 
+              : job.status === "error" ? "failed" 
+              : job.status === "idle" ? "pending" 
+              : job.status === "paused" ? "paused"
+              : "completed",
             priority: job.priority || 1,
             attempts: 1,
             maxAttempts: 3,
@@ -100,7 +106,7 @@ export default function SuperadminJobsPage() {
     } finally {
       setLoading(false);
     }
-  }, [t, typeFilter]);
+  }, [t]);
 
   useEffect(() => { fetchJobs(); const interval = setInterval(fetchJobs, 30000); return () => clearInterval(interval); }, [fetchJobs]);
 
@@ -117,8 +123,8 @@ export default function SuperadminJobsPage() {
       const data = await response.json();
       toast.success(`Processed ${data.processed?.total || 0} jobs (${data.processed?.success || 0} success, ${data.processed?.failed || 0} failed)`);
       fetchJobs();
-    } catch {
-      toast.error("Failed to process jobs");
+    } catch (error) {
+      toast.error(`Failed to process jobs: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setProcessing(false);
     }

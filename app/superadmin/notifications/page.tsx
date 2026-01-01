@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { IconButton } from "@/components/ui/action-feedback";
+import { SimpleTooltip } from "@/components/ui/tooltip";
 import { 
   Bell, RefreshCw, Send, Eye, ChevronLeft, ChevronRight,
   Mail, MessageSquare, Smartphone, Clock, AlertCircle, CheckCircle, XCircle,
@@ -221,7 +223,7 @@ export default function SuperadminNotificationsPage() {
                         <TableCell><div className="flex gap-1">{n.channelResults?.map((ch) => (<span key={ch.channel} className="text-muted-foreground">{CHANNEL_ICONS[ch.channel]}</span>))}</div></TableCell>
                         <TableCell><Badge variant="outline" className={STATUS_COLORS[n.status] || ""}>{n.status}</Badge></TableCell>
                         <TableCell className="text-muted-foreground">{n.metrics ? `${n.metrics.succeeded}/${n.metrics.attempted}` : "—"}</TableCell>
-                        <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedNotification(n); setViewDialogOpen(true); }}><Eye className="h-4 w-4" /></Button></TableCell>
+                        <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.notifications.viewDetails", "View notification details")} onClick={() => { setSelectedNotification(n); setViewDialogOpen(true); }} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -231,8 +233,12 @@ export default function SuperadminNotificationsPage() {
                 <div className="flex items-center justify-between p-4 border-t">
                   <p className="text-sm text-muted-foreground">Page {page} of {totalPages}</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}><ChevronLeft className="h-4 w-4" /></Button>
-                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}><ChevronRight className="h-4 w-4" /></Button>
+                    <SimpleTooltip content={t("common.previousPage", "Previous page")}>
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}><ChevronLeft className="h-4 w-4" /></Button>
+                    </SimpleTooltip>
+                    <SimpleTooltip content={t("common.nextPage", "Next page")}>
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}><ChevronRight className="h-4 w-4" /></Button>
+                    </SimpleTooltip>
                   </div>
                 </div>
               )}

@@ -6,6 +6,7 @@ import ClaimList from "@/components/souq/claims/ClaimList";
 import ClaimDetails from "@/components/souq/claims/ClaimDetails";
 import ClaimForm from "@/components/souq/claims/ClaimForm";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/IconButton";
 import { ArrowLeft, FileText } from "@/components/ui/icons";
 import { useI18n } from "@/i18n/useI18n";
 import {
@@ -62,14 +63,13 @@ export default function BuyerClaimsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {viewMode !== "list" && (
-            <Button
+            <IconButton
+              icon={<ArrowLeft className="w-5 h-5" />}
+              tooltip={t("common.back") || "Back"}
               variant="ghost"
-              size="icon"
               onClick={handleBackToList}
               aria-label={t("common.back") || "Back"}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            />
           )}
           <div>
             <h1 className="text-3xl font-bold">

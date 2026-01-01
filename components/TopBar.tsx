@@ -9,6 +9,7 @@ import Image from "next/image";
 
 // ✅ FIXED: Use standard components from design system
 import { Button, buttonVariants } from "./ui/button";
+import { IconButton } from "./ui/IconButton";
 import {
   Dialog,
   DialogContent,
@@ -632,14 +633,13 @@ function TopBarContent() {
         >
           {/* Mobile search button */}
           {isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
+            <IconButton
+              icon={<Search className="w-4 h-4" />}
+              tooltip={t("common.search")}
               onClick={() => setMobileSearchOpen(true)}
               aria-label={t("common.search")}
-            >
-              <Search className="w-4 h-4" />
-            </Button>
+              variant="ghost"
+            />
           )}
 
           {isAuthenticated && isSuperAdmin && <SupportOrgSwitcher />}
@@ -751,14 +751,13 @@ function TopBarContent() {
           >
             <div className="bg-card text-card-foreground w-full flex flex-col h-full">
               <div className="flex items-center gap-2 p-4 border-b border-border">
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <IconButton
+                  icon={<X className="w-5 h-5" />}
+                  tooltip={t("common.close")}
                   onClick={() => setMobileSearchOpen(false)}
-                  aria-label="Close search"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
+                  aria-label={t("common.close")}
+                  variant="ghost"
+                />
                 <h2
                   id="mobile-search-title"
                   className="text-lg font-semibold text-foreground"
@@ -837,7 +836,7 @@ function NotificationPopup({
 }: NotificationPopupProps) {
   return (
     <div className="notification-container relative">
-      <SimpleTooltip content={t("nav.notifications", "Notifications")} side="bottom">
+    <SimpleTooltip content={t("nav.notifications", "Notifications")} side="bottom">
         <Button
           ref={notifBtnRef as React.LegacyRef<HTMLButtonElement>}
           variant="ghost"
@@ -890,15 +889,14 @@ function NotificationPopup({
                     : t("common.noNotifications")}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
+              <IconButton
+                icon={<X className="w-4 h-4" />}
+                tooltip={t("common.close")}
                 onClick={() => setNotifOpen(false)}
-                className="h-6 w-6 text-muted-foreground"
-                aria-label="Close notifications"
-              >
-                <X className="w-4 h-4" />
-              </Button>
+                aria-label={t("common.close")}
+                variant="ghost"
+                size="sm"
+              />
             </div>
             <div
               className={`mt-3 flex flex-wrap gap-2 ${isRTL ? "justify-end" : "justify-start"}`}
@@ -908,6 +906,8 @@ function NotificationPopup({
                   key={filter.id}
                   type="button"
                   onClick={() => setNotifFilter(filter.id)}
+                  aria-label={t(filter.labelKey, filter.id)}
+                  aria-pressed={notifFilter === filter.id}
                   className={`rounded-full px-3 py-1 text-xs ${
                     notifFilter === filter.id
                       ? "bg-primary text-primary-foreground"
@@ -933,6 +933,7 @@ function NotificationPopup({
                   <button
                     key={notification.id}
                     type="button"
+                    aria-label={`${t("common.viewNotification")}: ${notification.title}`}
                     className="w-full p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors text-start"
                     onClick={() => {
                       setNotifOpen(false);

@@ -8,13 +8,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import mongoose, { isValidObjectId } from "mongoose";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { ScheduledTask } from "@/server/models/ScheduledTask";
-import { TaskExecution } from "@/server/models/TaskExecution";
-import { isValidObjectId } from "mongoose";
+import { TaskExecution, ITaskExecution } from "@/server/models/TaskExecution";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
@@ -71,29 +71,50 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Create execution record
-    const execution = await TaskExecution.create({
-      taskId: task._id,
-      taskName: task.name,
-      handler: task.handler,
-      status: "pending",
-      startedAt: new Date(),
-      triggeredBy: "manual",
-      triggeredByUser: session.username,
-      retryCount: 0,
-      logs: [{
-        timestamp: new Date(),
-        level: "info",
-        message: `Manual execution triggered by ${session.username}`,
-      }],
-    });
+    // Use MongoDB transaction to ensure atomic creation of execution and task update
+    const mongooseSession = await mongoose.startSession();
+    let execution: ITaskExecution | undefined;
+    
+    try {
+      await mongooseSession.withTransaction(async () => {
+        // Create execution record
+        const executions = await TaskExecution.create([{
+          taskId: task._id,
+          taskName: task.name,
+          handler: task.handler,
+          status: "pending",
+          startedAt: new Date(),
+          triggeredBy: "manual",
+          triggeredByUser: session.username,
+          retryCount: 0,
+          logs: [{
+            timestamp: new Date(),
+            level: "info",
+            message: `Manual execution triggered by ${session.username}`,
+          }],
+        }], { session: mongooseSession });
+        execution = executions[0];
 
-    // Update task status to running
-    await ScheduledTask.findByIdAndUpdate(id, {
-      status: "running",
-      lastRunAt: new Date(),
-      $inc: { runCount: 1 },
-    });
+        // Update task status to running
+        await ScheduledTask.findByIdAndUpdate(id, {
+          status: "running",
+          lastRunAt: new Date(),
+          $inc: { runCount: 1 },
+        }, { session: mongooseSession });
+      });
+    } catch (txError) {
+      logger.error("[Superadmin:TaskRun] Transaction failed", {
+        taskId: id,
+        error: txError instanceof Error ? txError.message : String(txError),
+      });
+      throw txError;
+    } finally {
+      await mongooseSession.endSession();
+    }
+
+    if (!execution) {
+      throw new Error("Failed to create task execution");
+    }
 
     // In a real implementation, this would trigger the job handler
     // For now, we simulate the execution flow

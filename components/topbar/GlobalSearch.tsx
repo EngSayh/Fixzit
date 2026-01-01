@@ -242,6 +242,8 @@ export default function GlobalSearch({
         <button
           type="button"
           onClick={() => persistScope("module")}
+          aria-label={`${t("search.scope.searchIn", "Search in")} ${moduleLabel}`}
+          aria-pressed={scope === "module"}
           className={`rounded-full px-2 py-0.5 ${scope === "module" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
         >
           {moduleLabel}
@@ -249,6 +251,8 @@ export default function GlobalSearch({
         <button
           type="button"
           onClick={() => persistScope("all")}
+          aria-label={t("search.scope.searchAll", "Search all modules")}
+          aria-pressed={scope === "all"}
           className={`rounded-full px-2 py-0.5 ${scope === "all" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
         >
           {t("search.scope.all", "All")}

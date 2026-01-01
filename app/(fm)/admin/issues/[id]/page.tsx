@@ -24,6 +24,7 @@ import {
   Zap,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -359,9 +360,13 @@ export default function AdminIssueDetailPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/issues")} aria-label={t("accessibility.backToIssuesList", "Go back to issues list")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <IconButton
+            icon={<ArrowLeft className="h-5 w-5" />}
+            tooltip={t("accessibility.backToIssuesList", "Go back to issues list")}
+            variant="ghost"
+            onClick={() => router.push("/admin/issues")}
+            aria-label={t("accessibility.backToIssuesList", "Go back to issues list")}
+          />
           <div>
             <div className="flex items-center gap-2">
               {getStatusIcon(status)}

@@ -137,7 +137,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
     const validation = UpdateTemplateSchema.safeParse(body);
 
     if (!validation.success) {

@@ -56,6 +56,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/IconButton';
 import { cn } from '@/lib/utils';
 import { FloatingBulkActionsBar } from './FloatingBulkActionsBar';
 import { SkeletonTable } from './SkeletonTableEnhanced';
@@ -169,36 +170,24 @@ function RowActions({ issue: _issue, isHovered, onView, onEdit, onDelete, onDupl
             exit={{ opacity: 0, x: 10 }}
             className="flex items-center gap-1"
           >
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-white"
-                    onClick={onView}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>View details</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-white"
-                    onClick={onEdit}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Edit issue</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <IconButton
+              icon={<Eye className="h-4 w-4" />}
+              tooltip="View details"
+              variant="ghost"
+              size="sm"
+              className="text-zinc-400 hover:text-white"
+              onClick={onView}
+              aria-label="View details"
+            />
+            <IconButton
+              icon={<Edit className="h-4 w-4" />}
+              tooltip="Edit issue"
+              variant="ghost"
+              size="sm"
+              className="text-zinc-400 hover:text-white"
+              onClick={onEdit}
+              aria-label="Edit issue"
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -206,13 +195,14 @@ function RowActions({ issue: _issue, isHovered, onView, onEdit, onDelete, onDupl
       {/* More menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
+          <IconButton
+            icon={<MoreHorizontal className="h-4 w-4" />}
+            tooltip="More actions"
             variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-zinc-400 hover:text-white"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+            size="sm"
+            className="text-zinc-400 hover:text-white"
+            aria-label="More actions"
+          />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onView} className="gap-2">

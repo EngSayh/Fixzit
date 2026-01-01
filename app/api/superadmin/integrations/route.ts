@@ -191,7 +191,8 @@ export async function GET(request: NextRequest) {
     if (type && INTEGRATION_TYPES.includes(type as typeof INTEGRATION_TYPES[number])) {
       query.type = type;
     }
-    if (enabled !== null && enabled !== undefined) {
+    // Only accept explicit "true" or "false" strings for enabled filter
+    if (enabled === "true" || enabled === "false") {
       query.enabled = enabled === "true";
     }
     if (environment && ENVIRONMENTS.includes(environment as typeof ENVIRONMENTS[number])) {
@@ -239,7 +240,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
     const validation = CreateIntegrationSchema.safeParse(body);
 
     if (!validation.success) {

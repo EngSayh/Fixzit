@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { IconButton } from "@/components/ui/IconButton";
 import {
   Table,
   TableBody,
@@ -65,6 +66,7 @@ import {
 } from "@/components/ui/icons";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
 import DOMPurify from "dompurify";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // TYPES
@@ -174,13 +176,20 @@ export default function EmailTemplatesPage() {
       if (!response.ok) throw new Error("Failed to save template");
       const data = await response.json();
       
+      // Validate response shape before updating state
+      if (!data || typeof data !== "object" || !data.template || !data.template.id) {
+        logger.error("[Emails] Invalid API response shape", { data });
+        throw new Error("Invalid response from server - template data missing");
+      }
+      
       setTemplates(prev => prev.map(t => 
         t.id === selectedTemplate.id ? data.template : t
       ));
       
       setShowEditDialog(false);
       toast.success("Template saved successfully");
-    } catch {
+    } catch (error) {
+      logger.error("[Emails] Save template failed", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to save template");
     }
   };
@@ -415,14 +424,14 @@ export default function EmailTemplatesPage() {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{template.key}</code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6"
+                        <IconButton
+                          icon={<Copy className="h-3 w-3" />}
+                          tooltip={t("common.copy", "Copy")}
+                          variant="ghost"
+                          size="sm"
                           onClick={() => copyTemplateKey(template.key)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          aria-label={t("common.copy", "Copy")}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>
@@ -441,30 +450,30 @@ export default function EmailTemplatesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
+                        <IconButton
+                          icon={<Edit className="h-4 w-4" />}
+                          tooltip={t("common.edit", "Edit")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => handleEdit(template)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
+                          aria-label={t("common.edit", "Edit")}
+                        />
+                        <IconButton
+                          icon={<Eye className="h-4 w-4" />}
+                          tooltip={t("common.preview", "Preview")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => handlePreview(template)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
+                          aria-label={t("common.preview", "Preview")}
+                        />
+                        <IconButton
+                          icon={<Send className="h-4 w-4" />}
+                          tooltip={t("superadmin.emails.sendTest", "Send test")}
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
                           onClick={() => handleSendTest(template)}
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
+                          aria-label={t("superadmin.emails.sendTest", "Send test")}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
