@@ -19,10 +19,32 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
+// Safe URL schemes to prevent XSS via javascript:/data: URLs
+const SAFE_URL_SCHEMES = ["http:", "https:"];
+
+// URL validation helper - prevents XSS via javascript:/data: URLs
+const safeUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (val) => {
+      if (val.startsWith("/")) return true;
+      try {
+        const url = new URL(val);
+        return SAFE_URL_SCHEMES.includes(url.protocol);
+      } catch {
+        return false;
+      }
+    },
+    { message: "URL must be a valid internal path or http/https URL" }
+  )
+  .optional();
+
 const UpdateFooterLinkSchema = z.object({
   label: z.string().trim().min(1).optional(),
   labelAr: z.string().trim().optional(),
-  url: z.string().trim().min(1).optional(),
+  url: safeUrlSchema,
   section: z.enum(["company", "support", "legal", "social"]).optional(),
   icon: z.string().trim().optional(),
   isExternal: z.boolean().optional(),

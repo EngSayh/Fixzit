@@ -54,6 +54,10 @@ export async function GET(request: NextRequest) {
     const limit = Number.isNaN(parsedLimit) ? 50 : Math.min(100, Math.max(1, parsedLimit));
     const skip = (page - 1) * limit;
 
+    // Helper to escape regex metacharacters (prevents ReDoS)
+    const escapeRegex = (str: string): string =>
+      str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     // Build query filter - use case-insensitive regex for text fields
     const filter: Record<string, unknown> = {};
     if (status && status !== "all") {
@@ -61,17 +65,17 @@ export async function GET(request: NextRequest) {
       if (status === "open") {
         filter.status = { $in: ["New", "Open", "Waiting"] };
       } else {
-        // Case-insensitive match for status
-        filter.status = { $regex: new RegExp(`^${status}$`, "i") };
+        // Case-insensitive match for status (escaped to prevent ReDoS)
+        filter.status = { $regex: new RegExp(`^${escapeRegex(status)}$`, "i") };
       }
     }
     if (priority && priority !== "all") {
-      // Case-insensitive match for priority
-      filter.priority = { $regex: new RegExp(`^${priority}$`, "i") };
+      // Case-insensitive match for priority (escaped to prevent ReDoS)
+      filter.priority = { $regex: new RegExp(`^${escapeRegex(priority)}$`, "i") };
     }
     if (ticketModule && ticketModule !== "all") {
-      // Case-insensitive match for module
-      filter.module = { $regex: new RegExp(`^${ticketModule}$`, "i") };
+      // Case-insensitive match for module (escaped to prevent ReDoS)
+      filter.module = { $regex: new RegExp(`^${escapeRegex(ticketModule)}$`, "i") };
     }
 
     const [tickets, total] = await Promise.all([

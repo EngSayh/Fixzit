@@ -18,10 +18,30 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
+// Safe URL schemes to prevent XSS via javascript:/data: URLs
+const SAFE_URL_SCHEMES = ["http:", "https:"];
+
 const FooterLinkSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
   labelAr: z.string().trim().optional(),
-  url: z.string().trim().min(1, "URL is required"),
+  url: z
+    .string()
+    .trim()
+    .min(1, "URL is required")
+    .refine(
+      (val) => {
+        // Allow relative internal paths
+        if (val.startsWith("/")) return true;
+        // Validate external URLs have safe schemes only
+        try {
+          const url = new URL(val);
+          return SAFE_URL_SCHEMES.includes(url.protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: "URL must be a valid internal path or http/https URL" }
+    ),
   section: z.enum(["company", "support", "legal", "social"]),
   icon: z.string().trim().optional(),
   isExternal: z.boolean().default(false),
@@ -98,15 +118,19 @@ export async function POST(request: NextRequest) {
     const { data: body, error: parseError } = await parseBodySafe(request);
     if (parseError || !body) {
       return NextResponse.json(
-        { error: parseError || "Invalid JSON body" },
+        { error: "Invalid request body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
 
     const validation = FooterLinkSchema.safeParse(body);
     if (!validation.success) {
+      // Log details server-side, return generic message to client
+      logger.warn("[Superadmin:FooterLinks] Validation failed", {
+        issues: validation.error.issues,
+      });
       return NextResponse.json(
-        { error: "Validation failed", details: validation.error.issues },
+        { error: "Invalid request data. Please check your inputs." },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }

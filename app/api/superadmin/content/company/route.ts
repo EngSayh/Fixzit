@@ -121,15 +121,19 @@ export async function PUT(request: NextRequest) {
     const { data: body, error: parseError } = await parseBodySafe(request);
     if (parseError || !body) {
       return NextResponse.json(
-        { error: parseError || "Invalid JSON body" },
+        { error: "Invalid request body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
 
     const validation = CompanyInfoSchema.safeParse(body);
     if (!validation.success) {
+      // Log details server-side, return generic message to client
+      logger.warn("[Superadmin:Company] Validation failed", {
+        issues: validation.error.issues,
+      });
       return NextResponse.json(
-        { error: "Validation failed", details: validation.error.issues },
+        { error: "Invalid request data. Please check your inputs." },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
