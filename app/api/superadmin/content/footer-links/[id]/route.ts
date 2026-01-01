@@ -22,7 +22,23 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 const UpdateFooterLinkSchema = z.object({
   label: z.string().min(1).optional(),
   labelAr: z.string().optional(),
-  url: z.string().min(1).optional(),
+  url: z
+    .string()
+    .min(1)
+    .refine(
+      (url) => {
+        // Allow relative paths or safe absolute URLs
+        if (url.startsWith("/")) return true;
+        try {
+          const parsed = new URL(url);
+          return ["http:", "https:"].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: "URL must be a relative path (/) or absolute URL (http/https)" }
+    )
+    .optional(),
   section: z.enum(["company", "support", "legal", "social"]).optional(),
   icon: z.string().optional(),
   isExternal: z.boolean().optional(),

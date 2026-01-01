@@ -21,7 +21,22 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 const FooterLinkSchema = z.object({
   label: z.string().min(1, "Label is required"),
   labelAr: z.string().optional(),
-  url: z.string().min(1, "URL is required"),
+  url: z
+    .string()
+    .min(1, "URL is required")
+    .refine(
+      (url) => {
+        // Allow relative paths or safe absolute URLs
+        if (url.startsWith("/")) return true;
+        try {
+          const parsed = new URL(url);
+          return ["http:", "https:"].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: "URL must be a relative path (/) or absolute URL (http/https)" }
+    ),
   section: z.enum(["company", "support", "legal", "social"]),
   icon: z.string().optional(),
   isExternal: z.boolean().default(false),
