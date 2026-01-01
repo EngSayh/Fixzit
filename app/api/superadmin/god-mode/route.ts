@@ -15,6 +15,7 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { createHash } from "crypto";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(req: NextRequest) {
   try {
@@ -159,7 +160,7 @@ export async function GET(req: NextRequest) {
         paymentsToday,
       ] = await Promise.all([
         db.collection("users").countDocuments({ lastLoginAt: { $gte: yesterday } }),
-        db.collection("work_orders").countDocuments({ createdAt: { $gte: yesterday } }),
+        db.collection(COLLECTIONS.WORK_ORDERS).countDocuments({ createdAt: { $gte: yesterday } }),
         db.collection("invoices").countDocuments({ createdAt: { $gte: yesterday } }),
         db.collection("payments").countDocuments({ createdAt: { $gte: yesterday } }),
       ]);

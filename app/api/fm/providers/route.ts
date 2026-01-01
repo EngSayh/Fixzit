@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(request: Request) {
   try {
@@ -311,7 +312,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      const workOrder = await db.collection("work_orders").findOne({
+      const workOrder = await db.collection(COLLECTIONS.WORK_ORDERS).findOne({
         _id: workOrderObjectId,
         orgId: sessionOrgId,
       });
