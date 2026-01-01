@@ -28,11 +28,11 @@ export default function Error({
         {error.message || "An unexpected error occurred loading notifications. Please try again."}
       </p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label="Retry loading notifications" title="Retry loading notifications">
           <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label="Go to home page" title="Go to home page">
           <Link href="/dashboard">
             <Home className="w-4 h-4 me-2" />
             Go Home

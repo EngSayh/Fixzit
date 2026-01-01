@@ -65,12 +65,12 @@ export default function SouqError({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={reset} variant="default">
+          <Button onClick={reset} variant="default" aria-label={t("common.actions.tryAgain", "Retry loading Souq")} title={t("common.actions.tryAgain", "Retry loading Souq")}>
             <RefreshCw className="w-4 h-4 me-2" />
             {t("common.actions.tryAgain", "Try Again")}
           </Button>
 
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" aria-label={t("common.actions.goToDashboard", "Go to dashboard")} title={t("common.actions.goToDashboard", "Go to dashboard")}>
             <Link href="/dashboard">
               <Home className="w-4 h-4 me-2" />
               {t("common.actions.goToDashboard", "Dashboard")}
