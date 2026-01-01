@@ -328,24 +328,32 @@ export default function AdministrationPage() {
           <button type="button"
             onClick={() => router.push("/admin")}
             className="bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            aria-label={t("admin.users.createUser", "Create a new user")}
+            title={t("admin.users.createUser", "Create User")}
           >
             {t("admin.users.createUser", "Create User")}
           </button>
           <button type="button"
             onClick={() => router.push("/admin")}
             className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
+            aria-label={t("admin.roles.createRole", "Create a new role")}
+            title={t("admin.roles.createRole", "Create Role")}
           >
             {t("admin.roles.createRole", "Create Role")}
           </button>
           <button type="button"
             onClick={() => router.push("/admin/audit-logs")}
             className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
+            aria-label={t("admin.audit.viewLogs", "View audit logs")}
+            title={t("admin.audit.viewLogs", "View Audit Logs")}
           >
             {t("admin.audit.viewLogs", "View Audit Logs")}
           </button>
           <button type="button"
             onClick={() => router.push("/fm/system")}
             className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
+            aria-label={t("admin.system.monitor", "Open system monitor")}
+            title={t("admin.system.monitor", "System Monitor")}
           >
             {t("admin.system.monitor", "System Monitor")}
           </button>

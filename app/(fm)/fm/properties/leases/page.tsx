@@ -147,12 +147,12 @@ export default function PropertiesLeasesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={t("common.refreshAria", "Refresh lease data")} title={t("common.refreshAria", "Refresh lease data")}>
             <RefreshCw className="me-2 h-4 w-4" />
             {t("common.refresh", "Refresh")}
           </Button>
           {canManageLeases ? (
-            <Button>
+            <Button aria-label={t("fm.properties.leases.newLeaseAria", "Create a new lease")} title={t("fm.properties.leases.newLeaseAria", "Create a new lease")}>
               <Plus className="me-2 h-4 w-4" />
               {t("fm.properties.leases.newLease", "New Lease")}
             </Button>
