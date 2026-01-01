@@ -84,6 +84,7 @@ export function FacetMultiSelect({
             type="button"
             className="text-xs text-primary hover:underline"
             onClick={handleSelectAll}
+            aria-label={`Select all ${label}`}
           >
             Select all
           </button>
@@ -92,6 +93,7 @@ export function FacetMultiSelect({
               type="button"
               className="text-xs text-gray-500 hover:underline"
               onClick={handleClearAll}
+              aria-label={`Clear all ${label}`}
             >
               Clear
             </button>

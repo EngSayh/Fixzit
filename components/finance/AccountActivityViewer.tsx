@@ -306,6 +306,7 @@ export default function AccountActivityViewer({
               onClick={exportToCSV}
               className="px-4 py-2 text-sm bg-success text-white rounded hover:bg-success"
               disabled={!data || loading}
+              aria-label={t("finance.actions.exportCSV", "Export account activity to CSV")}
             >
               📊 {t("Export CSV")}
             </button>
@@ -313,6 +314,7 @@ export default function AccountActivityViewer({
               onClick={() => loadAccountActivity()}
               className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary"
               disabled={loading}
+              aria-label={t("finance.actions.refreshActivity", "Refresh account activity")}
             >
               {loading ? t("Loading...") : "🔄 " + t("Refresh")}
             </button>
@@ -374,42 +376,49 @@ export default function AccountActivityViewer({
           <button type="button"
             onClick={() => setDatePreset("today")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.today", "Filter to today")}
           >
             {t("Today")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-week")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.thisWeek", "Filter to this week")}
           >
             {t("This Week")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-month")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.thisMonth", "Filter to this month")}
           >
             {t("This Month")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-quarter")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.thisQuarter", "Filter to this quarter")}
           >
             {t("This Quarter")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-year")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.thisYear", "Filter to this year")}
           >
             {t("This Year")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("last-month")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.lastMonth", "Filter to last month")}
           >
             {t("Last Month")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("last-year")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+            aria-label={t("finance.datePresets.lastYear", "Filter to last year")}
           >
             {t("Last Year")}
           </button>

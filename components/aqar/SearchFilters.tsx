@@ -241,6 +241,8 @@ export default function SearchFilters({
               ? "bg-warning text-white"
               : "bg-muted text-foreground hover:bg-muted"
           }`}
+          aria-label={t("aqar.filters.showAll", "Show all listings")}
+          aria-pressed={filters.listingType === "ALL"}
         >
           {t("aqar.filters.all", "All")}
         </button>
@@ -251,6 +253,8 @@ export default function SearchFilters({
               ? "bg-warning text-white"
               : "bg-muted text-foreground hover:bg-muted"
           }`}
+          aria-label={t("aqar.filters.showForSale", "Show properties for sale")}
+          aria-pressed={filters.listingType === "SALE"}
         >
           {t("aqar.filters.forSale", "For Sale")}
         </button>
@@ -261,6 +265,8 @@ export default function SearchFilters({
               ? "bg-warning text-white"
               : "bg-muted text-foreground hover:bg-muted"
           }`}
+          aria-label={t("aqar.filters.showForRent", "Show properties for rent")}
+          aria-pressed={filters.listingType === "RENT"}
         >
           {t("aqar.filters.forRent", "For Rent")}
         </button>
@@ -271,6 +277,8 @@ export default function SearchFilters({
               ? "bg-warning text-white"
               : "bg-muted text-foreground hover:bg-muted"
           }`}
+          aria-label={t("aqar.filters.showForLease", "Show properties for lease")}
+          aria-pressed={filters.listingType === "LEASE"}
         >
           {t("aqar.filters.forLease", "For Lease")}
         </button>
@@ -699,12 +707,14 @@ export default function SearchFilters({
             <button type="button"
               onClick={clearFilters}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
+              aria-label={t("aqar.filters.clearAllAria", "Clear all filters")}
             >
               {t("aqar.filters.clearAll", "Clear All")}
             </button>
             <button type="button"
               onClick={() => setShowAdvanced(false)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+              aria-label={t("aqar.filters.applyFiltersAria", "Apply filters and close panel")}
             >
               {t("aqar.filters.applyFilters", "Apply Filters")}
             </button>

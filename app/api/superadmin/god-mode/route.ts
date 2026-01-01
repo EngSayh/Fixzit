@@ -10,11 +10,18 @@
  * @route GET /api/superadmin/god-mode
  */
 
+/* eslint-disable local/require-tenant-scope -- Superadmin route: intentionally queries across all tenants */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { createHash } from "crypto";
+import { KillSwitchEvent } from "@/server/models/KillSwitchEvent";
+import { GhostSession } from "@/server/models/GhostSession";
+import { TenantSnapshot } from "@/server/models/TenantSnapshot";
+import { connectDb } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,6 +34,7 @@ export async function GET(req: NextRequest) {
       );
     }
     
+    await connectDb();
     const db = await getDatabase();
     
     // Fetch real tenant counts
@@ -74,20 +82,22 @@ export async function GET(req: NextRequest) {
       plan: tenant.plan || "starter",
     }));
     
-    // Fetch active kill switch events
-    const activeKillSwitchEvents = await db.collection("kill_switch_events")
+    // Fetch active kill switch events using KillSwitchEvent model
+    const activeKillSwitchEvents = await KillSwitchEvent
       .find({ deactivated_at: { $exists: false } })
       .sort({ activated_at: -1 })
       .limit(10)
-      .toArray();
+      .lean()
+      .exec();
     
     // Enrich kill switch events with tenant names - batch query to avoid N+1
-    const killSwitchTenantIds = activeKillSwitchEvents.map(e => e.tenant_id).filter(Boolean);
+    const killSwitchTenantIds = activeKillSwitchEvents
+      .map(e => e.tenant_id?.toString())
+      .filter((id): id is string => Boolean(id));
     const killSwitchTenants = killSwitchTenantIds.length > 0 
       ? await db.collection("organizations").find(
-          { _id: { $in: killSwitchTenantIds } },
-          { projection: { name: 1 } }
-        ).toArray()
+          { _id: { $in: killSwitchTenantIds.map(id => new ObjectId(id)) } }
+        ).project({ name: 1 }).toArray()
       : [];
     const killSwitchTenantMap = new Map(killSwitchTenants.map(t => [String(t._id), t.name]));
     
@@ -97,30 +107,32 @@ export async function GET(req: NextRequest) {
       action: event.action,
       reason: event.reason,
       activated_at: event.activated_at,
-      activated_by: event.activated_by?.toString().slice(-6) || "system",
+      activated_by: String(event.activated_by).slice(-6) || "system",
       scheduled_reactivation: event.scheduled_reactivation || null,
     }));
     
-    // Fetch snapshot stats
+    // Fetch snapshot stats using TenantSnapshot model
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const [totalSnapshots, snapshots24h, recentSnapshots] = await Promise.all([
-      db.collection("tenant_snapshots").countDocuments({}),
-      db.collection("tenant_snapshots").countDocuments({ created_at: { $gte: yesterday } }),
-      db.collection("tenant_snapshots")
+      TenantSnapshot.countDocuments({}).exec(),
+      TenantSnapshot.countDocuments({ created_at: { $gte: yesterday } }).exec(),
+      TenantSnapshot
         .find({})
         .sort({ created_at: -1 })
         .limit(5)
-        .toArray(),
+        .lean()
+        .exec(),
     ]);
     
     // Enrich snapshots with tenant names - batch query to avoid N+1
-    const snapshotTenantIds = recentSnapshots.map(s => s.tenant_id).filter(Boolean);
+    const snapshotTenantIds = recentSnapshots
+      .map(s => s.tenant_id?.toString())
+      .filter((id): id is string => Boolean(id));
     const snapshotTenants = snapshotTenantIds.length > 0
       ? await db.collection("organizations").find(
-          { _id: { $in: snapshotTenantIds } },
-          { projection: { name: 1 } }
-        ).toArray()
+          { _id: { $in: snapshotTenantIds.map(id => new ObjectId(id)) } }
+        ).project({ name: 1 }).toArray()
       : [];
     const snapshotTenantMap = new Map(snapshotTenants.map(t => [String(t._id), t.name]));
     
@@ -133,11 +145,12 @@ export async function GET(req: NextRequest) {
       status: snap.status,
     }));
     
-    // Fetch active ghost sessions
-    const activeGhostSessions = await db.collection("ghost_sessions")
+    // Fetch active ghost sessions using GhostSession model
+    const activeGhostSessions = await GhostSession
       .find({ active: true })
       .limit(10)
-      .toArray();
+      .lean()
+      .exec();
     
     // Fetch 24h metrics from aggregation (or provide estimates if collection doesn't exist)
     let metrics24h = {
@@ -184,6 +197,36 @@ export async function GET(req: NextRequest) {
       // Collections may not exist yet - use defaults
     }
     
+    // System Health - Integration Point for External Monitoring
+    // NOTE: Requires integration with monitoring service (Datadog/Prometheus/NewRelic)
+    // For production deployment, implement health check aggregation from:
+    // - Vercel/deployment platform health API
+    // - MongoDB Atlas monitoring API
+    // - External service status endpoints
+    // Current implementation provides basic database connectivity check only
+    const systemHealth: {
+      status: "operational" | "degraded";
+      note: string;
+      database_connected: boolean;
+      services_available: Array<{ name: string; available: boolean }>;
+    } = {
+      status: "operational",
+      note: "Basic connectivity check - Full monitoring integration pending",
+      database_connected: true,
+      services_available: [],
+    };
+    
+    try {
+      // Perform basic MongoDB ping to verify connectivity
+      await db.admin().ping();
+      systemHealth.database_connected = true;
+      systemHealth.services_available.push({ name: "MongoDB", available: true });
+    } catch {
+      systemHealth.status = "degraded";
+      systemHealth.database_connected = false;
+      systemHealth.services_available.push({ name: "MongoDB", available: false });
+    }
+    
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
@@ -191,24 +234,8 @@ export async function GET(req: NextRequest) {
       operator_id: `sa_${createHash('sha256').update(session.username).digest('hex').slice(0, 12)}`,
       operator_username: session.username, // Only visible to current superadmin
       
-      // System Health - PLACEHOLDER DATA
-      // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data
-      system_health: {
-        placeholder: true,
-        status: "placeholder",
-        note: "PLACEHOLDER DATA - Health checks require monitoring service integration (Datadog/Prometheus/NewRelic)",
-        score: 98,
-        uptime_percent: 99.95,
-        services: [
-          { name: "API Gateway", status: "placeholder", latency_ms: 45 },
-          { name: "MongoDB Atlas", status: "placeholder", latency_ms: 12 },
-          { name: "Redis Cache", status: "placeholder", latency_ms: 3 },
-          { name: "File Storage (S3)", status: "placeholder", latency_ms: 85 },
-          { name: "Payment Gateway (TAP)", status: "placeholder", latency_ms: 230 },
-          { name: "SMS Gateway (Taqnyat)", status: "placeholder", latency_ms: 180 },
-          { name: "ZATCA API", status: "placeholder", latency_ms: 350 },
-        ],
-      },
+      // System Health - Real connectivity check with integration note
+      system_health: systemHealth,
       
       // Tenant Overview - REAL DATA
       tenants: {

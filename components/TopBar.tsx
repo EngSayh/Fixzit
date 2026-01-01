@@ -906,6 +906,8 @@ function NotificationPopup({
                   key={filter.id}
                   type="button"
                   onClick={() => setNotifFilter(filter.id)}
+                  aria-label={t(filter.labelKey, filter.id)}
+                  aria-pressed={notifFilter === filter.id}
                   className={`rounded-full px-3 py-1 text-xs ${
                     notifFilter === filter.id
                       ? "bg-primary text-primary-foreground"
@@ -931,6 +933,7 @@ function NotificationPopup({
                   <button
                     key={notification.id}
                     type="button"
+                    aria-label={`${t("common.viewNotification")}: ${notification.title}`}
                     className="w-full p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors text-start"
                     onClick={() => {
                       setNotifOpen(false);

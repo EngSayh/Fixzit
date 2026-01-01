@@ -51,12 +51,13 @@ export function ViewModeToggle({
         variant={value === "table" ? "default" : "ghost"}
         onClick={() => onChange("table")}
         disabled={disabled}
+        aria-label="Table view"
+        aria-pressed={value === "table"}
         className={cn(
           buttonSizes[size],
           "shrink-0 rounded-sm",
           value === "table" && "shadow-sm"
         )}
-        aria-label="Table view"
       />
       <IconButton
         icon={<LayoutGrid className={iconSizes[size]} />}
@@ -64,12 +65,13 @@ export function ViewModeToggle({
         variant={value === "cards" ? "default" : "ghost"}
         onClick={() => onChange("cards")}
         disabled={disabled}
+        aria-label="Card view"
+        aria-pressed={value === "cards"}
         className={cn(
           buttonSizes[size],
           "shrink-0 rounded-sm",
           value === "cards" && "shadow-sm"
         )}
-        aria-label="Card view"
       />
     </div>
   );
