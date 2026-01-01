@@ -253,10 +253,10 @@ function QuotaEditDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} aria-label={t("accessibility.cancel", "Cancel and close dialog")}>
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} aria-label={saving ? t("accessibility.saving", "Saving quota changes") : t("accessibility.saveQuota", "Save quota changes")} title={t("accessibility.saveQuota", "Save quota changes")}>
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </Button>
         </DialogFooter>

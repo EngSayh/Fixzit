@@ -132,14 +132,14 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       {/* Left side: Back & Home */}
       <div className="flex items-center gap-2">
         {showBack && (
-          <Button onClick={handleBack} variant="outline" type="button">
+          <Button onClick={handleBack} variant="outline" type="button" aria-label={t("accessibility.goBack", "Go back to previous page")} title={t("accessibility.goBack", "Go back to previous page")}>
             <BackIcon className="h-4 w-4 me-2" />
             {t("navigation.back", "Back")}
           </Button>
         )}
 
         {showHome && (
-          <Button onClick={handleHome} variant="outline" type="button">
+          <Button onClick={handleHome} variant="outline" type="button" aria-label={t("accessibility.goHome", "Go to home page")} title={t("accessibility.goHome", "Go to home page")}>
             <Home className="h-4 w-4 me-2" />
             {t("navigation.home", "Home")}
           </Button>
@@ -153,6 +153,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
           disabled={saving || saveDisabled}
           variant="default"
           type={saveType}
+          aria-label={saving ? t("accessibility.saving", "Saving changes") : t("accessibility.save", "Save changes")}
+          title={t("accessibility.save", "Save changes")}
         >
           {saving ? (
             <>

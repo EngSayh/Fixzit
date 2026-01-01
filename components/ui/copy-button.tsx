@@ -14,7 +14,8 @@ import { Copy, Check } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export interface CopyButtonProps extends Omit<ButtonProps, "onClick" | "onCopy"> {
+// Omit both onClick (we override) and onCopy (conflicts with native ClipboardEventHandler)
+export interface CopyButtonProps extends Omit<ButtonProps, "onClick" | "onCopy" | "onCopySuccess" | "onCopyError"> {
   /** The text to copy to clipboard */
   value: string;
   /** Label to show when not copied (default: shows icon only) */
