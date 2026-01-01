@@ -50,12 +50,13 @@ export function ViewModeToggle({
         size="icon"
         onClick={() => onChange("table")}
         disabled={disabled}
+        aria-label="Switch to table view"
+        aria-pressed={value === "table"}
         className={cn(
           buttonSizes[size],
           "shrink-0",
           value === "table" && "shadow-sm"
         )}
-        aria-label="Switch to table view"
         title="Table view"
       >
         <LayoutList className={iconSizes[size]} />
@@ -65,12 +66,13 @@ export function ViewModeToggle({
         size="icon"
         onClick={() => onChange("cards")}
         disabled={disabled}
+        aria-label="Switch to card view"
+        aria-pressed={value === "cards"}
         className={cn(
           buttonSizes[size],
           "shrink-0",
           value === "cards" && "shadow-sm"
         )}
-        aria-label="Switch to card view"
         title="Card view"
       >
         <LayoutGrid className={iconSizes[size]} />

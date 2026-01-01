@@ -910,12 +910,13 @@ function NotificationPopup({
                   key={filter.id}
                   type="button"
                   onClick={() => setNotifFilter(filter.id)}
+                  aria-label={`Filter by ${t(filter.labelKey, filter.id)}`}
+                  aria-pressed={notifFilter === filter.id}
                   className={`rounded-full px-3 py-1 text-xs ${
                     notifFilter === filter.id
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground"
                   }`}
-                  aria-label={`Filter by ${t(filter.labelKey, filter.id)}`}
                   title={`Filter by ${t(filter.labelKey, filter.id)}`}
                 >
                   {t(filter.labelKey, filter.id)}
@@ -937,6 +938,7 @@ function NotificationPopup({
                   <button
                     key={notification.id}
                     type="button"
+                    aria-label={`${t("common.viewNotification")}: ${notification.title}`}
                     className="w-full p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors text-start"
                     onClick={() => {
                       setNotifOpen(false);
@@ -944,7 +946,6 @@ function NotificationPopup({
                         notification.targetUrl || "/notifications";
                       router.push(targetPath);
                     }}
-                    aria-label={`${notification.title}: ${notification.message}`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
