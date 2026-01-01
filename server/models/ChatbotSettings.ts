@@ -66,8 +66,8 @@ const ChatbotSettingsSchema = new Schema(
     },
     primaryColor: {
       type: String,
-      default: "#0061A8",
-      match: [/^#[0-9A-Fa-f]{6}$/, "Must be valid hex color"],
+      default: "var(--color-primary)",
+      match: [/^(#[0-9A-F]{6}|var\(--[\w-]+\))$/, "Must be valid hex color or CSS variable"],
       comment: "Brand color for chat widget",
     },
     avatarUrl: {

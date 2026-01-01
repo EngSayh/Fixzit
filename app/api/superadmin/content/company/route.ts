@@ -19,12 +19,12 @@ export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const SocialLinksSchema = z.object({
-  twitter: z.string().url().optional().or(z.literal("")),
-  facebook: z.string().url().optional().or(z.literal("")),
-  instagram: z.string().url().optional().or(z.literal("")),
-  linkedin: z.string().url().optional().or(z.literal("")),
-  youtube: z.string().url().optional().or(z.literal("")),
-  tiktok: z.string().url().optional().or(z.literal("")),
+  twitter: z.union([z.string().url(), z.literal("")]).optional(),
+  facebook: z.union([z.string().url(), z.literal("")]).optional(),
+  instagram: z.union([z.string().url(), z.literal("")]).optional(),
+  linkedin: z.union([z.string().url(), z.literal("")]).optional(),
+  youtube: z.union([z.string().url(), z.literal("")]).optional(),
+  tiktok: z.union([z.string().url(), z.literal("")]).optional(),
 }).optional();
 
 const CompanyInfoSchema = z.object({
@@ -32,15 +32,15 @@ const CompanyInfoSchema = z.object({
   nameAr: z.string().max(200).optional(),
   tagline: z.string().max(500).optional(),
   taglineAr: z.string().max(500).optional(),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.union([z.string().email(), z.literal("")]).optional(),
   phone: z.string().max(20).optional(),
   alternatePhone: z.string().max(20).optional(),
   address: z.string().max(500).optional(),
   addressAr: z.string().max(500).optional(),
   vatNumber: z.string().max(50).optional(),
   crNumber: z.string().max(50).optional(),
-  logoUrl: z.string().url().optional().or(z.literal("")),
-  faviconUrl: z.string().url().optional().or(z.literal("")),
+  logoUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  faviconUrl: z.union([z.string().url(), z.literal("")]).optional(),
   socialLinks: SocialLinksSchema,
 });
 

@@ -220,8 +220,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     await connectDb();
 
     // Check if tier exists
-    // eslint-disable-next-line local/require-lean -- Needs document for delete operation
-    const tier = await SubscriptionTier.findById(id);
+    const tier = await SubscriptionTier.findById(id).lean();
     if (!tier) {
       return NextResponse.json(
         { error: "Tier not found" },
