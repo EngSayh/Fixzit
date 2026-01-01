@@ -551,6 +551,7 @@ export default function CommunicationDashboard({
               <button type="button"
                 onClick={() => setSelectedLog(null)}
                 className="text-muted-foreground hover:text-foreground"
+                aria-label={t("communications.actions.closeDetails", "Close details panel")}
               >
                 ✕
               </button>

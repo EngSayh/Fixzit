@@ -16,6 +16,7 @@ import { Mail, Phone, Star, Calendar, ChevronRight } from "@/components/ui/icons
 import { toast } from "sonner";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const fetcher = async (url: string) => {
   const response = await fetch(url);
@@ -59,6 +60,7 @@ const STAGES = [
 ];
 
 export default function ApplicationsKanban() {
+  const { t } = useTranslation();
   const [optimisticApplications, setOptimisticApplications] = useState<Record<
     string,
     Application[]
@@ -301,6 +303,7 @@ export default function ApplicationsKanban() {
                                       (window.location.href = `/dashboard/hr/recruitment?tab=applications&id=${application._id}`)
                                     }
                                     className="text-sm text-primary hover:text-primary-dark font-medium flex items-center gap-1"
+                                    aria-label={t("ats.applications.viewDetails", "View application details")}
                                   >
                                     View Details
                                     <ChevronRight className="w-4 h-4" />
