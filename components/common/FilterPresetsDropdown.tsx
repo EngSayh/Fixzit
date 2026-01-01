@@ -371,10 +371,10 @@ export function FilterPresetsDropdown({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)} disabled={isSaving}>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)} disabled={isSaving} aria-label="Cancel saving preset">
               Cancel
             </Button>
-            <Button onClick={handleSavePreset} disabled={isSaving || !presetName.trim()}>
+            <Button onClick={handleSavePreset} disabled={isSaving || !presetName.trim()} aria-label="Save filter preset">
               {isSaving ? "Saving..." : "Save Preset"}
             </Button>
           </DialogFooter>
@@ -423,10 +423,10 @@ export function FilterPresetsDropdown({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSaving}>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSaving} aria-label="Cancel editing preset">
               Cancel
             </Button>
-            <Button onClick={handleUpdatePreset} disabled={isSaving || !presetName.trim()}>
+            <Button onClick={handleUpdatePreset} disabled={isSaving || !presetName.trim()} aria-label="Update filter preset">
               {isSaving ? "Updating..." : "Update Preset"}
             </Button>
           </DialogFooter>

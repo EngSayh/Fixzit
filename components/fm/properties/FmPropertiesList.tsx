@@ -476,7 +476,7 @@ export function FmPropertiesList({
           <p className="text-muted-foreground mb-4">
             {t("fm.properties.noPropertiesText", "Get started by adding your first property to the portfolio.")}
           </p>
-          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90">
+          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90" aria-label={t("fm.properties.addProperty.ariaLabel", "Add a new property")}>
             <Plus className="w-4 h-4 me-2" />
             {t("fm.properties.addProperty", "Add Property")}
           </Button>
@@ -533,10 +533,10 @@ export function FmPropertiesList({
             </Select>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1">
+            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1" aria-label={t("common.clearFilters.ariaLabel", "Clear all filters")}>
               {t("common.clearFilters", "Clear Filters")}
             </Button>
-            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1">
+            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1" aria-label={t("common.apply.ariaLabel", "Apply filters and close")}>
               {t("common.apply", "Apply")}
             </Button>
           </div>
