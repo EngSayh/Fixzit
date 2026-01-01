@@ -654,17 +654,17 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label={t("superadmin.issues.refresh", "Refresh issues list")} title={t("superadmin.issues.refresh", "Refresh issues list")}>
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             {t("superadmin.issues.refresh")}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label={t("superadmin.issues.export", "Export issues to JSON")} title={t("superadmin.issues.export", "Export issues to JSON")}>
             <Download className="h-4 w-4 me-2" />
             {t("superadmin.issues.export")}
           </Button>
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" aria-label={t("superadmin.issues.import", "Import issues")} title={t("superadmin.issues.import", "Import issues")}>
                 <Upload className="h-4 w-4 me-2" />
                 {t("superadmin.issues.import")}
               </Button>
@@ -688,17 +688,17 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
+                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing} aria-label={t("superadmin.issues.importDryRun", "Test import without saving")} title={t("superadmin.issues.importDryRun", "Test import without saving")}>
                     {t("superadmin.issues.importDryRun")}
                   </Button>
-                  <Button onClick={() => handleImport(false)} disabled={importing}>
+                  <Button onClick={() => handleImport(false)} disabled={importing} aria-label={t("superadmin.issues.import", "Import issues now")} title={t("superadmin.issues.import", "Import issues now")}>
                     {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
                   </Button>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
-          <Button size="sm">
+          <Button size="sm" aria-label={t("superadmin.issues.add", "Add new issue")} title={t("superadmin.issues.add", "Add new issue")}>
             <Plus className="h-4 w-4 me-2" />
             {t("superadmin.issues.add")}
           </Button>
@@ -881,6 +881,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               size="sm"
               onClick={() => setStatusFilter("all")}
               className={statusFilter === "all" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showAll", "Show all issues")}
+              title={t("superadmin.issues.filters.showAll", "Show all issues")}
+              aria-pressed={statusFilter === "all"}
             >
               All
             </Button>
@@ -889,6 +892,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               size="sm"
               onClick={() => setStatusFilter("open")}
               className={statusFilter === "open" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showOpen", "Show open issues")}
+              title={t("superadmin.issues.filters.showOpen", "Show open issues")}
+              aria-pressed={statusFilter === "open"}
             >
               Open
             </Button>
@@ -897,6 +903,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               size="sm"
               onClick={() => setStatusFilter("closed")}
               className={statusFilter === "closed" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showClosed", "Show closed issues")}
+              title={t("superadmin.issues.filters.showClosed", "Show closed issues")}
+              aria-pressed={statusFilter === "closed"}
             >
               Closed
             </Button>
@@ -905,6 +914,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               size="sm"
               onClick={() => setStatusFilter("blocked")}
               className={statusFilter === "blocked" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
+              title={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
+              aria-pressed={statusFilter === "blocked"}
             >
               Blocked
             </Button>
@@ -913,6 +925,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               size="sm"
               onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
               className={viewMode === "stale" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showStale", "Show stale issues")}
+              title={t("superadmin.issues.filters.showStale", "Show stale issues")}
+              aria-pressed={viewMode === "stale"}
             >
               <Clock className="h-4 w-4 me-1" />
               Stale
@@ -922,6 +937,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               size="sm"
               onClick={clearFilters}
               className="text-muted-foreground hover:text-foreground ms-auto"
+              aria-label={t("superadmin.issues.filters.clear", "Clear all filters")}
+              title={t("superadmin.issues.filters.clear", "Clear all filters")}
             >
               Clear filters
             </Button>
@@ -984,6 +1001,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               variant={viewMode === "quickWins" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("quickWins")}
+              aria-label={t("superadmin.issues.views.quickWins", "Show quick win issues")}
+              title={t("superadmin.issues.views.quickWins", "Show quick win issues")}
+              aria-pressed={viewMode === "quickWins"}
             >
               <Zap className="h-4 w-4 me-1" />
               {t("superadmin.issues.views.quickWins")}
@@ -1006,6 +1026,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   size="sm"
                   onClick={handleCopyMarkdown}
                   className={copiedMarkdown ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.copyFixInstructions", "Copy fix instructions to clipboard")}
+                  title={t("superadmin.issues.copyFixInstructions", "Copy fix instructions to clipboard")}
                 >
                   {copiedMarkdown ? (
                     <>
@@ -1021,6 +1043,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   size="sm"
                   onClick={handleCopyTSV}
                   className={copiedTSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.copyTSV", "Copy as TSV for spreadsheets")}
+                  title={t("superadmin.issues.copyTSV", "Copy as TSV for spreadsheets")}
                 >
                   {copiedTSV ? (
                     <>
@@ -1036,6 +1060,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   size="sm"
                   onClick={handleExportCSV}
                   className={exportedCSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.exportCSV", "Export selected issues to CSV")}
+                  title={t("superadmin.issues.exportCSV", "Export selected issues to CSV")}
                 >
                   {exportedCSV ? (
                     <>
@@ -1054,6 +1080,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   size="sm"
                   onClick={() => setSelectedIssues(new Set())}
                   className="text-muted-foreground hover:text-foreground"
+                  aria-label={t("superadmin.issues.clearSelection", "Clear issue selection")}
+                  title={t("superadmin.issues.clearSelection", "Clear issue selection")}
                 >
                   Clear selection
                 </Button>
@@ -1097,6 +1125,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   size="sm" 
                   onClick={() => { setConnectionError(null); handleRefresh(); }}
                   className="me-2"
+                  aria-label={t("superadmin.issues.connection.retry", "Retry database connection")}
+                  title={t("superadmin.issues.connection.retry", "Retry database connection")}
                 >
                   <RefreshCw className="h-4 w-4 me-2" />
                   {t("superadmin.issues.connection.retry")}
@@ -1235,6 +1265,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             size="sm"
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
+            aria-label={t("pagination.previous", "Go to previous page")}
+            title={t("pagination.previous", "Go to previous page")}
           >
             {t("superadmin.issues.pagination.previous")}
           </Button>
@@ -1246,6 +1278,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             size="sm"
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
+            aria-label={t("pagination.next", "Go to next page")}
+            title={t("pagination.next", "Go to next page")}
           >
             {t("superadmin.issues.pagination.next")}
           </Button>
@@ -1359,10 +1393,10 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             )}
 
             <div className="pt-4 border-t flex gap-2">
-              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1">
+              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1" aria-label={t("superadmin.issues.viewFullDetails", "View full issue details")} title={t("superadmin.issues.viewFullDetails", "View full issue details")}>
                 View Full Details
               </Button>
-              <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+              <Button variant="outline" onClick={() => setDrawerOpen(false)} aria-label={t("common.close", "Close issue details")} title={t("common.close", "Close issue details")}>
                 Close
               </Button>
             </div>

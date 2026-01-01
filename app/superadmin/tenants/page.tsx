@@ -246,12 +246,14 @@ export default function SuperadminTenantsPage() {
             onClick={fetchOrganizations}
             disabled={loading}
             className="border-input text-muted-foreground"
+            aria-label={t("common.refresh", "Refresh organizations list")}
+            title={t("common.refresh", "Refresh organizations list")}
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button size="sm" className="bg-blue-600 hover:bg-blue-700" asChild>
-            <Link href="/superadmin/tenants/new">
+            <Link href="/superadmin/tenants/new" aria-label={t("superadmin.tenants.add", "Add new organization")} title={t("superadmin.tenants.add", "Add new organization")}>
               <Plus className="h-4 w-4 me-2" />
               Add Organization
             </Link>
@@ -324,7 +326,7 @@ export default function SuperadminTenantsPage() {
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
               <p className="text-red-400 mb-4">{error}</p>
-              <Button variant="outline" onClick={fetchOrganizations}>
+              <Button variant="outline" onClick={fetchOrganizations} aria-label={t("common.tryAgain", "Try again to load organizations")} title={t("common.tryAgain", "Try again to load organizations")}>
                 Try Again
               </Button>
             </div>
@@ -456,6 +458,8 @@ export default function SuperadminTenantsPage() {
                   disabled={!pagination.hasPrev || loading}
                   onClick={() => setPage((p) => p - 1)}
                   className="border-input"
+                  aria-label={t("pagination.previous", "Go to previous page")}
+                  title={t("pagination.previous", "Go to previous page")}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
@@ -466,6 +470,8 @@ export default function SuperadminTenantsPage() {
                   disabled={!pagination.hasNext || loading}
                   onClick={() => setPage((p) => p + 1)}
                   className="border-input"
+                  aria-label={t("pagination.next", "Go to next page")}
+                  title={t("pagination.next", "Go to next page")}
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -541,6 +547,8 @@ export default function SuperadminTenantsPage() {
               variant="outline"
               onClick={() => setViewDialogOpen(false)}
               className="border-input"
+              aria-label={t("common.close", "Close details dialog")}
+              title={t("common.close", "Close details dialog")}
             >
               Close
             </Button>
@@ -568,6 +576,8 @@ export default function SuperadminTenantsPage() {
               onClick={() => setDeleteDialogOpen(false)}
               className="border-input"
               disabled={actionLoading}
+              aria-label={t("common.cancel", "Cancel suspension")}
+              title={t("common.cancel", "Cancel suspension")}
             >
               Cancel
             </Button>
@@ -575,6 +585,8 @@ export default function SuperadminTenantsPage() {
               variant="destructive"
               onClick={handleDelete}
               disabled={actionLoading}
+              aria-label={t("superadmin.tenants.suspend", "Suspend organization")}
+              title={t("superadmin.tenants.suspend", "Suspend organization")}
             >
               {actionLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin me-2" />

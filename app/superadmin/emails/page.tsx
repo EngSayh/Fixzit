@@ -412,7 +412,7 @@ export default function EmailTemplatesPage() {
             {t("superadmin.emails.subtitle", "Manage transactional email templates")}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchTemplates} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={fetchTemplates} disabled={loading} aria-label={t("common.refresh", "Refresh email templates")} title={t("common.refresh", "Refresh email templates")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
           {t("common.refresh", "Refresh")}
         </Button>
@@ -580,6 +580,8 @@ export default function EmailTemplatesPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handleEdit(template)}
+                          aria-label={t("superadmin.emails.edit", `Edit ${template.name} template`)}
+                          title={t("superadmin.emails.edit", `Edit ${template.name}`)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -588,6 +590,8 @@ export default function EmailTemplatesPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handlePreview(template)}
+                          aria-label={t("superadmin.emails.preview", `Preview ${template.name} template`)}
+                          title={t("superadmin.emails.preview", `Preview ${template.name}`)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -596,6 +600,8 @@ export default function EmailTemplatesPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handleSendTest(template)}
+                          aria-label={t("superadmin.emails.sendTest", `Send test email for ${template.name}`)}
+                          title={t("superadmin.emails.sendTest", `Send test for ${template.name}`)}
                         >
                           <Send className="h-4 w-4" />
                         </Button>
@@ -685,6 +691,9 @@ export default function EmailTemplatesPage() {
                   variant={previewMode === "desktop" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setPreviewMode("desktop")}
+                  aria-label={t("superadmin.emails.desktopPreview", "Desktop preview mode")}
+                  title={t("superadmin.emails.desktopPreview", "Desktop preview mode")}
+                  aria-pressed={previewMode === "desktop"}
                 >
                   <Monitor className="h-4 w-4" />
                 </Button>
@@ -692,6 +701,9 @@ export default function EmailTemplatesPage() {
                   variant={previewMode === "mobile" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setPreviewMode("mobile")}
+                  aria-label={t("superadmin.emails.mobilePreview", "Mobile preview mode")}
+                  title={t("superadmin.emails.mobilePreview", "Mobile preview mode")}
+                  aria-pressed={previewMode === "mobile"}
                 >
                   <Smartphone className="h-4 w-4" />
                 </Button>
@@ -715,10 +727,10 @@ export default function EmailTemplatesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
+            <Button variant="outline" onClick={() => setShowPreviewDialog(false)} aria-label={t("common.close", "Close preview")} title={t("common.close", "Close preview")}>
               {t("common.close", "Close")}
             </Button>
-            <Button onClick={() => selectedTemplate && handleSendTest(selectedTemplate)}>
+            <Button onClick={() => selectedTemplate && handleSendTest(selectedTemplate)} aria-label={t("superadmin.emails.sendTest", "Send test email")} title={t("superadmin.emails.sendTest", "Send test email")}>
               <Send className="h-4 w-4 me-2" />
               {t("superadmin.emails.sendTest", "Send Test")}
             </Button>
