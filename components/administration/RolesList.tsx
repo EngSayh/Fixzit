@@ -235,11 +235,11 @@ export function RolesList({ orgId }: RolesListProps) {
       description="Adjust filters or create a custom role to get started."
       action={
         activeFilters.length > 0 ? (
-          <Button variant="outline" onClick={() => resetState()}>
+          <Button variant="outline" onClick={() => resetState()} aria-label="Clear all filters">
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Create role flow")}>
+          <Button onClick={() => toast.info("Create role flow")} aria-label="Create role">
             <Plus className="w-4 h-4 me-2" />
             Create Role
           </Button>
@@ -273,11 +273,11 @@ export function RolesList({ orgId }: RolesListProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh roles list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create role">
             <Plus className="w-4 h-4 me-2" />
             Create Role
           </Button>
@@ -310,7 +310,7 @@ export function RolesList({ orgId }: RolesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)} aria-label="Open filters">
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -368,6 +368,7 @@ export function RolesList({ orgId }: RolesListProps) {
               size="sm"
               disabled={(state.page || 1) === 1}
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
+              aria-label="Previous page"
             >
               Previous
             </Button>
@@ -379,6 +380,7 @@ export function RolesList({ orgId }: RolesListProps) {
               size="sm"
               disabled={(state.page || 1) >= totalPages}
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
+              aria-label="Next page"
             >
               Next
             </Button>
@@ -393,8 +395,8 @@ export function RolesList({ orgId }: RolesListProps) {
         title="Filter Roles"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={handleResetFilters} aria-label="Reset filters">Reset</Button>
+            <Button onClick={handleApplyFilters} aria-label="Apply filters">Apply Filters</Button>
           </div>
         }
       >

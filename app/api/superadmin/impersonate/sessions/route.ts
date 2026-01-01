@@ -67,7 +67,9 @@ export async function GET(request: NextRequest) {
 
     // Transform audit logs to session format
     const formattedSessions = sessions.map((log: AuditLog & { _id: unknown }) => {
-      const metadata = log.metadata || {};
+      // Safely extract metadata
+      const metadata = log.metadata && typeof log.metadata === 'object' ? log.metadata as Record<string, unknown> : {};
+      
       return {
         id: log._id,
         action: log.action,

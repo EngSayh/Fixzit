@@ -19,12 +19,12 @@ export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const SocialLinksSchema = z.object({
-  twitter: z.union([z.string().url(), z.literal("")]).optional(),
-  facebook: z.union([z.string().url(), z.literal("")]).optional(),
-  instagram: z.union([z.string().url(), z.literal("")]).optional(),
-  linkedin: z.union([z.string().url(), z.literal("")]).optional(),
-  youtube: z.union([z.string().url(), z.literal("")]).optional(),
-  tiktok: z.union([z.string().url(), z.literal("")]).optional(),
+  twitter: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  facebook: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  instagram: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  linkedin: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  youtube: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  tiktok: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
 }).optional();
 
 const CompanyInfoSchema = z.object({
@@ -32,15 +32,15 @@ const CompanyInfoSchema = z.object({
   nameAr: z.string().max(200).optional(),
   tagline: z.string().max(500).optional(),
   taglineAr: z.string().max(500).optional(),
-  email: z.union([z.string().email(), z.literal("")]).optional(),
+  email: z.string().optional().refine(val => !val || val === "" || /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(val), "Must be valid email or empty"),
   phone: z.string().max(20).optional(),
   alternatePhone: z.string().max(20).optional(),
   address: z.string().max(500).optional(),
   addressAr: z.string().max(500).optional(),
   vatNumber: z.string().max(50).optional(),
   crNumber: z.string().max(50).optional(),
-  logoUrl: z.union([z.string().url(), z.literal("")]).optional(),
-  faviconUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  logoUrl: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  faviconUrl: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
   socialLinks: SocialLinksSchema,
 });
 

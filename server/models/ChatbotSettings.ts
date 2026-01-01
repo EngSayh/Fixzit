@@ -2,6 +2,7 @@ import { Schema, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { encryptionPlugin } from "../plugins/encryptionPlugin";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * @module server/models/ChatbotSettings
@@ -66,8 +67,9 @@ const ChatbotSettingsSchema = new Schema(
     },
     primaryColor: {
       type: String,
-      default: "var(--color-primary)",
-      match: [/^(#[0-9A-F]{6}|var\(--[\w-]+\))$/, "Must be valid hex color or CSS variable"],
+      default: BRAND_COLORS.primary,
+      uppercase: true,
+      match: [/^#[0-9A-F]{6}$/, "Must be valid hex color"],
       comment: "Brand color for chat widget",
     },
     avatarUrl: {

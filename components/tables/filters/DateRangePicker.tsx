@@ -112,6 +112,8 @@ export function DateRangePicker({
             key={preset.value}
             type="button"
             onClick={() => handlePresetClick(preset.value)}
+            aria-label={`${label}: ${preset.label}`}
+            aria-pressed={preset.value === 'custom' ? showCustom : false}
             className={[
               'rounded-md border px-3 py-2 text-xs font-medium transition-colors',
               preset.value === 'custom' && showCustom

@@ -15,6 +15,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { ChatbotSettings } from "@/server/models/ChatbotSettings";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
@@ -22,14 +23,13 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 const ChatbotSettingsSchema = z.object({
   enabled: z.boolean().optional(),
   provider: z.enum(["internal", "openai", "anthropic", "custom"]).optional(),
-  // newApiKey: undefined = no change, "" = clear key, string = set new key
   newApiKey: z.string().optional(),
   model: z.string().optional(),
   welcomeMessage: z.string().max(500).optional(),
   welcomeMessageAr: z.string().max(500).optional(),
   position: z.enum(["bottom-right", "bottom-left"]).optional(),
-  primaryColor: z.string().regex(/^(#[0-9A-F]{6}|var\(--[\w-]+\))$/, "Invalid hex color or CSS variable").optional(),
-  avatarUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional(),
+  avatarUrl: z.string().url().optional().or(z.literal("")),
   offlineMessage: z.string().max(500).optional(),
   maxTokens: z.number().min(100).max(4000).optional(),
   temperature: z.number().min(0).max(2).optional(),
@@ -42,7 +42,7 @@ const DEFAULT_SETTINGS = {
   welcomeMessage: "Hello! How can I help you today?",
   welcomeMessageAr: "مرحباً! كيف يمكنني مساعدتك اليوم؟",
   position: "bottom-right" as const,
-  primaryColor: "var(--color-primary)",
+  primaryColor: BRAND_COLORS.primary,
   offlineMessage: "We're currently offline. Please leave a message.",
   maxTokens: 1000,
   temperature: 0.7,
@@ -137,6 +137,7 @@ export async function PUT(request: NextRequest) {
     const { newApiKey, ...updateData } = validation.data;
     const updates: Record<string, unknown> = { ...updateData };
     
+    // Handle API key updates: undefined = no change, empty string or null = clear key
     if (newApiKey !== undefined) {
       updates.apiKey = newApiKey === "" ? null : newApiKey;
     }
@@ -149,7 +150,7 @@ export async function PUT(request: NextRequest) {
     ).lean();
 
     if (!settings) {
-      logger.error("[Superadmin:Chatbot] findOneAndUpdate returned null unexpectedly");
+      logger.error("[Superadmin:Chatbot] Failed to create/update settings");
       return NextResponse.json(
         { error: "Failed to update chatbot settings" },
         { status: 500, headers: ROBOTS_HEADER }
