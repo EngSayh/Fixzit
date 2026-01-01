@@ -592,7 +592,7 @@ export default function SuperadminPermissionsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)} disabled={role.isSystem}>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)} disabled={role.isSystem} aria-label={t("superadmin.permissions.editRole", `Edit ${role.displayName} role`)} title={t("superadmin.permissions.editRole", `Edit ${role.displayName} role`)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>

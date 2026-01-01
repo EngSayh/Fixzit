@@ -434,7 +434,7 @@ export default function ScheduledTasksPage() {
             {t("superadmin.tasks.subtitle", "Manage cron jobs and scheduled operations")}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchTasks} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={fetchTasks} disabled={loading} aria-label={t("common.refresh", "Refresh tasks")} title={t("common.refresh", "Refresh tasks")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
           {t("common.refresh", "Refresh")}
         </Button>
@@ -623,6 +623,8 @@ export default function ScheduledTasksPage() {
                             className="h-8 w-8"
                             onClick={() => handleRunNow(task)}
                             disabled={runningTask === task.id || task.lastStatus === "running"}
+                            aria-label={t("superadmin.tasks.runNow", `Run ${task.name} now`)}
+                            title={t("superadmin.tasks.runNow", `Run ${task.name} now`)}
                           >
                             <Play className={`h-4 w-4 ${runningTask === task.id ? "animate-pulse" : ""}`} />
                           </Button>
@@ -631,6 +633,8 @@ export default function ScheduledTasksPage() {
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => viewHistory(task)}
+                            aria-label={t("superadmin.tasks.viewHistory", `View ${task.name} execution history`)}
+                            title={t("superadmin.tasks.viewHistory", `View ${task.name} execution history`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -690,7 +694,7 @@ export default function ScheduledTasksPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowHistoryDialog(false)}>
+            <Button variant="outline" onClick={() => setShowHistoryDialog(false)} aria-label={t("common.close", "Close execution history")} title={t("common.close", "Close execution history")}>
               {t("common.close", "Close")}
             </Button>
           </DialogFooter>

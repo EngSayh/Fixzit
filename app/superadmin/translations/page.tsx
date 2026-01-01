@@ -122,10 +122,10 @@ export default function SuperadminTranslationsPage() {
           <p className="text-muted-foreground">Manage i18n translations for all locales</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground" aria-label={t("superadmin.translations.exportAll", "Export all translations")} title={t("superadmin.translations.exportAll", "Export all translations")}>
             <Download className="h-4 w-4 me-2" />Export All
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchLocales} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchLocales} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh translations")} title={t("common.refresh", "Refresh translations")}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -154,7 +154,7 @@ export default function SuperadminTranslationsPage() {
                 {loc.missing > 0 && <span className="text-yellow-400">{loc.missing} missing</span>}
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" onClick={() => handleExport(loc.locale)} className="flex-1 border-input">
+                <Button variant="outline" size="sm" onClick={() => handleExport(loc.locale)} className="flex-1 border-input" aria-label={t("superadmin.translations.exportLocale", `Export ${loc.name} translations`)} title={t("superadmin.translations.exportLocale", `Export ${loc.name} translations`)}>
                   <Download className="h-4 w-4 me-2" />Export
                 </Button>
               </div>
@@ -185,7 +185,7 @@ export default function SuperadminTranslationsPage() {
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     className="w-[200px] bg-muted border-input text-foreground"
                   />
-                  <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("common.search", "Search translation keys")} title={t("common.search", "Search translation keys")}>
                     <Search className="h-4 w-4" />
                   </Button>
                 </div>
@@ -234,7 +234,7 @@ export default function SuperadminTranslationsPage() {
                       </TableCell>
                       <TableCell>
                         {editingKey !== key.key && (
-                          <Button variant="ghost" size="sm" onClick={() => handleStartEdit(key)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleStartEdit(key)} aria-label={t("common.edit", `Edit ${key.key} translation`)} title={t("common.edit", `Edit ${key.key} translation`)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
