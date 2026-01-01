@@ -472,6 +472,8 @@ function ProjectCard({
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/fm/projects/${project.id}`)}
+              aria-label={`View project ${project.name}`}
+              title={`View ${project.name} details`}
             >
               <Eye className="w-4 h-4" />
             </Button>
@@ -479,6 +481,8 @@ function ProjectCard({
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/fm/projects/${project.id}/edit`)}
+              aria-label={`Edit project ${project.name}`}
+              title={`Edit ${project.name}`}
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -487,6 +491,8 @@ function ProjectCard({
               size="sm"
               className="text-destructive hover:text-destructive/90"
               onClick={handleDelete}
+              aria-label={`Delete project ${project.name}`}
+              title={`Delete ${project.name} permanently`}
             >
               <Trash2 className="w-4 h-4" />
             </Button>

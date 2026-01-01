@@ -908,7 +908,7 @@ export default function SuperadminFooterContentPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={handleSaveChatbot} disabled={saving} className="bg-primary text-primary-foreground">
+                <Button onClick={handleSaveChatbot} disabled={saving} className="bg-primary text-primary-foreground" aria-label="Save chatbot settings" title="Save chatbot settings">
                   <Save className="h-4 w-4 me-2" />{saving ? "Saving..." : "Save Chatbot Settings"}
                 </Button>
               </div>
@@ -1072,7 +1072,7 @@ export default function SuperadminFooterContentPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={handleSaveCompany} className="bg-primary text-primary-foreground">
+                <Button onClick={handleSaveCompany} className="bg-primary text-primary-foreground" aria-label="Save company info" title="Save company information">
                   <Save className="h-4 w-4 me-2" />Save Company Info
                 </Button>
               </div>
@@ -1133,8 +1133,8 @@ export default function SuperadminFooterContentPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPolicyDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSavePolicy}>{editingPolicy ? "Update" : "Create"}</Button>
+            <Button variant="outline" onClick={() => setPolicyDialogOpen(false)} aria-label="Cancel policy changes" title="Cancel and close dialog">Cancel</Button>
+            <Button onClick={handleSavePolicy} aria-label={editingPolicy ? "Update policy" : "Create new policy"} title={editingPolicy ? "Update policy" : "Create new policy"}>{editingPolicy ? "Update" : "Create"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1185,8 +1185,8 @@ export default function SuperadminFooterContentPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveLink}>{editingLink ? "Update" : "Add"}</Button>
+            <Button variant="outline" onClick={() => setLinkDialogOpen(false)} aria-label="Cancel link changes" title="Cancel and close dialog">Cancel</Button>
+            <Button onClick={handleSaveLink} aria-label={editingLink ? "Update link" : "Add new link"} title={editingLink ? "Update link" : "Add new link"}>{editingLink ? "Update" : "Add"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

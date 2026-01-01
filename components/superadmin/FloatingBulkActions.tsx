@@ -69,6 +69,8 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkResolved}
+                aria-label="Mark selected items as resolved"
+                title="Mark selected items as resolved"
                 className={resolvedConfirm 
                   ? "text-green-500 hover:text-green-500 bg-green-50 dark:bg-green-900/30" 
                   : "text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
@@ -89,6 +91,8 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleArchive}
+                aria-label="Archive selected items"
+                title="Archive selected items"
                 className={archivedConfirm 
                   ? "text-blue-500 hover:text-blue-500 bg-blue-50 dark:bg-blue-900/30" 
                   : "text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -109,6 +113,8 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleDelete}
+                aria-label="Delete selected items"
+                title="Delete selected items permanently"
                 className={deletedConfirm 
                   ? "text-orange-500 hover:text-orange-500 bg-orange-50 dark:bg-orange-900/30" 
                   : "text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -130,6 +136,8 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
           variant="ghost"
           size="icon"
           onClick={onClearSelection}
+          aria-label="Clear selection"
+          title="Clear all selected items"
           className="h-8 w-8"
         >
           <X className="h-4 w-4" />

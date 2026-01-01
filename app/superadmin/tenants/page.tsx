@@ -402,6 +402,8 @@ export default function SuperadminTenantsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                            aria-label={`View details for ${org.name}`}
+                            title={`View ${org.name} details`}
                             onClick={() => {
                               setSelectedOrg(org);
                               setViewDialogOpen(true);
@@ -415,7 +417,7 @@ export default function SuperadminTenantsPage() {
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-400"
                             asChild
                           >
-                            <Link href={`/superadmin/tenants/${org._id}/edit`} aria-label="Edit organization">
+                            <Link href={`/superadmin/tenants/${org._id}/edit`} aria-label={`Edit ${org.name}`} title={`Edit ${org.name} settings`}>
                               <Edit className="h-4 w-4" />
                             </Link>
                           </Button>
@@ -423,6 +425,8 @@ export default function SuperadminTenantsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
+                            aria-label={`Suspend ${org.name}`}
+                            title={`Suspend ${org.name} organization`}
                             onClick={() => {
                               setSelectedOrg(org);
                               setDeleteDialogOpen(true);

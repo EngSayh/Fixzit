@@ -216,7 +216,7 @@ export default function SuperadminTranslationsPage() {
                               className="bg-muted border-input text-foreground"
                               dir="rtl"
                             />
-                            <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600">
+                            <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600" aria-label="Save translation" title="Save translation">
                               <Save className="h-4 w-4" />
                             </Button>
                           </div>
@@ -281,7 +281,7 @@ export default function SuperadminTranslationsPage() {
                               dir="rtl"
                               placeholder="Enter Arabic translation"
                             />
-                            <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600">
+                            <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600" aria-label="Save translation" title="Save translation">
                               <Save className="h-4 w-4" />
                             </Button>
                           </div>
@@ -291,7 +291,7 @@ export default function SuperadminTranslationsPage() {
                       </TableCell>
                       <TableCell>
                         {editingKey !== key.key && (
-                          <Button variant="ghost" size="sm" onClick={() => handleStartEdit(key)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleStartEdit(key)} aria-label="Edit translation" title="Edit this translation">
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}

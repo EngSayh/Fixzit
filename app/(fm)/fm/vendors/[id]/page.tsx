@@ -210,6 +210,8 @@ function VendorDetailsContent({
                 router.push(`/fm/vendors/${params.id}/edit`);
               }
             }}
+            aria-label="Edit vendor"
+            title="Edit vendor details"
           >
             <Edit className="w-4 h-4 me-2" />
             Edit
@@ -218,6 +220,8 @@ function VendorDetailsContent({
             variant="outline"
             className="text-destructive hover:text-destructive"
             onClick={handleDelete}
+            aria-label="Delete vendor"
+            title="Delete this vendor permanently"
           >
             <Trash2 className="w-4 h-4 me-2" />
             Delete

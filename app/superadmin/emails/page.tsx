@@ -662,10 +662,10 @@ export default function EmailTemplatesPage() {
             </Tabs>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} aria-label={t("accessibility.cancel", "Cancel changes")} title={t("accessibility.cancel", "Cancel changes")}>
               {t("common.cancel", "Cancel")}
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} aria-label={t("accessibility.saveTemplate", "Save email template")} title={t("accessibility.saveTemplate", "Save email template")}>
               {t("common.save", "Save")}
             </Button>
           </DialogFooter>

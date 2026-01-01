@@ -179,6 +179,8 @@ function PropertyDetailsContent({
                 router.push(`/fm/properties/${propertyId}/edit`);
               }
             }}
+            aria-label="Edit property"
+            title="Edit property details"
           >
             <Edit className="w-4 h-4 me-2" />
             Edit
@@ -187,6 +189,8 @@ function PropertyDetailsContent({
             variant="outline"
             className="text-destructive hover:text-destructive"
             onClick={handleDelete}
+            aria-label="Delete property"
+            title="Delete this property permanently"
           >
             <Trash2 className="w-4 h-4 me-2" />
             Delete
