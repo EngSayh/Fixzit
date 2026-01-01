@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2025-12-31T00:00:00+03:00
+  Last-Sync: 2026-01-01T08:05:42+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,87 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+### 2026-01-01 08:05 (Asia/Riyadh) - 3D Building Model: RTL Fixes & Test Coverage [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** FM-3D-RTL-001, FM-3D-TEST-001, FM-3D-DOC-001
+**Context:** copilot/sub-pr-627 | d44176c | 3D Building Model Generator improvements
+**DB Sync:** Required (FM-3D-RTL-001 → RESOLVED; FM-3D-TEST-001 → RESOLVED; FM-3D-DOC-001 → RESOLVED)
+
+#### Summary
+Completed code review and fixes for 3D Building Model Generator and Viewer feature per PR #627 governance requirements. Fixed RTL layout issues, added comprehensive test coverage (32 test cases), and improved documentation.
+
+#### Issues Identified & Fixed
+| Issue ID | Category | File | Line | Evidence | Status |
+|----------|----------|------|------|----------|--------|
+| FM-3D-RTL-001 | P0 - RTL Regression | `components/building3d/BuildingTourClient.tsx` | 261, 335 | Physical CSS `left-4`, `right-4` breaks Arabic layout | RESOLVED |
+| FM-3D-TEST-001 | P0 - Missing Tests | N/A | N/A | Zero test coverage for building model functionality | RESOLVED |
+| FM-3D-DOC-001 | P1 - Documentation | `lib/buildingModel.ts` | 471 | Vague TODO comment without issue reference | RESOLVED |
+
+#### Fixes Applied
+**1. RTL Layout (FM-3D-RTL-001)**
+- **File:** `components/building3d/BuildingTourClient.tsx`
+- **Change:** Replaced physical CSS properties with logical equivalents
+  - Line 261: `left-4` → `start-4`
+  - Line 335: `right-4` → `end-4`
+- **Impact:** Fixes Arabic/RTL layout support per governance requirement #4
+
+**2. Test Coverage (FM-3D-TEST-001)**
+Created comprehensive test suite (32 total test cases):
+
+| Test File | Test Cases | Coverage |
+|-----------|------------|----------|
+| `tests/unit/lib/buildingModel.test.ts` | 15 | Unit generator logic, templates, determinism, DB attachment |
+| `tests/api/fm/building-model.route.test.ts` | 8 | RBAC, tenant isolation, cross-tenant prevention, audit logging |
+| `tests/e2e/building-model-viewer.spec.ts` | 9 | Navigation, generation, controls, keyboard a11y, RTL, stress test |
+
+**3. Documentation (FM-3D-DOC-001)**
+- **File:** `lib/buildingModel.ts`
+- **Change:** Replaced generic TODO with proper issue reference and detailed explanation
+- **Added:** ISSUE-FM-3D-001 reference, status clarification (PLANNED feature)
+
+#### Security & Compliance Verification
+✅ **Tenant Isolation:** All queries scoped with orgId  
+  - Evidence: `app/api/fm/properties/[id]/building-model/route.ts:95,111,245,303,323,332,355`
+✅ **RBAC Enforcement:** Role checks at API boundary  
+  - Evidence: `app/api/fm/properties/[id]/building-model/route.ts:193-206`
+✅ **Audit Logging:** Present for generate and publish operations  
+  - Evidence: `app/api/fm/properties/[id]/building-model/route.ts:348-365`
+✅ **Cross-Tenant Test:** Negative test added preventing Tenant A accessing Tenant B models  
+  - Evidence: `tests/api/fm/building-model.route.test.ts:138-176`
+✅ **Rate Limiting:** Configured (10 req/min generation, 30 req/min retrieval)  
+  - Evidence: `app/api/fm/properties/[id]/building-model/route.ts:53-58,169-174`
+
+#### Code Quality
+- No `@ts-ignore` or unsafe `any` usage
+- No hardcoded secrets
+- No console.log statements
+- No type safety violations
+
+#### New Findings (Future Work - Not in Scope)
+| Finding | Category | Priority | Status | Notes |
+|---------|----------|----------|--------|-------|
+| Hardcoded i18n strings | UX/UI | P2 | OPEN | 11 instances in BuildingTourClient.tsx need translation keys |
+| No caching for published models | Performance | P2 | OPEN | Could reduce DB load |
+| Bundle size optimization | Performance | P2 | OPEN | 3D viewer should be code-split/lazy loaded |
+| Export functionality missing | Feature | P3 | PLANNED | IFC/glTF export (future enhancement) |
+
+#### Verification
+- ✅ RTL physical properties scan: 2 instances fixed
+- ✅ Type safety: No violations
+- ✅ Security: Tenant isolation verified with tests
+- ✅ Tests: 32 new test cases added
+- ✅ Commit: d44176c
+
+#### MongoDB SSOT Actions Required
+1. Create issue FM-3D-RTL-001 with status RESOLVED
+2. Create issue FM-3D-TEST-001 with status RESOLVED
+3. Create issue FM-3D-DOC-001 with status RESOLVED
+4. Create issue FM-3D-I18N-001 (P2, OPEN) for hardcoded strings
+5. Create issue FM-3D-CACHE-001 (P2, OPEN) for caching optimization
+6. Create issue FM-3D-BUNDLE-001 (P2, OPEN) for code-splitting
+7. Update PENDING_MASTER.md Last-Sync timestamp
 
 ---
 ### 2025-12-31 14:45 (Asia/Riyadh) - P2 Error Logging Fixes [AGENT-001-A]
