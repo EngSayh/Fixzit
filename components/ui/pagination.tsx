@@ -67,6 +67,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
+          aria-label={t("common.previousPage", "Go to previous page")}
         >
           <PrevIcon className="h-4 w-4" />
           {t("common.previous", "Previous")}
@@ -89,6 +90,8 @@ export function Pagination({
             variant={currentPage === page ? "default" : "outline"}
             size="sm"
             onClick={() => onPageChange(page)}
+            aria-label={`${t("pagination.goToPage", "Go to page")} ${page}`}
+            aria-current={currentPage === page ? "page" : undefined}
           >
             {page}
           </Button>
@@ -114,6 +117,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
+          aria-label={t("common.nextPage", "Go to next page")}
         >
           {t("common.next", "Next")}
           <NextIcon className="h-4 w-4" />

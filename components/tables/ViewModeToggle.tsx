@@ -50,6 +50,8 @@ export function ViewModeToggle({
         size="icon"
         onClick={() => onChange("table")}
         disabled={disabled}
+        aria-label="Table view"
+        aria-pressed={value === "table"}
         className={cn(
           buttonSizes[size],
           "shrink-0",
@@ -64,6 +66,8 @@ export function ViewModeToggle({
         size="icon"
         onClick={() => onChange("cards")}
         disabled={disabled}
+        aria-label="Card view"
+        aria-pressed={value === "cards"}
         className={cn(
           buttonSizes[size],
           "shrink-0",

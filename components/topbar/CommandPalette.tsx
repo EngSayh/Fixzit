@@ -80,6 +80,8 @@ export function CommandPalette({
               <button
                 type="button"
                 onClick={() => onScopeChange("module")}
+                aria-label={`${t("search.scope.searchIn", "Search in")} ${moduleLabel}`}
+                aria-pressed={scope === "module"}
                 className={`rounded-full px-2 py-1 ${
                   scope === "module"
                     ? "bg-primary text-primary-foreground"
@@ -91,6 +93,8 @@ export function CommandPalette({
               <button
                 type="button"
                 onClick={() => onScopeChange("all")}
+                aria-label={t("search.scope.searchAll", "Search all modules")}
+                aria-pressed={scope === "all"}
                 className={`rounded-full px-2 py-1 ${
                   scope === "all"
                     ? "bg-primary text-primary-foreground"
@@ -126,6 +130,7 @@ export function CommandPalette({
                     <button
                       key={saved.id}
                       type="button"
+                      aria-label={`${t("search.saved.select", "Select saved search")}: ${t(saved.labelKey, saved.fallbackLabel)}`}
                       className="w-full rounded-lg border border-border px-3 py-2 text-start text-sm hover:bg-muted"
                       onClick={() => onSavedSearchSelect(saved)}
                     >
@@ -154,6 +159,7 @@ export function CommandPalette({
                     <button
                       key={action.id}
                       type="button"
+                      aria-label={t(action.labelKey, action.fallbackLabel)}
                       className="w-full rounded-lg border border-border px-3 py-2 text-start text-sm hover:bg-muted"
                       onClick={() => onActionClick(action.href)}
                     >
@@ -190,6 +196,7 @@ export function CommandPalette({
                         <button
                           type="button"
                           onClick={() => onResultClick(result.href)}
+                          aria-label={`${t("search.results.open", "Open")} ${result.title}`}
                           className="flex w-full flex-col gap-1 px-4 py-3 text-start hover:bg-muted"
                         >
                           <span className="text-sm font-medium text-foreground">

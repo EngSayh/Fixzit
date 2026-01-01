@@ -43,6 +43,7 @@ export function ActiveFiltersChips({
           type="button"
           className="text-sm font-medium text-primary hover:underline"
           onClick={onClearAll}
+          aria-label="Clear all filters"
         >
           Clear all
         </button>

@@ -80,6 +80,7 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
               }}
               onClick={() => handleTabClick(tab, i)}
               disabled={tab.disabled}
+              aria-label={tab.label}
               className={cn(
                 "relative px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
@@ -155,6 +156,7 @@ export function SimpleTabs({ tabs, defaultTab, onChange }: TabsProps) {
               key={tab.id}
               onClick={() => handleTabClick(tab)}
               disabled={tab.disabled}
+              aria-label={tab.label}
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
                 isActive
