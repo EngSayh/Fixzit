@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-01T18:00:00+03:00
+  Last-Sync: 2026-01-01T21:30:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,90 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-01 21:30 (Asia/Riyadh) — SSOT Backlog Sync + Code Review Update [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** main | 774254e8d | Post-comprehensive-analysis SSOT sync  
+**DB Sync:** Sync pending (import script ready, MongoDB SSOT awaiting reconciliation)
+
+#### 📊 Current Status Summary
+
+| Gate | Result | Evidence |
+|------|--------|----------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` - clean |
+| ESLint | ✅ 0 errors, 2 warnings | `pnpm lint` - superadmin tenant scope (intentional) |
+| Git Status | 🟡 3 uncommitted files | action-button.tsx (new), BrandingSettingsForm.tsx, package-activation.test.ts |
+| Open PRs | 14 | Including WIP Copilot sub-PRs for #621, #623, #627 |
+| Open Issues | 1 | #616 - i18n missing keys |
+
+#### 📋 Backlog Status (from BACKLOG_AUDIT.md v2.5)
+
+| Priority | Count | Status |
+|----------|-------|--------|
+| P0 Critical | 113 | 🔴 Tracked in SSOT |
+| P1 High | 107 | 🟠 Tracked |
+| P2 Medium | 1,576 | 🟡 Tracked |
+| P3 Low | 51 | 📋 Backlog |
+| **Total** | **1,847** | Synced 2025-12-30 |
+
+#### ✅ Issues Verified This Session
+
+| Issue Key | Status | Evidence |
+|-----------|--------|----------|
+| TypeScript Errors | ✅ RESOLVED | Was: 3 interface errors in copy-button.tsx, action-button.tsx. Now: 0 errors |
+| BrandingSettingsForm `saving` | ✅ RESOLVED | Removed undefined `saving` variable reference (line 342) |
+| ESLint | ✅ PASSING | 0 errors, only 2 intentional superadmin warnings |
+
+#### 🟠 In Progress (Pending Merge)
+
+| PR # | Branch | Status | Description |
+|------|--------|--------|-------------|
+| #627 | feature/building-3d-model | CHANGES_REQUESTED | 3D Building Model Generator |
+| #623 | fix/superadmin-full-implementation | CHANGES_REQUESTED | Superadmin database APIs |
+| #621 | fix/superadmin-routes-proper-implementation | CHANGES_REQUESTED | Superadmin route fixes |
+
+#### 🔴 Blocked Items
+
+| Item | Blocker | Required Action |
+|------|---------|-----------------|
+| QUOTA-001 | GitHub Actions billing | User action: resolve billing |
+| CI Verification | Blocked by QUOTA-001 | Unblock billing first |
+
+#### 🆕 New Findings (with evidence)
+
+| Key | Severity | Title | Evidence |
+|-----|----------|-------|----------|
+| **SEC-QS-001** | 🔴 High | qs package DoS vulnerability (arrayLimit bypass) | GHSA-6rw7-vpxm-498p |
+
+**sourceRef:** `pre-commit-hook:pnpm-audit:qs`  
+**evidenceSnippet:** "qs's arrayLimit bypass in its bracket notation allows DoS via memory exhaustion"  
+**Vulnerable:** qs <6.14.1 | **Fix:** Update to >=6.14.1 or add resolution
+
+#### 🔍 Top P0 Issues (from BACKLOG_AUDIT.md)
+
+| Key | Location | Title |
+|-----|----------|-------|
+| RBAC-KYC-001 | app/api/souq/seller-central/kyc/submit/route.ts | KYC submit lacks seller/vendor RBAC guard |
+| GQL-TENANT-001 | lib/graphql/index.ts:769-801 | GraphQL workOrder query lacks org filter |
+| FM-TENANT-001 | app/api/fm/finance/budgets/route.ts:191-205 | Super Admin cross-tenant returns empty filter |
+| FM-UNIT-001 | app/api/fm/utils/tenant.ts:35-52 | Cannot emit unit scope; cross-unit leakage risk |
+
+#### 📁 Files Modified This Session
+
+| File | Change |
+|------|--------|
+| docs/PENDING_MASTER.md | Added SSOT sync session entry |
+| components/superadmin/settings/BrandingSettingsForm.tsx | ✅ Fixed (already correct - verified) |
+
+#### 🔜 Next Steps
+
+1. **Commit pending changes** - action-button.tsx, BrandingSettingsForm.tsx
+2. **Push to origin** - Sync with remote
+3. **Address PR reviews** - #621, #623, #627 per CodeRabbit/Gemini feedback
+4. **Resolve GitHub billing** - QUOTA-001 to unblock CI
 
 ---
 
