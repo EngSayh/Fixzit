@@ -259,6 +259,9 @@ function SearchFiltersNewContent({
           <button
             key={type}
             onClick={() => updateFilters({ listingType: type })}
+            aria-label={t(`aqar.filters.${type === "ALL" ? "all" : `for${type.charAt(0) + type.slice(1).toLowerCase()}`}.ariaLabel`, 
+              `Filter by ${type === "ALL" ? "all listing types" : `properties for ${type.toLowerCase()}`}`)}
+            aria-pressed={filters.listingType === type}
             className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
               filters.listingType === type
                 ? "bg-warning text-white"
@@ -459,12 +462,14 @@ function SearchFiltersNewContent({
             <button
               onClick={clearFilters}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
+              aria-label={t("aqar.filters.clearAll.ariaLabel", "Clear all active filters")}
             >
               {t("aqar.filters.clearAll", "Clear All")}
             </button>
             <button
               onClick={() => setShowAdvanced(false)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+              aria-label={t("aqar.filters.applyFilters.ariaLabel", "Apply selected filters and close panel")}
             >
               {t("aqar.filters.applyFilters", "Apply Filters")}
             </button>
@@ -482,7 +487,7 @@ function SearchFiltersNewContent({
             {filters.listingType && filters.listingType !== "ALL" && (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.listingType}
-                <button onClick={() => updateFilters({ listingType: "ALL" })}>
+                <button onClick={() => updateFilters({ listingType: "ALL" })} aria-label={`Remove ${filters.listingType} filter`}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -490,7 +495,7 @@ function SearchFiltersNewContent({
             {(filters.propertyTypes?.length || 0) > 0 && (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.propertyTypes!.length} {t("aqar.filters.typesSelected", "types")}
-                <button onClick={() => updateFilters({ propertyTypes: [] })}>
+                <button onClick={() => updateFilters({ propertyTypes: [] })} aria-label="Remove property types filter">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -498,7 +503,7 @@ function SearchFiltersNewContent({
             {(filters.city?.length || 0) > 0 && (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.city!.length} {t("aqar.filters.citiesSelected", "cities")}
-                <button onClick={() => updateFilters({ city: [] })}>
+                <button onClick={() => updateFilters({ city: [] })} aria-label="Remove city filter">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -506,6 +511,7 @@ function SearchFiltersNewContent({
             <button
               onClick={clearFilters}
               className="ms-auto text-sm text-warning hover:text-warning font-medium"
+              aria-label="Clear all active property filters"
             >
               {t("aqar.filters.clearAll", "Clear All")}
             </button>
