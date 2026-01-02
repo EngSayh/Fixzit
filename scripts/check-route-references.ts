@@ -31,6 +31,9 @@ const IGNORE_GLOBS = [
   "docs/**",
   "reports/**",
   "scripts/fixtures/**",
+  "tests/**",       // Skip test files - they have mock routes like /fm/work-orders/wo-123
+  "e2e/**",         // Skip E2E tests
+  "qa/**",          // Skip QA fixtures
 ];
 
 // Routes that are allowed but don't have direct page implementations

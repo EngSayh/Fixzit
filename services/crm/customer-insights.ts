@@ -1081,17 +1081,53 @@ export async function getNPSSummary(
       ? Math.round(((data.promoters / total) - (data.detractors / total)) * 100)
       : 0;
     
+    // Calculate trend by comparing with previous period
+    const periodDuration = dateTo.getTime() - dateFrom.getTime();
+    const prevDateFrom = new Date(dateFrom.getTime() - periodDuration);
+    const prevDateTo = new Date(dateFrom.getTime() - 1); // 1ms before current period
+    
+    const prevPipeline = [
+      {
+        $match: {
+          orgId,
+          createdAt: { $gte: prevDateFrom, $lte: prevDateTo },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          promoters: { $sum: { $cond: [{ $gte: ["$score", 9] }, 1, 0] } },
+          detractors: { $sum: { $cond: [{ $lt: ["$score", 7] }, 1, 0] } },
+        },
+      },
+    ];
+    
+    const prevResults = await db.collection(NPS_COLLECTION)
+      .aggregate(prevPipeline)
+      .toArray();
+    
+    const prevData = prevResults[0] || { total: 0, promoters: 0, detractors: 0 };
+    const prevNpsScore = prevData.total > 0
+      ? Math.round(((prevData.promoters / prevData.total) - (prevData.detractors / prevData.total)) * 100)
+      : 0;
+    
+    // Determine trend: up if improved by 5+, down if declined by 5+, else stable
+    let trend: "up" | "down" | "stable" | null = null;
+    if (total > 0 && prevData.total > 0) {
+      const diff = npsScore - prevNpsScore;
+      if (diff >= 5) trend = "up";
+      else if (diff <= -5) trend = "down";
+      else trend = "stable";
+    }
+    
     return {
       npsScore: data.total > 0 ? npsScore : 0,
       totalResponses: data.total,
       promoters: data.promoters,
       passives: data.passives,
       detractors: data.detractors,
-      // TODO: Implement real trend calculation
-      // This requires querying the previous period for the same metrics,
-      // comparing values, and classifying as "up", "down", or "stable".
-      // Currently returns null to indicate trend is not yet implemented.
-      trend: null,
+      trend,
     };
   } catch (_error) {
     logger.error("Failed to get NPS summary", { component: "customer-insights" });
