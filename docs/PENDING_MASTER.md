@@ -19,6 +19,43 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-02 18:50 (Asia/Riyadh) — FEAT-0036 Verification + Module Architecture [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** fix/tg-005-test-mocks | Verify AI building model + document module architecture
+
+**Verification (FEAT-0036):**
+- **Status:** ✅ VERIFIED - Implementation exists and tested
+- **Location:** `lib/buildingModel.ts` (517 lines, procedural + AI stub)
+- **API Route:** `app/api/fm/properties/[id]/building-model/route.ts`
+- **Tests Added:** `tests/unit/lib/buildingModel.test.ts` (25 tests, 100% pass)
+
+**Test Coverage:**
+- Schema validation (8 tests)
+- Procedural generation (9 tests)
+- Unit templates (3 tests)
+- Layout modes (2 tests)
+- Edge cases (3 tests)
+
+**Module Architecture Decision (ARCH-001):**
+| Module | Purpose | Status |
+|--------|---------|--------|
+| **FM** | Facility Management | ✅ Clean |
+| **Aqar** | Real Estate & Property Listings | ✅ Clean |
+| **Souq** | Materials Marketplace (Amazon-style) | ⚠️ Needs cleanup |
+| `marketplace/` (legacy) | B2B procurement | → Consolidate into Souq |
+
+**Files Added:**
+| File | Description |
+|------|-------------|
+| `tests/unit/lib/buildingModel.test.ts` | 25 unit tests for building model generation |
+
+**Verification:**
+- [x] `pnpm typecheck` — 0 errors
+- [x] `pnpm vitest run buildingModel.test.ts` — 25 tests pass
+
+---
+
 ### 2026-01-02 17:15 (Asia/Riyadh) — Admin Support Tickets Integration [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  

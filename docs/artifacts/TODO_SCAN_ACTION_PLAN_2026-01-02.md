@@ -113,12 +113,35 @@
 |----------|-------|--------|--------|--------|
 | FEAT-0034 | Redis pub/sub scaling | infrastructure | M | ✅ DONE (PR #642) |
 | FEAT-0035 | Health monitoring integration | monitoring | M | ✅ DONE (PR #642) |
-| FEAT-0036 | AI building model generation | aqar | XL | Backlog |
+| FEAT-0036 | AI building model generation | aqar | XL | ✅ VERIFIED (25 tests pass) |
 | REFAC-0003 | FM Properties schema mismatch (TODO-002) | fm | L | ✅ DONE (PR #646) |
 | - | Vitest multi-project migration | tests | M | NON-ACTIONABLE (upstream) |
 | - | Ticketing system integration | support | M | ✅ DONE (commit a64565915) |
 | - | Superadmin notification badge | ui | S | ✅ DONE (commit 8d6d37029) |
 | - | BLOCKED: Souq Orders mismatch (TODO-001) | souq | M | BLOCKED |
+| ARCH-001 | Marketplace → Souq consolidation | souq | L | DOCUMENTED (see below) |
+
+---
+
+## Module Architecture Decision (2026-01-02)
+
+### 3 Main Modules
+
+| Module | Purpose | API Path | Models Path |
+|--------|---------|----------|-------------|
+| **FM (Fixzit FM)** | Facility Management | `app/api/fm/` | `server/models/workorder/` |
+| **Aqar** | Real Estate & Property Listings | `app/api/aqar/` | `server/models/aqar/` |
+| **Souq** | Materials Marketplace (Amazon-style) | `app/api/souq/` | `server/models/souq/` |
+
+### Legacy Code: `marketplace/` → To be consolidated into `souq/`
+
+| Path | Status | Recommendation |
+|------|--------|----------------|
+| `app/api/marketplace/` | Legacy B2B | Consolidate into `souq/` |
+| `server/models/marketplace/` | 5 models | Merge with `souq/` models |
+| `lib/marketplace/` | Shared utilities | Keep (used by both) |
+
+**Decision:** Option A - Consolidate into Souq (L effort, tracked as ARCH-001)
 
 ---
 
