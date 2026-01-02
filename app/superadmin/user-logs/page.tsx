@@ -479,9 +479,10 @@ export default function SuperadminUserLogsPage() {
       if (response.ok) {
         toast.success(t("superadmin.userLogs.terminateSuccess", "Session terminated successfully"));
         // Update local state to reflect termination
+        // Convert milliseconds to seconds for formatDuration (P1 fix: coderabbitai review)
         setSessions(prev => prev.map(s => 
           s._id === selectedSession._id 
-            ? { ...s, isActive: false, duration: Date.now() - new Date(s.startedAt).getTime() }
+            ? { ...s, isActive: false, duration: Math.floor((Date.now() - new Date(s.startedAt).getTime()) / 1000) }
             : s
         ));
         setSessionDialogOpen(false);
