@@ -124,16 +124,36 @@
 5. **FEAT-0027** - Fraud detection ✅ IMPLEMENTED (PR #640)
 6. **FEAT-0028** - Ejar integration ✅ IMPLEMENTED (PR #640)
 
-### Sprint 3
-7. **FEAT-0027** - Fraud detection (ML work)
-8. **FEAT-0028** - Ejar integration
-9. **SADAD/SPAN** - Payment rails
+### Sprint 3 ✅ COMPLETE
+- **FEAT-0027** - Fraud detection ✅ CLOSED (PR #640)
+- **FEAT-0028** - Ejar integration ✅ CLOSED (PR #640)
+- **SADAD/SPAN** - Payment rails (DEFERRED - requires bank credentials)
 
-### Backlog (Prioritized)
-- Subscription flows
-- Notification systems
-- Test improvements
-- Infrastructure scaling
+### Sprint 4 ✅ COMPLETE
+- **FEAT-0029** - Subscription plan change ✅ CLOSED (PR #641)
+- **FEAT-0030** - Subscription cancellation ✅ CLOSED (PR #641)
+- **FEAT-0031** - Inspection notification ✅ CLOSED (PR #641)
+- **FEAT-0032** - Session termination ✅ CLOSED (PR #641)
+- **FEAT-0033** - MFA approval ✅ CLOSED (PR #641)
+
+### Sprint 5 ✅ COMPLETE
+- **BI-KPI-001/002/003/004** - BI Dashboard KPIs ✅ CLOSED (PR #642)
+- **CRM-TREND** - NPS trend calculation ✅ CLOSED (PR #642)
+- **TG-005** - Test mock setup (35 tests) ✅ CLOSED (PR #642)
+
+### Sprint 6 (Current) - P3 Infrastructure
+| ID | Title | Status | Notes |
+|---|---|---|---|
+| FEAT-0034 | Redis pub/sub scaling | ⏳ REVIEW | Redis module exists with fallback |
+| FEAT-0035 | Health monitoring integration | ⏳ REVIEW | Health endpoints exist |
+| REFAC-0003 | FM Properties schema mismatch | DEFERRED | Marked in code (TODO-002) |
+| FEAT-0036 | AI building model generation | NOT STARTED | XL effort |
+
+### Backlog (Updated)
+- FM Providers mock data (8-16h) - DEFERRED
+- Vitest multi-project migration (M)
+- Ticketing system integration (M)
+- Superadmin notification badge (S)
 
 ---
 
