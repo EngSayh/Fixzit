@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-01T15:00:00+03:00
+  Last-Sync: 2026-01-02T21:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,40 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-02 21:00 (Asia/Riyadh) — PR #642 Review Comments Addressed [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** fix/tg-005-test-mocks | Address automated reviewer feedback on bi-dashboard.ts
+
+**Summary:** Fixed code quality issues in `services/reports/bi-dashboard.ts` based on 28 automated review comments from gemini, coderabbit, copilot, and chatgpt reviewers.
+
+**Changes Applied:**
+
+| Category | Fix | File |
+|----------|-----|------|
+| **DRY Violation** | Extracted `createCashFlowPipeline()` helper | bi-dashboard.ts |
+| **DRY Violation** | Extracted `createExpensePipeline()` helper | bi-dashboard.ts |
+| **Performance** | Parallelized `firstTimeFixRate` calculations with `Promise.all` | bi-dashboard.ts |
+| **Performance** | Parallelized `trainingHours` calculations with `Promise.all` | bi-dashboard.ts |
+| **Performance** | Replaced 2 `countDocuments` calls with single `$facet` aggregation | bi-dashboard.ts |
+| **API Design** | Simplified `calculateTrainingHours()` return type from `{current, previous}` → `number` | bi-dashboard.ts |
+| **Logic Fix** | Changed `$or` to `$and` in firstTimeFixRate to require BOTH conditions | bi-dashboard.ts |
+| **Documentation** | Added detailed TODO comments for schema mismatches (BI-DATA-001/002/003/004) | bi-dashboard.ts |
+
+**Schema Mismatch TODOs Created:**
+- `BI-DATA-001`: payments collection schema (org_id vs orgId, date vs paymentDate)
+- `BI-DATA-002`: transactions collection doesn't exist (should be fm_financial_transactions)
+- `BI-DATA-003`: WorkOrder fields resolution_attempts/visit_count may not exist
+- `BI-DATA-004`: training_records collection should be trainingsessions
+
+**Verification:**
+- [x] `pnpm typecheck` — 0 errors
+- [x] Code follows DRY principle
+- [x] Parallel execution where possible
+- [x] Schema issues documented for follow-up
 
 ---
 
