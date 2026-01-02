@@ -19,6 +19,64 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-03 01:00 (Asia/Riyadh) — Superadmin Vercel Diagnostic [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Created diagnostic endpoint to troubleshoot superadmin login failure on Vercel production
+
+#### 🔴 ISSUE: Superadmin Works Locally, Fails on Vercel Production
+
+**Symptoms:**
+- Login works on localhost:3000
+- Login fails on Vercel production (fixzit.vercel.app)
+- Service worker cache failure errors in browser
+
+**Root Cause Analysis:**
+Superadmin login requires these environment variables. If any category is missing, login will fail silently:
+
+| Category | Required Env Var | Fallbacks |
+|----------|-----------------|-----------|
+| **JWT Secret** | `SUPERADMIN_JWT_SECRET` | `NEXTAUTH_SECRET`, `AUTH_SECRET` |
+| **Password** | `SUPERADMIN_PASSWORD_HASH` | `SUPERADMIN_PASSWORD` |
+| **Org ID** | `SUPERADMIN_ORG_ID` | `PUBLIC_ORG_ID`, `DEFAULT_ORG_ID` |
+
+**Resolution (PR #650):**
+1. Created `/api/superadmin/diag` endpoint for remote diagnosis
+2. Added SUPERADMIN vars to `scripts/check-vercel-env.ts`
+
+#### 📋 User Action Required
+
+1. **Deploy PR #650** to Vercel preview
+2. **Access diagnostic endpoint**:
+   ```bash
+   curl -H "x-diag-key: YOUR_INTERNAL_API_SECRET" \
+        https://your-preview-url.vercel.app/api/superadmin/diag
+   ```
+3. **Check which variables are missing** in response
+4. **Add missing env vars in Vercel dashboard** → Settings → Environment Variables
+5. **Redeploy** after adding variables
+
+#### 📊 Open PR Status (As of 01:00)
+
+| PR | Branch | Mergeable | Status | Priority |
+|----|--------|-----------|--------|----------|
+| **#650** 🆕 | `fix/superadmin-vercel-diag` | ✅ MERGEABLE | CI Running | **MERGE FOR DIAG** |
+| **#649** | `fix/todo-placeholder-cleanup-p0` | ✅ MERGEABLE | CI Passed | READY |
+| **#648** | `fix/superadmin-lint-exemptions` | ✅ MERGEABLE | CI Running | READY |
+| **#647** | `fix/bi-data-schema-mismatch` | ✅ MERGEABLE | CI Running | READY |
+| **#641** | `feat/p2-subscription-flows` | ❌ CONFLICTING | Needs Rebase | After #648-650 |
+| **#640** | `feat/p1-compliance-fixes-sprint1` | ❌ CONFLICTING | Needs Rebase | After #641 |
+
+#### 🎯 Recommended Merge Sequence
+
+```
+#650 (diag) ──merge──▶ #649 ──merge──▶ #648 ──merge──▶ #647 ──merge──▶ main
+                                                                        │
+#641 (rebase on main) ──merge──▶ #640 (rebase on main) ──merge──▶ done
+```
+
+---
+
 ### 2026-01-02 23:00 (Asia/Riyadh) — CI Re-run + Merge Strategy Execution [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
