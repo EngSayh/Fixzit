@@ -19,6 +19,72 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-14 16:05 (Asia/Riyadh) — CI Fix & PR Progress Session [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Fixing CI failures to unblock PR merges
+
+#### 📋 Summary
+
+Fixed test-api CI failure on PR #641 caused by mock state not surviving `vi.resetModules()` in test helper.
+
+#### ✅ Actions Taken
+
+| Action | Target | Result |
+|--------|--------|--------|
+| **Fixed test mocks** | `payroll-calculate.route.test.ts` | ✅ Module-scoped state pattern applied |
+| **Verified locally** | PR #641 | ✅ 7/7 tests pass, 0 TS errors, 0 lint errors |
+| **Pushed fix** | `feat/p2-subscription-flows` | ✅ Commit `d94bca0c0` |
+| **Synced PR #640** | `feat/p1-compliance-fixes-sprint1` | ✅ Latest main merged, CI triggered |
+
+#### 🔧 Test Fix Details
+
+**File:** `tests/api/hr/payroll-calculate.route.test.ts`
+
+**Problem:** `vi.mocked(PayrollService.getById).mockResolvedValue()` calls don't survive `vi.resetModules()` in the `importRoute()` helper, causing tests to get 404 instead of expected responses.
+
+**Solution:** Use module-scoped mutable state pattern:
+```typescript
+let mockPayrollRun: Record<string, unknown> | null = null;
+let mockUpdatedPayrollRun: Record<string, unknown> | null = null;
+
+vi.mock("@/server/services/hr/payroll.service", () => ({
+  PayrollService: {
+    getById: vi.fn(async () => mockPayrollRun),
+    updateCalculation: vi.fn(async () => mockUpdatedPayrollRun),
+  },
+}));
+```
+
+#### 📊 PR Status
+
+| PR | Title | Branch | Status | CI |
+|----|-------|--------|--------|-----|
+| #641 | P2 Sprint (Subscriptions + Security) | `feat/p2-subscription-flows` | ⏳ Open | 🔄 Fresh run started |
+| #640 | P1 Compliance + Fraud + Ejar | `feat/p1-compliance-fixes-sprint1` | ⏳ Open | 🔄 Fresh run started |
+
+#### 📋 Action Plan
+
+| Priority | Task | Status |
+|----------|------|--------|
+| P0 | Wait for PR #641 CI to complete | ⏳ Running |
+| P0 | Wait for PR #640 CI to complete | ⏳ Running |
+| P1 | Merge PR #641 if CI passes | ⏸️ Blocked on CI |
+| P1 | Merge PR #640 if CI passes | ⏸️ Blocked on CI |
+| P2 | Address CodeRabbit nitpicks on PR #640 | ⏳ After CI passes |
+
+#### 📊 Verification
+
+| Gate | Result |
+|------|--------|
+| TypeScript (PR #641) | ✅ 0 errors |
+| ESLint (PR #641) | ✅ 0 errors (27 warnings) |
+| Tests (PR #641 local) | ✅ 7/7 pass |
+| TypeScript (PR #640) | ✅ 0 errors |
+| ESLint (PR #640) | ✅ 0 errors (23 warnings) |
+
+---
+
 ### 2026-01-14 16:00 (Asia/Riyadh) — PR Sync & Cleanup Session [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
