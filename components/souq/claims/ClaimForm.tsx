@@ -391,6 +391,8 @@ export default function ClaimForm({
                       size="icon"
                       className="absolute -top-2 -end-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeFile(index)}
+                      aria-label="Remove this evidence file"
+                      title="Remove file"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -440,10 +442,12 @@ export default function ClaimForm({
             variant="outline"
             onClick={onCancel}
             disabled={isSubmitting}
+            aria-label="Cancel and close claim form (إلغاء)"
+            title="Cancel claim"
           >
             إلغاء (Cancel)
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} aria-label="Submit claim (تقديم المطالبة)" title="Submit claim">
             {isSubmitting ? "جاري التقديم..." : "تقديم المطالبة (Submit Claim)"}
           </Button>
         </CardFooter>

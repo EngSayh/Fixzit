@@ -306,7 +306,8 @@ export default function AccountActivityViewer({
               onClick={exportToCSV}
               className="px-4 py-2 text-sm bg-success text-white rounded hover:bg-success"
               disabled={!data || loading}
-              aria-label={t("finance.actions.exportCSV", "Export account activity to CSV")}
+              aria-label={t("finance.activity.exportCsv", "Export account activity to CSV")}
+              title={t("finance.activity.exportCsvTooltip", "Download account activity as a CSV file")}
             >
               📊 {t("Export CSV")}
             </button>
@@ -314,7 +315,8 @@ export default function AccountActivityViewer({
               onClick={() => loadAccountActivity()}
               className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary"
               disabled={loading}
-              aria-label={t("finance.actions.refreshActivity", "Refresh account activity")}
+              aria-label={t("finance.activity.refresh", "Refresh account activity")}
+              title={t("finance.activity.refreshTooltip", "Reload account activity data")}
             >
               {loading ? t("Loading...") : "🔄 " + t("Refresh")}
             </button>
@@ -376,49 +378,56 @@ export default function AccountActivityViewer({
           <button type="button"
             onClick={() => setDatePreset("today")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.today", "Filter to today")}
+            aria-label={t("finance.activity.presetToday", "Filter to today")}
+            title={t("finance.activity.presetTodayTooltip", "Show only today's transactions")}
           >
             {t("Today")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-week")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.thisWeek", "Filter to this week")}
+            aria-label={t("finance.activity.presetThisWeek", "Filter to this week")}
+            title={t("finance.activity.presetThisWeekTooltip", "Show this week's transactions")}
           >
             {t("This Week")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-month")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.thisMonth", "Filter to this month")}
+            aria-label={t("finance.activity.presetThisMonth", "Filter to this month")}
+            title={t("finance.activity.presetThisMonthTooltip", "Show this month's transactions")}
           >
             {t("This Month")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-quarter")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.thisQuarter", "Filter to this quarter")}
+            aria-label={t("finance.activity.presetThisQuarter", "Filter to this quarter")}
+            title={t("finance.activity.presetThisQuarterTooltip", "Show this quarter's transactions")}
           >
             {t("This Quarter")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("this-year")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.thisYear", "Filter to this year")}
+            aria-label={t("finance.activity.presetThisYear", "Filter to this year")}
+            title={t("finance.activity.presetThisYearTooltip", "Show this year's transactions")}
           >
             {t("This Year")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("last-month")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.lastMonth", "Filter to last month")}
+            aria-label={t("finance.activity.presetLastMonth", "Filter to last month")}
+            title={t("finance.activity.presetLastMonthTooltip", "Show last month's transactions")}
           >
             {t("Last Month")}
           </button>
           <button type="button"
             onClick={() => setDatePreset("last-year")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
-            aria-label={t("finance.datePresets.lastYear", "Filter to last year")}
+            aria-label={t("finance.activity.presetLastYear", "Filter to last year")}
+            title={t("finance.activity.presetLastYearTooltip", "Show last year's transactions")}
           >
             {t("Last Year")}
           </button>
@@ -607,6 +616,8 @@ export default function AccountActivityViewer({
                   onClick={() => goToPage(1)}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={t("pagination.first", "Go to first page")}
+                  title={t("pagination.first", "Go to first page")}
                 >
                   {t("First")}
                 </button>
@@ -614,6 +625,8 @@ export default function AccountActivityViewer({
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={t("pagination.previous", "Go to previous page")}
+                  title={t("pagination.previous", "Go to previous page")}
                 >
                   {t("Previous")}
                 </button>
@@ -624,6 +637,8 @@ export default function AccountActivityViewer({
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={t("pagination.next", "Go to next page")}
+                  title={t("pagination.next", "Go to next page")}
                 >
                   {t("Next")}
                 </button>
@@ -631,6 +646,8 @@ export default function AccountActivityViewer({
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={t("pagination.last", "Go to last page")}
+                  title={t("pagination.last", "Go to last page")}
                 >
                   {t("Last")}
                 </button>

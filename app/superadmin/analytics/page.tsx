@@ -131,7 +131,7 @@ export default function SuperadminAnalyticsPage() {
               <SelectItem value="90d">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={fetchAnalytics} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchAnalytics} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh analytics data")} title={t("common.refresh", "Refresh analytics data")}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -145,7 +145,7 @@ export default function SuperadminAnalyticsPage() {
             <div className="flex flex-col items-center justify-center">
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
               <p className="text-red-400">{error}</p>
-              <Button variant="outline" onClick={fetchAnalytics} className="mt-4">Retry</Button>
+              <Button variant="outline" onClick={fetchAnalytics} className="mt-4" aria-label={t("common.retry", "Retry loading analytics")} title={t("common.retry", "Retry loading analytics")}>Retry</Button>
             </div>
           </CardContent>
         </Card>

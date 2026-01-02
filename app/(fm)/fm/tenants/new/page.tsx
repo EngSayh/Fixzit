@@ -47,7 +47,7 @@ export default function NewTenantPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => router.push("/fm/tenants")}>
+          <Button variant="ghost" onClick={() => router.push("/fm/tenants")} aria-label={t("fm.tenants.new.backAria", "Go back to tenants list")}>
             <ArrowLeft className="w-4 h-4 me-2" />
             {t("fm.tenants.new.back", "Back to tenants")}
           </Button>

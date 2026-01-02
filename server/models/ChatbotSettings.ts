@@ -1,125 +1,121 @@
-import { Schema, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { encryptionPlugin } from "../plugins/encryptionPlugin";
-import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 /**
+ * ChatbotSettings Model
+ * Manages AI chatbot configuration for customer support
+ * Per-tenant singleton: each organization has its own chatbot settings
+ * Super Admin only access for editing
+ * 
  * @module server/models/ChatbotSettings
- * @description Chatbot Settings model for AI assistant configuration.
- * Singleton pattern - one record per platform.
- * Super Admin only access for configuration.
- *
- * @features
- * - Multiple AI provider support (internal, OpenAI, Anthropic, custom)
- * - Encrypted API key storage
- * - Customizable welcome messages (bilingual)
- * - Position and styling options
- * - Token and temperature controls
- *
- * @security
- * - API keys are encrypted at rest via encryptionPlugin
- * - Never return raw API keys in responses (use hasApiKey boolean)
- *
- * @audit
- * - createdAt/updatedAt: Settings lifecycle (from timestamps)
- * - createdBy/updatedBy: Admin actions (from auditPlugin)
+ * @security API keys are encrypted at rest
  */
-
 const ChatbotSettingsSchema = new Schema(
   {
+    // orgId will be added by tenantIsolationPlugin
     enabled: {
       type: Boolean,
       default: true,
-      comment: "Whether chatbot is active",
+      comment: "Whether chatbot is enabled",
     },
     provider: {
       type: String,
       enum: ["internal", "openai", "anthropic", "custom"],
       default: "internal",
-      comment: "AI provider selection",
+      comment: "AI provider for chatbot responses",
     },
     apiKey: {
       type: String,
-      comment: "Encrypted API key for external providers",
+      required: false,
+      comment: "Encrypted API key for external provider",
     },
     model: {
       type: String,
+      required: false,
       comment: "Model name (e.g., gpt-4, claude-3)",
     },
     welcomeMessage: {
       type: String,
       default: "Hello! How can I help you today?",
-      maxlength: 500,
-      comment: "Initial greeting in English",
+      comment: "Initial greeting message in English",
     },
     welcomeMessageAr: {
       type: String,
       default: "مرحباً! كيف يمكنني مساعدتك اليوم؟",
-      maxlength: 500,
-      comment: "Initial greeting in Arabic",
+      comment: "Initial greeting message in Arabic",
     },
     position: {
       type: String,
       enum: ["bottom-right", "bottom-left"],
       default: "bottom-right",
-      comment: "Chat widget position on screen",
+      comment: "Chatbot widget position on screen",
     },
     primaryColor: {
       type: String,
-      default: BRAND_COLORS.primary,
-      uppercase: true,
-      match: [/^#[0-9A-F]{6}$/, "Must be valid hex color"],
-      comment: "Brand color for chat widget",
+      // Database default uses literal hex value (matches --color-platform-fm-blue token)
+      // This is stored in MongoDB and cannot reference CSS variables
+      default: "#0061A8",
+      comment: "Primary brand color for chatbot UI",
     },
     avatarUrl: {
       type: String,
-      comment: "Custom avatar image URL for chatbot",
+      required: false,
+      comment: "Custom avatar image URL",
     },
     offlineMessage: {
       type: String,
-      default: "We're currently offline. Please leave a message.",
-      maxlength: 500,
-      comment: "Message shown when service unavailable",
+      default: "We're currently offline. Please leave a message and we'll get back to you.",
+      comment: "Message shown when chatbot is unavailable",
     },
     maxTokens: {
       type: Number,
+      default: 1000,
       min: 100,
       max: 4000,
-      default: 1000,
-      comment: "Max response tokens",
+      comment: "Maximum tokens per response",
     },
     temperature: {
       type: Number,
+      default: 0.7,
       min: 0,
       max: 2,
-      default: 0.7,
-      comment: "Response creativity (0=focused, 2=creative)",
+      comment: "Response randomness (0=deterministic, 2=creative)",
     },
     systemPrompt: {
       type: String,
-      maxlength: 2000,
-      default: "You are a helpful customer support assistant for Fixzit.",
-      comment: "System prompt to configure AI behavior",
+      default: "You are a helpful customer support assistant for Fixzit, a facility management platform. Be concise and helpful.",
+      comment: "System prompt for AI context",
     },
-    // createdBy, updatedBy, createdAt, updatedAt handled by auditPlugin
+    // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
   },
   {
     timestamps: true,
-    collection: "chatbot_settings",
-    comment: "AI chatbot configuration (singleton)",
-  }
+    comment: "AI chatbot configuration with encrypted API keys (per-tenant singleton)",
+  },
 );
 
-// Apply encryption for API key
-ChatbotSettingsSchema.plugin(encryptionPlugin, { fields: { apiKey: "API Key" } });
-
-// Apply audit plugin for tracking changes
+// Apply plugins BEFORE indexes
+ChatbotSettingsSchema.plugin(tenantIsolationPlugin);
 ChatbotSettingsSchema.plugin(auditPlugin);
+// SEC-PII-006: Encrypt chatbot API keys
+ChatbotSettingsSchema.plugin(encryptionPlugin, {
+  fields: {
+    apiKey: "Chatbot API Key",
+  },
+});
+
+// Ensure only one settings document per tenant (singleton pattern)
+ChatbotSettingsSchema.index(
+  { orgId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type ChatbotSettingsDoc = InferSchemaType<typeof ChatbotSettingsSchema>;
 
-export const ChatbotSettings = getModel<ChatbotSettingsDoc>(
+export const ChatbotSettings: Model<ChatbotSettingsDoc> = getModel<ChatbotSettingsDoc>(
   "ChatbotSettings",
-  ChatbotSettingsSchema
+  ChatbotSettingsSchema,
 );

@@ -111,7 +111,7 @@ export default function LoginPrompt({
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Button onClick={handleSignIn} className="w-full" size="lg">
+            <Button onClick={handleSignIn} className="w-full" size="lg" aria-label={t("loginPrompt.signInButton.ariaLabel", "Sign in to your account")}>
               <LogIn className="w-5 h-5 me-2" />
               {t("loginPrompt.signInButton", "Sign In with Email")}
             </Button>
@@ -121,6 +121,7 @@ export default function LoginPrompt({
               variant="outline"
               className="w-full border-success text-success hover:bg-success hover:text-white"
               size="lg"
+              aria-label={t("loginPrompt.signUpButton.ariaLabel", "Create a new Fixzit account")}
             >
               <UserPlus className="w-5 h-5 me-2" />
               {t("loginPrompt.signUpButton", "Create New Account")}

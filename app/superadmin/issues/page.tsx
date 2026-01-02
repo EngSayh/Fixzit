@@ -27,7 +27,6 @@ import {
   XCircle,
   AlertTriangle,
 } from "@/components/ui/icons";
-import { useActionFeedback } from "@/components/ui/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -156,13 +155,6 @@ export default function SuperadminIssuesPage() {
   // BUG-001 FIX: Auth now enforced server-side in layout, no client polling needed
   const isAuthenticated = session?.authenticated ?? false;
 
-  // Inline confirmation feedback hooks
-  const copyMdFeedback = useActionFeedback();
-  const copyTsvFeedback = useActionFeedback();
-  const exportCsvFeedback = useActionFeedback();
-  const exportJsonFeedback = useActionFeedback();
-  const importFeedback = useActionFeedback();
-
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -178,6 +170,11 @@ export default function SuperadminIssuesPage() {
 
   // Selection state
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
+
+  // Action confirmation states
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [copiedTSV, setCopiedTSV] = useState(false);
+  const [exportedCSV, setExportedCSV] = useState(false);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -268,64 +265,74 @@ export default function SuperadminIssuesPage() {
   };
 
   // Export handlers
-  const handleCopyMarkdown = async () => {
+  const handleCopyMarkdown = () => {
     const selectedData = issues.filter(i => selectedIssues.has(i._id));
     if (selectedData.length === 0) {
       toast({ title: "No selection", description: "Please select issues to copy", variant: "destructive" });
       return;
     }
 
-    // Generate a fix command prompt for each issue
-    const issuePrompts = selectedData.map(issue => {
-      const issueId = issue.issueId || issue.legacyId || issue._id.slice(-6);
-      const locationInfo = issue.location?.filePath 
-        ? `File: ${issue.location.filePath}${issue.location.lineStart ? `:${issue.location.lineStart}` : ""}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}`
-        : "";
+    // Generate detailed fix instructions for each issue
+    const fixInstructions = selectedData.map((issue, idx) => {
+      const issueNum = idx + 1;
+      const location = issue.location?.filePath 
+        ? `\`${issue.location.filePath}${issue.location.lineStart ? `:${issue.location.lineStart}` : ""}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}\``
+        : "Location not specified";
       
-      return `## ${issueId} [${issue.priority}] - ${issue.title}
+      return `### ${issueNum}. ${issue.title}
 
-**Category:** ${issue.category} | **Status:** ${issue.status} | **Effort:** ${issue.effort || "N/A"}
-**Module:** ${issue.module}
-${locationInfo ? `**Location:** ${locationInfo}` : ""}
-${issue.riskTags?.length ? `**Risk Tags:** ${issue.riskTags.join(", ")}` : ""}
+**ID:** ${issue.issueId || issue.legacyId || issue._id.slice(-6)}  
+**Priority:** ${issue.priority}  
+**Status:** ${issue.status}  
+**Category:** ${issue.category}  
+**Module:** ${issue.module}  
+**Location:** ${location}  
+**Seen:** ${issue.mentionCount || 1}×  
+**Updated:** ${new Date(issue.updatedAt).toLocaleDateString()}
 
-**Description:**
+**Description:**  
 ${issue.description || "No description provided."}
+
+**Fix Instructions:**
+1. Navigate to ${location}
+2. Review the ${issue.category} issue: "${issue.title}"
+3. Apply the necessary fix based on the category type
+4. Test the changes to ensure the issue is resolved
+5. Update the issue status to "resolved" after verification
 
 ---`;
     }).join("\n\n");
 
-    const fixCommand = `# Fix Request for ${selectedData.length} Issue${selectedData.length > 1 ? "s" : ""}
+    const markdown = `# Fix Instructions for Selected Issues
 
-${issuePrompts}
+**Total Issues:** ${selectedData.length}  
+**Generated:** ${new Date().toLocaleString()}  
+**Agent Token:** [AGENT-001-A]
 
-## Instructions
+---
 
-Please fix the above issue${selectedData.length > 1 ? "s" : ""} following these guidelines:
-1. Read the issue description and understand the problem
-2. Locate the file(s) mentioned in the location field
-3. Implement the fix following project conventions
-4. Run \`pnpm typecheck\` and \`pnpm lint\` to verify
-5. Update the issue status to "resolved" when complete
+${fixInstructions}
 
-Agent Token: [AGENT-001-A]`;
+## Summary Table
 
-    try {
-      await navigator.clipboard.writeText(fixCommand);
-      copyMdFeedback.showSuccess("Copied", "copy");
-    } catch {
-      copyMdFeedback.showError("Failed");
-    }
+| ID | Priority | Title | Status | Category | Module | Location |
+| --- | --- | --- | --- | --- | --- | --- |
+${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.slice(-6)} | ${issue.priority} | ${issue.title} | ${issue.status} | ${issue.category} | ${issue.module} | ${issue.location?.filePath || "N/A"} |`).join("\n")}
+`;
+    navigator.clipboard.writeText(markdown);
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
+    toast({ title: "✓ Copied to clipboard", description: `${selectedData.length} issues copied with fix instructions` });
   };
 
-  const handleCopyTSV = async () => {
+  const handleCopyTSV = () => {
     const selectedData = issues.filter(i => selectedIssues.has(i._id));
     if (selectedData.length === 0) {
       toast({ title: "No selection", description: "Please select issues to copy", variant: "destructive" });
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
+    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Location", "Line", "Seen", "Updated", "Description"];
     const rows = selectedData.map(issue => [
       issue.issueId || issue.legacyId || issue._id.slice(-6),
       issue.priority,
@@ -333,17 +340,18 @@ Agent Token: [AGENT-001-A]`;
       issue.status,
       issue.category,
       issue.module,
+      issue.location?.filePath || "",
+      issue.location?.lineStart ? `${issue.location.lineStart}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}` : "",
       `${issue.mentionCount || 1}×`,
       new Date(issue.updatedAt).toLocaleDateString(),
+      (issue.description || "").replace(/\t/g, " ").replace(/\n/g, " "),
     ]);
 
     const tsv = `${headers.join("\t")}\n${rows.map(row => row.join("\t")).join("\n")}`;
-    try {
-      await navigator.clipboard.writeText(tsv);
-      copyTsvFeedback.showSuccess("Copied", "copy");
-    } catch {
-      copyTsvFeedback.showError("Failed");
-    }
+    navigator.clipboard.writeText(tsv);
+    setCopiedTSV(true);
+    setTimeout(() => setCopiedTSV(false), 2000);
+    toast({ title: "✓ Copied to clipboard", description: `${selectedData.length} issues copied as TSV (paste into Excel/Sheets)` });
   };
 
   const handleExportCSV = () => {
@@ -354,7 +362,7 @@ Agent Token: [AGENT-001-A]`;
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
+    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "FilePath", "LineStart", "LineEnd", "Description", "Seen", "Updated"];
     const rows = selectedData.map(issue => [
       issue.issueId || issue.legacyId || issue._id.slice(-6),
       issue.priority,
@@ -362,6 +370,10 @@ Agent Token: [AGENT-001-A]`;
       issue.status,
       issue.category,
       issue.module,
+      issue.location?.filePath || "",
+      issue.location?.lineStart || "",
+      issue.location?.lineEnd || "",
+      (issue.description || "").replace(/"/g, '""'),
       issue.mentionCount || 1,
       new Date(issue.updatedAt).toISOString(),
     ]);
@@ -375,7 +387,9 @@ Agent Token: [AGENT-001-A]`;
     a.click();
     URL.revokeObjectURL(url);
 
-    exportCsvFeedback.showSuccess("Exported", "save");
+    setExportedCSV(true);
+    setTimeout(() => setExportedCSV(false), 2000);
+    toast({ title: "✓ Export complete", description: `${selectedData.length} issues exported to CSV` });
   };
 
   const clearFilters = () => {
@@ -530,6 +544,7 @@ Agent Token: [AGENT-001-A]`;
       const response = await fetch("/api/issues?limit=5000");
       const data = await response.json();
       const payload = data.data || data;
+      const issuesCount = (payload.issues || []).length;
       
       const blob = new Blob([JSON.stringify(payload.issues, null, 2)], {
         type: "application/json",
@@ -542,9 +557,16 @@ Agent Token: [AGENT-001-A]`;
       a.click();
       URL.revokeObjectURL(url);
 
-      exportJsonFeedback.showSuccess("Exported", "save");
-    } catch {
-      exportJsonFeedback.showError("Failed");
+      toast({
+        title: t("superadmin.issues.toast.exportComplete"),
+        description: t("superadmin.issues.toast.exportSummary", { count: issuesCount }),
+      });
+    } catch (_error) {
+      toast({
+        title: t("superadmin.issues.toast.exportFailedTitle"),
+        description: t("superadmin.issues.toast.exportFailed"),
+        variant: "destructive",
+      });
     }
   };
 
@@ -585,7 +607,16 @@ Agent Token: [AGENT-001-A]`;
       const result = await response.json();
 
       if (result.success) {
-        importFeedback.showSuccess(dryRun ? "Validated" : "Imported", "add");
+        toast({
+          title: dryRun
+            ? t("superadmin.issues.toast.importDryRunComplete")
+            : t("superadmin.issues.toast.importComplete"),
+          description: t("superadmin.issues.toast.importSummary", {
+            created: result.result.created,
+            updated: result.result.updated,
+            skipped: result.result.skipped,
+          }),
+        });
 
         if (!dryRun) {
           setImportDialogOpen(false);
@@ -595,8 +626,12 @@ Agent Token: [AGENT-001-A]`;
       } else {
         throw new Error("Import failed");
       }
-    } catch {
-      importFeedback.showError("Failed");
+    } catch (_error) {
+      toast({
+        title: t("superadmin.issues.toast.importFailedTitle"),
+        description: t("superadmin.issues.toast.importFailed"),
+        variant: "destructive",
+      });
     } finally {
       setImporting(false);
     }
@@ -619,20 +654,17 @@ Agent Token: [AGENT-001-A]`;
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label={t("superadmin.issues.refresh", "Refresh issues list")} title={t("superadmin.issues.refresh", "Refresh issues list")}>
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             {t("superadmin.issues.refresh")}
           </Button>
-          <div className="inline-flex items-center">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 me-2" />
-              {t("superadmin.issues.export")}
-            </Button>
-            <exportJsonFeedback.FeedbackComponent className="ms-2" />
-          </div>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label={t("superadmin.issues.export", "Export issues to JSON")} title={t("superadmin.issues.export", "Export issues to JSON")}>
+            <Download className="h-4 w-4 me-2" />
+            {t("superadmin.issues.export")}
+          </Button>
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" aria-label={t("superadmin.issues.import", "Import issues")} title={t("superadmin.issues.import", "Import issues")}>
                 <Upload className="h-4 w-4 me-2" />
                 {t("superadmin.issues.import")}
               </Button>
@@ -655,19 +687,18 @@ Agent Token: [AGENT-001-A]`;
                     className="font-mono text-sm"
                   />
                 </div>
-                <div className="flex items-center justify-end gap-2">
-                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing} aria-label={t("superadmin.issues.importDryRun", "Test import without saving")} title={t("superadmin.issues.importDryRun", "Test import without saving")}>
                     {t("superadmin.issues.importDryRun")}
                   </Button>
-                  <Button onClick={() => handleImport(false)} disabled={importing}>
+                  <Button onClick={() => handleImport(false)} disabled={importing} aria-label={t("superadmin.issues.import", "Import issues now")} title={t("superadmin.issues.import", "Import issues now")}>
                     {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
                   </Button>
-                  <importFeedback.FeedbackComponent className="ms-2" />
                 </div>
               </div>
             </DialogContent>
           </Dialog>
-          <Button size="sm">
+          <Button size="sm" aria-label={t("superadmin.issues.add", "Add new issue")} title={t("superadmin.issues.add", "Add new issue")}>
             <Plus className="h-4 w-4 me-2" />
             {t("superadmin.issues.add")}
           </Button>
@@ -690,6 +721,9 @@ Agent Token: [AGENT-001-A]`;
             <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {stats?.total || 0}
+                </p>
                 <div className="mt-2 h-10">
                   <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="var(--color-sparkline-blue, #0061A8)" />
                 </div>
@@ -850,6 +884,9 @@ Agent Token: [AGENT-001-A]`;
               size="sm"
               onClick={() => setStatusFilter("all")}
               className={statusFilter === "all" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showAll", "Show all issues")}
+              title={t("superadmin.issues.filters.showAll", "Show all issues")}
+              aria-pressed={statusFilter === "all"}
             >
               All
             </Button>
@@ -858,6 +895,9 @@ Agent Token: [AGENT-001-A]`;
               size="sm"
               onClick={() => setStatusFilter("open")}
               className={statusFilter === "open" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showOpen", "Show open issues")}
+              title={t("superadmin.issues.filters.showOpen", "Show open issues")}
+              aria-pressed={statusFilter === "open"}
             >
               Open
             </Button>
@@ -866,6 +906,9 @@ Agent Token: [AGENT-001-A]`;
               size="sm"
               onClick={() => setStatusFilter("closed")}
               className={statusFilter === "closed" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showClosed", "Show closed issues")}
+              title={t("superadmin.issues.filters.showClosed", "Show closed issues")}
+              aria-pressed={statusFilter === "closed"}
             >
               Closed
             </Button>
@@ -874,6 +917,9 @@ Agent Token: [AGENT-001-A]`;
               size="sm"
               onClick={() => setStatusFilter("blocked")}
               className={statusFilter === "blocked" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
+              title={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
+              aria-pressed={statusFilter === "blocked"}
             >
               Blocked
             </Button>
@@ -882,6 +928,9 @@ Agent Token: [AGENT-001-A]`;
               size="sm"
               onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
               className={viewMode === "stale" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showStale", "Show stale issues")}
+              title={t("superadmin.issues.filters.showStale", "Show stale issues")}
+              aria-pressed={viewMode === "stale"}
             >
               <Clock className="h-4 w-4 me-1" />
               Stale
@@ -891,6 +940,8 @@ Agent Token: [AGENT-001-A]`;
               size="sm"
               onClick={clearFilters}
               className="text-muted-foreground hover:text-foreground ms-auto"
+              aria-label={t("superadmin.issues.filters.clear", "Clear all filters")}
+              title={t("superadmin.issues.filters.clear", "Clear all filters")}
             >
               Clear filters
             </Button>
@@ -953,6 +1004,9 @@ Agent Token: [AGENT-001-A]`;
               variant={viewMode === "quickWins" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("quickWins")}
+              aria-label={t("superadmin.issues.views.quickWins", "Show quick win issues")}
+              title={t("superadmin.issues.views.quickWins", "Show quick win issues")}
+              aria-pressed={viewMode === "quickWins"}
             >
               <Zap className="h-4 w-4 me-1" />
               {t("superadmin.issues.views.quickWins")}
@@ -970,45 +1024,67 @@ Agent Token: [AGENT-001-A]`;
                 {selectedIssues.size} issues selected
               </span>
               <div className="flex items-center gap-2">
-                <div className="inline-flex items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyMarkdown}
-                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                  >
-                    Copy Markdown
-                  </Button>
-                  <copyMdFeedback.FeedbackComponent className="ms-2" />
-                </div>
-                <div className="inline-flex items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyTSV}
-                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                  >
-                    Copy TSV
-                  </Button>
-                  <copyTsvFeedback.FeedbackComponent className="ms-2" />
-                </div>
-                <div className="inline-flex items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportCSV}
-                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                  >
-                    <Download className="h-4 w-4 me-1" />
-                    Export CSV
-                  </Button>
-                  <exportCsvFeedback.FeedbackComponent className="ms-2" />
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyMarkdown}
+                  className={copiedMarkdown ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.copyFixInstructions", "Copy fix instructions to clipboard")}
+                  title={t("superadmin.issues.copyFixInstructions", "Copy fix instructions to clipboard")}
+                >
+                  {copiedMarkdown ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    "Copy Fix Instructions"
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyTSV}
+                  className={copiedTSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.copyTSV", "Copy as TSV for spreadsheets")}
+                  title={t("superadmin.issues.copyTSV", "Copy as TSV for spreadsheets")}
+                >
+                  {copiedTSV ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    "Copy TSV"
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  className={exportedCSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.exportCSV", "Export selected issues to CSV")}
+                  title={t("superadmin.issues.exportCSV", "Export selected issues to CSV")}
+                >
+                  {exportedCSV ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Exported!
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 me-1" />
+                      Export CSV
+                    </>
+                  )}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedIssues(new Set())}
                   className="text-muted-foreground hover:text-foreground"
+                  aria-label={t("superadmin.issues.clearSelection", "Clear issue selection")}
+                  title={t("superadmin.issues.clearSelection", "Clear issue selection")}
                 >
                   Clear selection
                 </Button>
@@ -1052,6 +1128,8 @@ Agent Token: [AGENT-001-A]`;
                   size="sm" 
                   onClick={() => { setConnectionError(null); handleRefresh(); }}
                   className="me-2"
+                  aria-label={t("superadmin.issues.connection.retry", "Retry database connection")}
+                  title={t("superadmin.issues.connection.retry", "Retry database connection")}
                 >
                   <RefreshCw className="h-4 w-4 me-2" />
                   {t("superadmin.issues.connection.retry")}
@@ -1190,6 +1268,8 @@ Agent Token: [AGENT-001-A]`;
             size="sm"
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
+            aria-label={t("pagination.previous", "Go to previous page")}
+            title={t("pagination.previous", "Go to previous page")}
           >
             {t("superadmin.issues.pagination.previous")}
           </Button>
@@ -1201,6 +1281,8 @@ Agent Token: [AGENT-001-A]`;
             size="sm"
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
+            aria-label={t("pagination.next", "Go to next page")}
+            title={t("pagination.next", "Go to next page")}
           >
             {t("superadmin.issues.pagination.next")}
           </Button>
@@ -1314,10 +1396,10 @@ Agent Token: [AGENT-001-A]`;
             )}
 
             <div className="pt-4 border-t flex gap-2">
-              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1">
+              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1" aria-label={t("superadmin.issues.viewFullDetails", "View full issue details")} title={t("superadmin.issues.viewFullDetails", "View full issue details")}>
                 View Full Details
               </Button>
-              <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+              <Button variant="outline" onClick={() => setDrawerOpen(false)} aria-label={t("common.close", "Close issue details")} title={t("common.close", "Close issue details")}>
                 Close
               </Button>
             </div>

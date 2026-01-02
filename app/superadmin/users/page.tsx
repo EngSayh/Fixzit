@@ -433,7 +433,7 @@ export default function SuperadminUsersPage() {
           {selectedIds.size > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="border-blue-600 text-blue-400">
+                <Button variant="outline" size="sm" className="border-blue-600 text-blue-400" aria-label={t("superadmin.users.bulkActions", `Bulk actions for ${selectedIds.size} selected users`)} title={t("superadmin.users.bulkActions", `Bulk actions for ${selectedIds.size} selected users`)}>
                   <MoreHorizontal className="h-4 w-4 me-2" />
                   Bulk Actions ({selectedIds.size})
                 </Button>
@@ -470,6 +470,8 @@ export default function SuperadminUsersPage() {
             onClick={fetchUsers}
             disabled={loading}
             className="border-input text-muted-foreground"
+            aria-label={t("common.refresh", "Refresh users list")}
+            title={t("common.refresh", "Refresh users list")}
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -559,7 +561,7 @@ export default function SuperadminUsersPage() {
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
               <p className="text-red-400 mb-4">{error}</p>
-              <Button variant="outline" onClick={fetchUsers}>
+              <Button variant="outline" onClick={fetchUsers} aria-label={t("common.tryAgain", "Try again to load users")} title={t("common.tryAgain", "Try again to load users")}>
                 Try Again
               </Button>
             </div>
@@ -578,6 +580,7 @@ export default function SuperadminUsersPage() {
                         onClick={toggleSelectAll}
                         className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground"
                         title={allSelected ? "Deselect all" : "Select all"}
+                        aria-label={allSelected ? t("superadmin.users.deselectAll", "Deselect all users") : t("superadmin.users.selectAll", "Select all users")}
                       >
                         {allSelected ? (
                           <CheckSquare className="h-4 w-4 text-blue-500" />
@@ -654,6 +657,8 @@ export default function SuperadminUsersPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                              aria-label={t("superadmin.users.rowActions", `Actions for user ${user.email}`)}
+                              title={t("superadmin.users.rowActions", `Actions for ${user.email}`)}
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
@@ -712,6 +717,8 @@ export default function SuperadminUsersPage() {
                   disabled={!pagination.hasPrev || loading}
                   onClick={() => setPage((p) => p - 1)}
                   className="border-input"
+                  aria-label={t("pagination.previous", "Go to previous page")}
+                  title={t("pagination.previous", "Go to previous page")}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
@@ -722,6 +729,8 @@ export default function SuperadminUsersPage() {
                   disabled={!pagination.hasNext || loading}
                   onClick={() => setPage((p) => p + 1)}
                   className="border-input"
+                  aria-label={t("pagination.next", "Go to next page")}
+                  title={t("pagination.next", "Go to next page")}
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -789,6 +798,8 @@ export default function SuperadminUsersPage() {
               variant="outline"
               onClick={() => setViewDialogOpen(false)}
               className="border-input"
+              aria-label={t("common.close", "Close user details")}
+              title={t("common.close", "Close user details")}
             >
               Close
             </Button>
@@ -825,13 +836,15 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditStatusDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setEditStatusDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel status change")} title={t("common.cancel", "Cancel status change")}>
               Cancel
             </Button>
             <Button 
               onClick={() => selectedUser && handleSingleStatusChange(selectedUser._id, singleUserStatus)}
               disabled={!singleUserStatus || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
+              aria-label={t("superadmin.users.updateStatus", "Update user status")}
+              title={t("superadmin.users.updateStatus", "Update user status")}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
               Update Status
@@ -869,13 +882,15 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel bulk status change")} title={t("common.cancel", "Cancel bulk status change")}>
               Cancel
             </Button>
             <Button 
               onClick={handleBulkStatusChange}
               disabled={!bulkStatus || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
+              aria-label={t("superadmin.users.updateBulkStatus", `Update status for ${selectedIds.size} users`)}
+              title={t("superadmin.users.updateBulkStatus", `Update status for ${selectedIds.size} users`)}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
               Update {selectedIds.size} Users
@@ -927,13 +942,15 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNotificationDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setNotificationDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel sending notification")} title={t("common.cancel", "Cancel sending notification")}>
               Cancel
             </Button>
             <Button 
               onClick={handleSendNotification}
               disabled={!notificationSubject || !notificationMessage || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
+              aria-label={t("superadmin.users.sendNotification", "Send email notification")}
+              title={t("superadmin.users.sendNotification", "Send email notification")}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Mail className="h-4 w-4 me-2" />}
               Send Notification
@@ -961,13 +978,15 @@ export default function SuperadminUsersPage() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel user deletion")} title={t("common.cancel", "Cancel user deletion")}>
               Cancel
             </Button>
             <Button 
               onClick={handleBulkDelete}
               disabled={actionLoading}
               className="bg-red-600 hover:bg-red-700"
+              aria-label={t("superadmin.users.deleteUsers", `Delete ${selectedIds.size} users`)}
+              title={t("superadmin.users.deleteUsers", `Delete ${selectedIds.size} users`)}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Trash2 className="h-4 w-4 me-2" />}
               Delete Users

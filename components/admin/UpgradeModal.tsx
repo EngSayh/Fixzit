@@ -190,6 +190,8 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
             onClick={handleClose}
             disabled={submitting}
             className="flex-1"
+            aria-label={t('upgrade.action.later', 'Maybe Later')}
+            title={t('upgrade.action.later', 'Maybe Later')}
           >
             {t('upgrade.action.later', 'Maybe Later')}
           </Button>
@@ -198,6 +200,8 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
             onClick={handleContactSales}
             disabled={submitting}
             className="flex-1 font-semibold"
+            aria-label={t('upgrade.action.contact', 'Contact Sales')}
+            title={t('upgrade.action.contact', 'Contact Sales')}
           >
             {submitting 
               ? t('upgrade.action.sending', 'Sending...') 
@@ -266,6 +270,8 @@ function SuccessView({ onClose, t }: SuccessViewProps) {
           variant="default"
           onClick={onClose}
           className="w-full"
+          aria-label={t('common.close', 'Close dialog')}
+          title={t('common.close', 'Close dialog')}
         >
           {t('common.close', 'Close')}
         </Button>

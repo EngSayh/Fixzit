@@ -231,7 +231,7 @@ function FinanceInvoiceCreateContent({
                 }
               />
             </div>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" aria-label={auto("Attach supporting docs", "form.attachAria")}>
               <Inbox className="me-2 h-4 w-4" />
               {auto("Attach supporting docs", "form.attach")}
             </Button>
@@ -267,11 +267,11 @@ function FinanceInvoiceCreateContent({
           </CardContent>
         </Card>
         <div className="lg:col-span-3 flex justify-end gap-3">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" aria-label={auto("Import from spreadsheet", "actions.importAria")}>
             <FileSpreadsheet className="me-2 h-4 w-4" />
             {auto("Import from spreadsheet", "actions.import")}
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} aria-label={auto("Submit for approval", "actions.submitAria")}>
             {submitting ? (
               <span className="flex items-center gap-2">
                 <span className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent" />

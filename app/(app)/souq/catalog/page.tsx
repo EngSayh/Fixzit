@@ -307,7 +307,7 @@ export default function CatalogPage() {
                   )}
                 </div>
 
-                <button type="button" className="absolute top-2 end-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
+                <button type="button" className="absolute top-2 end-2 p-2 bg-card rounded-full shadow-md hover:bg-muted" aria-label={t("souq.catalog.actions.addToWishlist", "Add to wishlist")} title={t("souq.catalog.actions.addToWishlist", "Add to wishlist")}>
                   <Heart className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                 </button>
               </div>
@@ -360,6 +360,8 @@ export default function CatalogPage() {
                   <button type="button"
                     onClick={() => handleViewDetails(product.id)}
                     className="flex-1 px-3 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted transition-colors text-sm"
+                    aria-label={`${t("souq.catalog.actions.viewDetails", "View Details")} ${product.name}`}
+                    title={t("souq.catalog.actions.viewDetails", "View Details")}
                   >
                     {t("souq.catalog.actions.viewDetails", "View Details")}
                   </button>
@@ -371,6 +373,8 @@ export default function CatalogPage() {
                         ? "bg-success text-white hover:bg-success/90"
                         : "bg-muted text-muted-foreground cursor-not-allowed"
                     }`}
+                    aria-label={`${t("souq.catalog.actions.addToCart", "Add to Cart")} ${product.name}`}
+                    title={t("souq.catalog.actions.addToCart", "Add to Cart")}
                   >
                     <ShoppingCart className="w-4 h-4 inline me-1" />
                     {t("souq.catalog.actions.addToCart", "Add to Cart")}

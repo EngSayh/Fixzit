@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { SimpleTooltip } from "@/components/ui/tooltip";
 import { 
   Package, RefreshCw, Search, Eye, DollarSign,
   CheckCircle, XCircle, AlertTriangle,
@@ -99,11 +98,9 @@ export default function SuperadminCatalogPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.catalog.title", "Product Catalog")}</h1>
           <p className="text-muted-foreground">{t("superadmin.catalog.subtitle", "Manage Fixzit Souq marketplace products")}</p>
         </div>
-        <SimpleTooltip content={t("superadmin.catalog.refreshTooltip", "Refresh product list")}>
-          <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground">
-            <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
-          </Button>
-        </SimpleTooltip>
+        <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh product catalog")} title={t("common.refresh", "Refresh product catalog")}>
+          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -120,7 +117,7 @@ export default function SuperadminCatalogPage() {
             <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.categoryPlaceholder", "Category")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allCategories", "All Categories")}</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.statusPlaceholder", "Status")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.catalog.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="OUT_OF_STOCK">{t("common.outOfStock", "Out of Stock")}</SelectItem></SelectContent></Select>
             <Select value={businessModelFilter} onValueChange={setBusinessModelFilter}><SelectTrigger className="w-[140px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.modelPlaceholder", "Model")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allModels", "All Models")}</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></SelectContent></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.catalog.search", "Search products")} title={t("superadmin.catalog.search", "Search products")}><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
           </div>
         </CardContent>
       </Card>
@@ -140,11 +137,7 @@ export default function SuperadminCatalogPage() {
                     <TableCell className="text-end"><span className={`font-medium ${(product.inventory?.quantity || 0) < 10 ? "text-yellow-400" : "text-muted-foreground"}`}>{product.inventory?.quantity || 0}</span></TableCell>
                     <TableCell className="text-muted-foreground">{product.vendorName || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_COLORS[product.status] || ""}>{product.status === "ACTIVE" ? <CheckCircle className="h-3 w-3 me-1" /> : product.status === "OUT_OF_STOCK" ? <XCircle className="h-3 w-3 me-1" /> : null}{product.status}</Badge></TableCell>
-                    <TableCell>
-                      <SimpleTooltip content={t("superadmin.catalog.viewDetails", "View product details")}>
-                        <Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)}><Eye className="h-4 w-4" /></Button>
-                      </SimpleTooltip>
-                    </TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)} aria-label={t("superadmin.catalog.viewProduct", `View ${product.name} details`)} title={t("superadmin.catalog.viewProduct", `View ${product.name} details`)}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -153,7 +146,7 @@ export default function SuperadminCatalogPage() {
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input">Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input">Next</Button></div>)}
+      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input" aria-label={t("common.previousPage", "Go to previous page")} title={t("common.previousPage", "Go to previous page")}>Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input" aria-label={t("common.nextPage", "Go to next page")} title={t("common.nextPage", "Go to next page")}>Next</Button></div>)}
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="bg-card border-input max-w-2xl">

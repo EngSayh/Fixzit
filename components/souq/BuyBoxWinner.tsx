@@ -142,6 +142,8 @@ export default function BuyBoxWinner({
         disabled={winner.availableQuantity === 0}
         className="w-full mb-3"
         size="lg"
+        aria-label={auto("Add this product to your shopping cart", "actions.addToCart.ariaLabel")}
+        title={auto("Add to Cart", "actions.addToCart")}
       >
         {auto("Add to Cart", "actions.addToCart")}
       </Button>

@@ -58,9 +58,16 @@ describe("Finance Pack E2E Tests", () => {
   let expenseAccountId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    const MONGODB_URI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
-    await mongoose.connect(MONGODB_URI);
+    // Connection is managed by vitest.setup.ts (MongoMemoryServer)
+    // Wait for connection to be ready (set by global setup)
+    const maxWait = 30000;
+    const start = Date.now();
+    while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWait) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error(`Mongoose not connected after ${maxWait}ms - setup may have failed`);
+    }
 
     // TYPESCRIPT FIX: Context functions expect string IDs, not ObjectId instances
     setTenantContext({ orgId: TEST_ORG_ID.toString() });
@@ -123,7 +130,7 @@ describe("Finance Pack E2E Tests", () => {
     await Payment.deleteMany({ orgId: TEST_ORG_ID });
     await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
     clearContext();
-    await mongoose.disconnect();
+    // Don't disconnect - managed by vitest.setup.ts global teardown
   });
 
   describe("Full Journal Lifecycle", () => {

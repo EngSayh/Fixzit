@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ActionButton } from "@/components/ui/action-feedback";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -138,13 +138,7 @@ export default function SettingsPage() {
                   </Label>
                   <Input id="department" defaultValue="IT" />
                 </div>
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Save profile logic */ }}
-                  tooltip={t("settings.profile.saveTooltip", "Save your profile changes")}
-                >
-                  {t("settings.profile.save", "Save Changes")}
-                </ActionButton>
+                <Button aria-label={t("settings.profile.saveLabel", "Save profile changes")}>{t("settings.profile.save", "Save Changes")}</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -192,13 +186,9 @@ export default function SettingsPage() {
                   </div>
                   <Switch />
                 </div>
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Update password logic */ }}
-                  tooltip={t("settings.security.updateTooltip", "Update your password")}
-                >
+                <Button aria-label={t("settings.security.updatePasswordLabel", "Update your password")}>
                   {t("settings.security.updatePassword", "Update Password")}
-                </ActionButton>
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -228,13 +218,9 @@ export default function SettingsPage() {
                     />
                   </div>
                 ))}
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Save notification preferences */ }}
-                  tooltip={t("settings.notifications.saveTooltip", "Save notification preferences")}
-                >
+                <Button aria-label={t("settings.notifications.saveLabel", "Save notification preferences")}>
                   {t("settings.notifications.save", "Save Preferences")}
-                </ActionButton>
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -333,13 +319,9 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Save app preferences */ }}
-                  tooltip={t("settings.preferences.saveTooltip", "Save your app preferences")}
-                >
+                <Button aria-label={t("settings.preferences.saveLabel", "Save app preferences")}>
                   {t("settings.preferences.save", "Save Preferences")}
-                </ActionButton>
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

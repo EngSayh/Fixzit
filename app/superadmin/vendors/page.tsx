@@ -17,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { IconButton } from "@/components/ui/action-feedback";
 import { 
   Building2, RefreshCw, Search, Eye, Star, Phone, Mail, MapPin, 
   Users, CheckCircle, XCircle, TrendingUp,
@@ -107,7 +106,7 @@ export default function SuperadminVendorsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.vendors.title", "Vendor Management")}</h1>
           <p className="text-muted-foreground">{t("superadmin.vendors.subtitle", "Manage suppliers, contractors, and service providers")}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchVendors} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchVendors} disabled={loading} className="border-input text-muted-foreground" aria-label={t("superadmin.vendors.refresh", "Refresh vendors list")} title={t("superadmin.vendors.refresh", "Refresh vendors list")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />{t("superadmin.vendors.refresh", "Refresh")}
         </Button>
       </div>
@@ -125,7 +124,7 @@ export default function SuperadminVendorsPage() {
             <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.vendors.searchPlaceholder", "Search vendors...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
             <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("superadmin.vendors.typePlaceholder", "Type")}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground">{typeFilter === "all" ? t("superadmin.vendors.allTypes", "All Types") : typeFilter.replace("_", " ")}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allTypes", "All Types")}</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
             <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.vendors.statusPlaceholder", "Status")}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground">{statusFilter === "all" ? t("superadmin.vendors.allStatus", "All Status") : statusFilter}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.vendors.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="SUSPENDED">{t("common.suspended", "Suspended")}</SelectItem></SelectContent></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}</Button>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.vendors.search", "Search vendors")} title={t("superadmin.vendors.search", "Search vendors")}><Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}</Button>
           </div>
         </CardContent>
       </Card>
@@ -145,7 +144,7 @@ export default function SuperadminVendorsPage() {
                     <TableCell>{vendor.contact?.address?.city ? (<span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-4 w-4 text-muted-foreground" />{vendor.contact.address.city}</span>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{vendor.rating ? (<div className="flex items-center gap-1"><Star className="h-4 w-4 text-yellow-400 fill-yellow-400" /><span className="text-foreground">{vendor.rating.average.toFixed(1)}</span></div>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_COLORS[vendor.status] || ""}>{vendor.status === "ACTIVE" ? <CheckCircle className="h-3 w-3 me-1" /> : vendor.status === "SUSPENDED" ? <XCircle className="h-3 w-3 me-1" /> : null}{vendor.status}</Badge></TableCell>
-                    <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.vendors.viewDetails", "View vendor details")} onClick={() => handleViewVendor(vendor)} /></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => handleViewVendor(vendor)} aria-label={t("superadmin.vendors.viewVendor", `View ${vendor.name} details`)} title={t("superadmin.vendors.viewVendor", "View vendor details")}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -154,7 +153,7 @@ export default function SuperadminVendorsPage() {
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input">Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input">Next</Button></div>)}
+      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input" aria-label={t("common.previousPage", "Go to previous page")} title={t("common.previousPage", "Previous page")}>Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input" aria-label={t("common.nextPage", "Go to next page")} title={t("common.nextPage", "Next page")}>Next</Button></div>)}
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="bg-card border-input max-w-2xl">

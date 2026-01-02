@@ -346,15 +346,21 @@ export default function AnalyticsPage() {
           </select>
 
           {/* Export Buttons */}
-          <button type="button"
+          <button
+            type="button"
             onClick={handleExportCSV}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
+            aria-label={auto("Export CSV", "actions.exportCsv")}
+            title={auto("Export analytics data as CSV", "actions.exportCsvTitle")}
           >
             {auto("Export CSV", "actions.exportCsv")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={handleExportPDF}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
+            aria-label={auto("Export PDF", "actions.exportPdf")}
+            title={auto("Export analytics report as PDF", "actions.exportPdfTitle")}
           >
             {auto("Export PDF", "actions.exportPdf")}
           </button>
@@ -365,7 +371,8 @@ export default function AnalyticsPage() {
       <div className="border-b">
         <nav className="flex gap-4">
           {tabs.map((tab) => (
-            <button type="button"
+            <button
+              type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`px-4 py-2 border-b-2 transition-colors ${
@@ -373,6 +380,9 @@ export default function AnalyticsPage() {
                   ? "border-primary text-primary font-medium"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
+              aria-label={tab.label}
+              title={tab.label}
+              aria-selected={activeTab === tab.id}
             >
               {tab.label}
             </button>
@@ -390,9 +400,12 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-destructive-dark">{error}</p>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark"
+              aria-label={auto("Retry loading analytics", "actions.retryAria")}
+              title={auto("Retry", "actions.retry")}
             >
               {auto("Retry", "actions.retry")}
             </button>

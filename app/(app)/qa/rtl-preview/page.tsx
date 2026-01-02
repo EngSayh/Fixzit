@@ -63,8 +63,8 @@ export default function RtlPreviewPage() {
               </div>
             </CardContent>
             <CardFooter className="justify-end gap-2">
-              <Button variant="outline">تحديث الحالة</Button>
-              <Button>إنهاء المهمة</Button>
+              <Button variant="outline" aria-label="Update status" title="Update status">تحديث الحالة</Button>
+              <Button aria-label="Complete task" title="Complete task">إنهاء المهمة</Button>
             </CardFooter>
           </Card>
 
@@ -97,8 +97,8 @@ export default function RtlPreviewPage() {
               </div>
             </CardContent>
             <CardFooter className="justify-end gap-2">
-              <Button variant="outline">عرض الجولة الافتراضية</Button>
-              <Button>إرسال عرض</Button>
+              <Button variant="outline" aria-label="View virtual tour" title="View virtual tour">عرض الجولة الافتراضية</Button>
+              <Button aria-label="Send offer" title="Send offer">إرسال عرض</Button>
             </CardFooter>
           </Card>
         </div>

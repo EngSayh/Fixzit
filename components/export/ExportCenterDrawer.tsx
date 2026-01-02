@@ -215,10 +215,10 @@ export function ExportCenterDrawer({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} aria-label="Close export dialog">
               Close
             </Button>
-            <Button onClick={handleCreateExport} disabled={submitting}>
+            <Button onClick={handleCreateExport} disabled={submitting} aria-label="Queue this export for processing">
               {submitting ? "Queuing..." : "Queue Export"}
             </Button>
           </DialogFooter>

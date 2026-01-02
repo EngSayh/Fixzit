@@ -243,11 +243,11 @@ export default function PayrollRunWizardPage() {
               />
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" aria-label={auto("Upload allowance sheet", "adjustments.uploadAria")} title={auto("Upload allowance sheet", "adjustments.uploadAria")}>
                 <Upload className="me-2 h-4 w-4" />
                 {auto("Upload allowance sheet", "adjustments.upload")}
               </Button>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" aria-label={auto("Attach compliance sign-off document", "adjustments.complianceAria")} title={auto("Attach compliance sign-off document", "adjustments.complianceAria")}>
                 <Shield className="me-2 h-4 w-4" />
                 {auto("Attach compliance sign-off", "adjustments.compliance")}
               </Button>
@@ -293,10 +293,10 @@ export default function PayrollRunWizardPage() {
         </Card>
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" aria-label={auto("Save payroll run as draft", "actions.saveDraftAria")} title={auto("Save payroll run as draft", "actions.saveDraftAria")}>
             {auto("Save draft", "actions.saveDraft")}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} aria-label={isSubmitting ? auto("Submitting to treasury", "actions.submittingAria") : auto("Submit payroll to treasury", "actions.submitAria")} title={auto("Submit payroll to treasury", "actions.submitAria")}>
             {isSubmitting ? (
               <>
                 <Loader2 className="me-2 h-4 w-4 animate-spin" />

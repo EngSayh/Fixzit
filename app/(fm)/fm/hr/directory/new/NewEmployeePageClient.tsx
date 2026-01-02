@@ -262,10 +262,11 @@ export default function NewEmployeePageClient({
             variant="outline"
             onClick={() => router.push("/fm/hr/directory")}
             disabled={submitting}
+            aria-label={t("auto.fm.hr.directory.new.actions.cancelAria", "Cancel and go back")}
           >
             {t("auto.fm.hr.directory.new.actions.cancel", "Cancel")}
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} aria-label={t("auto.fm.hr.directory.new.actions.submitAria", "Create employee")}>
             {submitting
               ? t("auto.fm.hr.directory.new.actions.saving", "Saving...")
               : t("auto.fm.hr.directory.new.actions.submit", "Create employee")}

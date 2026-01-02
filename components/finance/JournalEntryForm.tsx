@@ -522,6 +522,8 @@ export default function JournalEntryForm({
               onClick={balanceEntry}
               className="px-3 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20"
               disabled={lines.length < 2}
+              aria-label={t("finance.journal.quickBalance", "Quick Balance")}
+              title={t("finance.journal.quickBalanceTooltip", "Auto-balance debit/credit amounts")}
             >
               {t("finance.journal.quickBalance", "Quick Balance")}
             </button>
@@ -529,6 +531,8 @@ export default function JournalEntryForm({
               type="button"
               onClick={clearAllAmounts}
               className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
+              aria-label={t("finance.journal.clearAmounts", "Clear Amounts")}
+              title={t("finance.journal.clearAmountsTooltip", "Reset all debit and credit amounts to zero")}
             >
               {t("finance.journal.clearAmounts", "Clear Amounts")}
             </button>
@@ -536,6 +540,8 @@ export default function JournalEntryForm({
               type="button"
               onClick={addLine}
               className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success"
+              aria-label={t("finance.journal.addLine", "Add Line")}
+              title={t("finance.journal.addLineTooltip", "Add a new journal entry line")}
             >
               + {t("finance.journal.addLine", "Add Line")}
             </button>
@@ -692,6 +698,7 @@ export default function JournalEntryForm({
                         type="button"
                         onClick={() => removeLine(line.id)}
                         className="text-destructive hover:text-destructive"
+                        aria-label={t("finance.journal.removeLineNumber", `Remove line ${line.lineNumber}`)}
                         title={t("finance.journal.removeLine", "Remove line")}
                       >
                         ✕
@@ -785,6 +792,8 @@ export default function JournalEntryForm({
             onClick={onCancel}
             className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
             disabled={isSubmitting}
+            aria-label={t("common.cancel", "Cancel")}
+            title={t("finance.journal.cancelTooltip", "Cancel and discard changes")}
           >
             {t("common.cancel", "Cancel")}
           </button>
@@ -794,6 +803,8 @@ export default function JournalEntryForm({
           onClick={handleSubmit}
           className="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting || !isBalanced || loadingAccounts}
+          aria-label={mode === "create" ? t("finance.journal.createEntry", "Create Journal Entry") : t("common.saveChanges", "Save Changes")}
+          title={mode === "create" ? t("finance.journal.createEntryTooltip", "Submit and create the journal entry") : t("finance.journal.saveChangesTooltip", "Save changes to the journal entry")}
         >
           {isSubmitting
             ? t("common.saving", "Saving...")

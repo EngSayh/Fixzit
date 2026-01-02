@@ -170,6 +170,7 @@ export default function CompliancePoliciesPage() {
             variant="outline"
             onClick={() => mutate()}
             disabled={isLoading}
+            aria-label={auto("Refresh policies list", "actions.refreshAria")}
           >
             {isLoading ? (
               <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -178,7 +179,7 @@ export default function CompliancePoliciesPage() {
             )}
             {auto("Refresh", "actions.refresh")}
           </Button>
-          <Button asChild>
+          <Button asChild aria-label={auto("Draft new policy", "actions.newPolicyAria")}>
             <Link href="/fm/administration/policies/new">
               <FileText className="me-2 h-4 w-4" />
               {auto("Draft policy", "actions.newPolicy")}

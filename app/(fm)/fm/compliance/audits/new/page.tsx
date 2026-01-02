@@ -279,11 +279,12 @@ export default function ComplianceAuditPlanPage() {
             variant="outline"
             onClick={() => router.push("/fm/compliance/audits")}
             disabled={isSubmitting}
+            aria-label={auto("Cancel and go back", "actions.cancelAria")}
           >
             <CalendarCheck2 className="me-2 h-4 w-4" />
             {auto("Cancel and go back", "actions.cancel")}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} aria-label={auto("Publish audit plan", "actions.publishAria")}>
             {isSubmitting ? (
               auto("Publishing...", "actions.publishing")
             ) : (

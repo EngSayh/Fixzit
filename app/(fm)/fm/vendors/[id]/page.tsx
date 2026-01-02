@@ -187,7 +187,7 @@ function VendorDetailsContent({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/fm/vendors">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" aria-label={t("fm.vendors.detail.backAria", "Go back to vendors list")}>
               <ChevronLeft className="w-4 h-4 me-1" />
               Back
             </Button>
@@ -210,6 +210,8 @@ function VendorDetailsContent({
                 router.push(`/fm/vendors/${params.id}/edit`);
               }
             }}
+            aria-label="Edit vendor"
+            title="Edit vendor details"
           >
             <Edit className="w-4 h-4 me-2" />
             Edit
@@ -218,6 +220,8 @@ function VendorDetailsContent({
             variant="outline"
             className="text-destructive hover:text-destructive"
             onClick={handleDelete}
+            aria-label="Delete vendor"
+            title="Delete this vendor permanently"
           >
             <Trash2 className="w-4 h-4 me-2" />
             Delete

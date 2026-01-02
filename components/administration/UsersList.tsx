@@ -252,11 +252,11 @@ export function UsersList({
       description="Adjust filters or invite a new user to get started."
       action={
         activeFilters.length > 0 ? (
-          <Button variant="outline" onClick={() => resetState()}>
+          <Button variant="outline" onClick={() => resetState()} aria-label="Clear all filters" title="Clear all filters">
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={onAddUser}>
+          <Button onClick={onAddUser} aria-label="Invite new user" title="Invite new user">
             <Plus className="w-4 h-4 me-2" />
             Invite User
           </Button>
@@ -291,11 +291,11 @@ export function UsersList({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh users list" title="Refresh users list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={onAddUser}>
+          <Button size="sm" onClick={onAddUser} aria-label="Invite new user" title="Invite new user">
             <Plus className="w-4 h-4 me-2" />
             Invite User
           </Button>
@@ -329,7 +329,7 @@ export function UsersList({
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)} aria-label="Open filters drawer" title="Open filters drawer">
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -395,6 +395,8 @@ export function UsersList({
               size="sm"
               disabled={(state.page || 1) === 1}
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
+              aria-label="Go to previous page"
+              title="Go to previous page"
             >
               Previous
             </Button>
@@ -406,6 +408,8 @@ export function UsersList({
               size="sm"
               disabled={(state.page || 1) >= totalPages}
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
+              aria-label="Go to next page"
+              title="Go to next page"
             >
               Next
             </Button>
@@ -420,8 +424,8 @@ export function UsersList({
         title="Filter Users"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={handleResetFilters} aria-label="Reset filters" title="Reset filters">Reset</Button>
+            <Button onClick={handleApplyFilters} aria-label="Apply filters" title="Apply filters">Apply Filters</Button>
           </div>
         }
       >

@@ -70,6 +70,8 @@ export function ExpenseReceiptsUploader({
                   <button
                     onClick={() => onRemoveReceipt(receipt.id)}
                     className="text-white text-sm px-2 py-1 bg-destructive rounded"
+                    aria-label={t("finance.expense.removeReceipt", `Remove receipt ${receipt.file.name}`)}
+                    title={t("finance.expense.removeReceiptTooltip", "Remove this receipt attachment")}
                   >
                     ✕ {t("common.remove", "Remove")}
                   </button>

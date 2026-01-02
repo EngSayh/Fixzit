@@ -233,6 +233,7 @@ export default function CommunicationDashboard({
             size="sm"
             disabled={communications.length === 0}
             className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            aria-label={t("communications.export", "Export")}
           >
             <Download className="h-4 w-4" />
             {t("communications.export", "Export")}
@@ -243,6 +244,7 @@ export default function CommunicationDashboard({
             size="sm"
             disabled={loading}
             className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            aria-label={t("communications.refresh", "Refresh")}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             {t("communications.refresh", "Refresh")}
@@ -491,6 +493,7 @@ export default function CommunicationDashboard({
                         variant="ghost"
                         size="sm"
                         className="flex items-center gap-1"
+                        aria-label={t("communications.viewDetails", "View communication details")}
                       >
                         <Eye className="h-4 w-4" />
                         {t("communications.view", "View")}
@@ -513,6 +516,7 @@ export default function CommunicationDashboard({
               disabled={page === 1 || loading}
               variant="outline"
               size="sm"
+              aria-label={t("communications.previousPage", "Go to previous page")}
             >
               {t("communications.previous", "Previous")}
             </Button>
@@ -525,6 +529,7 @@ export default function CommunicationDashboard({
               disabled={page === totalPages || loading}
               variant="outline"
               size="sm"
+              aria-label={t("communications.nextPage", "Go to next page")}
             >
               {t("communications.next", "Next")}
             </Button>
@@ -551,7 +556,7 @@ export default function CommunicationDashboard({
               <button type="button"
                 onClick={() => setSelectedLog(null)}
                 className="text-muted-foreground hover:text-foreground"
-                aria-label={t("communications.actions.closeDetails", "Close details panel")}
+                aria-label={t("communications.closeDetails", "Close details")}
               >
                 ✕
               </button>

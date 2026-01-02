@@ -216,10 +216,10 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
       </Alert>
 
       <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack} aria-label={auto("Back", "actions.back")}>
           {auto("Back", "actions.back")}
         </Button>
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting} aria-label={submitting ? auto("Submitting...", "actions.submitting") : auto("Submit KYC", "actions.submit")}>
           {submitting
             ? auto("Submitting...", "actions.submitting")
             : auto("Submit KYC", "actions.submit")}

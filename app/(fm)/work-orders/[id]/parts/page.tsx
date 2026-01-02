@@ -377,6 +377,7 @@ export default function WorkOrderPartsPage() {
                       <button type="button"
                         onClick={() => addPart(part)}
                         className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 flex items-center gap-2"
+                        aria-label={auto("Add part to order", "actions.addAria")}
                       >
                         <Plus className="h-4 w-4" />
                         {auto("Add", "actions.add")}
@@ -410,6 +411,7 @@ export default function WorkOrderPartsPage() {
                           <button type="button"
                             onClick={() => removePart(part.id)}
                             className="text-destructive/80 hover:text-destructive/90"
+                            aria-label={auto("Remove part from selection", "actions.removeAria")}
                           >
                             ×
                           </button>
@@ -421,6 +423,7 @@ export default function WorkOrderPartsPage() {
                                 updateQuantity(part.id, part.quantity - 1)
                               }
                               className="w-6 h-6 border rounded hover:bg-muted"
+                              aria-label={auto("Decrease quantity", "actions.decreaseQtyAria")}
                             >
                               -
                             </button>
@@ -432,6 +435,7 @@ export default function WorkOrderPartsPage() {
                                 updateQuantity(part.id, part.quantity + 1)
                               }
                               className="w-6 h-6 border rounded hover:bg-muted"
+                              aria-label={auto("Increase quantity", "actions.increaseQtyAria")}
                             >
                               +
                             </button>
@@ -467,6 +471,7 @@ export default function WorkOrderPartsPage() {
                     <button type="button"
                       onClick={createPurchaseOrder}
                       className="w-full py-3 bg-success text-white rounded-2xl hover:bg-success/90"
+                      aria-label={auto("Create Purchase Order", "actions.createPOAria")}
                     >
                       {auto("Create Purchase Order", "actions.createPO")}
                     </button>

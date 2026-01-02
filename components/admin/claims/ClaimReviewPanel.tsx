@@ -799,10 +799,11 @@ export default function ClaimReviewPanel() {
             <Button
               variant="outline"
               onClick={() => setShowDecisionDialog(false)}
+              aria-label="إلغاء وإغلاق مربع الحوار (Cancel and close dialog)"
             >
               إلغاء
             </Button>
-            <Button onClick={submitDecision}>تأكيد القرار</Button>
+            <Button onClick={submitDecision} aria-label="تأكيد القرار (Confirm decision)">تأكيد القرار</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -845,10 +846,11 @@ export default function ClaimReviewPanel() {
               variant="outline"
               onClick={() => setBulkDialogOpen(false)}
               disabled={bulkSubmitting}
+              aria-label="إلغاء الإجراء الجماعي (Cancel bulk action)"
             >
               إلغاء
             </Button>
-            <Button onClick={submitBulkAction} disabled={bulkSubmitting}>
+            <Button onClick={submitBulkAction} disabled={bulkSubmitting} aria-label="تأكيد الإجراء (Confirm bulk action)">
               {bulkSubmitting ? "جاري التطبيق..." : "تأكيد الإجراء"}
             </Button>
           </DialogFooter>

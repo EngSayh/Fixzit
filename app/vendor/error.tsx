@@ -28,11 +28,11 @@ export default function Error({
         {error.message || "An unexpected error occurred in the vendor portal. Please try again."}
       </p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label="Try again" title="Try again">
           <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label="Go to dashboard" title="Go to dashboard">
           <Link href="/dashboard">
             <Home className="w-4 h-4 me-2" />
             Go Home

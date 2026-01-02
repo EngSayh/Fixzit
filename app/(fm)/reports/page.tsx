@@ -91,10 +91,10 @@ export default function Reports() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={downloadReport}>
+          <Button onClick={downloadReport} aria-label={t("reports.actions.newReportLabel", "Create a new report")}>
             {t("reports.actions.newReport", "+ New Report")}
           </Button>
-          <Button variant="secondary" onClick={toggleLanguage}>
+          <Button variant="secondary" onClick={toggleLanguage} aria-label={t("reports.actions.langToggleLabel", "Toggle language")}>
             {t("reports.actions.langToggle", "EN / عربي")}
           </Button>
         </div>
@@ -113,6 +113,7 @@ export default function Reports() {
                 key={tab}
                 variant={activeTab === tab ? "default" : "ghost"}
                 onClick={() => setActiveTab(tab)}
+                aria-label={t(`reports.tabs.${tab}Label`, `Switch to ${tab} view`)}
               >
                 {t(`reports.tabs.${tab}`, tab)}
               </Button>
@@ -165,6 +166,7 @@ export default function Reports() {
                               size="sm"
                               disabled={row.disableActions}
                               onClick={() => handleRowAction(row)}
+                              aria-label={t("reports.actions.downloadLabel", "Download report")}
                             >
                               {t("reports.actions.download", "Download")}
                             </Button>
@@ -180,6 +182,7 @@ export default function Reports() {
                                   ),
                                 )
                               }
+                              aria-label={t("reports.actions.retryLabel", "Retry report generation")}
                             >
                               {t("reports.actions.retry", "Retry")}
                             </Button>

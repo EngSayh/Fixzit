@@ -382,6 +382,7 @@ export default function ReferralProgramPage() {
                 }}
                 className="bg-destructive text-white px-4 py-2 rounded-2xl hover:bg-destructive/90 transition-colors"
                 data-testid="retry-button"
+                aria-label="Retry loading referral data"
               >
                 {auto("Try Again", "errors.retry")}
               </button>
@@ -493,6 +494,7 @@ export default function ReferralProgramPage() {
             disabled={generating}
             className="bg-card text-primary px-8 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
             data-testid="generate-code-button"
+            aria-label="Generate referral code"
           >
             {generating ? (
               <>
@@ -566,6 +568,7 @@ export default function ReferralProgramPage() {
                       onClick={() => copyToClipboard(referralCode.code)}
                       className="flex-1 bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
                       data-testid="copy-code-button"
+                      aria-label="Copy referral code to clipboard"
                     >
                       {copied
                         ? auto("✓ Copied!", "code.copySuccess")
@@ -575,6 +578,7 @@ export default function ReferralProgramPage() {
                       onClick={() => copyToClipboard(referralCode.shortUrl)}
                       className="flex-1 bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
                       data-testid="copy-link-button"
+                      aria-label="Copy referral link to clipboard"
                     >
                       {auto("Copy Link", "code.copyLink")}
                     </button>
@@ -585,6 +589,7 @@ export default function ReferralProgramPage() {
                       disabled={generating}
                       className="w-full mt-3 bg-warning/100 text-white px-4 py-2 rounded-2xl font-medium hover:bg-warning transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       data-testid="regenerate-code-button"
+                      aria-label="Regenerate referral code"
                     >
                       {generating
                         ? auto("Regenerating...", "code.regenerating")
@@ -642,6 +647,7 @@ export default function ReferralProgramPage() {
                   onClick={shareViaWhatsApp}
                   className="flex-1 bg-success/100 hover:bg-success px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-whatsapp"
+                  aria-label="Share referral code via WhatsApp"
                 >
                   <svg
                     className="w-5 h-5"
@@ -657,6 +663,7 @@ export default function ReferralProgramPage() {
                   onClick={shareViaEmail}
                   className="flex-1 bg-primary/100 hover:bg-primary px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-email"
+                  aria-label="Share referral code via Email"
                 >
                   <svg
                     className="w-5 h-5"

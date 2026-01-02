@@ -242,13 +242,16 @@ export default function IntegrationsPage() {
                         handleToggle(integration.id, integration.status)
                       }
                       className="flex-1"
+                      aria-label={integration.status === "connected"
+                        ? auto("Disconnect integration", "actions.disconnectAria")
+                        : auto("Connect integration", "actions.connectAria")}
                     >
                       {integration.status === "connected"
                         ? auto("Disconnect", "actions.disconnect")
                         : auto("Connect", "actions.connect")}
                     </Button>
                     {integration.status === "connected" && (
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" aria-label={auto("Configure integration", "actions.settingsAria")}>
                         <Settings className="w-4 h-4" />
                       </Button>
                     )}

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Check, ArrowRight, Send, Phone, Mail, Building2, Users, CreditCard, Minus, Plus } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
-import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -205,6 +204,8 @@ export default function PricingPage() {
                 className="w-full flex items-center justify-center gap-2"
                 variant={plan.highlight ? "default" : "outline"}
                 onClick={() => handleSelectPlan(plan.id)}
+                aria-label={`${t("pricing.selectPlan", "Select")} ${plan.name} ${t("pricing.plan", "Plan")}`}
+                title={plan.cta}
               >
                 {plan.cta}
                 <ArrowRight className="h-4 w-4" />
@@ -240,14 +241,16 @@ export default function PricingPage() {
                   {t("pricing.checkout.users", "Number of Users")}
                 </label>
                 <div className="flex items-center gap-4">
-                  <IconButton
-                    icon={<Minus className="h-4 w-4" />}
-                    tooltip={t("common.decrease", "Decrease")}
+                  <Button
                     variant="outline"
+                    size="icon"
                     onClick={() => setUserCount(Math.max(1, userCount - 1))}
                     disabled={userCount <= 1}
-                    aria-label={t("common.decrease", "Decrease")}
-                  />
+                    aria-label={t("pricing.checkout.decreaseUsers", "Decrease number of users")}
+                    title={t("pricing.checkout.decreaseUsers", "Decrease users")}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
                   <Input
                     type="number"
                     min={1}
@@ -256,14 +259,16 @@ export default function PricingPage() {
                     onChange={(e) => setUserCount(Math.min(selectedPlanDetails.maxUsers, Math.max(1, parseInt(e.target.value) || 1)))}
                     className="w-24 text-center"
                   />
-                  <IconButton
-                    icon={<Plus className="h-4 w-4" />}
-                    tooltip={t("common.increase", "Increase")}
+                  <Button
                     variant="outline"
+                    size="icon"
                     onClick={() => setUserCount(Math.min(selectedPlanDetails.maxUsers, userCount + 1))}
                     disabled={userCount >= selectedPlanDetails.maxUsers}
-                    aria-label={t("common.increase", "Increase")}
-                  />
+                    aria-label={t("pricing.checkout.increaseUsers", "Increase number of users")}
+                    title={t("pricing.checkout.increaseUsers", "Increase users")}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                   <span className="text-sm text-muted-foreground">
                     {t("pricing.checkout.maxUsers", "Max")}: {selectedPlanDetails.maxUsers}
                   </span>
@@ -285,12 +290,16 @@ export default function PricingPage() {
                   variant="outline"
                   onClick={() => setSelectedPlan(null)}
                   className="flex-1"
+                  aria-label={t("pricing.checkout.back", "Back to Plans")}
+                  title={t("pricing.checkout.back", "Back to Plans")}
                 >
                   {t("pricing.checkout.back", "Back to Plans")}
                 </Button>
                 <Button
                   onClick={handleProceedToCheckout}
                   className="flex-1 flex items-center justify-center gap-2"
+                  aria-label={t("pricing.checkout.proceed", "Proceed to Payment")}
+                  title={t("pricing.checkout.proceed", "Proceed to Payment")}
                 >
                   <CreditCard className="h-4 w-4" />
                   {t("pricing.checkout.proceed", "Proceed to Payment")}
@@ -397,6 +406,8 @@ export default function PricingPage() {
                   type="submit"
                   disabled={status === "submitting"}
                   className="flex items-center gap-2"
+                  aria-label={t("pricing.trial.submit", "Submit trial request")}
+                  title={t("pricing.trial.submit", "Submit request")}
                 >
                   {status === "submitting"
                     ? t("pricing.trial.submitting", "Submitting...")
@@ -443,7 +454,7 @@ export default function PricingPage() {
                 <span>{t("pricing.vendor.benefit3", "Track settlements and payouts")}</span>
               </div>
             </div>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" aria-label={t("pricing.vendor.apply", "Apply as vendor")} title={t("pricing.vendor.apply", "Apply as vendor")}>
               <a href="/vendor/apply" className="flex items-center gap-2">
                 {t("pricing.vendor.apply", "Apply as vendor")}
                 <ArrowRight className="h-4 w-4" />

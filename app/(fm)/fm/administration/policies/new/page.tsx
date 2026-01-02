@@ -107,8 +107,8 @@ export default function CreatePolicyPage() {
       </Card>
 
       <div className="flex gap-3">
-        <Button variant="outline">{auto("Save draft", "actions.save")}</Button>
-        <Button>
+        <Button variant="outline" aria-label={auto("Save policy as draft", "actions.save.ariaLabel")} title={auto("Save draft", "actions.save")}>{auto("Save draft", "actions.save")}</Button>
+        <Button aria-label={auto("Send policy for approval", "actions.submit.ariaLabel")} title={auto("Send for approval", "actions.submit")}>
           <BookCheck className="me-2 h-4 w-4" />
           {auto("Send for approval", "actions.submit")}
         </Button>

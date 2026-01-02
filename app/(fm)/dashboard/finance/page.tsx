@@ -165,6 +165,8 @@ export default function FinanceDashboard() {
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
+            aria-label={t("dashboard.finance.tabs.switchAria", "Switch to {{tab}} tab", { tab: tab.label })}
+            aria-selected={activeTab === tab.id}
           >
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (

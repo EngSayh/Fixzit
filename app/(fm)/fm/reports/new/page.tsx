@@ -349,6 +349,7 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                 (!startDate || !endDate || Boolean(customDateError)))
             }
             className="w-full"
+            aria-label={auto("Generate and download report", "submitAria")}
           >
             <Download className="w-4 h-4 me-2" />
             {auto("Generate Report", "submit")}

@@ -156,7 +156,7 @@ export default function MarketplaceNewOrderPage() {
             )}
           </p>
         </div>
-        <Button onClick={submitOrder} disabled={!canSubmit || submitting}>
+        <Button onClick={submitOrder} disabled={!canSubmit || submitting} aria-label={auto("Submit RFQ", "actions.submitAria")}>
           {submitting
             ? auto("Submitting…", "actions.submitting")
             : auto("Submit RFQ", "actions.submit")}
@@ -249,6 +249,7 @@ export default function MarketplaceNewOrderPage() {
                     size="sm"
                     className="text-destructive"
                     onClick={() => removeItem(item.id)}
+                    aria-label={auto("Remove line item", "sections.items.removeAria")}
                   >
                     <Trash2 className="me-1 h-4 w-4" />
                     {auto("Remove", "sections.items.remove")}
@@ -340,7 +341,7 @@ export default function MarketplaceNewOrderPage() {
                 "sections.items.addHint",
               )}
             </p>
-            <Button variant="secondary" onClick={addItem}>
+            <Button variant="secondary" onClick={addItem} aria-label={auto("Add line item", "sections.items.addAria")}>
               {auto("Add line item", "sections.items.add")}
             </Button>
           </div>

@@ -136,7 +136,7 @@ export default function SuperadminIntegrationsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.integrations") || "Integrations"}</h1>
           <p className="text-muted-foreground">Manage third-party service connections</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchIntegrations} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchIntegrations} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh integrations")} title={t("common.refresh", "Refresh integrations")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -175,7 +175,7 @@ export default function SuperadminIntegrationsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Button variant="outline" size="sm" onClick={() => handleConfigure(integration)} className="border-input"><Settings className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => handleConfigure(integration)} className="border-input" aria-label={t("superadmin.integrations.configure", `Configure ${integration.name}`)} title={t("superadmin.integrations.configure", `Configure ${integration.name}`)}><Settings className="h-4 w-4" /></Button>
                       <Switch checked={integration.enabled} onCheckedChange={() => handleToggle(integration)} disabled={toggling === integration.id} />
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export default function SuperadminIntegrationsPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigDialogOpen(false)} className="border-input">Close</Button>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)} className="border-input" aria-label={t("common.close", "Close configuration dialog")} title={t("common.close", "Close configuration dialog")}>Close</Button>
             <Button asChild className="bg-blue-600 hover:bg-blue-700"><a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 me-2" />Manage in Vercel</a></Button>
           </DialogFooter>
         </DialogContent>

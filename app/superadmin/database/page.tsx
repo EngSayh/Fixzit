@@ -144,7 +144,7 @@ export default function SuperadminDatabasePage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.database", { defaultValue: "Database" })}</h1>
           <p className="text-muted-foreground">{t("superadmin.database.description", { defaultValue: "MongoDB Atlas connection status and collection management" })}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh database status")} title={t("common.refresh", "Refresh database status")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -240,7 +240,7 @@ export default function SuperadminDatabasePage() {
                   <TableCell className="text-center"><Badge variant="outline" className="bg-blue-500/20 text-blue-400">{col.indexCount}</Badge></TableCell>
                   <TableCell>
                     {EXPORTABLE_COLLECTIONS.includes(col.name) && (
-                      <Button variant="ghost" size="sm" onClick={() => handleExport(col.name)} disabled={exporting === col.name}>
+                      <Button variant="ghost" size="sm" onClick={() => handleExport(col.name)} disabled={exporting === col.name} aria-label={t("superadmin.database.export", `Export ${col.name} collection`)} title={t("superadmin.database.export", `Export ${col.name} collection`)}>
                         {exporting === col.name ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
                     )}

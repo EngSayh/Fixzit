@@ -489,7 +489,7 @@ export default function SuperadminSubscriptionsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.subscriptions")}</h1>
           <p className="text-muted-foreground">Manage subscription tiers, pricing, and tenant subscriptions</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh subscriptions data")} title={t("common.refresh", "Refresh subscriptions data")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -621,7 +621,7 @@ export default function SuperadminSubscriptionsPage() {
                         <TableCell className="text-muted-foreground">{formatDate(sub.startDate)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => handleViewSubscription(sub)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleViewSubscription(sub)} aria-label={t("superadmin.subscriptions.view", `View subscription for ${sub.tenantName}`)} title={t("superadmin.subscriptions.view", `View subscription details`)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>
@@ -638,7 +638,7 @@ export default function SuperadminSubscriptionsPage() {
         {/* Tiers Tab */}
         <TabsContent value="tiers" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={handleNewTier} className="bg-primary text-primary-foreground">
+            <Button onClick={handleNewTier} className="bg-primary text-primary-foreground" aria-label={t("superadmin.subscriptions.addTier", "Add new pricing tier")} title={t("superadmin.subscriptions.addTier", "Add new pricing tier")}>
               <Plus className="h-4 w-4 me-2" />Add Tier
             </Button>
           </div>
@@ -686,10 +686,10 @@ export default function SuperadminSubscriptionsPage() {
                         {tier.isActive ? "Active" : "Inactive"}
                       </Badge>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditTier(tier)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleEditTier(tier)} aria-label={`Edit ${tier.name} tier`} title={`Edit ${tier.name} tier settings`}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteTier(tier)}>
+                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteTier(tier)} aria-label={`Delete ${tier.name} tier`} title={`Delete ${tier.name} tier`}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -775,8 +775,8 @@ export default function SuperadminSubscriptionsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTierDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTier}>{editingTier ? "Update" : "Create"}</Button>
+            <Button variant="outline" onClick={() => setTierDialogOpen(false)} aria-label="Cancel tier changes" title="Cancel and close dialog">Cancel</Button>
+            <Button onClick={handleSaveTier} aria-label={editingTier ? "Update tier" : "Create new tier"} title={editingTier ? "Update tier settings" : "Create new tier"}>{editingTier ? "Update" : "Create"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -816,7 +816,7 @@ export default function SuperadminSubscriptionsPage() {
               </div>
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)} aria-label={t("common.close", "Close subscription details")} title={t("common.close", "Close subscription details")}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

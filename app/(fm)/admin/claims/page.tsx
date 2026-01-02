@@ -56,7 +56,7 @@ export default function AdminClaimsPage() {
                 ? "ليس لديك صلاحية للوصول إلى مراجعة المطالبات. هذه الصفحة مخصصة للمسؤولين فقط."
                 : "You do not have permission to access Claim Reviews. This page is restricted to Admin users only."}
             </p>
-            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+            <Button variant="outline" onClick={() => router.push("/dashboard")} aria-label={isRTL ? "العودة للوحة التحكم" : "Navigate back to dashboard"}>
               {isRTL ? "العودة للوحة التحكم" : "Back to Dashboard"}
             </Button>
           </CardContent>

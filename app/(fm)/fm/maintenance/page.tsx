@@ -229,10 +229,10 @@ export default function MaintenancePage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting} aria-label={t("common.cancelAria", "Cancel delete operation")}>
               {t("common.cancel", "Cancel")}
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting} aria-label={t("common.deleteConfirmAria", "Confirm deletion")}>
               {isDeleting && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
               {t("common.delete", "Delete")}
             </Button>

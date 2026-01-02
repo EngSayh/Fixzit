@@ -1,57 +1,44 @@
-import { Schema, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
 /**
+ * FooterLink Model
+ * Manages footer navigation links organized by section
+ * Per-tenant: each organization manages its own footer links
+ * Super Admin only access for editing
+ * 
  * @module server/models/FooterLink
- * @description Footer Link model for navigation links in site footer.
- * Organizes links by section (company, support, legal, social).
- * Super Admin only access for CRUD operations.
- *
- * @features
- * - Bilingual labels (English and Arabic)
- * - Section-based organization
- * - External link support with icon
- * - Active/inactive for visibility control
- * - Sort order within each section
- *
- * @indexes
- * - { section: 1, sortOrder: 1 } - Section links list query
- * - { isActive: 1 } - Active links filter
- *
- * @audit
- * - createdAt/updatedAt: Link lifecycle (from timestamps)
- * - createdBy/updatedBy: Admin actions (from auditPlugin)
  */
-
 const FooterLinkSchema = new Schema(
   {
+    // orgId will be added by tenantIsolationPlugin
     label: {
       type: String,
       required: true,
-      maxlength: 100,
-      comment: "Link text in English",
+      comment: "Link label in English",
     },
     labelAr: {
       type: String,
-      maxlength: 100,
-      comment: "Link text in Arabic",
+      required: false,
+      comment: "Link label in Arabic",
     },
     url: {
       type: String,
       required: true,
-      comment: "Link destination URL (relative or absolute)",
+      comment: "Link URL (internal path or external URL)",
     },
     section: {
       type: String,
       required: true,
       enum: ["company", "support", "legal", "social"],
-      index: true,
       comment: "Footer section this link belongs to",
     },
     icon: {
       type: String,
-      comment: "Icon name for social links (e.g., twitter, facebook)",
+      required: false,
+      comment: "Optional icon name (Lucide icon)",
     },
     isExternal: {
       type: Boolean,
@@ -61,35 +48,38 @@ const FooterLinkSchema = new Schema(
     isActive: {
       type: Boolean,
       default: true,
-      index: true,
-      comment: "Whether the link is visible",
+      comment: "Whether link is visible in footer",
     },
     sortOrder: {
       type: Number,
       default: 0,
-      comment: "Display order within section (lower = first)",
+      comment: "Display order within section",
     },
-    // createdBy, updatedBy, createdAt, updatedAt handled by auditPlugin
+    // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
   },
   {
     timestamps: true,
-    collection: "footer_links",
-    comment: "Site footer navigation links",
-  }
+    comment: "Footer navigation links with section organization",
+  },
 );
 
-// Apply audit plugin for tracking changes
+// Apply plugins BEFORE indexes
+FooterLinkSchema.plugin(tenantIsolationPlugin);
 FooterLinkSchema.plugin(auditPlugin);
 
-// Compound index for section listing
-FooterLinkSchema.index({ section: 1, sortOrder: 1 });
-
-// Index for active links filter
-FooterLinkSchema.index({ isActive: 1, sortOrder: 1 });
+// Indexes for efficient queries
+FooterLinkSchema.index(
+  { orgId: 1, section: 1, sortOrder: 1 },
+  { name: "footerlinks_org_section_order" },
+);
+FooterLinkSchema.index(
+  { orgId: 1, isActive: 1 },
+  { name: "footerlinks_org_active" },
+);
 
 export type FooterLinkDoc = InferSchemaType<typeof FooterLinkSchema>;
 
-export const FooterLink = getModel<FooterLinkDoc>(
+export const FooterLink: Model<FooterLinkDoc> = getModel<FooterLinkDoc>(
   "FooterLink",
-  FooterLinkSchema
+  FooterLinkSchema,
 );

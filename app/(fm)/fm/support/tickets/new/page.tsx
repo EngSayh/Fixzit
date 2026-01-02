@@ -190,7 +190,7 @@ export default function NewSupportTicketPage() {
             )}
           </p>
         </div>
-        <Button onClick={handleSubmit} disabled={!canSubmit || submitting}>
+        <Button onClick={handleSubmit} disabled={!canSubmit || submitting} aria-label={auto("Submit support ticket", "actions.submitAria")}>
           {submitting
             ? auto("Submitting…", "actions.submitting")
             : auto("Submit ticket", "actions.submit")}

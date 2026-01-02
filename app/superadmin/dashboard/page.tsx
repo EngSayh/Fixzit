@@ -409,6 +409,8 @@ export default function SuperadminDashboardPage() {
             size="sm" 
             onClick={fetchDashboardData}
             disabled={loading}
+            aria-label={t("common.refresh", "Refresh dashboard data")}
+            title={t("common.refresh", "Refresh dashboard data")}
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             {t("common.refresh", "Refresh")}
@@ -579,31 +581,31 @@ export default function SuperadminDashboardPage() {
         <CardContent>
           <div className="flex flex-wrap gap-3">
             <Button variant="outline" asChild>
-              <a href="/superadmin/tenants">
+              <a href="/superadmin/tenants" aria-label={t("superadmin.nav.tenants", "Manage Tenants")} title={t("superadmin.nav.tenants", "Manage Tenants")}>
                 <Building2 className="h-4 w-4 me-2" />
                 {t("superadmin.nav.tenants", "Manage Tenants")}
               </a>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/users">
+              <a href="/superadmin/users" aria-label={t("superadmin.nav.users", "Manage Users")} title={t("superadmin.nav.users", "Manage Users")}>
                 <Users className="h-4 w-4 me-2" />
                 {t("superadmin.nav.users", "Manage Users")}
               </a>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/jobs">
+              <a href="/superadmin/jobs" aria-label={t("superadmin.nav.jobs", "Background Jobs")} title={t("superadmin.nav.jobs", "Background Jobs")}>
                 <Calendar className="h-4 w-4 me-2" />
                 {t("superadmin.nav.jobs", "Background Jobs")}
               </a>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/integrations">
+              <a href="/superadmin/integrations" aria-label={t("superadmin.nav.integrations", "Integrations")} title={t("superadmin.nav.integrations", "Integrations")}>
                 <Webhook className="h-4 w-4 me-2" />
                 {t("superadmin.nav.integrations", "Integrations")}
               </a>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/audit">
+              <a href="/superadmin/audit" aria-label={t("superadmin.nav.audit", "Audit Logs")} title={t("superadmin.nav.audit", "Audit Logs")}>
                 <FileText className="h-4 w-4 me-2" />
                 {t("superadmin.nav.audit", "Audit Logs")}
               </a>

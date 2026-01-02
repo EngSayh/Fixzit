@@ -107,12 +107,12 @@ export default function PropertiesDocumentsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={t("common.refresh", "Refresh documents")} title={t("common.refresh", "Refresh documents")}>
             <RefreshCw className="me-2 h-4 w-4" />
             {t("common.refresh", "Refresh")}
           </Button>
           {canManageDocuments ? (
-            <Button>
+            <Button aria-label={t("fm.properties.documents.upload", "Upload Document")} title={t("fm.properties.documents.upload", "Upload Document")}>
               <Upload className="me-2 h-4 w-4" />
               {t("fm.properties.documents.upload", "Upload Document")}
             </Button>
@@ -195,7 +195,7 @@ export default function PropertiesDocumentsPage() {
               <p className="text-muted-foreground mb-4">
                 {t("fm.properties.documents.uploadArea.description", "Drag and drop files here or click to browse")}
               </p>
-              <Button>
+              <Button aria-label={t("fm.properties.documents.uploadArea.button", "Choose files to upload")} title={t("fm.properties.documents.uploadArea.button", "Choose files to upload")}>
                 {t("fm.properties.documents.uploadArea.button", "Choose Files")}
               </Button>
               <p className="text-sm text-muted-foreground mt-2">
@@ -239,6 +239,8 @@ export default function PropertiesDocumentsPage() {
                 className="mt-2"
                 variant="outline"
                 onClick={() => refresh()}
+                aria-label={t("common.retry", "Retry loading documents")}
+                title={t("common.retry", "Retry loading documents")}
               >
                 {t("common.retry", "Retry")}
               </Button>
@@ -278,7 +280,7 @@ export default function PropertiesDocumentsPage() {
                       {t("fm.properties.documents.noDocuments", "No documents")}
                     </Badge>
                     {canManageDocuments ? (
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" aria-label={t("fm.properties.documents.addDocument", "Add document to property")} title={t("fm.properties.documents.addDocument", "Add document to property")}>
                         <Upload className="h-4 w-4 me-1" />
                         {t("fm.properties.documents.addDocument", "Add")}
                       </Button>

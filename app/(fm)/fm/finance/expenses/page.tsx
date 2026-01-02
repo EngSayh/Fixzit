@@ -345,7 +345,7 @@ function CreateExpenseDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>{auto("Submit Expense", "trigger")}</Button>
+        <Button aria-label={auto("Open submit expense form", "triggerAria")}>{auto("Submit Expense", "trigger")}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -417,6 +417,7 @@ function CreateExpenseDialog({
               Number(amount) <= 0
             }
             className="w-full"
+            aria-label={auto("Submit the expense", "submitAria")}
           >
             {auto("Submit Expense", "submit")}
           </Button>

@@ -114,9 +114,9 @@
     "test:verbose": "vitest run --reporter=verbose",
     "test:single": "vitest run",
     "test:changed": "vitest run --changed",
-    "test:e2e": "node scripts/run-playwright.js",
+    "test:e2e": "bash scripts/run-playwright.sh",
     "test:e2e:loop": "node tests/loop-runner.mjs",
-    "test:e2e:setup": "node scripts/run-playwright.js tests/setup-auth.ts",
+    "test:e2e:setup": "bash scripts/run-playwright.sh tests/setup-auth.ts",
     "scan:i18n": "cross-env I18N_IGNORE=watch-all node tests/i18n-scan.mjs",
     "scan:i18n:v2": "node scripts/i18n-scan-v2.mjs",
     "scan:i18n:audit": "node scripts/audit-translations.mjs",
@@ -355,7 +355,7 @@
       "node-forge": ">=1.3.2",
       "jws@^3": "3.2.3",
       "jws@^4": "4.0.1",
-      "qs": ">=6.14.1"
+      "qs@<6.14.1": ">=6.14.1"
     }
   },
   "simple-git-hooks": {

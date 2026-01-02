@@ -228,6 +228,7 @@ export default function LeaveApprovalsPage() {
               onClick={() => {
                 void fetchPendingRequests();
               }}
+              aria-label={t("hr.leave.approvals.refreshAria", "Refresh pending leave requests")}
             >
               {t("hr.leave.approvals.refresh", "Refresh")}
             </Button>
@@ -323,6 +324,7 @@ export default function LeaveApprovalsPage() {
                       variant="outline"
                       disabled={isProcessingRequest}
                       onClick={() => handleDecision(request._id, "REJECTED")}
+                      aria-label={t("hr.leave.approvals.rejectAria", "Reject leave request")}
                     >
                       {isProcessingReject ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -334,6 +336,7 @@ export default function LeaveApprovalsPage() {
                     <Button
                       disabled={isProcessingRequest}
                       onClick={() => handleDecision(request._id, "APPROVED")}
+                      aria-label={t("hr.leave.approvals.approveAria", "Approve leave request")}
                     >
                       {isProcessingApprove ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

@@ -13,37 +13,38 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { CompanyInfo } from "@/server/models/CompanyInfo";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const SocialLinksSchema = z.object({
-  twitter: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
-  facebook: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
-  instagram: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
-  linkedin: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
-  youtube: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
-  tiktok: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  twitter: z.string().trim().url().optional().or(z.literal("")),
+  facebook: z.string().trim().url().optional().or(z.literal("")),
+  instagram: z.string().trim().url().optional().or(z.literal("")),
+  linkedin: z.string().trim().url().optional().or(z.literal("")),
+  youtube: z.string().trim().url().optional().or(z.literal("")),
 }).optional();
 
 const CompanyInfoSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  nameAr: z.string().max(200).optional(),
-  tagline: z.string().max(500).optional(),
-  taglineAr: z.string().max(500).optional(),
-  email: z.string().optional().refine(val => !val || val === "" || /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(val), "Must be valid email or empty"),
-  phone: z.string().max(20).optional(),
-  alternatePhone: z.string().max(20).optional(),
-  address: z.string().max(500).optional(),
-  addressAr: z.string().max(500).optional(),
-  vatNumber: z.string().max(50).optional(),
-  crNumber: z.string().max(50).optional(),
-  logoUrl: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
-  faviconUrl: z.string().optional().refine(val => !val || val === "" || /^https?:\/\/.+/.test(val), "Must be valid URL or empty"),
+  name: z.string().trim().min(1).max(200).optional(),
+  nameAr: z.string().trim().min(1).max(200).optional(),
+  tagline: z.string().trim().max(500).optional(),
+  taglineAr: z.string().trim().max(500).optional(),
+  email: z.string().trim().email().optional(),
+  phone: z.string().trim().max(20).optional(),
+  alternatePhone: z.string().trim().max(20).optional(),
+  address: z.string().trim().max(500).optional(),
+  addressAr: z.string().trim().max(500).optional(),
+  vatNumber: z.string().trim().max(50).optional(),
+  crNumber: z.string().trim().max(50).optional(),
+  logoUrl: z.string().trim().url().optional().or(z.literal("")),
+  faviconUrl: z.string().trim().url().optional().or(z.literal("")),
   socialLinks: SocialLinksSchema,
 });
 
+// Default company info for new installations
 const DEFAULT_COMPANY_INFO = {
   name: "Fixzit",
   nameAr: "فكسزت",
@@ -58,7 +59,7 @@ const DEFAULT_COMPANY_INFO = {
 
 /**
  * GET /api/superadmin/content/company
- * Retrieve company information (singleton)
+ * Retrieve company information (per-tenant singleton)
  */
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
@@ -78,22 +79,26 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDb();
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide company info singleton
+
+    // Set tenant context from superadmin session for per-tenant singleton query
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own company info
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
     const companyInfo = await CompanyInfo.findOne({}).lean();
 
     if (!companyInfo) {
-      return NextResponse.json(
-        { company: DEFAULT_COMPANY_INFO },
-        { headers: ROBOTS_HEADER }
-      );
+      // Return defaults if no company info exists yet
+      return NextResponse.json(DEFAULT_COMPANY_INFO, { headers: ROBOTS_HEADER });
     }
 
-    return NextResponse.json(
-      { company: companyInfo },
-      { headers: ROBOTS_HEADER }
-    );
+    return NextResponse.json(companyInfo, { headers: ROBOTS_HEADER });
   } catch (error) {
-    logger.error("[Superadmin:Company] Failed to fetch info", { error });
+    logger.error("[Superadmin:Company] Failed to fetch company info", { error });
     return NextResponse.json(
       { error: "Failed to fetch company information" },
       { status: 500, headers: ROBOTS_HEADER }
@@ -103,7 +108,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * PUT /api/superadmin/content/company
- * Update company information (upsert pattern)
+ * Update company information (upsert pattern - creates if not exists)
  */
 export async function PUT(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
@@ -140,7 +145,15 @@ export async function PUT(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide company info singleton
+    // Set tenant context from superadmin session for per-tenant singleton
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own company info (upsert)
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
     const companyInfo = await CompanyInfo.findOneAndUpdate(
       {},
       { $set: validation.data },
@@ -153,11 +166,11 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { company: companyInfo, message: "Company information updated" },
+      { ...companyInfo, message: "Company information updated successfully" },
       { headers: ROBOTS_HEADER }
     );
   } catch (error) {
-    logger.error("[Superadmin:Company] Failed to update info", { error });
+    logger.error("[Superadmin:Company] Failed to update company info", { error });
     return NextResponse.json(
       { error: "Failed to update company information" },
       { status: 500, headers: ROBOTS_HEADER }

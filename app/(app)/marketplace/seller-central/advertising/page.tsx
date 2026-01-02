@@ -287,23 +287,29 @@ export default function AdvertisingPage() {
 
       {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b border-gray-200">
-        <button type="button"
+        <button
+          type="button"
           onClick={() => setActiveTab("overview")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "overview"
               ? "text-primary border-b-2 border-primary"
               : "text-gray-600 hover:text-gray-900"
           }`}
+          aria-label={auto("Overview", "tabs.overview")}
+          title={auto("Overview", "tabs.overview")}
         >
           {auto("Overview", "tabs.overview")}
         </button>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => setActiveTab("campaigns")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "campaigns"
               ? "text-primary border-b-2 border-primary"
               : "text-gray-600 hover:text-gray-900"
           }`}
+          aria-label={auto("Campaigns", "tabs.campaigns")}
+          title={auto("Campaigns", "tabs.campaigns")}
         >
           {auto("Campaigns", "tabs.campaigns")}
         </button>
@@ -362,7 +368,12 @@ export default function AdvertisingPage() {
                 <Plus className="w-5 h-5" />
                 {auto("Create Campaign", "quickActions.create")}
               </Link>
-              <button type="button" className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                aria-label={auto("View Reports", "quickActions.viewReports")}
+                title={auto("View Reports", "quickActions.viewReports")}
+              >
                 <BarChart3 className="w-5 h-5" />
                 {auto("View Reports", "quickActions.viewReports")}
               </button>
@@ -693,7 +704,8 @@ export default function AdvertisingPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <button type="button"
+                            <button
+                              type="button"
                               onClick={() =>
                                 toggleCampaignStatus(
                                   campaign.campaignId,
@@ -701,6 +713,11 @@ export default function AdvertisingPage() {
                                 )
                               }
                               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              aria-label={
+                                campaign.status === "active"
+                                  ? auto("Pause campaign", "actions.pauseAria")
+                                  : auto("Resume campaign", "actions.resumeAria")
+                              }
                               title={
                                 campaign.status === "active"
                                   ? auto("Pause", "actions.pause")
@@ -720,11 +737,13 @@ export default function AdvertisingPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Link>
-                            <button type="button"
+                            <button
+                              type="button"
                               onClick={() =>
                                 deleteCampaign(campaign.campaignId)
                               }
                               className="p-2 text-destructive hover:bg-destructive/5 rounded-lg transition-colors"
+                              aria-label={auto("Delete campaign", "actions.deleteAria")}
                               title={auto("Delete", "actions.delete")}
                             >
                               <Trash2 className="w-4 h-4" />

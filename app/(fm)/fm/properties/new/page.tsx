@@ -53,7 +53,7 @@ export default function NewPropertyPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => router.push("/fm/properties")}>
+          <Button variant="ghost" onClick={() => router.push("/fm/properties")} title={t("fm.properties.new.backAria", "Go back to properties list")} aria-label={t("fm.properties.new.backAria", "Go back to properties list")}>
             <ArrowLeft className="w-4 h-4 me-2" />
             {t("fm.properties.new.back", "Back to portfolio")}
           </Button>

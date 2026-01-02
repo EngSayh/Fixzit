@@ -194,6 +194,8 @@ export default function NewWorkOrderPage() {
               }
             }}
             disabled={creating || !title || !propertyId}
+            aria-label={creating ? t("common.savingAria", "Saving work order") : t("workOrders.board.createWOAria", "Create new work order")}
+            title={t("workOrders.board.createWOAria", "Create new work order")}
           >
             {creating
               ? t("common.saving", "Saving...")
@@ -458,13 +460,13 @@ export default function NewWorkOrderPage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-start">
+              <button className="w-full btn-ghost text-start" aria-label={t("workOrders.createFromTemplateAria", "Create work order from template")}>
                 📋 {t("workOrders.createFromTemplate", "Create from Template")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button className="w-full btn-ghost text-start" aria-label={t("workOrders.emergencyContactAria", "View emergency contact information")}>
                 📞 {t("workOrders.emergencyContact", "Emergency Contact")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button className="w-full btn-ghost text-start" aria-label={t("workOrders.costCalculatorAria", "Open cost calculator tool")}>
                 📊 {t("workOrders.costCalculator", "Cost Calculator")}
               </button>
             </div>

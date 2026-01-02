@@ -212,11 +212,11 @@ export default function HrLeaveExperience() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={auto("Refresh leave data", "actions.refreshAria")} title={auto("Refresh leave data", "actions.refreshAria")}>
             <RefreshCw className="me-2 h-4 w-4" />
             {auto("Refresh data", "actions.refresh")}
           </Button>
-          <Button>
+          <Button aria-label={auto("Launch leave planning window", "actions.launchWindowAria")} title={auto("Launch leave planning window", "actions.launchWindowAria")}>
             <CalendarRange className="me-2 h-4 w-4" />
             {auto("Launch leave window", "actions.launchWindow")}
           </Button>
@@ -236,6 +236,8 @@ export default function HrLeaveExperience() {
                 variant="outline"
                 className="mt-2"
                 onClick={() => refresh()}
+                aria-label={auto("Retry loading leave data", "errors.retryAria")}
+                title={auto("Retry loading leave data", "errors.retryAria")}
               >
                 {auto("Retry", "errors.retry")}
               </Button>
@@ -365,7 +367,7 @@ export default function HrLeaveExperience() {
                   <ShieldCheck className="h-4 w-4" />
                   {auto("Coverage", "timeline.coverage")}: {entry.coverage}
                 </span>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" aria-label={auto("Review leave plan", "timeline.reviewAria")} title={auto("Review leave plan", "timeline.reviewAria")}>
                   {auto("Review plan", "timeline.review")}
                 </Button>
               </div>

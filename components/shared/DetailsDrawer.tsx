@@ -102,11 +102,12 @@ export function DetailsDrawer<T extends { id: string }>({
                   size="sm"
                   onClick={() => onNavigate(record.id)}
                   title="Open in full page"
+                  aria-label="Open in full page"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close drawer" title="Close drawer">
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -118,6 +119,8 @@ export function DetailsDrawer<T extends { id: string }>({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                aria-label={`View ${tab.label} tab`}
+                aria-pressed={activeTab === tab.id}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap ${
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground"
