@@ -55,6 +55,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for status check and task execution
     const task = await ScheduledTask.findById(id);
     if (!task) {
       return NextResponse.json(

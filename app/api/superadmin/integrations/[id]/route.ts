@@ -159,6 +159,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for credentials merge
     const existing = await Integration.findById(id);
     if (!existing) {
       return NextResponse.json(

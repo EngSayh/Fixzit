@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
     // Generate a secure webhook secret
     const secret = `wh_sec_${crypto.randomBytes(24).toString("hex")}`;
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide webhook
     const webhook = await Webhook.create({
       ...validation.data,
       secret,
