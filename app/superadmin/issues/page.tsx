@@ -1369,23 +1369,45 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
         onDelete={async () => {
           const count = selectedIssues.size;
           const issueIds = Array.from(selectedIssues);
+          
+          // User confirmation before destructive bulk delete
+          const confirmed = window.confirm(
+            t(
+              "superadmin.issues.bulk.deleteConfirm",
+              `Are you sure you want to permanently delete ${count} issue(s)? This action cannot be undone.`
+            )
+          );
+          if (!confirmed) {
+            return;
+          }
+          
           toast({ title: t("superadmin.issues.bulk.processing", "Processing..."), description: t("superadmin.issues.bulk.deleting", `Deleting ${count} issues`), variant: "destructive" });
+          
+          // Parallel, resilient delete using Promise.allSettled
+          const results = await Promise.allSettled(
+            issueIds.map(async (issueId) => {
+              const response = await fetch(`/api/issues/${issueId}`, {
+                method: "DELETE",
+              });
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return issueId;
+            })
+          );
           
           let successCount = 0;
           let failCount = 0;
           
-          for (const issueId of issueIds) {
-            try {
-              const response = await fetch(`/api/issues/${issueId}`, {
-                method: "DELETE",
-              });
-              if (response.ok) {
-                successCount++;
-              } else {
-                failCount++;
-              }
-            } catch {
+          for (const result of results) {
+            if (result.status === "fulfilled") {
+              successCount++;
+            } else {
               failCount++;
+              // Log individual failures with issueId
+              const failedIssueId = issueIds[results.indexOf(result)];
+              // eslint-disable-next-line no-console -- surface bulk delete failures for debugging
+              console.error(`[superadmin:issues] Failed to delete issue ${failedIssueId}:`, result.reason);
             }
           }
           
