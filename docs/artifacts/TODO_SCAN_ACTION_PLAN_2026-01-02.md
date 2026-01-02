@@ -13,11 +13,21 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | P0 Critical | 1 | SEC-0002 - PII Encryption |
-| P1 High | 2 | FEAT-0027, FEAT-0028 |
+| P1 High | 2 | FEAT-0027 ✅, FEAT-0028 ✅ |
 | P2 Medium | 47 | Various modules |
 | P3 Low | ~50 | Docs, refactors |
 
 **Total Open Issues:** 100+
+
+### Latest Scan Metrics (2026-01-02T13:30+03:00)
+
+| Metric | Count | Trend |
+|--------|-------|-------|
+| Code TODO markers | 49 | ↓ -15 |
+| Code "not implemented" | 64 | ↑ +6 |
+| Code placeholders | 42 | ↑ +14 |
+| Docs/report tokens | 5,647 | — |
+| TG-005 test mocks fixed | 35 | ✅ COMPLETE |
 
 ---
 
@@ -144,8 +154,8 @@
 ### Sprint 6 (Current) - P3 Infrastructure
 | ID | Title | Status | Notes |
 |---|---|---|---|
-| FEAT-0034 | Redis pub/sub scaling | ⏳ REVIEW | Redis module exists with fallback |
-| FEAT-0035 | Health monitoring integration | ⏳ REVIEW | Health endpoints exist |
+| FEAT-0034 | Redis pub/sub scaling | ✅ CLOSED | PR #642, commit a9b664c24 |
+| FEAT-0035 | Health monitoring integration | ⏳ IN PROGRESS | Health endpoints exist |
 | REFAC-0003 | FM Properties schema mismatch | DEFERRED | Marked in code (TODO-002) |
 | FEAT-0036 | AI building model generation | NOT STARTED | XL effort |
 
@@ -154,6 +164,82 @@
 - Vitest multi-project migration (M)
 - Ticketing system integration (M)
 - Superadmin notification badge (S)
+
+---
+
+## Re-Verification Scan - 2026-01-02T13:30+03:00
+
+### Updated Counts (vs Previous Report)
+
+| Metric | Previous | Current | Δ |
+|--------|----------|---------|---|
+| Code TODO markers | 64 | 49 | -15 ✅ |
+| Code "not implemented" | 58 | 64 | +6 |
+| Code placeholders (TBD/WIP/CHANGEME/REPLACE_ME) | 28 | 42 | +14 |
+| Docs/report tokens | 5,642 | 5,647 | +5 |
+| Docs/report "not implemented" | 191 | 191 | — |
+
+### Production TODOs (Feature Work Outstanding)
+
+| Category | File | Line(s) | Status |
+|----------|------|---------|--------|
+| Subscription flows | `page.tsx` | 816, 820 | P2 - DEFERRED |
+| Vendor intelligence/fraud | `vendor-intelligence.ts` | 780, 818, 834, 849, 864 | ✅ IMPLEMENTED (stubs remain for future ML) |
+| Inspection notifications | `inspection-service.ts` | 504, 754 | P2 - OPEN |
+| Compliance/external | `pdpl-service.ts:337`, `lease-service.ts:1028`, `route.ts:32` | — | P1 - DEFERRED (bank/legal) |
+| Observability/scaling/UI | `route.ts:133,221`, `SuperadminHeader.tsx:212` | — | P3 - BACKLOG |
+| Data/model stubs | `route.ts:60`, `Property.ts:8`, `ClaimsOrder.ts:16`, `mfaService.ts:399`, `buildingModel.ts:471` | — | P3 - BACKLOG |
+
+### Production "Not Implemented" Runtime Stubs
+
+| Category | File | Line(s) | Status |
+|----------|------|---------|--------|
+| API 501s | `route.ts` | 78, 315, 379 | ✅ ANALYZED (valid guards) |
+| Finance action stub | `route.ts` | 197 | P2 - DEFERRED |
+| FM vendor assignments | `route.ts` | 115, 259 | P2 - OPEN |
+| Souq payout live mode | `payout-processor.ts` | 599, 611 | P1 - BLOCKED (bank creds) |
+| Vendor intelligence stubs | `vendor-intelligence.ts` | 817, 833, 848, 863 | ✅ CLOSED (intentional ML placeholders) |
+| UI/PII stubs | `Employee.ts:38`, `page.tsx:313,891` | — | P0/P2 - MIXED |
+
+### Placeholders (TBD/CHANGEME)
+
+| Category | File | Line(s) | Status |
+|----------|------|---------|--------|
+| FM UI TBD labels | `page.tsx` | 113, 373, 266 | P3 - COSMETIC |
+| ICS fallback TBD | `ics-generator.ts` | 151 | P3 - LOW |
+| Route placeholder | `route.ts` | 167 | P3 - LOW |
+| Issue-tracker defaults | `issue-log.ts` | 225, 242, 272, 343, 518 | P3 - TOOLING |
+| Route placeholder | `route.ts` | 433 | P3 - LOW |
+| QA placeholder guards | `scanPlaceholders.mjs:3,13`, `i18n-en.unit.spec.ts:221` | — | ⚪ NON-ACTIONABLE |
+
+### Tests/QA TODOs
+
+| Category | File | Line(s) | Status |
+|----------|------|---------|--------|
+| Mock setup TODOs | `orders.route.test.ts` | 149, 177, 193, 209 | ✅ FIXED (PR #642) |
+| Mock setup TODOs | `issues-import.route.test.ts` | 195, 227, 238, 250 | ✅ FIXED (PR #642) |
+| Mock setup TODOs | `send.test.ts` | 163 | ✅ FIXED (PR #642) |
+| S3 cleanup testability | `patch.route.test.ts` | 275 | P3 - DEFERRED |
+| Deferred service imports | `seller-kyc-service.test.ts:28`, `inventory-service.test.ts:29`, `buybox-service.test.ts:29`, `auto-repricer-service.test.ts:29`, `account-health-service.test.ts:29` | — | P3 - BACKLOG |
+| Not-implemented handling | `loadRoute.ts:29,69`, `expectStatus.ts:80,83`, `finance-billing-flow.spec.ts:324`, `ProductsList.query.test.tsx:90`, `PropertiesList.query.test.tsx:94` | — | ⚪ INTENTIONAL (test utilities) |
+
+### Tooling/Meta References (Inflate Counts - Not Runtime)
+
+| Category | Files | Count | Status |
+|----------|-------|-------|--------|
+| Scan script references | `import-todo-scan.js` | 15 | ⚪ EXPECTED |
+| Analyzer/verification patterns | `analyze-system-errors.js`, `assess-system.ts`, `reality-check.js`, `phase1-truth-verifier.js` | 9 | ⚪ EXPECTED |
+| Verification scripts | `COMPLETE_FIXZIT_VERIFICATION.sh`, `complete-system-audit.js` | 11 | ⚪ EXPECTED |
+| Generated artifact | `codeMirrorModule-B9MwJ51G.js:13435` | 1 | ⚪ VENDOR |
+
+### Docs/Reports Snapshot
+
+Token hotspots remain in:
+- `PENDING_MASTER.md`
+- `SOUQ_IMPLEMENTATION_GAP_ANALYSIS.md`
+- `BACKLOG_AUDIT.json` (2 files)
+
+"Not implemented" count in docs: **191** (unchanged)
 
 ---
 
@@ -195,11 +281,12 @@ Issues to import: 17
 Summary: 11 created, 6 updated/exists, 0 errors
 ```
 
-### Scan Summary
-- **Total TODO/FIXME markers found:** 50+
-- **Runtime stubs (501/not implemented):** 15+
-- **Test TODOs (TG-005):** 10
-- **Placeholder tokens (TBD/CHANGEME):** 10
+### Scan Summary (Updated 2026-01-02T13:30+03:00)
+- **Total TODO/FIXME markers found:** 49 (↓ from 64)
+- **Runtime stubs (501/not implemented):** 64 (↑ from 58)
+- **Test TODOs (TG-005):** ✅ 35 FIXED (9 remaining deferred)
+- **Placeholder tokens (TBD/CHANGEME):** 42 (↑ from 28)
+- **Tooling/meta references:** ~36 (non-actionable)
 
 ---
 
