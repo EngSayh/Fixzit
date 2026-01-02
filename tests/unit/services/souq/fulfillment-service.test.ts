@@ -161,7 +161,8 @@ describe("fulfillmentService.assignFastBadges", () => {
     const result = await fulfillmentService.assignFastBadges(["L1", "L2"], "org-1");
 
     expect(result.eligible).toBe(1);
-    expect(result.updated).toBe(1);
+    // L1: add badge (qualifies), L2: remove badge (no longer qualifies) = 2 updates
+    expect(result.updated).toBe(2);
     expect(listings[0].badges).toContain("fast");
     expect(listings[1].badges).not.toContain("fast");
     expect(bulkWriteMock).toHaveBeenCalled();

@@ -96,7 +96,15 @@ const mapProperty = (doc: PropertyDocument) => {
   // Prefer flat fields, fall back to nested structure (REFAC-0003)
   const area = doc.area ?? doc.details?.totalArea ?? null;
   const floors = doc.floors ?? doc.details?.floors ?? null;
-  const leaseStatus = doc.lease_status ?? (doc.ownership?.lease?.endDate ? "Leased" : "Vacant");
+  
+  // Derive lease status: prefer flat field, else compute from nested lease dates
+  // FIX: Compare endDate with current date to correctly handle expired leases
+  const leaseStatus = doc.lease_status ?? (() => {
+    const endDate = doc.ownership?.lease?.endDate;
+    if (endDate && new Date(endDate) >= new Date()) return "Leased";
+    if (endDate && new Date(endDate) < new Date()) return "Expired";
+    return "Vacant";
+  })();
   
   return {
     id: doc._id.toString(),
