@@ -276,7 +276,8 @@ export function generateDeepLink(
     | "property"
     | "unit"
     | "tenant"
-    | "financial",
+    | "financial"
+    | "inspection", // FEAT-0031 [AGENT-001-A]
   id: string,
   subPath?: string,
 ): string {
@@ -291,6 +292,7 @@ export function generateDeepLink(
     unit: `${normalizedScheme}fm/units/${id}`,
     tenant: `${normalizedScheme}fm/tenants/${id}`,
     financial: `${normalizedScheme}financials/statements/property/${id}`,
+    inspection: `${normalizedScheme}fm/inspections/${id}`, // FEAT-0031 [AGENT-001-A]
   };
 
   const baseLink = deepLinkMap[type];
@@ -323,6 +325,11 @@ export function buildNotification(
     amount?: number;
     priority?: string;
     description?: string;
+    // FEAT-0031: Inspection context fields [AGENT-001-A]
+    inspectionId?: string;
+    inspectorName?: string;
+    scheduledDate?: string | Date;
+    findingsCount?: number;
   },
   recipients: NotificationRecipient[],
 ): NotificationPayload {
@@ -398,6 +405,57 @@ export function buildNotification(
       title = "Work Order Closed";
       body = `Work Order #${workOrderId} has been completed and closed`;
       deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "normal";
+      break;
+    }
+
+    // FEAT-0031: Inspection notification events [AGENT-001-A]
+    case "onInspectionScheduled": {
+      const inspectionId = requireContextValue(
+        context.inspectionId,
+        "inspectionId",
+        event,
+      );
+      title = "Inspection Scheduled";
+      const scheduledDate = context.scheduledDate
+        ? new Date(context.scheduledDate).toLocaleDateString("en-SA", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "soon";
+      body = `A property inspection has been scheduled for ${scheduledDate}. ${context.inspectorName ? `Inspector: ${context.inspectorName}` : ""}`;
+      deepLink = generateDeepLink("inspection", inspectionId);
+      priority = "high";
+      break;
+    }
+
+    case "onInspectionReminder": {
+      const inspectionId = requireContextValue(
+        context.inspectionId,
+        "inspectionId",
+        event,
+      );
+      title = "Inspection Reminder";
+      body = `Reminder: Property inspection is scheduled for tomorrow. Please ensure the property is accessible.`;
+      deepLink = generateDeepLink("inspection", inspectionId);
+      priority = "high";
+      break;
+    }
+
+    case "onInspectionCompleted": {
+      const inspectionId = requireContextValue(
+        context.inspectionId,
+        "inspectionId",
+        event,
+      );
+      title = "Inspection Completed";
+      const findingsCount = typeof context.findingsCount === "number" ? context.findingsCount : 0;
+      body = findingsCount > 0
+        ? `Property inspection completed with ${findingsCount} finding(s). Review the report for details.`
+        : `Property inspection completed successfully with no issues found.`;
+      deepLink = generateDeepLink("inspection", inspectionId);
       priority = "normal";
       break;
     }

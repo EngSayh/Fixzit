@@ -22,6 +22,7 @@ import {
   CheckCircle, XCircle, Download,
   Monitor, Smartphone, Tablet, MapPin, Activity,
 } from "@/components/ui/icons";
+import { toast } from "sonner";
 
 interface UserActivityLog {
   _id: string;
@@ -115,6 +116,9 @@ export default function SuperadminUserLogsPage() {
   const [selectedLog, setSelectedLog] = useState<UserActivityLog | null>(null);
   const [selectedSession, setSelectedSession] = useState<UserSession | null>(null);
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
+  
+  // FEAT-0032: Session termination state [AGENT-001-A]
+  const [terminateLoading, setTerminateLoading] = useState(false);
   
   // Export consent dialog state
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -447,6 +451,49 @@ export default function SuperadminUserLogsPage() {
   const handleViewSession = (session: UserSession) => {
     setSelectedSession(session);
     setSessionDialogOpen(true);
+  };
+
+  // FEAT-0032: Terminate session handler [AGENT-001-A]
+  const handleTerminateSession = async () => {
+    if (!selectedSession) return;
+    
+    if (!window.confirm(t("superadmin.userLogs.terminateConfirm", "Are you sure you want to terminate this session? The user will be logged out immediately."))) {
+      return;
+    }
+    
+    setTerminateLoading(true);
+    try {
+      const response = await fetch("/api/superadmin/sessions/terminate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          userId: selectedSession.userId,
+          sessionId: selectedSession._id,
+          sessionIp: selectedSession.ip,
+          reason: "manual",
+          notes: `Terminated by superadmin via user-logs page`,
+        }),
+      });
+      
+      if (response.ok) {
+        toast.success(t("superadmin.userLogs.terminateSuccess", "Session terminated successfully"));
+        // Update local state to reflect termination
+        setSessions(prev => prev.map(s => 
+          s._id === selectedSession._id 
+            ? { ...s, isActive: false, duration: Date.now() - new Date(s.startedAt).getTime() }
+            : s
+        ));
+        setSessionDialogOpen(false);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        toast.error(`${t("superadmin.userLogs.terminateFailed", "Failed to terminate session")}: ${errorData.error || response.statusText}`);
+      }
+    } catch (error) {
+      toast.error(`${t("superadmin.userLogs.terminateError", "Error terminating session")}: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setTerminateLoading(false);
+    }
   };
 
   // CSV escape helper to prevent injection and handle special characters
@@ -887,9 +934,19 @@ export default function SuperadminUserLogsPage() {
                   <div className="col-span-2"><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.duration", "Duration")}</p><p className="text-foreground">{formatDuration(selectedSession.duration)}</p></div>
                 )}
               </div>
+              {/* FEAT-0032: Session termination [AGENT-001-A] */}
               {selectedSession.isActive && (
-                <Button variant="destructive" className="w-full" disabled title={t("superadmin.userLogs.terminateNotImplemented", "Session termination not yet implemented")}>
-                  {t("superadmin.userLogs.terminateSession", "Terminate Session")}
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  onClick={handleTerminateSession}
+                  disabled={terminateLoading}
+                  aria-label={t("superadmin.userLogs.terminateSession", "Terminate Session")}
+                  title={t("superadmin.userLogs.terminateSessionHint", "Force logout this user session")}
+                >
+                  {terminateLoading 
+                    ? t("superadmin.userLogs.terminating", "Terminating...") 
+                    : t("superadmin.userLogs.terminateSession", "Terminate Session")}
                 </Button>
               )}
             </div>

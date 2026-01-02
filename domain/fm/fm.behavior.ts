@@ -1662,10 +1662,15 @@ export const NOTIFY = {
   ],
   onApproved: ["TECHNICIAN", "TENANT"],
   onClosed: ["TENANT", "PROPERTY_OWNER"],
+  // FEAT-0031: Inspection notification events [AGENT-001-A]
+  onInspectionScheduled: ["TENANT"],
+  onInspectionReminder: ["TENANT", "INSPECTOR"],
+  onInspectionCompleted: ["TENANT", "PROPERTY_OWNER"],
   channels: ["push", "email", "sms", "whatsapp"],
   deepLinks: {
     approval: "fixzit://approvals/quote/:quotationId",
     ownerStatement: "fixzit://financials/statements/property/:propertyId",
+    inspection: "fixzit://inspections/:inspectionId",
   },
 };
 
