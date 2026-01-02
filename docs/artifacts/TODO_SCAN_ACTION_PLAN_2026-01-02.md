@@ -93,7 +93,7 @@
 | CRM-TREND | Customer NPS trend calculation | crm | S | ✅ CLOSED |
 | - | Mock data replacement (FM Providers) | api | L | DEFERRED (8-16h) |
 | - | Comments API not implemented | ui | M | N/A (i18n placeholder) |
-| TG-005 | Test mock setup batch (8 files) | tests | L | |
+| TG-005 | Test mock setup batch (8 files) | tests | L | ✅ CLOSED |
 
 ---
 
