@@ -148,7 +148,39 @@ function parsePaginationParams(pageStr?: string, limitStr?: string): { page: num
   return { page, limit: Math.min(limit, 100) };
 }
 
+// Default org ID for API token access - checks multiple env vars for flexibility
+function resolveApiTokenOrgId(): string {
+  return (
+    process.env.SUPERADMIN_DEFAULT_ORG_ID?.trim() ||
+    process.env.SUPERADMIN_ORG_ID?.trim() ||
+    process.env.PUBLIC_ORG_ID?.trim() ||
+    process.env.DEFAULT_ORG_ID?.trim() ||
+    '68dc8955a1ba6ed80ff372dc' // Fallback to hardcoded org ID
+  );
+}
+
 async function resolveIssueSession(request: NextRequest) {
+  // Check for API token first (allows CLI access without session)
+  const issueApiToken = process.env.ISSUE_API_TOKEN?.trim();
+  if (issueApiToken) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (token && token === issueApiToken) {
+        return {
+          ok: true as const,
+          session: {
+            id: 'api-token',
+            role: "super_admin",
+            orgId: resolveApiTokenOrgId(),
+            email: 'api@fixzit.local',
+            isSuperAdmin: true,
+          },
+        };
+      }
+    }
+  }
+
   const superadmin = await getSuperadminSession(request);
   if (superadmin) {
     return {
