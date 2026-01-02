@@ -532,11 +532,15 @@ export async function getFinanceKPIs(
     return {
       totalRevenue: createKPIResult(totalRevenueValue, prevRevenueValue),
       outstandingReceivables: createKPIResult(receivablesResult[0]?.total || 0, 0, "lower_better"),
-      // TODO: cashFlow is a placeholder estimate (80% of revenue).
+      // TODO: [BI-KPI-001] cashFlow is a placeholder estimate (80% of revenue).
+      // SSOT: FEAT-BI-CASHFLOW-001 (P2 - BI Dashboard Real Metrics)
       // Replace with actual cash flow calculation from transactions collection.
+      // Implementation: Query payments collection for inflows/outflows by period
       cashFlow: createKPIResult(totalRevenueValue * 0.8, prevRevenueValue * 0.8),
-      // TODO: expenseRatio is hardcoded (35%).
+      // TODO: [BI-KPI-002] expenseRatio is hardcoded (35%).
+      // SSOT: FEAT-BI-EXPENSE-001 (P2 - BI Dashboard Real Metrics)
       // Replace with actual expense/revenue ratio from finance ledger.
+      // Implementation: Query expenses collection and divide by revenue
       expenseRatio: createKPIResult(35, 38, "lower_better", 30),
       revenuePerUnit: createKPIResult(
         unitCount > 0 ? totalRevenueValue / unitCount : 0,
@@ -650,9 +654,11 @@ export async function getOperationsKPIs(
       avgResolutionTime: createKPIResult(avgResolutionHours, 0, "lower_better", 24),
       slaCompliance: createKPIResult(slaCompliance, 0, "higher_better", 95),
       preventiveMaintenance: createKPIResult(preventiveRatio, 0, "higher_better", 30),
-      // TODO: firstTimeFixRate is hardcoded (85%).
+      // TODO: [BI-KPI-003] firstTimeFixRate is hardcoded (85%).
+      // SSOT: FEAT-BI-FTFR-001 (P2 - BI Dashboard Real Metrics)
       // Replace with actual calculation from work_orders collection:
-      // (work orders resolved on first visit / total work orders) * 100
+      // Implementation: (work orders resolved on first visit / total work orders) * 100
+      // Query: workorders where resolution_attempts = 1 / total workorders
       firstTimeFixRate: createKPIResult(85, 82, "higher_better", 90),
     };
   } catch (error) {
@@ -870,8 +876,10 @@ export async function getHRKPIs(
       attendanceRate: createKPIResult(attendanceRate, 0, "higher_better", 95),
       turnoverRate: createKPIResult(turnoverRate, 0, "lower_better", 10),
       avgTenure: createKPIResult(avgTenureYears, 0),
-      // TODO: trainingHours is hardcoded placeholder (40 hours).
+      // TODO: [BI-KPI-004] trainingHours is hardcoded placeholder (40 hours).
+      // SSOT: FEAT-BI-TRAINING-001 (P2 - BI Dashboard Real Metrics)
       // Replace with actual training hours from HR training module.
+      // Implementation: Query employee training records for total hours
       trainingHours: createKPIResult(40, 35),
       payrollCost: createKPIResult(payrollResult[0]?.total || 0, 0),
     };
