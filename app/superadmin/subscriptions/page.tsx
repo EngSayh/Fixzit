@@ -175,6 +175,23 @@ export default function SuperadminSubscriptionsPage() {
   const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<TenantSubscription | null>(null);
 
+  // FEAT-0029: Change Plan modal state
+  const [changePlanDialogOpen, setChangePlanDialogOpen] = useState(false);
+  const [changePlanForm, setChangePlanForm] = useState({
+    newTierId: "",
+    newBillingCycle: "" as "" | "monthly" | "annual",
+    immediate: false,
+  });
+  const [changePlanLoading, setChangePlanLoading] = useState(false);
+
+  // FEAT-0030: Cancel Subscription modal state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelForm, setCancelForm] = useState({
+    cancelAtPeriodEnd: true,
+    reason: "",
+  });
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   // Tier form state
   const [tierForm, setTierForm] = useState({
     name: "",
@@ -481,6 +498,101 @@ export default function SuperadminSubscriptionsPage() {
   const handleViewSubscription = (sub: TenantSubscription) => {
     setSelectedSubscription(sub);
     setSubscriptionDialogOpen(true);
+  };
+
+  // FEAT-0029: Open Change Plan modal
+  const handleOpenChangePlan = () => {
+    if (!selectedSubscription) return;
+    setChangePlanForm({
+      newTierId: selectedSubscription.tierId,
+      newBillingCycle: selectedSubscription.billingCycle as "monthly" | "annual",
+      immediate: false,
+    });
+    setChangePlanDialogOpen(true);
+  };
+
+  // FEAT-0029: Submit plan change
+  const handleChangePlan = async () => {
+    if (!selectedSubscription || !changePlanForm.newTierId) {
+      toast.error("Please select a new plan");
+      return;
+    }
+
+    setChangePlanLoading(true);
+    try {
+      const response = await fetch(`/api/superadmin/subscriptions/${selectedSubscription._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action: "change_plan",
+          newPriceBookId: changePlanForm.newTierId,
+          newBillingCycle: changePlanForm.newBillingCycle?.toUpperCase() || undefined,
+          immediate: changePlanForm.immediate,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message || "Plan changed successfully");
+        setChangePlanDialogOpen(false);
+        setSubscriptionDialogOpen(false);
+        fetchSubscriptions();
+        fetchStats();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        toast.error(`Failed to change plan: ${errorData.error || response.statusText}`);
+      }
+    } catch (error) {
+      toast.error(`Error changing plan: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setChangePlanLoading(false);
+    }
+  };
+
+  // FEAT-0030: Open Cancel modal
+  const handleOpenCancel = () => {
+    if (!selectedSubscription) return;
+    setCancelForm({
+      cancelAtPeriodEnd: true,
+      reason: "",
+    });
+    setCancelDialogOpen(true);
+  };
+
+  // FEAT-0030: Submit cancellation
+  const handleCancelSubscription = async () => {
+    if (!selectedSubscription) return;
+
+    setCancelLoading(true);
+    try {
+      const response = await fetch(`/api/superadmin/subscriptions/${selectedSubscription._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action: "cancel",
+          cancelAtPeriodEnd: cancelForm.cancelAtPeriodEnd,
+          reason: cancelForm.reason || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message || "Subscription canceled successfully");
+        setCancelDialogOpen(false);
+        setSubscriptionDialogOpen(false);
+        fetchSubscriptions();
+        fetchStats();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        toast.error(`Failed to cancel subscription: ${errorData.error || response.statusText}`);
+      }
+    } catch (error) {
+      toast.error(`Error canceling subscription: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   return (
@@ -813,12 +925,28 @@ export default function SuperadminSubscriptionsPage() {
                 )}
               </div>
               <div className="flex gap-2 pt-4">
-                {/* TODO: FIXZIT-SUB-001 - Implement plan change modal/flow */}
-                <Button variant="outline" className="flex-1" disabled title="Plan change flow not yet implemented">
+                {/* FEAT-0029: Plan change flow implemented */}
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={handleOpenChangePlan}
+                  disabled={selectedSubscription.status === "cancelled"}
+                  title={selectedSubscription.status === "cancelled" ? "Cannot change plan for cancelled subscription" : "Change subscription plan"}
+                  aria-label="Change subscription plan"
+                >
+                  <Edit className="h-4 w-4 me-2" />
                   Change Plan
                 </Button>
-                {/* TODO: FIXZIT-SUB-002 - Implement subscription cancellation flow */}
-                <Button variant="outline" className="flex-1" disabled title="Cancellation flow not yet implemented">
+                {/* FEAT-0030: Subscription cancellation flow implemented */}
+                <Button 
+                  variant="outline" 
+                  className="flex-1 text-destructive hover:text-destructive" 
+                  onClick={handleOpenCancel}
+                  disabled={selectedSubscription.status === "cancelled"}
+                  title={selectedSubscription.status === "cancelled" ? "Subscription already cancelled" : "Cancel subscription"}
+                  aria-label="Cancel subscription"
+                >
+                  <X className="h-4 w-4 me-2" />
                   Cancel Subscription
                 </Button>
               </div>
@@ -827,6 +955,128 @@ export default function SuperadminSubscriptionsPage() {
           <DialogFooter><Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)} aria-label={t("common.close", "Close subscription details")} title={t("common.close", "Close subscription details")}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* FEAT-0029: Change Plan Modal */}
+      <Dialog open={changePlanDialogOpen} onOpenChange={setChangePlanDialogOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Change Subscription Plan</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Select a new plan for {selectedSubscription?.tenantName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newTier">New Plan</Label>
+              <Select
+                value={changePlanForm.newTierId}
+                onValueChange={(value) => setChangePlanForm({ ...changePlanForm, newTierId: value })}
+              >
+                <SelectTrigger className="bg-muted border-input">
+                  <span>{tiers.find(t => t._id === changePlanForm.newTierId)?.displayName || "Select a plan"}</span>
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {tiers.filter(t => t.isActive).map((tier) => (
+                    <SelectItem key={tier._id} value={tier._id}>
+                      {tier.displayName} - {formatCurrency(changePlanForm.newBillingCycle === "annual" ? tier.annualPrice : tier.monthlyPrice, tier.currency)}/{changePlanForm.newBillingCycle === "annual" ? "year" : "month"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billingCycle">Billing Cycle</Label>
+              <Select
+                value={changePlanForm.newBillingCycle}
+                onValueChange={(value) => setChangePlanForm({ ...changePlanForm, newBillingCycle: value as "monthly" | "annual" })}
+              >
+                <SelectTrigger className="bg-muted border-input">
+                  <span className="capitalize">{changePlanForm.newBillingCycle || "Keep current"}</span>
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="annual">Annual (Save 2 months)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch 
+                checked={changePlanForm.immediate} 
+                onCheckedChange={(v) => setChangePlanForm({ ...changePlanForm, immediate: v })} 
+              />
+              <Label>Apply immediately (proration may apply)</Label>
+            </div>
+            {!changePlanForm.immediate && (
+              <p className="text-sm text-muted-foreground">
+                Plan change will take effect at the end of the current billing period.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangePlanDialogOpen(false)} disabled={changePlanLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangePlan} disabled={changePlanLoading || !changePlanForm.newTierId}>
+              {changePlanLoading ? "Changing..." : "Change Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* FEAT-0030: Cancel Subscription Modal */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Cancel Subscription</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to cancel the subscription for {selectedSubscription?.tenantName}?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2">
+              <Switch 
+                checked={cancelForm.cancelAtPeriodEnd} 
+                onCheckedChange={(v) => setCancelForm({ ...cancelForm, cancelAtPeriodEnd: v })} 
+              />
+              <Label>Cancel at end of billing period</Label>
+            </div>
+            {cancelForm.cancelAtPeriodEnd ? (
+              <p className="text-sm text-muted-foreground">
+                The subscription will remain active until the end of the current billing period, 
+                then it will be cancelled. No refund will be issued.
+              </p>
+            ) : (
+              <p className="text-sm text-destructive">
+                The subscription will be cancelled immediately. The tenant will lose access to 
+                premium features right away. Consider issuing a prorated refund if applicable.
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="cancelReason">Reason (optional)</Label>
+              <Textarea
+                id="cancelReason"
+                placeholder="Enter reason for cancellation..."
+                value={cancelForm.reason}
+                onChange={(e) => setCancelForm({ ...cancelForm, reason: e.target.value })}
+                className="bg-muted border-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)} disabled={cancelLoading}>
+              Keep Subscription
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelSubscription} 
+              disabled={cancelLoading}
+            >
+              {cancelLoading ? "Cancelling..." : "Cancel Subscription"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

@@ -82,18 +82,41 @@
 
 ## P2 Medium Priority Issues (11 New)
 
-| Issue ID | Title | Module | Effort |
-|----------|-------|--------|--------|
-| FEAT-0029 | Subscription plan change flow (FIXZIT-SUB-001) | billing | L |
-| FEAT-0030 | Subscription cancellation flow (FIXZIT-SUB-002) | billing | M |
-| FEAT-0031 | Inspection tenant notification | fm | S |
-| FEAT-0032 | Session termination | auth | M |
-| FEAT-0033 | MFA approval system integration | auth | M |
-| - | BI Dashboard hardcoded KPIs | reports | M |
-| - | Customer trend calculation | crm | M |
-| - | Mock data replacement | api | S |
-| - | Comments API not implemented | ui | M |
-| TG-005 | Test mock setup batch (8 files) | tests | L |
+| Issue ID | Title | Module | Effort | Status |
+|----------|-------|--------|--------|--------|
+| FEAT-0029 | Subscription plan change flow (FIXZIT-SUB-001) | billing | L | ✅ CLOSED |
+| FEAT-0030 | Subscription cancellation flow (FIXZIT-SUB-002) | billing | M | ✅ CLOSED |
+| FEAT-0031 | Inspection tenant notification | fm | S | |
+| FEAT-0032 | Session termination | auth | M | |
+| FEAT-0033 | MFA approval system integration | auth | M | |
+| - | BI Dashboard hardcoded KPIs | reports | M | |
+| - | Customer trend calculation | crm | M | |
+| - | Mock data replacement | api | S | |
+| - | Comments API not implemented | ui | M | |
+| TG-005 | Test mock setup batch (8 files) | tests | L | |
+
+### FEAT-0029: Subscription Plan Change ✅ CLOSED
+- **Module:** billing  
+- **Files:**
+  - `server/services/subscriptionBillingService.ts` - Added `changePlan()` function
+  - `app/api/superadmin/subscriptions/[id]/route.ts` - New PATCH endpoint
+  - `app/superadmin/subscriptions/page.tsx` - Change Plan modal UI
+- **Status:** CLOSED - [AGENT-001-A]
+- **Implemented:**
+  - `changePlan(subscriptionId, newPriceBookId, options)` - Full plan change with proration logic
+  - PATCH `/api/superadmin/subscriptions/[id]` with `action: "change_plan"`
+  - UI modal with tier selection, billing cycle change, immediate/scheduled options
+
+### FEAT-0030: Subscription Cancellation ✅ CLOSED
+- **Module:** billing
+- **Files:**
+  - `app/api/superadmin/subscriptions/[id]/route.ts` - PATCH endpoint
+  - `app/superadmin/subscriptions/page.tsx` - Cancel Subscription modal UI
+- **Status:** CLOSED - [AGENT-001-A]
+- **Implemented:**
+  - PATCH `/api/superadmin/subscriptions/[id]` with `action: "cancel"`
+  - UI modal with cancel at period end or immediate cancellation
+  - Reason field for audit trail
 
 ---
 
@@ -124,10 +147,14 @@
 5. **FEAT-0027** - Fraud detection ✅ IMPLEMENTED (PR #640)
 6. **FEAT-0028** - Ejar integration ✅ IMPLEMENTED (PR #640)
 
-### Sprint 3
-7. **FEAT-0027** - Fraud detection (ML work)
-8. **FEAT-0028** - Ejar integration
-9. **SADAD/SPAN** - Payment rails
+### Sprint 3 (P2 Subscription Flows) ✅ COMPLETE
+7. **FEAT-0029** - Subscription plan change ✅ IMPLEMENTED
+8. **FEAT-0030** - Subscription cancellation ✅ IMPLEMENTED
+
+### Sprint 4 (Next)
+9. **FEAT-0031** - Inspection tenant notification
+10. **FEAT-0032** - Session termination
+11. **FEAT-0033** - MFA approval system integration
 
 ### Backlog (Prioritized)
 - Subscription flows
