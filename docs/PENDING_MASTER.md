@@ -19,6 +19,48 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-02 16:55 (Asia/Riyadh) — PR Merge Strategy [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** 4 PRs open, establishing merge order to unblock CI
+
+#### 🎯 Merge Strategy (Critical Path)
+
+```
+PR #648 (lint fix) ──▶ main ──▶ Rebase #647, #641, #640 ──▶ Re-run CI ──▶ Merge
+```
+
+| Step | PR | Action | Reason |
+|------|-----|--------|--------|
+| 1️⃣ | **#648** | Merge to main | Adds ESLint exemptions, unblocks all PRs |
+| 2️⃣ | **#647** | Rebase on main, re-run CI | BI-DATA fix, needs lint exemptions from #648 |
+| 3️⃣ | **#641** | Rebase on main, re-run CI | P2 Sprint features |
+| 4️⃣ | **#640** | Rebase on main, re-run CI | P1 Compliance fixes |
+
+#### 📊 Current PR Status
+
+| PR | Title | CI Summary |
+|----|-------|------------|
+| **#648** 🔥 | `fix(lint): superadmin exemptions` | 🔄 33 pending, 4 passed, 1 fail (CodeRabbit rate limit) |
+| **#647** | `fix(bi): BI-DATA schema` | ❌ Lint failure (will pass after #648) |
+| **#641** | `feat: P2 subscriptions` | ❌ Lint failure (will pass after #648) |
+| **#640** | `feat: P1 compliance` | ❌ Lint failure (will pass after #648) |
+
+#### ⚡ User Actions Required
+
+Once PR #648 CI passes:
+```bash
+# 1. Merge lint fix to main
+gh pr merge 648 --squash --delete-branch
+
+# 2. Rebase other PRs on main
+git checkout fix/bi-data-schema-mismatch && git rebase origin/main && git push --force-with-lease
+git checkout feat/p2-subscription-flows && git rebase origin/main && git push --force-with-lease
+git checkout feat/p1-compliance-fixes-sprint1 && git rebase origin/main && git push --force-with-lease
+```
+
+---
+
 ### 2026-01-14 16:15 (Asia/Riyadh) — TODO Scan Analysis & Action Plan [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
