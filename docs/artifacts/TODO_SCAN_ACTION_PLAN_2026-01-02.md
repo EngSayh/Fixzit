@@ -118,8 +118,8 @@
 | - | Vitest multi-project migration | tests | M | NON-ACTIONABLE (upstream) |
 | - | Ticketing system integration | support | M | ✅ DONE (commit a64565915) |
 | - | Superadmin notification badge | ui | S | ✅ DONE (commit 8d6d37029) |
-| - | BLOCKED: Souq Orders mismatch (TODO-001) | souq | M | BLOCKED |
-| ARCH-001 | Marketplace → Souq consolidation | souq | L | DOCUMENTED (see below) |
+| - | BLOCKED: Souq Orders mismatch (TODO-001) | souq | M | ✅ CLOSED (design intentional) |
+| ARCH-001 | Marketplace → Souq consolidation | souq | L | ✅ CLOSED (keep separate) |
 
 ---
 
@@ -133,15 +133,28 @@
 | **Aqar** | Real Estate & Property Listings | `app/api/aqar/` | `server/models/aqar/` |
 | **Souq** | Materials Marketplace (Amazon-style) | `app/api/souq/` | `server/models/souq/` |
 
-### Legacy Code: `marketplace/` → To be consolidated into `souq/`
+### Legacy Code: `marketplace/` (B2B Procurement) - KEEP SEPARATE
 
-| Path | Status | Recommendation |
-|------|--------|----------------|
-| `app/api/marketplace/` | Legacy B2B | Consolidate into `souq/` |
-| `server/models/marketplace/` | 5 models | Merge with `souq/` models |
-| `lib/marketplace/` | Shared utilities | Keep (used by both) |
+| Path | Purpose | Decision |
+|------|---------|----------|
+| `app/api/marketplace/` | B2B internal procurement | ✅ KEEP (different domain) |
+| `server/models/marketplace/` | 5 models (Order, Product, etc.) | ✅ KEEP (work order linked) |
+| `lib/marketplace/` | Shared utilities | ✅ KEEP |
 
-**Decision:** Option A - Consolidate into Souq (L effort, tracked as ARCH-001)
+**Investigation Result (2026-01-02 19:45):**
+
+The `marketplace/` and `souq/` modules serve **different business domains**:
+
+| Aspect | Marketplace (B2B) | Souq (B2C/B2B) |
+|--------|-------------------|----------------|
+| **Collection** | `orders` | `souq_orders` |
+| **Customer** | Internal employees | External customers |
+| **Payment** | Invoice/PO | Escrow/Card |
+| **Seller** | Single vendor | Multi-seller |
+| **Work Order Link** | Yes | No |
+| **Claims System** | None | A-to-Z Claims |
+
+**Recommendation:** Rename `marketplace/` → `procurement/` for clarity (optional)
 
 ---
 

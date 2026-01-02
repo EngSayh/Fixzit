@@ -19,6 +19,185 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-02 19:45 (Asia/Riyadh) — TODO-001 + ARCH-001 Deep Investigation [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** fix/tg-005-test-mocks | Deep dive into orders architecture + marketplace/souq consolidation
+
+---
+
+## 🔍 TODO-001: Orders vs Souq_Orders Investigation
+
+### Executive Summary
+
+The dual-collection design is **INTENTIONAL** and represents two distinct business domains:
+
+| Collection | MongoDB Name | Module | Purpose | Model |
+|------------|--------------|--------|---------|-------|
+| **orders** | `orders` | **Marketplace** (B2B Procurement) | Internal FM work order-linked purchases | `server/models/marketplace/Order.ts` |
+| **souq_orders** | `souq_orders` | **Souq** (B2C/B2B e-Commerce) | External marketplace orders with escrow | `server/models/souq/Order.ts` |
+
+### Detailed Comparison
+
+#### 1. `orders` Collection (Marketplace Module)
+
+**Purpose:** B2B internal procurement for FM work orders
+
+**API Path:** `/api/marketplace/orders`
+
+**Key Features:**
+- Links to FM Work Orders (`source.workOrderId`)
+- Corporate buyer approval workflow (`approvals.required`)
+- Simple cart-to-order flow (CART → PENDING → CONFIRMED → DELIVERED)
+- Vendor-based (single vendor per order)
+- No escrow (internal/trusted transactions)
+
+**Schema Highlights:**
+```typescript
+// server/models/marketplace/Order.ts
+{
+  orgId: ObjectId,        // Tenant isolation
+  buyerUserId: ObjectId,  // Internal user
+  vendorId: ObjectId,     // Single vendor
+  source: {
+    workOrderId: ObjectId // Links to FM work order
+  },
+  approvals: {
+    required: boolean,    // Manager approval for large orders
+    status: "PENDING" | "APPROVED" | "REJECTED"
+  },
+  collection: "orders"    // Uses COLLECTIONS.ORDERS
+}
+```
+
+**Use Case:** Technician needs parts for work order WO-1234, creates procurement order through internal marketplace, manager approves, vendor fulfills.
+
+---
+
+#### 2. `souq_orders` Collection (Souq Module)
+
+**Purpose:** External e-commerce marketplace (Amazon-style)
+
+**API Path:** `/api/souq/orders`
+
+**Key Features:**
+- Multi-seller support (items from different sellers in one order)
+- Escrow payment protection (`escrowAccountId`, `escrowState`)
+- Complex order lifecycle with claims/RMA
+- Split payment allocation per seller
+- External customer emails/phones
+- Shipping carrier tracking
+
+**Schema Highlights:**
+```typescript
+// server/models/souq/Order.ts
+{
+  orderId: string,              // External order ID (ORD-XXXXXX)
+  orgId?: ObjectId,             // Optional (can be platform-wide)
+  customerId: ObjectId,         // External customer
+  customerEmail: string,        // External contact
+  customerPhone: string,
+  items: [{
+    sellerId: ObjectId,         // Multi-seller support
+    fsin: string,               // Product identifier
+    fulfillmentMethod: "fbf" | "fbm" // Fulfillment by Fixzit or Merchant
+  }],
+  escrowAccountId: ObjectId,    // Buyer protection
+  escrowState: "HELD" | "RELEASED" | "REFUNDED",
+  collection: "souq_orders"     // Uses COLLECTIONS.SOUQ_ORDERS
+}
+```
+
+**Use Case:** Customer buys drill bits from Seller A and safety goggles from Seller B, payment held in escrow, released to sellers after delivery confirmation.
+
+---
+
+### Architecture Decision
+
+**Recommendation:** ✅ **KEEP SEPARATE** - This is correct domain-driven design
+
+| Aspect | Marketplace (`orders`) | Souq (`souq_orders`) |
+|--------|------------------------|----------------------|
+| **Customer Type** | Internal employees | External customers |
+| **Payment Model** | Invoice/PO | Escrow/Immediate |
+| **Seller Model** | Single vendor | Multi-seller |
+| **Approval Flow** | Manager approval | None (auto-confirm) |
+| **Dispute Model** | Internal | A-to-Z Claims |
+| **Work Order Link** | Yes | No |
+
+**Status:** ✅ **CLOSED** - Design is intentional, not a mismatch
+
+---
+
+## 🔍 ARCH-001: Marketplace → Souq Consolidation Analysis
+
+### Current State
+
+#### Marketplace Module (`/api/marketplace/`)
+| Route | Purpose | Model Used |
+|-------|---------|------------|
+| `/cart` | Shopping cart | `marketplace/Order` (CART status) |
+| `/checkout` | Convert cart to order | `marketplace/Order` |
+| `/orders` | List user orders | `marketplace/Order` |
+| `/products` | Browse products | `marketplace/Product` |
+| `/products/[slug]` | Product detail | `marketplace/Product` |
+| `/categories` | Product categories | `marketplace/Category` |
+| `/rfq` | Request for quotation | `marketplace/RFQ` |
+| `/search` | Search products | `marketplace/Product` |
+| `/vendor/products` | Vendor product mgmt | `marketplace/Product` |
+
+**Total: 9 API routes, 5 models**
+
+#### Souq Module (`/api/souq/`)
+**Total: 75+ API routes, 23 models**
+
+Includes: orders, sellers, listings, products, claims, returns, settlements, advertising, analytics, reviews, fulfillment, inventory, etc.
+
+### Consolidation Assessment
+
+**Question:** Should `/api/marketplace/` be merged into `/api/souq/`?
+
+**Answer:** ⚠️ **NO - They serve different purposes**
+
+| Marketplace | Souq |
+|-------------|------|
+| B2B procurement (internal) | B2C/B2B e-commerce (external) |
+| Work order linked | Standalone shopping |
+| Single vendor orders | Multi-seller marketplace |
+| Corporate approval flows | Consumer checkout |
+| Invoice/PO payment | Escrow/Card payment |
+
+### Recommendation
+
+**ARCH-001 Status:** 📋 **KEEP SEPARATE - Rename for clarity**
+
+Instead of consolidation, recommend:
+1. **Rename** `marketplace/` → `procurement/` (clearer B2B intent)
+2. **Document** the distinction in ADR (Architecture Decision Record)
+3. **No code migration** - current separation is correct
+
+**Effort Saved:** ~20 hours (no migration needed)
+
+---
+
+### Files Analyzed
+| File | Lines | Key Finding |
+|------|-------|-------------|
+| `lib/db/collection-names.ts` | 124 | `ORDERS` vs `SOUQ_ORDERS` defined |
+| `server/models/marketplace/Order.ts` | 198 | B2B procurement model |
+| `server/models/souq/Order.ts` | 447 | E-commerce order model |
+| `server/models/souq/Claim.ts` | 570 | A-to-Z buyer protection |
+| `app/api/marketplace/orders/route.ts` | 98 | B2B order list |
+| `app/api/souq/orders/route.ts` | 596 | E-commerce order CRUD |
+
+### Verification
+- [x] Code analysis complete
+- [x] Schema comparison documented
+- [x] Business domain distinction verified
+- [x] Recommendation provided
+
+---
+
 ### 2026-01-02 18:50 (Asia/Riyadh) — FEAT-0036 Verification + Module Architecture [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
