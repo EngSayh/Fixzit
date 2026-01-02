@@ -7,12 +7,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Search,
@@ -111,12 +111,11 @@ export function FmVendorsList({
   const [statusFilter, setStatusFilter] = useState("");
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
+  const limit = 20;
 
   // Fetch vendors with pagination
   const vendorsUrl = orgId
-    ? `/api/vendors?page=${page}&limit=${pageSize}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""}${statusFilter ? `&status=${statusFilter}` : ""}`
+    ? `/api/vendors?page=${page}&limit=${limit}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""}${statusFilter ? `&status=${statusFilter}` : ""}`
     : null;
 
   const {
@@ -359,6 +358,7 @@ export function FmVendorsList({
               e.stopPropagation();
               handleRowClick(row);
             }}
+            aria-label={t("vendors.viewVendor.ariaLabel", "View vendor details")}
           >
             <Eye className="w-4 h-4" />
           </Button>
@@ -369,6 +369,7 @@ export function FmVendorsList({
               e.stopPropagation();
               handleEditClick(row);
             }}
+            aria-label={t("vendors.editVendor.ariaLabel", "Edit vendor")}
           >
             <Edit className="w-4 h-4" />
           </Button>
@@ -380,6 +381,7 @@ export function FmVendorsList({
               e.stopPropagation();
               handleDelete(row);
             }}
+            aria-label={t("vendors.deleteVendor.ariaLabel", "Delete vendor")}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -414,7 +416,7 @@ export function FmVendorsList({
               {t("vendors.description", "Manage your vendor relationships and service providers")}
             </p>
           </div>
-          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90">
+          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90" aria-label={t("vendors.addVendor.ariaLabel", "Add a new vendor")} title={t("vendors.addVendor", "Add Vendor")}>
             <Plus className="w-4 h-4 me-2" />
             {t("vendors.addVendor", "Add Vendor")}
           </Button>
@@ -443,6 +445,7 @@ export function FmVendorsList({
               variant="outline"
               size="sm"
               onClick={() => setFilterDrawerOpen(true)}
+              aria-label={t("common.openFilters", "Open filter options")}
             >
               <Filter className="h-4 w-4 me-2" />
               {t("common.filters", "Filters")}
@@ -452,7 +455,7 @@ export function FmVendorsList({
                 </Badge>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={exportVendorsCsv}>
+            <Button variant="outline" size="sm" onClick={exportVendorsCsv} aria-label={t("common.exportCsv", "Export vendors to CSV file")}>
               <Download className="h-4 w-4 me-2" />
               {t("common.export", "Export")}
             </Button>
@@ -480,7 +483,7 @@ export function FmVendorsList({
           <p className="text-muted-foreground mb-4">
             {t("vendors.empty.description", "No vendors match your search criteria")}
           </p>
-          <Button onClick={handleAddClick}>
+          <Button onClick={handleAddClick} aria-label={t("vendors.empty.cta.ariaLabel", "Add your first vendor")}>
             {t("vendors.empty.cta", "Add First Vendor")}
           </Button>
         </div>
@@ -495,26 +498,28 @@ export function FmVendorsList({
           />
 
           {/* Pagination */}
-          {totalPages >= 1 && (
-            <div className="mt-6 border rounded-lg border-border bg-card">
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                totalItems={vendorsData?.total || 0}
-                itemsPerPage={pageSize}
-                showingAll={showingAll}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  if (size === "all") {
-                    setShowingAll(true);
-                    setPageSize(vendorsData?.total || 100);
-                  } else {
-                    setShowingAll(false);
-                    setPageSize(size);
-                  }
-                  setPage(1);
-                }}
-              />
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center mt-6">
+              <Button
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                aria-label={t("common.previous.ariaLabel", "Go to previous page")}
+              >
+                {t("common.previous", "Previous")}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {t("common.pageOf", "Page {{page}} of {{total}}", { page, total: totalPages })} (
+                {vendorsData?.total || 0} {t("vendors.totalVendors", "total vendors")})
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                aria-label={t("common.next.ariaLabel", "Go to next page")}
+              >
+                {t("common.next", "Next")}
+              </Button>
             </div>
           )}
         </>
@@ -531,8 +536,9 @@ export function FmVendorsList({
             <label className="block text-sm font-medium mb-2">
               {t("vendor.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("common.all", "All Status")}>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
+                <SelectValue placeholder={t("common.all", "All Status")} />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (
@@ -544,10 +550,10 @@ export function FmVendorsList({
             </Select>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1">
+            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1" aria-label={t("common.clearFilters.ariaLabel", "Clear all filters")}>
               {t("common.clearFilters", "Clear Filters")}
             </Button>
-            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1">
+            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1" aria-label={t("common.apply.ariaLabel", "Apply filters and close")}>
               {t("common.apply", "Apply")}
             </Button>
           </div>

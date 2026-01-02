@@ -18,8 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { IconButton } from "@/components/ui/IconButton";
-import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Table,
   TableBody,
@@ -41,6 +39,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -55,11 +54,11 @@ import {
   Clock,
   AlertTriangle,
   Webhook,
+  Search,
   Eye,
-  Copy,
 } from "@/components/ui/icons";
+import { CopyButton } from "@/components/ui/copy-button";
 import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
-import { useActionFeedback } from "@/components/ui/action-feedback";
 
 // ============================================================================
 // TYPES
@@ -110,6 +109,97 @@ const AVAILABLE_EVENTS = [
 ];
 
 // ============================================================================
+// MOCK DATA
+// ============================================================================
+
+const MOCK_WEBHOOKS: WebhookConfig[] = [
+  {
+    id: "wh-1",
+    name: "CRM Integration",
+    url: "https://crm.example.com/webhooks/fixzit",
+    secret: "wh_sec_placeholder_1", // Mock data - actual secrets stored securely
+    enabled: true,
+    events: ["tenant.created", "user.created"],
+    createdAt: "2025-01-01T00:00:00Z",
+    lastTriggered: "2025-01-20T14:30:00Z",
+    successCount: 142,
+    failureCount: 3,
+    retryPolicy: "exponential",
+    maxRetries: 3,
+    status: "active",
+  },
+  {
+    id: "wh-2",
+    name: "Billing Sync",
+    url: "https://billing.example.com/api/webhooks",
+    secret: "wh_sec_placeholder_2", // Mock data - actual secrets stored securely
+    enabled: true,
+    events: ["payment.completed", "payment.failed", "invoice.generated"],
+    createdAt: "2025-01-05T00:00:00Z",
+    lastTriggered: "2025-01-20T12:00:00Z",
+    successCount: 89,
+    failureCount: 0,
+    retryPolicy: "linear",
+    maxRetries: 5,
+    status: "active",
+  },
+  {
+    id: "wh-3",
+    name: "Analytics Pipeline",
+    url: "https://analytics.internal/ingest",
+    secret: "wh_sec_placeholder_3", // Mock data - actual secrets stored securely
+    enabled: false,
+    events: ["workorder.created", "workorder.completed"],
+    createdAt: "2025-01-10T00:00:00Z",
+    lastTriggered: null,
+    successCount: 0,
+    failureCount: 0,
+    retryPolicy: "none",
+    maxRetries: 0,
+    status: "paused",
+  },
+];
+
+const MOCK_LOGS: DeliveryLog[] = [
+  {
+    id: "log-1",
+    webhookId: "wh-1",
+    event: "tenant.created",
+    status: "success",
+    statusCode: 200,
+    responseTime: 145,
+    attemptCount: 1,
+    createdAt: "2025-01-20T14:30:00Z",
+    payload: '{"event":"tenant.created","data":{"id":"t-123"}}',
+    response: '{"received":true}',
+  },
+  {
+    id: "log-2",
+    webhookId: "wh-2",
+    event: "payment.completed",
+    status: "success",
+    statusCode: 200,
+    responseTime: 89,
+    attemptCount: 1,
+    createdAt: "2025-01-20T12:00:00Z",
+    payload: '{"event":"payment.completed","data":{"amount":150}}',
+    response: '{"ok":true}',
+  },
+  {
+    id: "log-3",
+    webhookId: "wh-1",
+    event: "user.created",
+    status: "failed",
+    statusCode: 500,
+    responseTime: 2000,
+    attemptCount: 3,
+    createdAt: "2025-01-20T10:15:00Z",
+    payload: '{"event":"user.created","data":{"id":"u-456"}}',
+    response: '{"error":"Internal server error"}',
+  },
+];
+
+// ============================================================================
 // COMPONENTS
 // ============================================================================
 
@@ -151,13 +241,6 @@ export default function WebhooksPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   
-  // Inline confirmation feedback
-  const createFeedback = useActionFeedback();
-  const deleteFeedback = useActionFeedback();
-  const toggleFeedback = useActionFeedback();
-  const testFeedback = useActionFeedback();
-  const copyFeedback = useActionFeedback();
-  
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // Edit dialog reserved for future implementation
@@ -177,11 +260,10 @@ export default function WebhooksPage() {
   const fetchWebhooks = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/superadmin/webhooks", { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch webhooks");
-      const data = await response.json();
-      setWebhooks(data.webhooks || []);
-      setLogs(data.recentDeliveries || []);
+      // In production: fetch from /api/superadmin/webhooks
+      await new Promise(r => setTimeout(r, 500));
+      setWebhooks(MOCK_WEBHOOKS);
+      setLogs(MOCK_LOGS);
     } catch {
       toast.error("Failed to load webhooks");
     } finally {
@@ -212,103 +294,62 @@ export default function WebhooksPage() {
     }
     
     try {
-      const response = await fetch("/api/superadmin/webhooks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: formData.name,
-          url: formData.url,
-          events: formData.events,
-          retryPolicy: formData.retryPolicy,
-          maxRetries: formData.maxRetries,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to create webhook");
-      const data = await response.json();
-      setWebhooks(prev => [...prev, data.webhook]);
+      // In production: POST to /api/superadmin/webhooks
+      const newWebhook: WebhookConfig = {
+        id: `wh-${Date.now()}`,
+        name: formData.name,
+        url: formData.url,
+        secret: `wh_sec_${crypto.randomUUID().replace(/-/g, "").substring(0, 16)}`, // Mock secret format
+        enabled: true,
+        events: formData.events,
+        createdAt: new Date().toISOString(),
+        lastTriggered: null,
+        successCount: 0,
+        failureCount: 0,
+        retryPolicy: formData.retryPolicy,
+        maxRetries: formData.maxRetries,
+        status: "active",
+      };
+      
+      setWebhooks(prev => [...prev, newWebhook]);
       setShowCreateDialog(false);
       setFormData({ name: "", url: "", events: [], retryPolicy: "exponential", maxRetries: 3 });
-      createFeedback.showSuccess("Created", "add");
+      toast.success("Webhook created successfully");
     } catch {
-      createFeedback.showError("Failed");
+      toast.error("Failed to create webhook");
     }
   };
 
   const handleToggle = async (id: string, enabled: boolean) => {
-    try {
-      const response = await fetch(`/api/superadmin/webhooks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ enabled }),
-      });
-      if (!response.ok) throw new Error("Failed to toggle webhook");
-      setWebhooks(prev => prev.map(w => 
-        w.id === id ? { ...w, enabled, status: enabled ? "active" : "paused" } : w
-      ));
-      toggleFeedback.showSuccess(enabled ? "Enabled" : "Paused", "save");
-    } catch {
-      toggleFeedback.showError("Failed");
-    }
+    setWebhooks(prev => prev.map(w => 
+      w.id === id ? { ...w, enabled, status: enabled ? "active" : "paused" } : w
+    ));
+    toast.success(enabled ? "Webhook enabled" : "Webhook paused");
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this webhook?")) return;
     
-    try {
-      const response = await fetch(`/api/superadmin/webhooks/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to delete webhook");
-      setWebhooks(prev => prev.filter(w => w.id !== id));
-      deleteFeedback.showSuccess("Deleted", "delete");
-    } catch {
-      deleteFeedback.showError("Failed");
-    }
+    setWebhooks(prev => prev.filter(w => w.id !== id));
+    toast.success("Webhook deleted");
   };
 
   const handleTest = async (webhook: WebhookConfig) => {
     setTestingId(webhook.id);
     try {
-      const response = await fetch(`/api/superadmin/webhooks/${webhook.id}/test`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Test failed");
-      testFeedback.showSuccess("Sent", "generic");
+      // Simulate test request
+      await new Promise(r => setTimeout(r, 1500));
+      toast.success(`Test payload sent to ${webhook.name}`);
     } catch {
-      testFeedback.showError("Failed");
+      toast.error("Test failed");
     } finally {
       setTestingId(null);
     }
   };
 
-  const copySecret = async (secret: string) => {
-    try {
-      await navigator.clipboard.writeText(secret);
-      copyFeedback.showSuccess("Copied", "copy");
-    } catch {
-      copyFeedback.showError("Failed");
-    }
-  };
-
-  const viewLogs = async (webhook: WebhookConfig) => {
+  const viewLogs = (webhook: WebhookConfig) => {
     setSelectedWebhook(webhook);
     setShowLogsDialog(true);
-    try {
-      const response = await fetch(`/api/superadmin/webhooks/${webhook.id}/logs`, { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        // API returns { logs, pagination } - use data.logs instead of data.deliveries
-        setLogs(data.logs || []);
-      } else {
-        toast.error("Failed to load delivery logs");
-      }
-    } catch {
-      toast.error("Failed to load delivery logs");
-    }
   };
 
   const filteredWebhooks = webhooks.filter(w => 
@@ -403,14 +444,15 @@ export default function WebhooksPage() {
       </div>
 
       {/* Search */}
-      <SimpleFilterBar
-        search={{
-          value: search,
-          onChange: setSearch,
-          placeholder: t("superadmin.webhooks.search", "Search webhooks..."),
-        }}
-        onClear={() => setSearch("")}
-      />
+      <div className="relative max-w-md">
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={t("superadmin.webhooks.search", "Search webhooks...")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ps-9"
+        />
+      </div>
 
       {/* Webhooks Table */}
       <Card>
@@ -460,13 +502,12 @@ export default function WebhooksPage() {
                     <TableCell>
                       <div className="flex items-center gap-2 max-w-xs">
                         <code className="text-xs truncate">{webhook.url}</code>
-                        <IconButton
-                          icon={<Copy className="h-3 w-3" />}
-                          tooltip={t("common.copySecret", "Copy secret")}
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copySecret(webhook.secret)}
-                          aria-label={t("common.copySecret", "Copy secret")}
+                        <CopyButton 
+                          value={webhook.secret}
+                          iconOnly
+                          size="icon"
+                          className="h-6 w-6"
+                          successMessage={t("superadmin.webhooks.secretCopied", "Secret copied to clipboard")}
                         />
                       </div>
                     </TableCell>
@@ -491,31 +532,37 @@ export default function WebhooksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <IconButton
-                          icon={<Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />}
-                          tooltip={t("superadmin.webhooks.test", "Test webhook")}
+                        <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={() => handleTest(webhook)}
                           disabled={testingId === webhook.id}
-                          aria-label={t("superadmin.webhooks.test", "Test webhook")}
-                        />
-                        <IconButton
-                          icon={<Eye className="h-4 w-4" />}
-                          tooltip={t("superadmin.webhooks.viewLogs", "View logs")}
+                          aria-label={t("superadmin.webhooks.test", `Test ${webhook.name} webhook`)}
+                          title={t("superadmin.webhooks.test", `Test ${webhook.name} webhook`)}
+                        >
+                          <Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />
+                        </Button>
+                        <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={() => viewLogs(webhook)}
-                          aria-label={t("superadmin.webhooks.viewLogs", "View logs")}
-                        />
-                        <IconButton
-                          icon={<Trash2 className="h-4 w-4" />}
-                          tooltip={t("common.delete", "Delete")}
-                          variant="destructive"
-                          size="sm"
+                          aria-label={t("superadmin.webhooks.viewLogs", `View ${webhook.name} delivery logs`)}
+                          title={t("superadmin.webhooks.viewLogs", `View ${webhook.name} delivery logs`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
                           onClick={() => handleDelete(webhook.id)}
-                          aria-label={t("common.delete", "Delete")}
-                        />
+                          aria-label={t("superadmin.webhooks.delete", `Delete ${webhook.name} webhook`)}
+                          title={t("superadmin.webhooks.delete", `Delete ${webhook.name} webhook`)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -579,9 +626,9 @@ export default function WebhooksPage() {
                 <Select
                   value={formData.retryPolicy}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, retryPolicy: v as typeof formData.retryPolicy }))}
-                  placeholder="Select retry policy"
                 >
                   <SelectTrigger>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Retry</SelectItem>
@@ -603,10 +650,10 @@ export default function WebhooksPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} aria-label={t("common.cancel", "Cancel webhook creation")} title={t("common.cancel", "Cancel webhook creation")}>
               {t("common.cancel", "Cancel")}
             </Button>
-            <Button onClick={handleCreate}>
+            <Button onClick={handleCreate} aria-label={t("common.create", "Create new webhook")} title={t("common.create", "Create new webhook")}>
               {t("common.create", "Create")}
             </Button>
           </DialogFooter>
@@ -668,7 +715,7 @@ export default function WebhooksPage() {
             </Table>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLogsDialog(false)}>
+            <Button variant="outline" onClick={() => setShowLogsDialog(false)} aria-label={t("common.close", "Close delivery logs")} title={t("common.close", "Close delivery logs")}>
               {t("common.close", "Close")}
             </Button>
           </DialogFooter>

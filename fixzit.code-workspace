@@ -65,7 +65,8 @@
       "dbaeumer.vscode-eslint",
       "esbenp.prettier-vscode",
       "bradlc.vscode-tailwindcss",
-      "github.copilot"
+      "github.copilot",
+      "google.geminicodeassist"
     ]
   }
 }

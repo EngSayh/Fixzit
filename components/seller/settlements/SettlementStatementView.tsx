@@ -142,7 +142,7 @@ export function SettlementStatementView({
             {formatDate(statement.period.end)}
           </p>
         </div>
-        <Button onClick={downloadPDF} variant="outline">
+        <Button onClick={downloadPDF} variant="outline" aria-label="Download settlement statement as PDF (تحميل)" title="Download PDF">
           <Download className="h-4 w-4 me-2" />
           تحميل PDF (Download)
         </Button>

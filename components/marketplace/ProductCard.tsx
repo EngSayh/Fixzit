@@ -199,6 +199,7 @@ export default function ProductCard({
             onClick={handleAddToCart}
             disabled={adding}
             className="flex items-center gap-2 rounded-full bg-warning px-4 py-2 text-sm font-semibold text-black transition hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-70"
+            aria-label={`Add ${product.title.en} to cart`}
           >
             {adding ? (
               <Loader2 size={16} className="animate-spin" aria-hidden />

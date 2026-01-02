@@ -147,6 +147,7 @@ export function SellerResponseForm({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
+            aria-label={auto("Cancel", "actions.cancel")}
             className="px-4 py-2 border rounded-lg hover:bg-white disabled:opacity-50"
           >
             {auto("Cancel", "actions.cancel")}
@@ -155,6 +156,7 @@ export function SellerResponseForm({
         <button
           type="submit"
           disabled={isSubmitting || content.length < 10}
+          aria-label={isSubmitting ? auto("Submitting...", "actions.submitting") : auto("Post Response", "actions.submit")}
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting

@@ -101,8 +101,15 @@ describe("RBACMatrixTable", () => {
     const createSwitch = screen.getByLabelText(/Manager create Work Orders/i);
     await user.click(createSwitch);
 
-    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
-    await user.click(saveButton);
+    // Wait for dirty state to update and save button to be enabled
+    // Button has aria-label="Save permission changes" which takes precedence over visible text
+    let saveButton: HTMLElement;
+    await waitFor(() => {
+      saveButton = screen.getByRole("button", { name: /Save permission changes/i });
+      expect(saveButton).toBeInTheDocument();
+    });
+    
+    await user.click(saveButton!);
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     await waitFor(() =>
@@ -110,6 +117,6 @@ describe("RBACMatrixTable", () => {
         screen.queryByText(/You have unsaved changes/i),
       ).not.toBeInTheDocument(),
     );
-    expect(saveButton).toBeDisabled();
+    expect(saveButton!).toBeDisabled();
   });
 });

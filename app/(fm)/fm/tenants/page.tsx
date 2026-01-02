@@ -146,7 +146,7 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-secondary hover:bg-secondary/90">
+            <Button className="bg-secondary hover:bg-secondary/90" aria-label={t("fm.tenants.newTenantAria", "Create a new tenant")}>
               <Plus className="w-4 h-4 me-2" />
               {t("fm.tenants.newTenant", "New Tenant")}
             </Button>
@@ -220,7 +220,7 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
                 "Something went wrong while contacting the server. Please retry.",
               )}
             </span>
-            <Button variant="outline" size="sm" onClick={() => mutate()}>
+            <Button variant="outline" size="sm" onClick={() => mutate()} aria-label={t("common.retryAria", "Retry loading tenants")}>
               {t("common.retry", "Retry")}
             </Button>
           </AlertDescription>
@@ -255,6 +255,7 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
                 <Button
                   onClick={() => setCreateOpen(true)}
                   className="bg-secondary hover:bg-secondary/90"
+                  aria-label={t("fm.tenants.addTenantAria", "Add your first tenant")}
                 >
                   <Plus className="w-4 h-4 me-2" />
                   {t("fm.tenants.addTenant", "Add Tenant")}

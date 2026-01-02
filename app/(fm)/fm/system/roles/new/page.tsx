@@ -207,6 +207,7 @@ export default function NewRolePage() {
             type="submit"
             disabled={creating || !name || permissions.length === 0}
             className="w-full"
+            aria-label={auto("Create Role", "submitAria")}
           >
             <Plus className="w-4 h-4 me-2" />
             {auto("Create Role", "submit")}

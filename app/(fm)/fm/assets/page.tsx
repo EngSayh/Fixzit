@@ -149,7 +149,7 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="bg-primary hover:bg-primary/90" aria-label={auto("Add a new asset", "actions.newAssetLabel")}>
               <Plus className="w-4 h-4 me-2" />
               {auto("New Asset", "actions.newAsset")}
             </Button>
@@ -262,6 +262,7 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
                 <Button
                   onClick={() => setCreateOpen(true)}
                   className="bg-primary hover:bg-primary/90"
+                  aria-label={auto("Add your first asset", "actions.addAssetLabel")}
                 >
                   <Plus className="w-4 h-4 me-2" />
                   {auto("Add Asset", "actions.addAsset")}
@@ -833,7 +834,7 @@ function CreateAssetForm({
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting} aria-label={auto("Submit new asset form", "form.actions.submitAria")}>
           {isSubmitting ? auto("Creating...", "form.actions.creating") : auto("Create Asset", "form.actions.submit")}
         </Button>
       </div>
@@ -1041,10 +1042,10 @@ function EditAssetForm({
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} aria-label={auto("Cancel editing", "form.actions.cancelAria")}>
           {auto("Cancel", "form.actions.cancel")}
         </Button>
-        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting} aria-label={auto("Save asset changes", "form.actions.saveAria")}>
           {isSubmitting ? auto("Saving...", "form.actions.saving") : auto("Save Changes", "form.actions.save")}
         </Button>
       </div>

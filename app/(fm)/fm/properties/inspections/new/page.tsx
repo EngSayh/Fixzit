@@ -211,11 +211,11 @@ export default function CreateInspectionPage() {
               />
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button variant="outline">
+              <Button variant="outline" title={auto("Add location pin", "form.addLocation")} aria-label={auto("Add location pin", "form.addLocationAria")}>
                 <MapPinned className="me-2 h-4 w-4" />
                 {auto("Add location pin", "form.addLocation")}
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" title={auto("Assign internal reviewer", "form.assignReviewer")} aria-label={auto("Assign internal reviewer", "form.assignReviewerAria")}>
                 <Users className="me-2 h-4 w-4" />
                 {auto("Assign internal reviewer", "form.assignReviewer")}
               </Button>
@@ -246,10 +246,12 @@ export default function CreateInspectionPage() {
                   scope: "",
                 })
               }
+              title={auto("Reset form", "next.reset")}
+              aria-label={auto("Reset form", "next.resetAria")}
             >
               {auto("Reset form", "next.reset")}
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting} title={auto("Create inspection", "next.create")} aria-label={auto("Create inspection", "next.createAria")}>
               <ClipboardCheck className="me-2 h-4 w-4" />
               {submitting
                 ? auto("Submitting...", "next.submitting")

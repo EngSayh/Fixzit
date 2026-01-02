@@ -389,17 +389,17 @@ export default function AdminIssueDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchIssue}>
+          <Button variant="outline" size="sm" onClick={fetchIssue} aria-label={t("accessibility.refreshIssue", "Refresh issue data")} title={t("accessibility.refreshIssue", "Refresh issue data")}>
             <RefreshCw className="h-4 w-4 me-2" />
             {t("common.refresh", "Refresh")}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          <Button size="sm" onClick={handleSave} disabled={saving} aria-label={t("accessibility.saveIssue", "Save issue changes")} title={t("accessibility.saveIssue", "Save issue changes")}>
             <Save className="h-4 w-4 me-2" />
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </Button>
           <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={deleting}>
+              <Button variant="destructive" size="sm" disabled={deleting} aria-label={t("accessibility.deleteIssue", "Delete this issue")} title={t("accessibility.deleteIssue", "Delete this issue permanently")}>
                 <Trash2 className="h-4 w-4 me-2" />
                 {t("common.delete", "Delete")}
               </Button>
@@ -412,8 +412,8 @@ export default function AdminIssueDetailPage({
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>{t("common.cancel", "Cancel")}</Button>
-                <Button onClick={handleDelete} variant="destructive">
+                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} aria-label={t("accessibility.cancelDelete", "Cancel delete action")}>{t("common.cancel", "Cancel")}</Button>
+                <Button onClick={handleDelete} variant="destructive" aria-label={t("accessibility.confirmDelete", "Confirm delete")}>
                   {t("common.delete", "Delete")}
                 </Button>
               </DialogFooter>
@@ -703,7 +703,7 @@ export default function AdminIssueDetailPage({
                   rows={2}
                   className="flex-1"
                 />
-                <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+                <Button onClick={handleAddComment} disabled={!newComment.trim()} aria-label={t("accessibility.postComment", "Post comment to this issue")}>
                   {t("issues.details.postComment", "Post")}
                 </Button>
               </div>

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { X } from '@/components/ui/icons';
-import { IconButton } from '@/components/ui/IconButton';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SlideOverDrawerProps {
@@ -28,14 +28,15 @@ export const SlideOverDrawer: React.FC<SlideOverDrawerProps> = ({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>{title}</DialogTitle>
-            <IconButton
-              icon={<X className="h-4 w-4" />}
-              tooltip="Close"
+            <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={onClose}
+              className="h-8 w-8"
               aria-label="Close drawer"
-            />
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </DialogHeader>
         <div className="mt-6">{children}</div>

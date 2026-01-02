@@ -267,6 +267,8 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleRemove(doc.key)}
+                    aria-label={auto("Remove document", "actions.remove")}
+                    title={auto("Remove document", "actions.remove")}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -316,12 +318,13 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack} aria-label={auto("Back", "actions.back")}>
           {auto("Back", "actions.back")}
         </Button>
         <Button
           onClick={handleSubmit}
           disabled={!allRequiredUploaded || uploading}
+          aria-label={uploading ? auto("Uploading...", "actions.uploading") : auto("Continue to Bank Details", "actions.next")}
         >
           {uploading
             ? auto("Uploading...", "actions.uploading")

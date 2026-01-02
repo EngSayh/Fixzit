@@ -9,7 +9,6 @@ import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/ui/pagination";
 import { ShieldAlert, Loader2 } from "@/components/ui/icons";
 import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
 import { HoverTooltip } from "@/components/common/HoverTooltip";
@@ -78,8 +77,6 @@ export default function AuditLogViewer() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(LOGS_PER_PAGE);
-  const [showingAll, setShowingAll] = useState(false);
   const [totalLogs, setTotalLogs] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -118,7 +115,7 @@ export default function AuditLogViewer() {
         params.append("endDate", endDate.toISOString());
       }
       params.append("page", page.toString());
-      params.append("limit", pageSize.toString());
+      params.append("limit", LOGS_PER_PAGE.toString());
 
       const response = await fetch(`${API_ENDPOINT}?${params}`, {
         credentials: "include", // Ensure cookies are sent for authentication
@@ -214,7 +211,7 @@ export default function AuditLogViewer() {
     } finally {
       setLoading(false);
     }
-  }, [auto, filters, page, pageSize]);
+  }, [auto, filters, page]);
 
   useEffect(() => {
     fetchLogs();
@@ -249,7 +246,7 @@ export default function AuditLogViewer() {
                 "noPermission"
               )}
             </p>
-            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+            <Button variant="outline" onClick={() => router.push("/dashboard")} aria-label={auto("Go back to dashboard", "backToDashboardAria")}>
               {auto("Back to Dashboard", "backToDashboard")}
             </Button>
           </CardContent>
@@ -275,8 +272,8 @@ export default function AuditLogViewer() {
     }
   };
 
-  const _pageStart = (page - 1) * pageSize + 1;
-  const _pageEnd = Math.min(page * pageSize, totalLogs);
+  const pageStart = (page - 1) * LOGS_PER_PAGE + 1;
+  const pageEnd = Math.min(page * LOGS_PER_PAGE, totalLogs);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -331,6 +328,7 @@ export default function AuditLogViewer() {
                     fetchLogs();
                   }}
                   className="inline-flex items-center gap-1 text-sm font-medium text-destructive-foreground dark:text-destructive-foreground hover:text-destructive-foreground dark:hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
+                  aria-label={auto("Try Again", "common.tryAgain")}
                 >
                   <svg
                     className="w-4 h-4"
@@ -350,6 +348,7 @@ export default function AuditLogViewer() {
                 <button type="button"
                   onClick={() => setError(null)}
                   className="text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
+                  aria-label={auto("Dismiss", "common.dismiss")}
                 >
                   {auto("Dismiss", "common.dismiss")}
                 </button>
@@ -698,6 +697,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 transition-colors"
+              aria-label={auto("Tenant Escalations", "presets.tenantEscalations")}
             >
               🏢 {auto("Tenant Escalations", "presets.tenantEscalations")}
             </button>
@@ -713,6 +713,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors"
+              aria-label={auto("RBAC Changes", "presets.rbacChanges")}
             >
               🛡️ {auto("RBAC Changes", "presets.rbacChanges")}
             </button>
@@ -727,6 +728,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
+              aria-label={auto("Recent Deletions", "presets.recentDeletions")}
             >
               🗑️ {auto("Recent Deletions", "presets.recentDeletions")}
             </button>
@@ -741,6 +743,7 @@ export default function AuditLogViewer() {
                 setPage(1);
               }}
               className="px-3 py-1.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+              aria-label={auto("Today's Logins", "presets.todaysLogins")}
             >
               🔑 {auto("Today's Logins", "presets.todaysLogins")}
             </button>
@@ -751,6 +754,7 @@ export default function AuditLogViewer() {
               setPage(1);
             }}
             className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-2xl"
+            aria-label={auto("Clear Filters", "filters.clear")}
           >
             {auto("Clear Filters", "filters.clear")}
           </button>
@@ -850,6 +854,7 @@ export default function AuditLogViewer() {
                       <button type="button"
                         onClick={() => setSelectedLog(log)}
                         className="text-primary hover:text-primary-foreground dark:text-primary dark:hover:text-primary/80"
+                        aria-label={auto("View Details", "table.actions.viewDetails")}
                       >
                         {auto("View Details", "table.actions.viewDetails")}
                       </button>
@@ -864,25 +869,68 @@ export default function AuditLogViewer() {
 
       {/* Pagination */}
       {!loading && !error && logs.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalLogs}
-            itemsPerPage={pageSize}
-            showingAll={showingAll}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              if (size === "all") {
-                setShowingAll(true);
-                setPageSize(totalLogs || 100);
-              } else {
-                setShowingAll(false);
-                setPageSize(size);
-              }
-              setPage(1);
-            }}
-          />
+        <div className="bg-card rounded-2xl border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-foreground">
+              {auto(
+                "Showing {{start}} to {{end}} of {{total}} results",
+                "pagination.summary",
+                {
+                  start: pageStart,
+                  end: pageEnd,
+                  total: totalLogs,
+                },
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={auto("Previous", "pagination.previous")}
+              >
+                {auto("Previous", "pagination.previous")}
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Show pages around current page
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <button type="button"
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`px-4 py-2 text-sm font-medium rounded-2xl ${
+                        page === pageNum
+                          ? "bg-primary text-white"
+                          : "text-foreground bg-background border border-border hover:bg-muted"
+                      }`}
+                      aria-label={`Page ${pageNum}`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={auto("Next", "pagination.next")}
+              >
+                {auto("Next", "pagination.next")}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

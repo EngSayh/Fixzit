@@ -341,10 +341,11 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
             onClick={handleSubmit}
             disabled={!isDirty}
             className="bg-success text-white hover:bg-success/90"
+            aria-label={t("common.save", "Save")}
           >
             {t("common.save", "Save")}
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" aria-label={t("common.export", "Export")}>
             <Download className="h-4 w-4 me-2" />
             {t("common.export", "Export")}
           </Button>
@@ -429,7 +430,7 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                   <p className="text-muted-foreground text-sm mb-4">
                     {service.count} {t("common.vendors", "vendors available")}
                   </p>
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button variant="outline" size="sm" className="w-full" aria-label={t("common.view", "View Vendors")}>
                     {t("common.view", "View Vendors")}
                   </Button>
                 </CardContent>
@@ -506,11 +507,11 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                           {vendor.responseTime}
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" aria-label={`View vendor ${vendor.name}`}>
                             <Eye className="h-4 w-4 me-2" />
                             {t("common.view", "View")}
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" aria-label={`Edit vendor ${vendor.name}`}>
                             <Edit className="h-4 w-4 me-2" />
                             {t("common.edit", "Edit")}
                           </Button>
@@ -518,6 +519,7 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                             variant="outline"
                             size="sm"
                             className="text-destructive hover:text-destructive/90"
+                            aria-label={`Delete vendor ${vendor.name}`}
                           >
                             <Trash2 className="h-4 w-4 me-2" />
                             {t("common.delete", "Delete")}
@@ -579,11 +581,11 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                           {t("rfq.id", "RFQ ID")}: {rfq.id}
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" aria-label={`View RFQ ${rfq.id}`}>
                             <Eye className="h-4 w-4 me-2" />
                             {t("common.view", "View")}
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" aria-label={`Edit RFQ ${rfq.id}`}>
                             <Edit className="h-4 w-4 me-2" />
                             {t("common.edit", "Edit")}
                           </Button>
@@ -591,6 +593,7 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                             variant="outline"
                             size="sm"
                             className="text-destructive hover:text-destructive/90"
+                            aria-label={`Delete RFQ ${rfq.id}`}
                           >
                             <Trash2 className="h-4 w-4 me-2" />
                             {t("common.delete", "Delete")}
@@ -666,11 +669,11 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" aria-label={`View PO ${order.id}`}>
                             <Eye className="h-4 w-4 me-2" />
                             {t("common.view", "View")}
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" aria-label={`Edit PO ${order.id}`}>
                             <Edit className="h-4 w-4 me-2" />
                             {t("common.edit", "Edit")}
                           </Button>
@@ -678,6 +681,7 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
                             variant="outline"
                             size="sm"
                             className="text-destructive hover:text-destructive/90"
+                            aria-label={`Delete PO ${order.id}`}
                           >
                             <Trash2 className="h-4 w-4 me-2" />
                             {t("common.delete", "Delete")}

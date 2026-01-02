@@ -312,6 +312,7 @@ export default function LeavePage() {
           <Button
             variant="outline"
             onClick={() => setFormOpen((prev) => !prev)}
+            aria-label={t("hr.leave.actions.newRequest", "New Leave Request")}
           >
             <CalendarPlus className="h-4 w-4 me-2" />
             {t("hr.leave.actions.newRequest", "New Leave Request")}
@@ -323,6 +324,12 @@ export default function LeavePage() {
                 variant={filter === status ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleFilterChange(status)}
+                aria-label={status === "ALL"
+                  ? t("hr.leave.filter.all", "All")
+                  : t(
+                      leaveStatusLabels[status].key,
+                      leaveStatusLabels[status].fallback,
+                    )}
               >
                 {status === "ALL"
                   ? t("hr.leave.filter.all", "All")
@@ -446,6 +453,7 @@ export default function LeavePage() {
                       type="button"
                       className="text-xs text-primary hover:underline underline-offset-2"
                       onClick={() => fetchLeaveTypes()}
+                      aria-label={t("hr.leave.form.leaveTypeRefresh", "Refresh")}
                     >
                       {t("hr.leave.form.leaveTypeRefresh", "Refresh")}
                     </button>
@@ -552,10 +560,11 @@ export default function LeavePage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setFormOpen(false)}
+                  aria-label={t("common.cancel", "Cancel")}
                 >
                   {t("common.cancel", "Cancel")}
                 </Button>
-                <Button type="submit" disabled={formSubmitting}>
+                <Button type="submit" disabled={formSubmitting} aria-label={t("hr.leave.form.submit", "Create Request")}>
                   {formSubmitting && (
                     <Loader2 className="h-4 w-4 animate-spin me-2" />
                   )}
@@ -604,6 +613,7 @@ export default function LeavePage() {
                         handleStatusUpdate(request._id, "APPROVED")
                       }
                       disabled={Boolean(actionLoading)}
+                      aria-label={t("hr.leave.actions.approve", "Approve")}
                     >
                       {actionLoading === `${request._id}-APPROVED` ? (
                         <Loader2 className="h-4 w-4 animate-spin me-2" />
@@ -619,6 +629,7 @@ export default function LeavePage() {
                         handleStatusUpdate(request._id, "REJECTED")
                       }
                       disabled={Boolean(actionLoading)}
+                      aria-label={t("hr.leave.actions.reject", "Reject")}
                     >
                       {actionLoading === `${request._id}-REJECTED` ? (
                         <Loader2 className="h-4 w-4 animate-spin me-2" />

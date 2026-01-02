@@ -182,11 +182,11 @@ export default function CreatePropertyUnitPage() {
               />
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" title={auto("Attach floor plan", "form.attachFloorPlan")} aria-label={auto("Attach floor plan", "form.attachFloorPlanAria")}>
                 <Upload className="me-2 h-4 w-4" />
                 {auto("Attach floor plan", "form.attachFloorPlan")}
               </Button>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" title={auto("Pin location", "form.pinLocation")} aria-label={auto("Pin location", "form.pinLocationAria")}>
                 <Compass className="me-2 h-4 w-4" />
                 {auto("Pin location", "form.pinLocation")}
               </Button>
@@ -205,10 +205,12 @@ export default function CreatePropertyUnitPage() {
               onClick={() =>
                 setForm({ name: "", type: "", size: "", rent: "", notes: "" })
               }
+              title={auto("Clear form", "next.clear")}
+              aria-label={auto("Clear form", "next.clearAria")}
             >
               {auto("Clear form", "next.clear")}
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting} title={auto("Publish unit", "next.publish")} aria-label={auto("Publish unit", "next.publishAria")}>
               <ClipboardCheck className="me-2 h-4 w-4" />
               {submitting
                 ? auto("Publishing...", "next.submitting")

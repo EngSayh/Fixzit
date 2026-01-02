@@ -314,11 +314,11 @@ export default function ImpersonationHistoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label={t("common.export", "Export impersonation history")} title={t("common.export", "Export impersonation history")}>
             <Download className="h-4 w-4 me-2" />
             {t("common.export", "Export")}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading} aria-label={t("common.refresh", "Refresh impersonation history")} title={t("common.refresh", "Refresh impersonation history")}>
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             {t("common.refresh", "Refresh")}
           </Button>

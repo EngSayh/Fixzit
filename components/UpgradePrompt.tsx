@@ -113,7 +113,7 @@ export function UpgradePrompt({
             </div>
           </div>
           <Link href="/pricing">
-            <Button variant="default" size="sm" className="flex items-center gap-2">
+            <Button variant="default" size="sm" className="flex items-center gap-2" aria-label={t("upgrade.viewPlans", "View available plans")} title={t("upgrade.viewPlans", "View available plans")}>
               {t("upgrade.viewPlans", "View plans")}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -139,13 +139,13 @@ export function UpgradePrompt({
       
       <div className="flex items-center justify-center gap-3">
         <Link href="/pricing">
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" aria-label={t("upgrade.upgradeTo", "Upgrade to {{plan}}", { plan: planName })} title={t("upgrade.upgradeTo", "Upgrade to {{plan}}", { plan: planName })}>
             {t("upgrade.upgradeTo", "Upgrade to {{plan}}", { plan: planName })}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
         <Link href="/billing/plan">
-          <Button variant="ghost">
+          <Button variant="ghost" aria-label={t("upgrade.comparePlans", "Compare subscription plans")} title={t("upgrade.comparePlans", "Compare subscription plans")}>
             {t("upgrade.comparePlans", "Compare plans")}
           </Button>
         </Link>

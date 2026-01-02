@@ -56,7 +56,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { IconButton } from '@/components/ui/IconButton';
 import { cn } from '@/lib/utils';
 import { FloatingBulkActionsBar } from './FloatingBulkActionsBar';
 import { SkeletonTable } from './SkeletonTableEnhanced';
@@ -170,24 +169,38 @@ function RowActions({ issue: _issue, isHovered, onView, onEdit, onDelete, onDupl
             exit={{ opacity: 0, x: 10 }}
             className="flex items-center gap-1"
           >
-            <IconButton
-              icon={<Eye className="h-4 w-4" />}
-              tooltip="View details"
-              variant="ghost"
-              size="sm"
-              className="text-zinc-400 hover:text-white"
-              onClick={onView}
-              aria-label="View details"
-            />
-            <IconButton
-              icon={<Edit className="h-4 w-4" />}
-              tooltip="Edit issue"
-              variant="ghost"
-              size="sm"
-              className="text-zinc-400 hover:text-white"
-              onClick={onEdit}
-              aria-label="Edit issue"
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-zinc-400 hover:text-white"
+                    onClick={onView}
+                    aria-label="View details"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>View details</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-zinc-400 hover:text-white"
+                    onClick={onEdit}
+                    aria-label="Edit issue"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit issue</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </motion.div>
         )}
       </AnimatePresence>
@@ -195,14 +208,14 @@ function RowActions({ issue: _issue, isHovered, onView, onEdit, onDelete, onDupl
       {/* More menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <IconButton
-            icon={<MoreHorizontal className="h-4 w-4" />}
-            tooltip="More actions"
+          <Button
             variant="ghost"
-            size="sm"
-            className="text-zinc-400 hover:text-white"
+            size="icon"
+            className="h-8 w-8 text-zinc-400 hover:text-white"
             aria-label="More actions"
-          />
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onView} className="gap-2">
@@ -321,6 +334,7 @@ export function EnhancedIssueTable({
             size="sm"
             className="-ms-3 h-8 text-zinc-400 hover:text-white"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            aria-label="Sort by priority"
           >
             Priority
             <SortIcon sorted={column.getIsSorted()} />
@@ -354,6 +368,7 @@ export function EnhancedIssueTable({
             size="sm"
             className="-ms-3 h-8 text-zinc-400 hover:text-white"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            aria-label="Sort by title"
           >
             Title
             <SortIcon sorted={column.getIsSorted()} />
@@ -392,6 +407,7 @@ export function EnhancedIssueTable({
             size="sm"
             className="-ms-3 h-8 text-zinc-400 hover:text-white"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            aria-label="Sort by status"
           >
             Status
             <SortIcon sorted={column.getIsSorted()} />
@@ -464,6 +480,7 @@ export function EnhancedIssueTable({
             size="sm"
             className="-ms-3 h-8 text-zinc-400 hover:text-white"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            aria-label="Sort by creation date"
           >
             Created
             <SortIcon sorted={column.getIsSorted()} />
@@ -545,7 +562,7 @@ export function EnhancedIssueTable({
       <div className="flex items-center justify-end pb-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2" aria-label="Toggle column visibility">
               <Settings2 className="h-4 w-4" />
               Columns
             </Button>
@@ -642,6 +659,7 @@ export function EnhancedIssueTable({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            aria-label="Go to previous page"
           >
             Previous
           </Button>
@@ -654,6 +672,7 @@ export function EnhancedIssueTable({
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            aria-label="Go to next page"
           >
             Next
           </Button>

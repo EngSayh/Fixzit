@@ -12,13 +12,12 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { SimpleTooltip } from "@/components/ui/tooltip";
-import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import { 
-  Package, RefreshCw, Eye, DollarSign,
+  Package, RefreshCw, Search, Eye, DollarSign,
   CheckCircle, XCircle, AlertTriangle,
 } from "@/components/ui/icons";
 
@@ -54,16 +53,13 @@ export default function SuperadminCatalogPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
 
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       params.append("page", String(page));
-      params.append("limit", String(pageSize));
+      params.append("limit", "20");
       if (searchQuery) params.append("search", searchQuery);
       if (categoryFilter !== "all") params.append("category", categoryFilter);
       if (statusFilter !== "all") params.append("status", statusFilter);
@@ -74,14 +70,13 @@ export default function SuperadminCatalogPage() {
         const data = await response.json();
         setProducts(data.products || data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
-        setTotalItems(data.pagination?.total || data.products?.length || 0);
       }
     } catch {
       // Products may not exist yet
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchQuery, categoryFilter, statusFilter, businessModelFilter]);
+  }, [page, searchQuery, categoryFilter, statusFilter, businessModelFilter]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -103,11 +98,9 @@ export default function SuperadminCatalogPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.catalog.title", "Product Catalog")}</h1>
           <p className="text-muted-foreground">{t("superadmin.catalog.subtitle", "Manage Fixzit Souq marketplace products")}</p>
         </div>
-        <SimpleTooltip content={t("superadmin.catalog.refreshTooltip", "Refresh product list")}>
-          <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground">
-            <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
-          </Button>
-        </SimpleTooltip>
+        <Button variant="outline" size="sm" onClick={fetchProducts} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh product catalog")} title={t("common.refresh", "Refresh product catalog")}>
+          <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -117,53 +110,17 @@ export default function SuperadminCatalogPage() {
         <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalValue)}</p><p className="text-muted-foreground text-sm">{t("superadmin.catalog.inventoryValue", "Inventory Value")}</p></div></div></CardContent></Card>
       </div>
 
-      <SimpleFilterBar
-        search={{
-          value: searchQuery,
-          onChange: (v) => { setSearchQuery(v); if (!v) handleSearch(); },
-          placeholder: t("superadmin.catalog.searchPlaceholder", "Search products..."),
-        }}
-        filters={[
-          {
-            id: "category",
-            value: categoryFilter,
-            placeholder: t("superadmin.catalog.allCategories", "All Categories"),
-            options: [
-              { value: "all", label: t("superadmin.catalog.allCategories", "All Categories") },
-              ...CATEGORIES.map(cat => ({ value: cat, label: cat.replace("_", " ") })),
-            ],
-            onChange: (v) => { setCategoryFilter(v); setPage(1); },
-            width: "w-[150px]",
-          },
-          {
-            id: "status",
-            value: statusFilter,
-            placeholder: t("superadmin.catalog.allStatus", "All Status"),
-            options: [
-              { value: "all", label: t("superadmin.catalog.allStatus", "All Status") },
-              { value: "ACTIVE", label: t("superadmin.catalog.active", "Active") },
-              { value: "INACTIVE", label: t("common.inactive", "Inactive") },
-              { value: "OUT_OF_STOCK", label: t("common.outOfStock", "Out of Stock") },
-            ],
-            onChange: (v) => { setStatusFilter(v); setPage(1); },
-            width: "w-[130px]",
-          },
-          {
-            id: "model",
-            value: businessModelFilter,
-            placeholder: t("superadmin.catalog.allModels", "All Models"),
-            options: [
-              { value: "all", label: t("superadmin.catalog.allModels", "All Models") },
-              { value: "B2B", label: "B2B Only" },
-              { value: "B2C", label: "B2C Only" },
-              { value: "BOTH", label: "B2B & B2C" },
-            ],
-            onChange: (v) => { setBusinessModelFilter(v); setPage(1); },
-            width: "w-[120px]",
-          },
-        ]}
-        onClear={() => { setSearchQuery(""); setCategoryFilter("all"); setStatusFilter("all"); setBusinessModelFilter("all"); }}
-      />
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.catalog.searchPlaceholder", "Search products...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.categoryPlaceholder", "Category")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allCategories", "All Categories")}</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.statusPlaceholder", "Status")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.catalog.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="OUT_OF_STOCK">{t("common.outOfStock", "Out of Stock")}</SelectItem></SelectContent></Select>
+            <Select value={businessModelFilter} onValueChange={setBusinessModelFilter}><SelectTrigger className="w-[140px] bg-muted border-input text-foreground"><SelectValue placeholder={t("superadmin.catalog.modelPlaceholder", "Model")} /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.catalog.allModels", "All Models")}</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></SelectContent></Select>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.catalog.search", "Search products")} title={t("superadmin.catalog.search", "Search products")}><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-card border-border">
         <CardHeader className="border-b border-border"><CardTitle className="text-foreground">{t("superadmin.catalog.products", "Products")}</CardTitle><CardDescription className="text-muted-foreground">{t("superadmin.catalog.marketplaceCatalog", "Marketplace catalog")}</CardDescription></CardHeader>
@@ -180,11 +137,7 @@ export default function SuperadminCatalogPage() {
                     <TableCell className="text-end"><span className={`font-medium ${(product.inventory?.quantity || 0) < 10 ? "text-yellow-400" : "text-muted-foreground"}`}>{product.inventory?.quantity || 0}</span></TableCell>
                     <TableCell className="text-muted-foreground">{product.vendorName || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_COLORS[product.status] || ""}>{product.status === "ACTIVE" ? <CheckCircle className="h-3 w-3 me-1" /> : product.status === "OUT_OF_STOCK" ? <XCircle className="h-3 w-3 me-1" /> : null}{product.status}</Badge></TableCell>
-                    <TableCell>
-                      <SimpleTooltip content={t("superadmin.catalog.viewDetails", "View product details")}>
-                        <Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)}><Eye className="h-4 w-4" /></Button>
-                      </SimpleTooltip>
-                    </TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)} aria-label={t("superadmin.catalog.viewProduct", `View ${product.name} details`)} title={t("superadmin.catalog.viewProduct", `View ${product.name} details`)}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -193,28 +146,7 @@ export default function SuperadminCatalogPage() {
         </CardContent>
       </Card>
 
-      {totalPages >= 1 && (
-        <div className="border rounded-lg border-border bg-card">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={pageSize}
-            showingAll={showingAll}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              if (size === "all") {
-                setShowingAll(true);
-                setPageSize(totalItems || 100);
-              } else {
-                setShowingAll(false);
-                setPageSize(size);
-              }
-              setPage(1);
-            }}
-          />
-        </div>
-      )}
+      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input" aria-label={t("common.previousPage", "Go to previous page")} title={t("common.previousPage", "Go to previous page")}>Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input" aria-label={t("common.nextPage", "Go to next page")} title={t("common.nextPage", "Go to next page")}>Next</Button></div>)}
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="bg-card border-input max-w-2xl">

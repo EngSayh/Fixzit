@@ -10,7 +10,7 @@
 "use client";
 
 import React from "react";
-import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui/button";
 import { LayoutGrid, LayoutList } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
@@ -45,32 +45,36 @@ export function ViewModeToggle({
 
   return (
     <div className={cn("inline-flex items-center rounded-md border bg-muted p-1", className)}>
-      <IconButton
-        icon={<LayoutList className={iconSizes[size]} />}
-        tooltip="Table view"
-        variant={value === "table" ? "default" : "ghost"}
+      <Button
+        variant={value === "table" ? "secondary" : "ghost"}
+        size="icon"
         onClick={() => onChange("table")}
         disabled={disabled}
         className={cn(
           buttonSizes[size],
-          "shrink-0 rounded-sm",
+          "shrink-0",
           value === "table" && "shadow-sm"
         )}
-        aria-label="Table view"
-      />
-      <IconButton
-        icon={<LayoutGrid className={iconSizes[size]} />}
-        tooltip="Card view"
-        variant={value === "cards" ? "default" : "ghost"}
+        aria-label="Switch to table view"
+        title="Table view"
+      >
+        <LayoutList className={iconSizes[size]} />
+      </Button>
+      <Button
+        variant={value === "cards" ? "secondary" : "ghost"}
+        size="icon"
         onClick={() => onChange("cards")}
         disabled={disabled}
         className={cn(
           buttonSizes[size],
-          "shrink-0 rounded-sm",
+          "shrink-0",
           value === "cards" && "shadow-sm"
         )}
-        aria-label="Card view"
-      />
+        aria-label="Switch to card view"
+        title="Card view"
+      >
+        <LayoutGrid className={iconSizes[size]} />
+      </Button>
     </div>
   );
 }

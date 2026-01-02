@@ -87,10 +87,10 @@ export default function WorkOrdersBoardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn-secondary">
+          <button type="button" className="btn-secondary" aria-label={t("workOrders.filterAria", "Filter work orders")} title={t("workOrders.filterAria", "Filter work orders")}>
             {t("workOrders.filter", "Filter")}
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("workOrders.board.newWOAria", "Create new work order")} title={t("workOrders.board.newWOAria", "Create new work order")}>
             + {t("workOrders.board.newWO", "New Work Order")}
           </button>
         </div>
@@ -250,37 +250,37 @@ export default function WorkOrdersBoardPage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.board.createWOAria", "Create new work order")}>
             <div className="text-2xl mb-2">📝</div>
             <div className="text-sm font-medium">
               {t("workOrders.board.createWO", "Create WO")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.board.assignTechAria", "Assign technician to work order")}>
             <div className="text-2xl mb-2">👥</div>
             <div className="text-sm font-medium">
               {t("workOrders.board.assignTech", "Assign Tech")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.board.scheduleAria", "Schedule work order")}>
             <div className="text-2xl mb-2">📅</div>
             <div className="text-sm font-medium">
               {t("workOrders.board.schedule", "Schedule")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.reportsAria", "View work order reports")}>
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.reports", "Reports")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("common.searchAria", "Search work orders")}>
             <div className="text-2xl mb-2">🔍</div>
             <div className="text-sm font-medium">
               {t("common.search", "Search")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.settingsAria", "Work order settings")}>
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.settings", "Settings")}

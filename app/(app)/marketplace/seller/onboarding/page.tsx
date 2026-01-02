@@ -591,6 +591,14 @@ export default function SellerOnboarding() {
                     type="button"
                     onClick={() => commercialRegRef.current?.click()}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                    aria-label={t(
+                      "marketplace.sellerOnboarding.documents.chooseCommercialReg",
+                      "Choose commercial registration file",
+                    )}
+                    title={t(
+                      "marketplace.sellerOnboarding.documents.chooseFile",
+                      "Choose File",
+                    )}
                   >
                     {t(
                       "marketplace.sellerOnboarding.documents.chooseFile",
@@ -633,6 +641,14 @@ export default function SellerOnboarding() {
                     type="button"
                     onClick={() => taxCertRef.current?.click()}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                    aria-label={t(
+                      "marketplace.sellerOnboarding.documents.chooseTaxCert",
+                      "Choose tax certificate file",
+                    )}
+                    title={t(
+                      "marketplace.sellerOnboarding.documents.chooseFile",
+                      "Choose File",
+                    )}
                   >
                     {t(
                       "marketplace.sellerOnboarding.documents.chooseFile",
@@ -724,26 +740,35 @@ export default function SellerOnboarding() {
 
             {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
-              <button type="button"
+              <button
+                type="button"
                 onClick={handlePrevious}
                 disabled={step === 1 || submitting}
                 className="px-6 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={t("marketplace.sellerOnboarding.buttons.previous", "Previous")}
+                title={t("marketplace.sellerOnboarding.buttons.goToPrevStep", "Go to previous step")}
               >
                 {t("marketplace.sellerOnboarding.buttons.previous", "Previous")}
               </button>
               {step < 4 ? (
-                <button type="button"
+                <button
+                  type="button"
                   onClick={handleNext}
                   disabled={submitting}
                   className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={t("marketplace.sellerOnboarding.buttons.next", "Next")}
+                  title={t("marketplace.sellerOnboarding.buttons.goToNextStep", "Go to next step")}
                 >
                   {t("marketplace.sellerOnboarding.buttons.next", "Next")}
                 </button>
               ) : (
-                <button type="button"
+                <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="px-6 py-2 bg-success text-white rounded-lg hover:bg-success-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  aria-label={t("marketplace.sellerOnboarding.buttons.submit", "Submit Application")}
+                  title={t("marketplace.sellerOnboarding.buttons.submitTitle", "Submit your seller application")}
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   {submitting

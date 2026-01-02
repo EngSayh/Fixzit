@@ -193,11 +193,11 @@ const ErrorFallbackUI = ({
 
           {/* ✅ FIX: Use standard Button components */}
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={onRefresh}>
+            <Button variant="outline" onClick={onRefresh} aria-label={t("error.boundary.refresh", "Refresh the page")} title={t("error.boundary.refresh", "Refresh the page")}>
               <RefreshCw className="w-4 h-4 me-2" />
               {t("error.boundary.refresh", "Refresh Page")}
             </Button>
-            <Button asChild>
+            <Button asChild aria-label={t("common.backToHome", "Go back to home page")} title={t("common.backToHome", "Go back to home page")}>
               <Link href="/">
                 <Home className="w-4 h-4 me-2" />
                 {t("common.backToHome", "Back to Home")}

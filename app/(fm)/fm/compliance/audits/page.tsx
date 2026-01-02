@@ -202,6 +202,7 @@ export default function ComplianceAuditsPage() {
             variant="outline"
             onClick={() => mutate()}
             disabled={isLoading}
+            aria-label={auto("Refresh audits list", "actions.refreshAria")}
           >
             {isLoading ? (
               <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -210,7 +211,7 @@ export default function ComplianceAuditsPage() {
             )}
             {auto("Refresh", "actions.refresh")}
           </Button>
-          <Button asChild>
+          <Button asChild aria-label={auto("Plan new audit", "actions.newAuditAria")}>
             <Link href="/fm/compliance/audits/new">
               <ClipboardCheck className="me-2 h-4 w-4" />
               {auto("Plan new audit", "actions.newAudit")}

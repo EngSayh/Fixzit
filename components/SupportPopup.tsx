@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Loader2 } from "@/components/ui/icons";
+import { Check, Copy, Loader2 } from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 // ============================================================================
@@ -294,6 +294,7 @@ export default function SupportPopup({
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const getModuleLabel = useCallback(
     (value: string) => {
       const entry = MODULE_LABELS[value] ?? {
@@ -500,13 +501,9 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
   const copyDetails = async () => {
     try {
       await navigator.clipboard.writeText(text || subject);
-      // ✅ FIX: Use react-hot-toast instead of alert()
-      const copiedMsg = t(
-        "support.copiedToClipboard",
-        "Details copied to clipboard",
-      );
-      toast.success(copiedMsg, { duration: 2000 });
-      window.alert(copiedMsg);
+      setCopied(true);
+      toast.success(t("support.copiedToClipboard", "Details copied to clipboard"), { duration: 2000 });
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error(t("support.failedToCopy", "Failed to copy to clipboard"), {
         duration: 2000,
@@ -724,10 +721,20 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
             <Button
               variant="secondary"
               onClick={copyDetails}
-              disabled={!subject.trim() && !text.trim()}
+              disabled={(!subject.trim() && !text.trim()) || copied}
+              className={copied ? "text-green-600" : ""}
             >
-              <Copy className="w-4 h-4 me-2" />
-              {t("support.copyDetails", "Copy details")}
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 me-2" />
+                  {t("support.copied", "Copied!")}
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 me-2" />
+                  {t("support.copyDetails", "Copy details")}
+                </>
+              )}
             </Button>
             <Button
               variant="default"

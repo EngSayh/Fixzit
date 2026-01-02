@@ -227,6 +227,8 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
               <button type="button"
                 key={preset.value}
                 onClick={() => setDatePreset(preset.value as DatePreset)}
+                aria-label={preset.label}
+                aria-pressed={datePreset === preset.value}
                 className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                   datePreset === preset.value
                     ? "bg-primary text-white"
@@ -258,6 +260,8 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
 
           <button type="button"
             onClick={exportToCSV}
+            aria-label={auto("Export CSV", "actions.exportCsv")}
+            title={auto("Export CSV", "actions.exportCsv")}
             className="ms-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -382,6 +386,8 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
               setActiveView("keywords");
               setCurrentPage(1);
             }}
+            aria-label={auto("Keyword Performance", "tables.keywordsTab")}
+            aria-pressed={activeView === "keywords"}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
               activeView === "keywords"
                 ? "text-primary border-b-2 border-primary bg-primary/10"
@@ -395,6 +401,8 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
               setActiveView("products");
               setCurrentPage(1);
             }}
+            aria-label={auto("Product Performance", "tables.productsTab")}
+            aria-pressed={activeView === "products"}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
               activeView === "products"
                 ? "text-primary border-b-2 border-primary bg-primary/10"
@@ -619,6 +627,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
               <button type="button"
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
+                aria-label={auto("Previous", "pagination.previous")}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {auto("Previous", "pagination.previous")}
@@ -630,6 +639,8 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                     <button type="button"
                       key={page}
                       onClick={() => setCurrentPage(page)}
+                      aria-label={`${auto("Page", "pagination.page")} ${page}`}
+                      aria-current={currentPage === page ? "page" : undefined}
                       className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                         currentPage === page
                           ? "bg-primary text-white"
@@ -646,6 +657,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                   setCurrentPage(Math.min(totalPages, currentPage + 1))
                 }
                 disabled={currentPage === totalPages}
+                aria-label={auto("Next", "pagination.next")}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {auto("Next", "pagination.next")}

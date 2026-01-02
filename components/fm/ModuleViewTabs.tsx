@@ -77,6 +77,8 @@ export default function ModuleViewTabs({
             key={view.id}
             type="button"
             onClick={() => handleSelect(view.value)}
+            aria-label={t(view.name, view.fallbackLabel)}
+            aria-pressed={active}
             className={cn(
               "px-3 py-1.5 text-sm rounded-full border transition-all duration-200",
               active

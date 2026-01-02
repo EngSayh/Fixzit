@@ -482,6 +482,7 @@ export function SetupWizard() {
                 variant="outline"
                 onClick={handleBack}
                 disabled={currentStepIndex === 0 || isSubmitting}
+                aria-label="Go back to previous step"
               >
                 <ChevronLeft className="w-4 h-4 me-2" />
                 Back
@@ -491,6 +492,7 @@ export function SetupWizard() {
                 <Button
                   onClick={handleComplete}
                   disabled={!canProceed() || isSubmitting}
+                  aria-label="Complete organization setup"
                 >
                   {isSubmitting ? "Completing..." : "Complete Setup"}
                 </Button>
@@ -498,6 +500,7 @@ export function SetupWizard() {
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
+                  aria-label="Go to next step"
                 >
                   Next
                   <ChevronRight className="w-4 h-4 ms-2" />
@@ -510,6 +513,7 @@ export function SetupWizard() {
             <Button
               onClick={() => navigate("/dashboard")}
               className="w-full"
+              aria-label="Go to dashboard"
             >
               Go to Dashboard
             </Button>

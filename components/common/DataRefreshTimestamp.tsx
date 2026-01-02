@@ -144,6 +144,7 @@ export function DataRefreshTimestamp({
             "bg-muted/50 hover:bg-muted transition-colors",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
+          aria-label={t("common.actions.refresh", "Refresh data")}
           title={
             autoRefreshSeconds > 0
               ? t("common.time.nextRefresh", "Next refresh in {{seconds}}s", {

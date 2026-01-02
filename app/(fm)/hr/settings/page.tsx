@@ -145,6 +145,7 @@ export default function HrSettingsPage() {
           variant="outline"
           onClick={() => void loadLeaveTypes()}
           disabled={refreshing}
+          aria-label={t("hr.settings.refreshAria", "Refresh leave types list")}
         >
           {refreshing && <Loader2 className="h-4 w-4 animate-spin me-2" />}
           {!refreshing && <RefreshCw className="h-4 w-4 me-2" />}{" "}
@@ -318,7 +319,7 @@ export default function HrSettingsPage() {
                   }
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={creating}>
+              <Button type="submit" className="w-full" disabled={creating} aria-label={t("hr.settings.leaveTypes.form.submitAria", "Save new leave type")}>
                 {creating && <Loader2 className="h-4 w-4 animate-spin me-2" />}
                 {t("hr.settings.leaveTypes.form.submit", "Save leave type")}
               </Button>

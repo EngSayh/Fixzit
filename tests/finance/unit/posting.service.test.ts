@@ -15,6 +15,7 @@ import {
 } from "../../../server/models/plugins/tenantAudit";
 import { setTenantContext as setTenantIsolationContext } from "../../../server/plugins/tenantIsolation";
 import { toMinor, applyFx } from "../../../server/lib/currency";
+import { waitForMongoConnection } from "../../utils/mongo-helpers";
 
 // TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
 const TEST_ORG_ID = new mongoose.Types.ObjectId();
@@ -25,13 +26,9 @@ describe("postingService Unit Tests", () => {
   let revenueAccountId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    // Connect to test database
-    const MONGODB_URI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-    await mongoose.connect(MONGODB_URI);
+    // Wait for shared MongoMemoryServer connection from vitest.setup.ts
+    // Do NOT disconnect/reconnect - it breaks the shared connection
+    await waitForMongoConnection({ timeoutMs: 30_000 });
 
     // Set context - TYPESCRIPT FIX: Context functions expect string IDs
     setTenantIsolationContext({ orgId: TEST_ORG_ID, skipTenantFilter: true });
@@ -68,13 +65,13 @@ describe("postingService Unit Tests", () => {
   });
 
   afterAll(async () => {
-    // Cleanup test data
+    // Cleanup test data - do NOT disconnect (shared connection managed by vitest.setup.ts)
     await Journal.deleteMany({ orgId: TEST_ORG_ID });
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
     await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
     clearContext();
     setTenantIsolationContext({});
-    await mongoose.disconnect();
+    // Do NOT call mongoose.disconnect() - managed by vitest.setup.ts
   });
 
   beforeEach(async () => {

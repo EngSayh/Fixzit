@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bug,
   Clock,
+  Search,
   RefreshCw,
   Plus,
   Download,
@@ -20,12 +21,19 @@ import {
   FileCode,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -34,11 +42,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CompactFilterBar } from "@/components/ui/compact-filter-bar";
 // DropdownMenu imports removed - will add when needed
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useI18n } from "@/i18n/useI18n";
 
 // ============================================================================
 // TYPES
@@ -121,7 +127,6 @@ function IssuesDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { t } = useI18n();
 
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -140,16 +145,13 @@ function IssuesDashboardContent() {
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch issues
   const fetchIssues = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       params.set("page", page.toString());
-      params.set("limit", pageSize.toString());
+      params.set("limit", "20");
 
       if (statusFilter) params.set("status", statusFilter);
       if (priorityFilter) params.set("priority", priorityFilter);
@@ -167,18 +169,17 @@ function IssuesDashboardContent() {
       const data = await response.json();
       setIssues(data.issues || []);
       setTotalPages(data.pagination?.totalPages || 1);
-      setTotalItems(data.pagination?.total || data.issues?.length || 0);
     } catch (_error) {
       toast({
-        title: t("common.toast.error", "Error"),
-        description: t("common.toast.loadIssuesFailed", "Failed to load issues"),
+        title: "Error",
+        description: "Failed to load issues",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t]);
+  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -234,13 +235,13 @@ function IssuesDashboardContent() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: t("common.toast.exportComplete", "Export Complete"),
-        description: t("common.toast.exportedCount", "Exported {{count}} issues").replace("{{count}}", String(data.issues.length)),
+        title: "Export Complete",
+        description: `Exported ${data.issues.length} issues`,
       });
     } catch {
       toast({
-        title: t("common.toast.exportFailed", "Export Failed"),
-        description: t("common.toast.exportFailedDescription", "Could not export issues"),
+        title: "Export Failed",
+        description: "Could not export issues",
         variant: "destructive",
       });
     }
@@ -257,15 +258,15 @@ function IssuesDashboardContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label="Refresh issues list">
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export issues to JSON file">
             <Download className="h-4 w-4 me-2" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create new issue">
             <Plus className="h-4 w-4 me-2" />
             New Issue
           </Button>
@@ -339,70 +340,101 @@ function IssuesDashboardContent() {
       </div>
 
       {/* Filters */}
-      <CompactFilterBar
-        sticky
-        search={{
-          value: search,
-          onChange: setSearch,
-          placeholder: "Search issues...",
-        }}
-        tabs={{
-          items: [
-            { value: "all", label: "All" },
-            { value: "open", label: "Open" },
-            { value: "in_progress", label: "In Progress" },
-            { value: "blocked", label: "Blocked" },
-          ],
-          value: statusFilter,
-          onChange: setStatusFilter,
-        }}
-        dropdowns={[
-          {
-            id: "priority",
-            value: priorityFilter,
-            placeholder: "Priority",
-            options: [
-              { value: "all", label: "All Priority" },
-              { value: "P0", label: "P0 Critical" },
-              { value: "P1", label: "P1 High" },
-              { value: "P2", label: "P2 Medium" },
-              { value: "P3", label: "P3 Low" },
-            ],
-            onChange: setPriorityFilter,
-          },
-          {
-            id: "category",
-            value: categoryFilter || "all",
-            placeholder: "Category",
-            options: [
-              { value: "all", label: "All Categories" },
-              { value: "bug", label: "Bug" },
-              { value: "security", label: "Security" },
-              { value: "efficiency", label: "Efficiency" },
-              { value: "missing_test", label: "Missing Tests" },
-            ],
-            onChange: (v) => setCategoryFilter(v === "all" ? "" : v),
-          },
-        ]}
-        actions={[
-          {
-            id: "quickWins",
-            label: "Quick Wins",
-            icon: <Zap className="h-3.5 w-3.5" />,
-            active: viewMode === "quickWins",
-            onClick: () => setViewMode(viewMode === "quickWins" ? "all" : "quickWins"),
-          },
-          {
-            id: "stale",
-            label: "Stale",
-            icon: <Clock className="h-3.5 w-3.5" />,
-            active: viewMode === "stale",
-            onClick: () => setViewMode(viewMode === "stale" ? "all" : "stale"),
-          },
-        ]}
-        hasActiveFilter={search !== "" || statusFilter !== "all" || priorityFilter !== "all" || categoryFilter !== "" || viewMode !== "all"}
-        onClearFilters={() => { setSearch(""); setStatusFilter("all"); setPriorityFilter("all"); setCategoryFilter(""); setViewMode("all"); }}
-      />
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search issues..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-9"
+                />
+              </div>
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="in_review">In Review</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="P0">P0 Critical</SelectItem>
+                <SelectItem value="P1">P1 High</SelectItem>
+                <SelectItem value="P2">P2 Medium</SelectItem>
+                <SelectItem value="P3">P3 Low</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={categoryFilter || "all"}
+              onValueChange={(value) =>
+                setCategoryFilter(value === "all" ? "" : value)
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="security">Security</SelectItem>
+                <SelectItem value="efficiency">Efficiency</SelectItem>
+                <SelectItem value="missing_test">Missing Tests</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("all")}
+                aria-label="Show all issues"
+                aria-pressed={viewMode === "all"}
+              >
+                All
+              </Button>
+              <Button
+                variant={viewMode === "quickWins" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("quickWins")}
+                aria-label="Show quick win issues"
+                aria-pressed={viewMode === "quickWins"}
+              >
+                <Zap className="h-4 w-4 me-1" />
+                Quick Wins
+              </Button>
+              <Button
+                variant={viewMode === "stale" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("stale")}
+                aria-label="Show stale issues"
+                aria-pressed={viewMode === "stale"}
+              >
+                <Clock className="h-4 w-4 me-1" />
+                Stale
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Issues Table */}
       <Card>
@@ -486,26 +518,29 @@ function IssuesDashboardContent() {
       </Card>
 
       {/* Pagination */}
-      {totalPages >= 1 && (
-        <div className="border rounded-lg border-border bg-card">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={pageSize}
-            showingAll={showingAll}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              if (size === "all") {
-                setShowingAll(true);
-                setPageSize(totalItems || 100);
-              } else {
-                setShowingAll(false);
-                setPageSize(size);
-              }
-              setPage(1);
-            }}
-          />
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            aria-label="Go to previous page"
+          >
+            Previous
+          </Button>
+          <span className="flex items-center px-4 text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+            aria-label="Go to next page"
+          >
+            Next
+          </Button>
         </div>
       )}
     </div>

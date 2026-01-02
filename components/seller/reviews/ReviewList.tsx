@@ -7,7 +7,6 @@
 import React, { useState, useEffect } from "react";
 import { ReviewCard } from "./ReviewCard";
 import type { SellerReview } from "@/lib/souq/review-types";
-import { Pagination } from "@/components/ui/pagination";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { logger } from "@/lib/logger";
 
@@ -34,9 +33,6 @@ export function ReviewList({
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState<FilterState>({
     rating: null,
     verifiedOnly: false,
@@ -48,7 +44,7 @@ export function ReviewList({
     if (productId) {
       fetchReviews();
     }
-  }, [productId, page, pageSize, filters]);
+  }, [productId, page, filters]);
 
   const fetchReviews = async () => {
     if (!productId) return;
@@ -57,7 +53,7 @@ export function ReviewList({
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: pageSize.toString(),
+        limit: "20",
         sortBy: filters.sortBy,
       });
 
@@ -71,7 +67,6 @@ export function ReviewList({
 
       setReviews(data.data || []);
       setTotalPages(data.pagination?.pages || 1);
-      setTotalItems(data.pagination?.total || data.data?.length || 0);
     } catch (error) {
       logger.error("Failed to fetch reviews", error, {
         component: "ReviewList",
@@ -192,26 +187,29 @@ export function ReviewList({
       )}
 
       {/* Pagination */}
-      {totalPages >= 1 && (
-        <div className="border rounded-lg border-border bg-card">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={pageSize}
-            showingAll={showingAll}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              if (size === "all") {
-                setShowingAll(true);
-                setPageSize(totalItems || 100);
-              } else {
-                setShowingAll(false);
-                setPageSize(size);
-              }
-              setPage(1);
-            }}
-          />
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button type="button"
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1 || loading}
+            aria-label={auto("Previous", "pagination.previous")}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {auto("Previous", "pagination.previous")}
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {auto("Page {{page}} of {{total}}", "pagination.summary")
+              .replace("{{page}}", String(page))
+              .replace("{{total}}", String(totalPages))}
+          </span>
+          <button type="button"
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages || loading}
+            aria-label={auto("Next", "pagination.next")}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {auto("Next", "pagination.next")}
+          </button>
         </div>
       )}
     </div>

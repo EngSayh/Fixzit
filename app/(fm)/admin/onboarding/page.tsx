@@ -174,7 +174,7 @@ export default function AdminApprovalQueuePage() {
                 ? "ليس لديك صلاحية للوصول إلى قائمة الموافقات. هذه الصفحة مخصصة للمسؤولين فقط."
                 : "You do not have permission to access the Approval Queue. This page is restricted to Admin users only."}
             </p>
-            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+            <Button variant="outline" onClick={() => router.push("/dashboard")} aria-label={isRTL ? "العودة للوحة التحكم" : "Go back to dashboard"}>
               {isRTL ? "العودة للوحة التحكم" : "Back to Dashboard"}
             </Button>
           </CardContent>
@@ -413,6 +413,7 @@ export default function AdminApprovalQueuePage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => window.open(`/admin/onboarding/${c._id}`, "_blank")}
+                          aria-label={isRTL ? `فتح طلب ${c.basic_info.name}` : `Open application for ${c.basic_info.name}`}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
@@ -426,6 +427,7 @@ export default function AdminApprovalQueuePage() {
                                 setSelectedCase(c);
                                 setReviewAction("approve");
                               }}
+                              aria-label={isRTL ? `الموافقة على طلب ${c.basic_info.name}` : `Approve application for ${c.basic_info.name}`}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -437,6 +439,7 @@ export default function AdminApprovalQueuePage() {
                                 setSelectedCase(c);
                                 setReviewAction("reject");
                               }}
+                              aria-label={isRTL ? `رفض طلب ${c.basic_info.name}` : `Reject application for ${c.basic_info.name}`}
                             >
                               <XCircle className="h-4 w-4" />
                             </Button>
@@ -510,6 +513,7 @@ export default function AdminApprovalQueuePage() {
                 setRejectionReason("");
               }}
               disabled={isProcessing}
+              aria-label={isRTL ? "إلغاء المراجعة" : "Cancel review"}
             >
               {isRTL ? "إلغاء" : "Cancel"}
             </Button>
@@ -517,6 +521,7 @@ export default function AdminApprovalQueuePage() {
               variant={reviewAction === "approve" ? "default" : "destructive"}
               onClick={handleReview}
               disabled={isProcessing || (reviewAction === "reject" && !rejectionReason.trim())}
+              aria-label={reviewAction === "approve" ? (isRTL ? "تأكيد الموافقة" : "Confirm approval") : (isRTL ? "تأكيد الرفض" : "Confirm rejection")}
             >
               {isProcessing && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
               {reviewAction === "approve"

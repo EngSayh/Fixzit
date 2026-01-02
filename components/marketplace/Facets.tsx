@@ -47,6 +47,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                     ? "bg-primary text-white"
                     : "hover:bg-muted",
                 )}
+                aria-label={`Filter by category: ${category.name}`}
+                aria-pressed={selected.category === category.slug}
               >
                 {category.name}
               </button>
@@ -71,6 +73,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                     ? "bg-primary text-white"
                     : "hover:bg-muted",
                 )}
+                aria-label={`Filter by brand: ${brand}`}
+                aria-pressed={selected.brand === brand}
               >
                 {brand}
               </button>
@@ -95,6 +99,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                     ? "bg-primary text-white"
                     : "hover:bg-muted",
                 )}
+                aria-label={`Filter by standard: ${standard}`}
+                aria-pressed={selected.standard === standard}
               >
                 {standard}
               </button>

@@ -125,7 +125,7 @@ export default function FinancePage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <Button onClick={() => mutate()}>{t("common.search", "Search")}</Button>
+        <Button onClick={() => mutate()} aria-label={t("common.searchLabel", "Search invoices")}>{t("common.search", "Search")}</Button>
       </div>
 
       {isLoading ? (
@@ -314,7 +314,7 @@ function Action({
     }
   }
   return (
-    <Button variant="secondary" disabled={disabled} onClick={go}>
+    <Button variant="secondary" disabled={disabled} onClick={go} aria-label={action === "POST" ? t("finance.invoice.actions.postLabel", "Post this invoice") : t("finance.invoice.actions.voidLabel", "Void this invoice")}>
       {action === "POST"
         ? t("finance.invoice.actions.post", "Post invoice")
         : t("finance.invoice.actions.void", "Void invoice")}
@@ -483,7 +483,7 @@ function CreateInvoice({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>{t("finance.newInvoice", "New Invoice")}</Button>
+        <Button aria-label={t("finance.newInvoiceLabel", "Create a new invoice")}>{t("finance.newInvoice", "New Invoice")}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -534,6 +534,7 @@ function CreateInvoice({
                     },
                   ])
                 }
+                aria-label={t("finance.addLineLabel", "Add a new invoice line")}
               >
                 {t("finance.addLine", "Add Line")}
               </Button>
@@ -551,6 +552,7 @@ function CreateInvoice({
           <Button
             onClick={submit}
             disabled={!lines.length || lines.some((l) => !l.description)}
+            aria-label={t("common.createLabel", "Create invoice")}
           >
             {t("common.create", "Create")}
           </Button>

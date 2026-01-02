@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ActionButton } from "@/components/ui/action-feedback";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -137,13 +138,7 @@ export default function SettingsPage() {
                   </Label>
                   <Input id="department" defaultValue="IT" />
                 </div>
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Save profile logic */ }}
-                  tooltip={t("settings.profile.saveTooltip", "Save your profile changes")}
-                >
-                  {t("settings.profile.save", "Save Changes")}
-                </ActionButton>
+                <Button aria-label={t("settings.profile.saveLabel", "Save profile changes")}>{t("settings.profile.save", "Save Changes")}</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -191,13 +186,9 @@ export default function SettingsPage() {
                   </div>
                   <Switch />
                 </div>
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Update password logic */ }}
-                  tooltip={t("settings.security.updateTooltip", "Update your password")}
-                >
+                <Button aria-label={t("settings.security.updatePasswordLabel", "Update your password")}>
                   {t("settings.security.updatePassword", "Update Password")}
-                </ActionButton>
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -227,13 +218,9 @@ export default function SettingsPage() {
                     />
                   </div>
                 ))}
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Save notification preferences */ }}
-                  tooltip={t("settings.notifications.saveTooltip", "Save notification preferences")}
-                >
+                <Button aria-label={t("settings.notifications.saveLabel", "Save notification preferences")}>
                   {t("settings.notifications.save", "Save Preferences")}
-                </ActionButton>
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -250,8 +237,9 @@ export default function SettingsPage() {
                   <Label htmlFor="language">
                     {t("settings.preferences.language", "Language")}
                   </Label>
-                  <Select defaultValue="ar" placeholder={t("settings.preferences.selectLanguage", "Select language")}>
+                  <Select defaultValue="ar">
                     <SelectTrigger id="language">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">
@@ -267,8 +255,9 @@ export default function SettingsPage() {
                   <Label htmlFor="timezone">
                     {t("settings.preferences.timezone", "Timezone")}
                   </Label>
-                  <Select defaultValue="Asia/Riyadh" placeholder={t("settings.preferences.selectTimezone", "Select timezone")}>
+                  <Select defaultValue="Asia/Riyadh">
                     <SelectTrigger id="timezone">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Asia/Riyadh">
@@ -290,9 +279,9 @@ export default function SettingsPage() {
                   <Select
                     value={currency}
                     onValueChange={(value) => setCurrency(value as CurrencyCode)}
-                    placeholder={t("settings.preferences.selectCurrency", "Select currency")}
                   >
                     <SelectTrigger id="currency">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {options.map((option) => (
@@ -313,8 +302,9 @@ export default function SettingsPage() {
                   <Label htmlFor="theme">
                     {t("settings.preferences.theme", "Theme")}
                   </Label>
-                  <Select defaultValue="light" placeholder={t("settings.preferences.selectTheme", "Select theme")}>
+                  <Select defaultValue="light">
                     <SelectTrigger id="theme">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="light">
@@ -329,13 +319,9 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <ActionButton 
-                  actionType="save" 
-                  onClick={async () => { /* Save app preferences */ }}
-                  tooltip={t("settings.preferences.saveTooltip", "Save your app preferences")}
-                >
+                <Button aria-label={t("settings.preferences.saveLabel", "Save app preferences")}>
                   {t("settings.preferences.save", "Save Preferences")}
-                </ActionButton>
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

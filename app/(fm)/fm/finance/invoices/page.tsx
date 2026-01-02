@@ -212,7 +212,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-success hover:bg-success/90">
+            <Button className="bg-success hover:bg-success/90" aria-label={t("fm.invoices.newInvoiceLabel", "Create a new invoice")}>
               <Plus className="w-4 h-4 me-2" />
               {t("fm.invoices.newInvoice", "New Invoice")}
             </Button>
@@ -449,6 +449,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
                 <Button
                   onClick={() => setCreateOpen(true)}
                   className="bg-success hover:bg-success/90"
+                  aria-label={t("fm.invoices.createInvoiceLabel", "Create your first invoice")}
                 >
                   <Plus className="w-4 h-4 me-2" />
                   {t("fm.invoices.createInvoice", "Create Invoice")}
@@ -1049,6 +1050,7 @@ function CreateInvoiceForm({
                     size="sm"
                     onClick={() => removeItem(index)}
                     className="text-destructive"
+                    aria-label={t("fm.invoices.removeLineItemAria", "Remove this line item")}
                   >
                     ×
                   </Button>
@@ -1063,13 +1065,14 @@ function CreateInvoiceForm({
           size="sm"
           onClick={addItem}
           className="mt-2"
+          aria-label={t("fm.invoices.addLineItemAria", "Add a new line item to invoice")}
         >
           {t("fm.invoices.addLineItem", "Add Line Item")}
         </Button>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-success hover:bg-success/90">
+        <Button type="submit" className="bg-success hover:bg-success/90" aria-label={t("fm.invoices.submitInvoiceAria", "Create and submit the invoice")}>
           {t("fm.invoices.createInvoice", "Create Invoice")}
         </Button>
       </div>

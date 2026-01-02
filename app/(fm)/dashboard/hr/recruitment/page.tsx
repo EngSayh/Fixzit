@@ -300,7 +300,7 @@ export default function RecruitmentPage() {
           </div>
 
           {canManageJobs && (
-            <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" aria-label={auto("+ New Job", "actions.newJob")}>
               {auto("+ New Job", "actions.newJob")}
             </button>
           )}
@@ -419,7 +419,7 @@ export default function RecruitmentPage() {
                 )}
               </p>
               {canManageJobs && (
-                <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" aria-label={auto("+ Create First Job", "jobs.createFirst")}>
                   {auto("+ Create First Job", "jobs.createFirst")}
                 </button>
               )}
@@ -522,11 +522,11 @@ export default function RecruitmentPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 ms-4">
-                        <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                        <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors" aria-label={auto("View", "jobs.actions.view")}>
                           {auto("View", "jobs.actions.view")}
                         </button>
                         {canManageJobs && (
-                          <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                          <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors" aria-label={auto("Edit", "jobs.actions.edit")}>
                             {auto("Edit", "jobs.actions.edit")}
                           </button>
                         )}
@@ -599,6 +599,7 @@ export default function RecruitmentPage() {
                             ? "bg-primary text-primary-foreground"
                             : "bg-background hover:bg-accent"
                         }`}
+                        aria-label={auto("📋 List", "applications.viewList")}
                       >
                         {auto("📋 List", "applications.viewList")}
                       </button>
@@ -609,6 +610,7 @@ export default function RecruitmentPage() {
                             ? "bg-primary text-primary-foreground"
                             : "bg-background hover:bg-accent"
                         }`}
+                        aria-label={auto("📊 Kanban", "applications.viewKanban")}
                       >
                         {auto("📊 Kanban", "applications.viewKanban")}
                       </button>
@@ -728,10 +730,10 @@ export default function RecruitmentPage() {
                             </div>
                           </div>
                           <div className="flex gap-2 ms-4">
-                            <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                            <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors" aria-label="View application">
                               View
                             </button>
-                            <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" aria-label="Review application">
                               Review
                             </button>
                           </div>
@@ -780,7 +782,7 @@ export default function RecruitmentPage() {
                   )}
                 </p>
                 {canScheduleInterviews && (
-                  <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                  <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" aria-label={auto("+ Schedule Interview", "interviews.scheduleCta")}>
                     {auto("+ Schedule Interview", "interviews.scheduleCta")}
                   </button>
                 )}
@@ -1012,22 +1014,22 @@ export default function RecruitmentPage() {
                             )}
                           </div>
                           <div className="flex gap-2 ms-4">
-                            <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                            <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors" aria-label="View interview">
                               View
                             </button>
                             {interview.status === "scheduled" && !isPast && (
                               <>
-                                <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                                <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" aria-label="Reschedule interview">
                                   Reschedule
                                 </button>
-                                <button type="button" className="px-3 py-1 text-sm border border-destructive text-destructive rounded-md hover:bg-destructive/10 transition-colors">
+                                <button type="button" className="px-3 py-1 text-sm border border-destructive text-destructive rounded-md hover:bg-destructive/10 transition-colors" aria-label="Cancel interview">
                                   Cancel
                                 </button>
                               </>
                             )}
                             {interview.status === "completed" &&
                               !interview.feedback?.overall && (
-                                <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                                <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" aria-label={auto("Add Feedback", "interviews.addFeedback")}>
                                   {auto(
                                     "Add Feedback",
                                     "interviews.addFeedback",
@@ -1115,10 +1117,10 @@ export default function RecruitmentPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex gap-2">
-                            <button type="button" className="px-3 py-1 border rounded-md text-xs">
+                            <button type="button" className="px-3 py-1 border rounded-md text-xs" aria-label={auto("Profile", "candidates.actions.profile")}>
                               {auto("Profile", "candidates.actions.profile")}
                             </button>
-                            <button type="button" className="px-3 py-1 border rounded-md text-xs">
+                            <button type="button" className="px-3 py-1 border rounded-md text-xs" aria-label={auto("Notes", "candidates.actions.notes")}>
                               {auto("Notes", "candidates.actions.notes")}
                             </button>
                           </div>

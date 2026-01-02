@@ -14,17 +14,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { IconButton } from "@/components/ui/action-feedback";
 import { 
   FileText, 
   RefreshCw, 
   Search, 
   Download, 
   Eye,
+  ChevronLeft,
+  ChevronRight,
   User,
   Clock,
   Shield,
@@ -93,8 +93,7 @@ export default function SuperadminAuditPage() {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [showingAll, setShowingAll] = useState(false);
+  const [limit] = useState(50);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
@@ -102,7 +101,7 @@ export default function SuperadminAuditPage() {
     try {
       setLoading(true);
       setError(null);
-      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (search) params.set("userId", search);
       if (actionFilter !== "all") params.set("action", actionFilter);
       if (entityFilter !== "all") params.set("entityType", entityFilter);
@@ -114,7 +113,7 @@ export default function SuperadminAuditPage() {
       }
       const data = await response.json();
       setLogs(data.logs || []);
-      setPagination({ page: data.page || page, limit: data.limit || pageSize, total: data.total || 0, pages: data.pages || 1 });
+      setPagination({ page: data.page || page, limit: data.limit || limit, total: data.total || 0, pages: data.pages || 1 });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load audit logs";
       setError(message);
@@ -122,7 +121,7 @@ export default function SuperadminAuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, actionFilter, entityFilter]);
+  }, [page, limit, search, actionFilter, entityFilter]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -158,10 +157,10 @@ export default function SuperadminAuditPage() {
           <p className="text-muted-foreground">System-wide audit trail and security events</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground" aria-label={t("superadmin.audit.export", "Export audit logs to CSV")} title={t("superadmin.audit.export", "Export audit logs to CSV")}>
             <Download className="h-4 w-4 me-2" />Export
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh audit logs")} title={t("common.refresh", "Refresh audit logs")}>
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
           </Button>
         </div>
@@ -174,15 +173,15 @@ export default function SuperadminAuditPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter} placeholder="Action">
-              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"></SelectTrigger>
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Action" /></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Actions</SelectItem>
                 {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
               </SelectContent>
             </Select>
-            <Select value={entityFilter} onValueChange={setEntityFilter} placeholder="Entity">
-              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"></SelectTrigger>
+            <Select value={entityFilter} onValueChange={setEntityFilter}>
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Entity" /></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Entities</SelectItem>
                 {ENTITY_TYPES.map((entity) => (<SelectItem key={entity} value={entity}>{entity}</SelectItem>))}
@@ -206,7 +205,7 @@ export default function SuperadminAuditPage() {
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" /><p className="text-red-400">{error}</p>
-              <Button variant="outline" onClick={fetchLogs} className="mt-4">Retry</Button>
+              <Button variant="outline" onClick={fetchLogs} className="mt-4" aria-label={t("common.retry", "Retry loading audit logs")} title={t("common.retry", "Retry loading audit logs")}>Retry</Button>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -232,32 +231,19 @@ export default function SuperadminAuditPage() {
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground" />{log.entityType}{log.entityId && <span className="text-muted-foreground text-xs">({log.entityId.slice(-8)})</span>}</div></TableCell>
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />{log.userEmail || log.userName || log.userId?.slice(-8) || "System"}</div></TableCell>
                     <TableCell>{log.success !== false ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}</TableCell>
-                    <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.audit.viewDetails", "View log details")} onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} /></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} className="text-muted-foreground hover:text-foreground" aria-label={t("superadmin.audit.viewDetails", `View details for ${log.action} ${log.entityType}`)} title={t("superadmin.audit.viewDetails", `View details for ${log.action} ${log.entityType}`)}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-          {pagination && (
-            <div className="border-t border-border">
-              <Pagination
-                currentPage={pagination.page}
-                totalPages={pagination.pages}
-                totalItems={pagination.total}
-                itemsPerPage={pageSize}
-                showingAll={showingAll}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  if (size === "all") {
-                    setShowingAll(true);
-                    setPageSize(pagination.total || 100);
-                  } else {
-                    setShowingAll(false);
-                    setPageSize(size);
-                  }
-                  setPage(1);
-                }}
-              />
+          {pagination && pagination.pages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">Page {pagination.page} of {pagination.pages}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input" aria-label={t("common.previousPage", "Go to previous page")} title={t("common.previousPage", "Go to previous page")}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input" aria-label={t("common.nextPage", "Go to next page")} title={t("common.nextPage", "Go to next page")}><ChevronRight className="h-4 w-4" /></Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -283,7 +269,7 @@ export default function SuperadminAuditPage() {
               {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (<div><p className="text-sm text-muted-foreground mb-1">Metadata</p><pre className="text-xs text-muted-foreground bg-muted p-3 rounded-lg overflow-x-auto">{JSON.stringify(selectedLog.metadata, null, 2)}</pre></div>)}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)} aria-label={t("common.close", "Close audit details")} title={t("common.close", "Close audit details")}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

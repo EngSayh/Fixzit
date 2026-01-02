@@ -146,6 +146,7 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
             size="sm"
             onClick={loadJobs}
             disabled={loading}
+            aria-label={auto("Refresh report jobs", "actions.refreshAria")}
           >
             {loading && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
             {auto("Refresh", "actions.refresh")}
@@ -193,6 +194,7 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
                     size="sm"
                     onClick={() => void handleDownload(job.id)}
                     disabled={downloadingId === job.id}
+                    aria-label={auto(`Download report ${job.name}`, "actions.downloadAria")}
                   >
                     {downloadingId === job.id && (
                       <Loader2 className="w-4 h-4 me-2 animate-spin" />
@@ -301,7 +303,7 @@ function CreateReportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button aria-label={auto("Create a new report", "triggerAria")}>
           <Plus className="w-4 h-4 me-2" />
           {auto("Create Report", "trigger")}
         </Button>
@@ -387,6 +389,7 @@ function CreateReportDialog({
             onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
             className="w-full"
+            aria-label={auto("Generate the report", "submitAria")}
           >
             {isSubmitting
               ? auto("Creating...", "submit.loading")

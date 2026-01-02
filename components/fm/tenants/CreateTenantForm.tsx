@@ -366,6 +366,7 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
           className="bg-secondary hover:bg-secondary/90"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
+          aria-label={t("fm.tenants.createTenant.ariaLabel", "Submit form to create tenant")}
         >
           {isSubmitting
             ? t("common.saving", "Saving...")

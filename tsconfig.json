@@ -89,6 +89,8 @@
     "deployment",
     "issue-tracker",
     "Incoming",
-    "tmp"
+    "tmp",
+    ".artifacts",
+    "_artifacts"
   ]
 }

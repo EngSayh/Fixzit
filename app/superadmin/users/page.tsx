@@ -12,7 +12,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import {
   Users,
+  Search,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   AlertCircle,
   CheckCircle,
@@ -36,7 +39,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
-import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Table,
   TableBody,
@@ -62,9 +64,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
-import { useActionFeedback } from "@/components/ui/action-feedback";
 
 // Types
 interface UserData {
@@ -125,12 +125,6 @@ const USER_TYPES = [
 export default function SuperadminUsersPage() {
   const { t } = useI18n();
 
-  // Inline confirmation feedback
-  const bulkFeedback = useActionFeedback();
-  const deleteFeedback = useActionFeedback();
-  const updateFeedback = useActionFeedback();
-  const notifyFeedback = useActionFeedback();
-
   // State
   const [users, setUsers] = useState<UserData[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -144,8 +138,7 @@ export default function SuperadminUsersPage() {
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [userTypeFilter, setUserTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
+  const [limit] = useState(20);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -174,7 +167,7 @@ export default function SuperadminUsersPage() {
 
       const params = new URLSearchParams({
         page: String(page),
-        limit: String(pageSize),
+        limit: String(limit),
         sortBy: "createdAt",
         sortOrder: "desc",
       });
@@ -205,7 +198,7 @@ export default function SuperadminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, statusFilter, orgFilter, userTypeFilter]);
+  }, [page, limit, search, statusFilter, orgFilter, userTypeFilter]);
 
   // Fetch organizations for filter
   const fetchOrganizations = useCallback(async () => {
@@ -290,13 +283,15 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to update users");
       }
 
-      bulkFeedback.showSuccess("Updated", "save");
+      const result = await response.json();
+      const updatedCount = result.modifiedCount ?? selectedIds.size;
+      toast.success(`Updated ${updatedCount} users`);
       setBulkStatusDialogOpen(false);
       setBulkStatus("");
       setSelectedIds(new Set());
       fetchUsers();
-    } catch {
-      bulkFeedback.showError("Failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update users");
     } finally {
       setActionLoading(false);
     }
@@ -325,13 +320,13 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to send notifications");
       }
 
-      notifyFeedback.showSuccess("Sent", "generic");
+      toast.success(`Sent notification to ${targetIds.length} user${targetIds.length !== 1 ? "s" : ""}`);
       setNotificationDialogOpen(false);
       setNotificationSubject("");
       setNotificationMessage("");
       setSingleNotificationUserId(null);
-    } catch {
-      notifyFeedback.showError("Failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send notifications");
     } finally {
       setActionLoading(false);
     }
@@ -356,12 +351,14 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to delete users");
       }
 
-      deleteFeedback.showSuccess("Deleted", "delete");
+      const result = await response.json();
+      const deletedCount = result.deletedCount ?? result.modifiedCount ?? selectedIds.size;
+      toast.success(`Deleted ${deletedCount} users`);
       setDeleteDialogOpen(false);
       setSelectedIds(new Set());
       fetchUsers();
-    } catch {
-      deleteFeedback.showError("Failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete users");
     } finally {
       setActionLoading(false);
     }
@@ -382,11 +379,11 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to update user");
       }
 
-      updateFeedback.showSuccess("Updated", "save");
+      toast.success("User status updated");
       setEditStatusDialogOpen(false);
       fetchUsers();
-    } catch {
-      updateFeedback.showError("Failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update user");
     } finally {
       setActionLoading(false);
     }
@@ -413,12 +410,6 @@ export default function SuperadminUsersPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Render feedback components for inline confirmation */}
-      <bulkFeedback.FeedbackComponent />
-      <deleteFeedback.FeedbackComponent />
-      <updateFeedback.FeedbackComponent />
-      <notifyFeedback.FeedbackComponent />
-      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -433,7 +424,7 @@ export default function SuperadminUsersPage() {
           {selectedIds.size > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="border-blue-600 text-blue-400">
+                <Button variant="outline" size="sm" className="border-blue-600 text-blue-400" aria-label={t("superadmin.users.bulkActions", `Bulk actions for ${selectedIds.size} selected users`)} title={t("superadmin.users.bulkActions", `Bulk actions for ${selectedIds.size} selected users`)}>
                   <MoreHorizontal className="h-4 w-4 me-2" />
                   Bulk Actions ({selectedIds.size})
                 </Button>
@@ -470,6 +461,8 @@ export default function SuperadminUsersPage() {
             onClick={fetchUsers}
             disabled={loading}
             className="border-input text-muted-foreground"
+            aria-label={t("common.refresh", "Refresh users list")}
+            title={t("common.refresh", "Refresh users list")}
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -478,54 +471,64 @@ export default function SuperadminUsersPage() {
       </div>
 
       {/* Filters */}
-      <SimpleFilterBar
-        search={{
-          value: search,
-          onChange: setSearch,
-          placeholder: "Search by email, name, phone, or organization...",
-        }}
-        filters={[
-          {
-            id: "status",
-            value: statusFilter,
-            placeholder: "All Status",
-            options: [
-              { value: "all", label: "All Status" },
-              { value: "ACTIVE", label: "Active" },
-              { value: "PENDING", label: "Pending" },
-              { value: "INACTIVE", label: "Inactive" },
-              { value: "SUSPENDED", label: "Suspended" },
-            ],
-            onChange: setStatusFilter,
-            width: "w-[120px]",
-          },
-          {
-            id: "org",
-            value: orgFilter,
-            placeholder: "All Organizations",
-            options: [
-              { value: "all", label: "All Organizations" },
-              ...organizations.map((org) => ({ value: org._id, label: org.name })),
-            ],
-            onChange: setOrgFilter,
-            width: "w-[160px]",
-          },
-          {
-            id: "userType",
-            value: userTypeFilter,
-            placeholder: "User Type",
-            options: USER_TYPES.map((type) => ({ value: type.value, label: type.label })),
-            onChange: setUserTypeFilter,
-            width: "w-[120px]",
-          },
-        ]}
-        onClear={() => {
-          setSearch("");
-          setStatusFilter("all");
-          setOrgFilter("all");
-          setUserTypeFilter("all");
-        }}
-      />
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by email, name, phone, or organization..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select 
+                value={statusFilter} 
+                onValueChange={setStatusFilter}
+                placeholder="Status"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+              </Select>
+              
+              <Select 
+                value={orgFilter} 
+                onValueChange={setOrgFilter}
+                placeholder="Organization"
+                className="w-full sm:w-48 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="all">All Organizations</SelectItem>
+                {organizations.map((org) => (
+                  <SelectItem key={org._id} value={org._id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </Select>
+              
+              <Select 
+                value={userTypeFilter} 
+                onValueChange={setUserTypeFilter}
+                placeholder="User Type"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                {USER_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Table */}
       <Card className="bg-card border-border">
@@ -549,7 +552,7 @@ export default function SuperadminUsersPage() {
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
               <p className="text-red-400 mb-4">{error}</p>
-              <Button variant="outline" onClick={fetchUsers}>
+              <Button variant="outline" onClick={fetchUsers} aria-label={t("common.tryAgain", "Try again to load users")} title={t("common.tryAgain", "Try again to load users")}>
                 Try Again
               </Button>
             </div>
@@ -568,6 +571,7 @@ export default function SuperadminUsersPage() {
                         onClick={toggleSelectAll}
                         className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground"
                         title={allSelected ? "Deselect all" : "Select all"}
+                        aria-label={allSelected ? t("superadmin.users.deselectAll", "Deselect all users") : t("superadmin.users.selectAll", "Select all users")}
                       >
                         {allSelected ? (
                           <CheckSquare className="h-4 w-4 text-blue-500" />
@@ -644,6 +648,8 @@ export default function SuperadminUsersPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                              aria-label={t("superadmin.users.rowActions", `Actions for user ${user.email}`)}
+                              title={t("superadmin.users.rowActions", `Actions for ${user.email}`)}
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
@@ -690,26 +696,37 @@ export default function SuperadminUsersPage() {
           )}
 
           {/* Pagination */}
-          {pagination && (
-            <div className="border-t border-border">
-              <Pagination
-                currentPage={pagination.page}
-                totalPages={pagination.totalPages}
-                totalItems={pagination.total}
-                itemsPerPage={pageSize}
-                showingAll={showingAll}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  if (size === "all") {
-                    setShowingAll(true);
-                    setPageSize(pagination.total || 100);
-                  } else {
-                    setShowingAll(false);
-                    setPageSize(size);
-                  }
-                  setPage(1);
-                }}
-              />
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                Page {pagination.page} of {pagination.totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPrev || loading}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="border-input"
+                  aria-label={t("pagination.previous", "Go to previous page")}
+                  title={t("pagination.previous", "Go to previous page")}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNext || loading}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="border-input"
+                  aria-label={t("pagination.next", "Go to next page")}
+                  title={t("pagination.next", "Go to next page")}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -772,6 +789,8 @@ export default function SuperadminUsersPage() {
               variant="outline"
               onClick={() => setViewDialogOpen(false)}
               className="border-input"
+              aria-label={t("common.close", "Close user details")}
+              title={t("common.close", "Close user details")}
             >
               Close
             </Button>
@@ -808,13 +827,15 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditStatusDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setEditStatusDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel status change")} title={t("common.cancel", "Cancel status change")}>
               Cancel
             </Button>
             <Button 
               onClick={() => selectedUser && handleSingleStatusChange(selectedUser._id, singleUserStatus)}
               disabled={!singleUserStatus || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
+              aria-label={t("superadmin.users.updateStatus", "Update user status")}
+              title={t("superadmin.users.updateStatus", "Update user status")}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
               Update Status
@@ -852,13 +873,15 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel bulk status change")} title={t("common.cancel", "Cancel bulk status change")}>
               Cancel
             </Button>
             <Button 
               onClick={handleBulkStatusChange}
               disabled={!bulkStatus || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
+              aria-label={t("superadmin.users.updateBulkStatus", `Update status for ${selectedIds.size} users`)}
+              title={t("superadmin.users.updateBulkStatus", `Update status for ${selectedIds.size} users`)}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
               Update {selectedIds.size} Users
@@ -910,13 +933,15 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNotificationDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setNotificationDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel sending notification")} title={t("common.cancel", "Cancel sending notification")}>
               Cancel
             </Button>
             <Button 
               onClick={handleSendNotification}
               disabled={!notificationSubject || !notificationMessage || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
+              aria-label={t("superadmin.users.sendNotification", "Send email notification")}
+              title={t("superadmin.users.sendNotification", "Send email notification")}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Mail className="h-4 w-4 me-2" />}
               Send Notification
@@ -944,13 +969,15 @@ export default function SuperadminUsersPage() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-input">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel user deletion")} title={t("common.cancel", "Cancel user deletion")}>
               Cancel
             </Button>
             <Button 
               onClick={handleBulkDelete}
               disabled={actionLoading}
               className="bg-red-600 hover:bg-red-700"
+              aria-label={t("superadmin.users.deleteUsers", `Delete ${selectedIds.size} users`)}
+              title={t("superadmin.users.deleteUsers", `Delete ${selectedIds.size} users`)}
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Trash2 className="h-4 w-4 me-2" />}
               Delete Users

@@ -86,6 +86,8 @@ export default function BalanceSheetWidget({
               variant="outline"
               onClick={load}
               disabled={loading}
+              aria-label={t("finance.balance.refresh", "Refresh balance sheet")}
+              title={t("finance.balance.refresh", "Refresh balance sheet")}
             >
               {t("common.refresh", "Refresh")}
             </Button>

@@ -153,6 +153,8 @@ export async function POST(request: NextRequest) {
     for (const collectionName of collectionsToExport) {
       try {
         const collection = mongoose.connection.collection(collectionName);
+        // Superadmin export reads entire collections for platform backup - intentionally unscoped
+        // eslint-disable-next-line local/require-tenant-scope
         const docs = await collection
           .find({})
           .limit(MAX_DOCS_PER_COLLECTION)

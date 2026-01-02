@@ -127,7 +127,7 @@ export default function SuperadminBillingPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.billing")}</h1>
           <p className="text-muted-foreground">Manage subscription plans, pricing, and billing operations</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh billing data")} title={t("common.refresh", "Refresh billing data")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -222,7 +222,7 @@ export default function SuperadminBillingPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => { setSelectedPriceBook(pb); setViewDialogOpen(true); }}>
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedPriceBook(pb); setViewDialogOpen(true); }} aria-label={t("superadmin.billing.viewPriceBook", `View ${pb.name} price book details`)} title={t("superadmin.billing.viewPriceBook", `View ${pb.name} price book details`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -345,7 +345,7 @@ export default function SuperadminBillingPage() {
               )}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)} aria-label={t("common.close", "Close price book details")} title={t("common.close", "Close price book details")}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

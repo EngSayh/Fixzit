@@ -547,10 +547,10 @@ export default function SuperadminUserLogsPage() {
           <p className="text-muted-foreground">{t("superadmin.userLogs.subtitle", "Monitor user activity, sessions, and interactions for support")}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground" aria-label={t("common.export", "Export activity logs")} title={t("common.export", "Export activity logs")}>
             <Download className="h-4 w-4 me-2" />{t("common.export", "Export")}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh activity logs")} title={t("common.refresh", "Refresh activity logs")}>
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />{t("common.refresh", "Refresh")}
           </Button>
         </div>
@@ -805,7 +805,7 @@ export default function SuperadminUserLogsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" onClick={() => handleViewSession(session)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleViewSession(session)} aria-label={t("superadmin.userLogs.viewSession", `View ${session.userName} session details`)} title={t("superadmin.userLogs.viewSession", "View session details")}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </TableCell>
@@ -857,7 +857,7 @@ export default function SuperadminUserLogsPage() {
               )}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setDetailDialogOpen(false)}>{t("common.close", "Close")}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setDetailDialogOpen(false)} aria-label={t("common.close", "Close log details")} title={t("common.close", "Close log details")}>{t("common.close", "Close")}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -894,7 +894,7 @@ export default function SuperadminUserLogsPage() {
               )}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setSessionDialogOpen(false)}>{t("common.close", "Close")}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setSessionDialogOpen(false)} aria-label={t("common.close", "Close session details")} title={t("common.close", "Close session details")}>{t("common.close", "Close")}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -943,12 +943,14 @@ export default function SuperadminUserLogsPage() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)} aria-label={t("common.cancel", "Cancel export")} title={t("common.cancel", "Cancel export")}>
               {t("common.cancel", "Cancel")}
             </Button>
             <Button 
               onClick={handleExportConfirm} 
               disabled={!exportConsent || exporting}
+              aria-label={t("common.export", "Export logs as CSV")}
+              title={t("common.export", "Export logs as CSV")}
             >
               {exporting ? t("common.exporting", "Exporting...") : t("common.export", "Export CSV")}
             </Button>

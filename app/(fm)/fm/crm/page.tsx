@@ -124,7 +124,7 @@ export default function CrmOverviewPage() {
             )}
           </p>
         </div>
-        <Button variant="outline" onClick={() => mutate()} disabled={isLoading}>
+        <Button variant="outline" onClick={() => mutate()} disabled={isLoading} aria-label={auto("Refresh CRM data", "actions.refreshAria")}>
           {isLoading ? (
             <Loader2 className="me-2 h-4 w-4 animate-spin" />
           ) : (

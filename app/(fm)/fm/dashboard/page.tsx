@@ -276,12 +276,12 @@ function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" aria-label={t("dashboard.notifications")}>
             <Bell className="w-4 h-4" />
             {t("dashboard.notifications")}
             <Badge className="ms-2 bg-destructive/20 text-destructive">3</Badge>
           </Button>
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90" aria-label={t("dashboard.quickAction")}>
             <Plus className="w-4 h-4 me-2" />
             {t("dashboard.quickAction")}
           </Button>
@@ -388,7 +388,7 @@ function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
                 {t("dashboard.recentWorkOrders")}
               </CardTitle>
               <Link href="/fm/work-orders">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" aria-label={t("dashboard.viewAll")}>
                   {t("dashboard.viewAll")}
                 </Button>
               </Link>
@@ -447,7 +447,7 @@ function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
                 {t("dashboard.propertyAlerts")}
               </CardTitle>
               <Link href="/fm/properties">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" aria-label={t("dashboard.viewAll")}>
                   {t("dashboard.viewAll")}
                 </Button>
               </Link>
@@ -503,25 +503,25 @@ function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/fm/work-orders/new">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" aria-label={t("dashboard.newWorkOrder")}>
                 <ClipboardList className="w-4 h-4 me-2" />
                 {t("dashboard.newWorkOrder")}
               </Button>
             </Link>
             <Link href="/fm/properties/new">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" aria-label={t("dashboard.addProperty")}>
                 <Building2 className="w-4 h-4 me-2" />
                 {t("dashboard.addProperty")}
               </Button>
             </Link>
             <Link href="/fm/tenants/new">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" aria-label={t("dashboard.newTenant")}>
                 <Users className="w-4 h-4 me-2" />
                 {t("dashboard.newTenant")}
               </Button>
             </Link>
             <Link href="/fm/invoices/new">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" aria-label={t("dashboard.createInvoice")}>
                 <DollarSign className="w-4 h-4 me-2" />
                 {t("dashboard.createInvoice")}
               </Button>

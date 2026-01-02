@@ -221,6 +221,9 @@ export default function AdminNotificationsTab({
         <button type="button"
           onClick={() => setShowHistory(!showHistory)}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          aria-label={showHistory
+            ? t("admin.notifications.hideHistory", "Hide History")
+            : t("admin.notifications.showHistory", "Show History")}
         >
           <History size={20} />
           {showHistory
@@ -244,7 +247,7 @@ export default function AdminNotificationsTab({
             <AlertCircle size={20} />
           )}
           <span>{notification.message}</span>
-          <button type="button" onClick={() => setNotification(null)} className="ms-auto">
+          <button type="button" onClick={() => setNotification(null)} className="ms-auto" aria-label={t("admin.notifications.dismissAlert", "Dismiss notification")}>
             ×
           </button>
         </div>
@@ -298,6 +301,8 @@ export default function AdminNotificationsTab({
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
+                    aria-label={t(`admin.notifications.selectRecipient.${value}`, `Select ${label} as recipient type`)}
+                    aria-pressed={recipientType === value}
                   >
                     <Icon size={24} />
                     <span className="text-sm font-medium">{label}</span>
@@ -346,6 +351,8 @@ export default function AdminNotificationsTab({
                           ? "border-gray-200 hover:border-gray-300"
                           : "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed"
                     }`}
+                    aria-label={available ? t(`admin.notifications.toggleChannel.${value}`, `Toggle ${label} channel`) : t(`admin.notifications.channelUnavailable.${value}`, `${label} channel coming soon`)}
+                    aria-pressed={channels.has(value as "email" | "sms" | "whatsapp")}
                   >
                     <Icon size={24} />
                     <span className="text-sm font-medium">{label}</span>
@@ -480,6 +487,7 @@ export default function AdminNotificationsTab({
                 !message.trim()
               }
               className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+              aria-label={isSending ? t("admin.notifications.sending", "Sending...") : t("admin.notifications.send", "Send Notification")}
             >
               {isSending ? (
                 <>

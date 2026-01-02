@@ -322,17 +322,17 @@ export default function CustomerRequestsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label="Refresh customer requests" title="Refresh customer requests">
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export customer requests to JSON" title="Export customer requests to JSON">
             <Download className="h-4 w-4 me-2" />
             Export
           </Button>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" aria-label="Add new customer request" title="Add new customer request">
                 <Plus className="h-4 w-4 me-2" />
                 Add Request
               </Button>
@@ -427,10 +427,10 @@ export default function CustomerRequestsPage() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)} aria-label="Cancel creating request" title="Cancel creating request">
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateRequest}>Create Request</Button>
+                  <Button onClick={handleCreateRequest} aria-label="Create customer request" title="Create customer request">Create Request</Button>
                 </div>
               </div>
             </DialogContent>

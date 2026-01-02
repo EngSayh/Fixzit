@@ -96,6 +96,8 @@ export default function IncomeStatementWidget({
               variant="outline"
               onClick={load}
               disabled={loading}
+              aria-label={t("finance.income.refresh", "Refresh income statement")}
+              title={t("finance.income.refresh", "Refresh income statement")}
             >
               {t("common.refresh", "Refresh")}
             </Button>

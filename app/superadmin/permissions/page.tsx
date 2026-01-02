@@ -449,14 +449,14 @@ export default function SuperadminPermissionsPage() {
         </div>
         <div className="flex gap-2">
           {hasChanges && (
-            <Button onClick={handleSaveChanges} className="bg-primary text-primary-foreground">
+            <Button onClick={handleSaveChanges} className="bg-primary text-primary-foreground" aria-label="Save permission changes" title="Save all permission changes">
               <Save className="h-4 w-4 me-2" />Save Changes
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={handleNewRole} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={handleNewRole} className="border-input text-muted-foreground" aria-label="Add new role" title="Add a new role">
             <Plus className="h-4 w-4 me-2" />Add Role
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchRoles} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchRoles} disabled={loading} className="border-input text-muted-foreground" aria-label="Refresh roles list" title="Refresh roles list">
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
           </Button>
         </div>
@@ -659,7 +659,7 @@ export default function SuperadminPermissionsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)} disabled={role.isSystem}>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)} disabled={role.isSystem} aria-label={t("superadmin.permissions.editRole", `Edit ${role.displayName} role`)} title={t("superadmin.permissions.editRole", `Edit ${role.displayName} role`)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
@@ -693,8 +693,8 @@ export default function SuperadminPermissionsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveRole}>{editingRole ? "Update" : "Create"}</Button>
+            <Button variant="outline" onClick={() => setRoleDialogOpen(false)} aria-label="Cancel role changes" title="Cancel and close dialog">Cancel</Button>
+            <Button onClick={handleSaveRole} aria-label={editingRole ? "Update role" : "Create new role"} title={editingRole ? "Update role settings" : "Create new role"}>{editingRole ? "Update" : "Create"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

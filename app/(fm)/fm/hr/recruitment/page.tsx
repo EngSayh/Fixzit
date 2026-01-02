@@ -292,7 +292,7 @@ export default function AtsJobsPage() {
             )}
           </p>
         </div>
-        <Button asChild>
+        <Button asChild aria-label={t("hr.ats.jobs.actions.newAria", "Post a new job opening")} title={t("hr.ats.jobs.actions.newAria", "Post a new job opening")}>
           <Link href="/hr/ats/jobs/new">
             {t("hr.ats.jobs.actions.new", "Post a new job")}
           </Link>

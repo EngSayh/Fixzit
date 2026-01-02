@@ -566,7 +566,7 @@ export default function RouteMetricsPage() {
             <p className="text-destructive">
               {error || auto("Failed to load metrics", "error.load")}
             </p>
-            <Button onClick={() => void fetchMetrics()}>
+            <Button onClick={() => void fetchMetrics()} aria-label={auto("Retry loading metrics", "actions.retryLabel")}>
               {auto("Retry", "actions.retry")}
             </Button>
           </CardContent>
@@ -604,6 +604,7 @@ export default function RouteMetricsPage() {
             variant="secondary"
             onClick={handleDownload}
             disabled={!metrics}
+            aria-label={auto("Download metrics as JSON", "actions.downloadLabel")}
           >
             <Download className="w-4 h-4 me-2" />
             {auto("Download JSON", "actions.download")}
@@ -612,6 +613,7 @@ export default function RouteMetricsPage() {
             onClick={() => void fetchMetrics(true)}
             variant="outline"
             disabled={refreshing}
+            aria-label={auto("Refresh metrics data", "actions.refreshLabel")}
           >
             {refreshing ? (
               <Loader2 className="w-4 h-4 me-2 animate-spin" />
@@ -1291,6 +1293,11 @@ export default function RouteMetricsPage() {
                             });
                             void persistAliasState(alias.aliasFile);
                           }}
+                          aria-label={
+                            aliasState?.resolved
+                              ? auto("Undo mark resolved", "aliases.workflow.undoAria")
+                              : auto("Mark alias as resolved", "aliases.workflow.markAria")
+                          }
                         >
                           {aliasState?.resolved
                             ? auto("Resolved", "aliases.workflow.resolved")

@@ -12,14 +12,13 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { IconButton } from "@/components/ui/action-feedback";
-import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import { 
-  Building2, RefreshCw, Eye, Star, Mail, MapPin, Phone,
+  Building2, RefreshCw, Search, Eye, Star, Phone, Mail, MapPin, 
   Users, CheckCircle, XCircle, TrendingUp,
 } from "@/components/ui/icons";
 
@@ -69,16 +68,13 @@ export default function SuperadminVendorsPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
 
   const fetchVendors = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       params.append("page", String(page));
-      params.append("limit", String(pageSize));
+      params.append("limit", "20");
       if (searchQuery) params.append("search", searchQuery);
       if (typeFilter !== "all") params.append("type", typeFilter);
       if (statusFilter !== "all") params.append("status", statusFilter);
@@ -88,18 +84,17 @@ export default function SuperadminVendorsPage() {
         const data = await response.json();
         setVendors(data.vendors || data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
-        setTotalItems(data.pagination?.total || data.vendors?.length || 0);
       }
     } catch {
       toast.error("Failed to fetch vendors");
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchQuery, typeFilter, statusFilter]);
+  }, [page, searchQuery, typeFilter, statusFilter]);
 
   useEffect(() => { fetchVendors(); }, [fetchVendors]);
 
-  const _handleSearch = () => { setPage(1); fetchVendors(); };
+  const handleSearch = () => { setPage(1); fetchVendors(); };
   const handleViewVendor = (vendor: Vendor) => { setSelectedVendor(vendor); setViewDialogOpen(true); };
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   const stats = { total: vendors.length, active: vendors.filter(v => v.status === "ACTIVE").length, avgRating: vendors.filter(v => v.rating).reduce((sum, v) => sum + (v.rating?.average || 0), 0) / (vendors.filter(v => v.rating).length || 1) };
@@ -111,7 +106,7 @@ export default function SuperadminVendorsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.vendors.title", "Vendor Management")}</h1>
           <p className="text-muted-foreground">{t("superadmin.vendors.subtitle", "Manage suppliers, contractors, and service providers")}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchVendors} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchVendors} disabled={loading} className="border-input text-muted-foreground" aria-label={t("superadmin.vendors.refresh", "Refresh vendors list")} title={t("superadmin.vendors.refresh", "Refresh vendors list")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />{t("superadmin.vendors.refresh", "Refresh")}
         </Button>
       </div>
@@ -123,45 +118,16 @@ export default function SuperadminVendorsPage() {
         <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><TrendingUp className="h-8 w-8 text-purple-400" /><div><p className="text-2xl font-bold text-foreground">{VENDOR_TYPES.length}</p><p className="text-muted-foreground text-sm">{t("superadmin.vendors.categories", "Categories")}</p></div></div></CardContent></Card>
       </div>
 
-      <SimpleFilterBar
-        search={{
-          value: searchQuery,
-          onChange: setSearchQuery,
-          placeholder: t("superadmin.vendors.searchPlaceholder", "Search vendors..."),
-        }}
-        filters={[
-          {
-            id: "type",
-            value: typeFilter,
-            placeholder: t("superadmin.vendors.allTypes", "All Types"),
-            options: [
-              { value: "all", label: t("superadmin.vendors.allTypes", "All Types") },
-              ...VENDOR_TYPES.map((type) => ({ value: type, label: type.replace("_", " ") })),
-            ],
-            onChange: setTypeFilter,
-            width: "w-[150px]",
-          },
-          {
-            id: "status",
-            value: statusFilter,
-            placeholder: t("superadmin.vendors.allStatus", "All Status"),
-            options: [
-              { value: "all", label: t("superadmin.vendors.allStatus", "All Status") },
-              { value: "ACTIVE", label: t("superadmin.vendors.active", "Active") },
-              { value: "INACTIVE", label: t("common.inactive", "Inactive") },
-              { value: "SUSPENDED", label: t("common.suspended", "Suspended") },
-            ],
-            onChange: setStatusFilter,
-            width: "w-[130px]",
-          },
-        ]}
-        onClear={() => {
-          setSearchQuery("");
-          setTypeFilter("all");
-          setStatusFilter("all");
-          setPage(1);
-        }}
-      />
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.vendors.searchPlaceholder", "Search vendors...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("superadmin.vendors.typePlaceholder", "Type")}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground">{typeFilter === "all" ? t("superadmin.vendors.allTypes", "All Types") : typeFilter.replace("_", " ")}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allTypes", "All Types")}</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.vendors.statusPlaceholder", "Status")}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground">{statusFilter === "all" ? t("superadmin.vendors.allStatus", "All Status") : statusFilter}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">{t("superadmin.vendors.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.vendors.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="SUSPENDED">{t("common.suspended", "Suspended")}</SelectItem></SelectContent></Select>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.vendors.search", "Search vendors")} title={t("superadmin.vendors.search", "Search vendors")}><Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-card border-border">
         <CardHeader className="border-b border-border"><CardTitle className="text-foreground">{t("superadmin.nav.vendors", "Vendors")}</CardTitle><CardDescription className="text-muted-foreground">{t("superadmin.vendors.allVendors", "All vendors across tenants")}</CardDescription></CardHeader>
@@ -178,7 +144,7 @@ export default function SuperadminVendorsPage() {
                     <TableCell>{vendor.contact?.address?.city ? (<span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-4 w-4 text-muted-foreground" />{vendor.contact.address.city}</span>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{vendor.rating ? (<div className="flex items-center gap-1"><Star className="h-4 w-4 text-yellow-400 fill-yellow-400" /><span className="text-foreground">{vendor.rating.average.toFixed(1)}</span></div>) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_COLORS[vendor.status] || ""}>{vendor.status === "ACTIVE" ? <CheckCircle className="h-3 w-3 me-1" /> : vendor.status === "SUSPENDED" ? <XCircle className="h-3 w-3 me-1" /> : null}{vendor.status}</Badge></TableCell>
-                    <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.vendors.viewDetails", "View vendor details")} onClick={() => handleViewVendor(vendor)} /></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => handleViewVendor(vendor)} aria-label={t("superadmin.vendors.viewVendor", `View ${vendor.name} details`)} title={t("superadmin.vendors.viewVendor", "View vendor details")}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -187,28 +153,7 @@ export default function SuperadminVendorsPage() {
         </CardContent>
       </Card>
 
-      {totalPages >= 1 && (
-        <div className="border rounded-lg border-border bg-card">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={pageSize}
-            showingAll={showingAll}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              if (size === "all") {
-                setShowingAll(true);
-                setPageSize(totalItems || 100);
-              } else {
-                setShowingAll(false);
-                setPageSize(size);
-              }
-              setPage(1);
-            }}
-          />
-        </div>
-      )}
+      {totalPages > 1 && (<div className="flex justify-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-input" aria-label={t("common.previousPage", "Go to previous page")} title={t("common.previousPage", "Previous page")}>Previous</Button><span className="py-2 px-4 text-muted-foreground">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-input" aria-label={t("common.nextPage", "Go to next page")} title={t("common.nextPage", "Next page")}>Next</Button></div>)}
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="bg-card border-input max-w-2xl">

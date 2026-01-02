@@ -357,6 +357,7 @@ export function FmPropertiesList({
               e.stopPropagation();
               handleRowClick(row);
             }}
+            aria-label={t("fm.properties.viewProperty.ariaLabel", "View property details")}
           >
             <Eye className="w-4 h-4" />
           </Button>
@@ -367,6 +368,7 @@ export function FmPropertiesList({
               e.stopPropagation();
               handleEditClick(row);
             }}
+            aria-label={t("fm.properties.editProperty.ariaLabel", "Edit property")}
           >
             <Edit className="w-4 h-4" />
           </Button>
@@ -378,6 +380,7 @@ export function FmPropertiesList({
               e.stopPropagation();
               handleDelete(row);
             }}
+            aria-label={t("fm.properties.deleteProperty.ariaLabel", "Delete property")}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -398,13 +401,13 @@ export function FmPropertiesList({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" aria-label={t("fm.properties.viewMap.ariaLabel", "View properties on map")}>
               <Map className="w-4 h-4" />
               {t("fm.properties.viewMap", "View Map")}
             </Button>
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-success hover:bg-success/90" onClick={handleAddClick}>
+                <Button className="bg-success hover:bg-success/90" onClick={handleAddClick} aria-label={t("fm.properties.newProperty.ariaLabel", "Create a new property")}>
                   <Plus className="w-4 h-4 me-2" />
                   {t("fm.properties.newProperty", "New Property")}
                 </Button>
@@ -444,6 +447,7 @@ export function FmPropertiesList({
             variant="outline"
             size="sm"
             onClick={() => setFilterDrawerOpen(true)}
+            aria-label={t("common.openFilters.ariaLabel", "Open filter options")}
           >
             <Filter className="w-4 h-4 me-2" />
             {t("common.filters", "Filters")}
@@ -476,7 +480,7 @@ export function FmPropertiesList({
           <p className="text-muted-foreground mb-4">
             {t("fm.properties.noPropertiesText", "Get started by adding your first property to the portfolio.")}
           </p>
-          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90">
+          <Button onClick={handleAddClick} className="bg-success hover:bg-success/90" aria-label={t("fm.properties.addProperty.ariaLabel", "Add a new property")}>
             <Plus className="w-4 h-4 me-2" />
             {t("fm.properties.addProperty", "Add Property")}
           </Button>
@@ -529,10 +533,10 @@ export function FmPropertiesList({
             </Select>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1">
+            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1" aria-label={t("common.clearFilters.ariaLabel", "Clear all filters")}>
               {t("common.clearFilters", "Clear Filters")}
             </Button>
-            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1">
+            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1" aria-label={t("common.apply.ariaLabel", "Apply filters and close")}>
               {t("common.apply", "Apply")}
             </Button>
           </div>

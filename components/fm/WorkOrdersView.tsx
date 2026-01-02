@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectItem,
@@ -34,7 +33,6 @@ import {
   Filter,
   WifiOff,
 } from "@/components/ui/icons";
-import { SimpleTooltip } from "@/components/ui/tooltip";
 import { WorkOrderPriority } from "@/lib/sla";
 import ClientDate from "@/components/ClientDate";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
@@ -619,6 +617,7 @@ export function WorkOrdersView({
                   size="sm"
                   onClick={handleManualSync}
                   disabled={manualSyncing}
+                  aria-label={t("workOrders.offline.syncNow.ariaLabel", "Sync offline work orders now")}
                 >
                   {manualSyncing
                     ? t("workOrders.offline.syncing", "Syncing...")
@@ -711,30 +710,28 @@ export function WorkOrdersView({
                   density={density}
                   onChange={(next) => setDensity(next)}
                 />
-                <SimpleTooltip content={t("workOrders.filters.openDrawer", "Open filters")}>
-                  <Button
-                    variant="outline"
-                    onClick={() => setFilterDrawerOpen(true)}
-                  >
-                    <Filter className="me-2 h-4 w-4" />
-                    {filtersLabel}
-                    {activeFilters.length > 0
-                      ? ` (${activeFilters.length})`
-                      : ""}
-                  </Button>
-                </SimpleTooltip>
-                <SimpleTooltip content={t("workOrders.refresh.tooltip", "Refresh work orders list")}>
-                  <Button
-                    variant="outline"
-                    onClick={() => mutate()}
-                    disabled={isValidating}
-                  >
-                    <RefreshCcw
-                      className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
-                    />
-                    {refreshLabel}
-                  </Button>
-                </SimpleTooltip>
+                <Button
+                  variant="outline"
+                  onClick={() => setFilterDrawerOpen(true)}
+                  aria-label={t("workOrders.list.filters.open.ariaLabel", "Open filter options")}
+                >
+                  <Filter className="me-2 h-4 w-4" />
+                  {filtersLabel}
+                  {activeFilters.length > 0
+                    ? ` (${activeFilters.length})`
+                    : ""}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => mutate()}
+                  disabled={isValidating}
+                  aria-label={t("workOrders.list.filters.refresh.ariaLabel", "Refresh work orders list")}
+                >
+                  <RefreshCcw
+                    className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
+                  />
+                  {refreshLabel}
+                </Button>
               </div>
             }
           />
@@ -771,6 +768,7 @@ export function WorkOrdersView({
                 setPage(1);
                 setFilterDrawerOpen(false);
               }}
+              aria-label={t("common.reset.ariaLabel", "Reset all filters")}
             >
               {t("common.reset", "Reset")}
             </Button>
@@ -779,6 +777,7 @@ export function WorkOrdersView({
                 setPage(1);
                 setFilterDrawerOpen(false);
               }}
+              aria-label={t("common.apply.ariaLabel", "Apply filters and close")}
             >
               {t("common.apply", "Apply")}
             </Button>
@@ -1076,7 +1075,7 @@ export function WorkOrdersView({
           title={emptyTitle}
           description={emptySubtitle}
           action={
-            <Button onClick={() => mutate()}>
+            <Button onClick={() => mutate()} aria-label={t("workOrders.list.retry", "Retry loading work orders")} title={retryLabel}>
               <RefreshCcw className="me-2 h-4 w-4" />
               {retryLabel}
             </Button>
@@ -1084,18 +1083,43 @@ export function WorkOrdersView({
         />
       )}
 
-      <div className="border-t border-border">
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          totalItems={resolvedResponse.total}
-          itemsPerPage={resolvedResponse.limit || PAGE_SIZE}
-          onPageChange={setPage}
-          onPageSizeChange={() => {
-            // Page size is controlled by PAGE_SIZE constant in this component
-            setPage(1);
-          }}
-        />
+      <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
+        <span className="text-sm text-muted-foreground">
+          {t(
+            "workOrders.list.pagination.summary",
+            "Showing {{count}} of {{total}} work orders",
+          )
+            .replace("{{count}}", String(workOrders.length))
+            .replace("{{total}}", String(resolvedResponse.total))}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            aria-label={t("workOrders.list.pagination.previous.ariaLabel", "Go to previous page")}
+          >
+            {t("workOrders.list.pagination.previous", "Previous")}
+          </Button>
+          <span className="text-sm text-foreground">
+            {t(
+              "workOrders.list.pagination.pageXofY",
+              "Page {{page}} of {{total}}",
+            )
+              .replace("{{page}}", String(page))
+              .replace("{{total}}", String(totalPages))}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            aria-label={t("workOrders.list.pagination.next.ariaLabel", "Go to next page")}
+          >
+            {t("workOrders.list.pagination.next", "Next")}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1205,7 +1229,7 @@ function WorkOrderCreateDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-success hover:bg-success-dark">
+        <Button className="bg-success hover:bg-success-dark" aria-label={t("workOrders.create.button.ariaLabel", "Create a new work order")} title={t("workOrders.create.button", "New Work Order")}>
           <Plus className="me-2 h-4 w-4" />
           {t("workOrders.create.button", "New Work Order")}
         </Button>
@@ -1305,10 +1329,11 @@ function WorkOrderCreateDialog({
                 setOpen(false);
               }}
               disabled={submitting}
+              aria-label={t("workOrders.create.form.cancelButton.ariaLabel", "Cancel and close work order form")}
             >
               {t("workOrders.create.form.cancelButton", "Cancel")}
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting} aria-label={t("workOrders.create.form.submitButton.ariaLabel", "Submit and create work order")}>
               {submitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {t("workOrders.create.form.submitButton", "Create")}
             </Button>

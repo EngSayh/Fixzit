@@ -89,6 +89,7 @@ export function BulkActionsToolbar<T>({
             variant={action.variant || 'outline'}
             onClick={() => handleAction(action)}
             disabled={isProcessing || action.isDisabled?.(selectedItems)}
+            aria-label={`${action.label} ${count} selected item${count !== 1 ? 's' : ''}`}
           >
             {action.icon}
             <span className="ms-1">{action.label}</span>
@@ -100,6 +101,7 @@ export function BulkActionsToolbar<T>({
           variant="ghost"
           onClick={onClearSelection}
           disabled={isProcessing}
+          aria-label="Clear selection"
         >
           <X className="h-4 w-4 me-1" />
           Clear

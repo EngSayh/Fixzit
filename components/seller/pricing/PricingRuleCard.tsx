@@ -122,7 +122,7 @@ export default function PricingRuleCard({ settings, onUpdate }: Props) {
               {localRule.protectMargin ? "Yes" : "No"}
             </span>
           </div>
-          <Button onClick={() => setEditing(true)} className="w-full">
+          <Button onClick={() => setEditing(true)} className="w-full" aria-label="Edit pricing rules for this product">
             Edit Rules
           </Button>
         </div>
@@ -238,13 +238,14 @@ export default function PricingRuleCard({ settings, onUpdate }: Props) {
 
           {/* Actions */}
           <div className="flex gap-2">
-            <Button onClick={handleSave} className="flex-1">
+            <Button onClick={handleSave} className="flex-1" aria-label="Save pricing rule changes">
               Save Changes
             </Button>
             <Button
               onClick={() => setEditing(false)}
               variant="outline"
               className="flex-1"
+              aria-label="Cancel editing and discard changes"
             >
               Cancel
             </Button>

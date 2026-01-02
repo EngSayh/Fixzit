@@ -200,6 +200,7 @@ export default function OTPVerification({
               variant="outline"
               size="sm"
               onClick={() => setOtp(devCode)}
+              aria-label={t("otp.useDevCode", "Auto-fill code")}
             >
               {t("otp.useDevCode", "Auto-fill code")}
             </Button>
@@ -274,6 +275,7 @@ export default function OTPVerification({
           type="submit"
           disabled={loading || otp.length !== 6 || timeRemaining === 0}
           className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={t("otp.verify", "Verify & Continue")}
         >
           {loading ? (
             <div
@@ -305,6 +307,7 @@ export default function OTPVerification({
             onClick={handleResend}
             disabled={resending || resendCooldown > 0}
             className="text-sm text-primary hover:text-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={t("otp.resend", "Resend Code")}
           >
             {resending
               ? t("otp.resending", "Sending...")
@@ -322,6 +325,7 @@ export default function OTPVerification({
           className={`w-full py-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
             isRTL ? "flex-row-reverse" : ""
           }`}
+          aria-label={t("otp.backToLogin", "Back to Login")}
         >
           <ArrowLeft className="h-4 w-4" />
           {t("otp.backToLogin", "Back to Login")}

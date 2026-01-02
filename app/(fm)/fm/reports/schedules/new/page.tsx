@@ -264,6 +264,7 @@ export default function NewSchedulePage() {
             type="submit"
             disabled={creating || !reportType || !title || !recipients}
             className="w-full"
+            aria-label={auto("Create report schedule", "submitAria")}
           >
             <Clock className="w-4 h-4 me-2" />
             {auto("Create Schedule", "submit")}

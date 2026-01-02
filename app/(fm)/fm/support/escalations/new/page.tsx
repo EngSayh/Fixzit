@@ -159,7 +159,7 @@ function NewEscalationContent({
             )}
           </p>
         </div>
-        <Button onClick={handleSubmit} disabled={!canSubmit || submitting}>
+        <Button onClick={handleSubmit} disabled={!canSubmit || submitting} aria-label={auto("Send escalation to duty manager", "actions.submitAria")}>
           {submitting
             ? auto("Escalating…", "actions.submitting")
             : auto("Send escalation", "actions.submit")}

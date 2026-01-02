@@ -161,10 +161,10 @@ export default function SuperadminJobsPage() {
           <p className="text-muted-foreground">Monitor and manage background job processing</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRetryStuck}>
+          <Button variant="outline" size="sm" onClick={handleRetryStuck} aria-label={t("superadmin.jobs.retryStuck", "Retry stuck jobs")} title={t("superadmin.jobs.retryStuck", "Retry stuck jobs")}>
             <RefreshCw className="h-4 w-4 me-2" />Retry Stuck
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchJobs} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={fetchJobs} disabled={loading} aria-label={t("common.refresh", "Refresh jobs")} title={t("common.refresh", "Refresh jobs")}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -195,7 +195,7 @@ export default function SuperadminJobsPage() {
                 {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
               </SelectContent>
             </Select>
-            <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0}>
+            <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0} aria-label={t("superadmin.jobs.process", "Process pending jobs")} title={t("superadmin.jobs.process", "Process pending jobs")}>
               {processing ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Processing...</> : <><Play className="h-4 w-4 me-2" />Process Jobs</>}
             </Button>
             <span className="text-muted-foreground text-sm">{stats.pending} jobs waiting</span>

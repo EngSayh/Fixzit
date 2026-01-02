@@ -28,6 +28,7 @@ vi.mock("@/lib/utils/org-scope", () => ({
 
 // Mock tenant context
 vi.mock("@/server/plugins/tenantIsolation", () => ({
+  tenantIsolationPlugin: vi.fn(),
   withTenantContext: vi.fn(async (_orgId, callback) => callback()),
 }));
 

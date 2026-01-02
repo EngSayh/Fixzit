@@ -114,9 +114,9 @@
     "test:verbose": "vitest run --reporter=verbose",
     "test:single": "vitest run",
     "test:changed": "vitest run --changed",
-    "test:e2e": "node scripts/run-playwright.js",
+    "test:e2e": "bash scripts/run-playwright.sh",
     "test:e2e:loop": "node tests/loop-runner.mjs",
-    "test:e2e:setup": "node scripts/run-playwright.js tests/setup-auth.ts",
+    "test:e2e:setup": "bash scripts/run-playwright.sh tests/setup-auth.ts",
     "scan:i18n": "cross-env I18N_IGNORE=watch-all node tests/i18n-scan.mjs",
     "scan:i18n:v2": "node scripts/i18n-scan-v2.mjs",
     "scan:i18n:audit": "node scripts/audit-translations.mjs",
@@ -230,9 +230,6 @@
     "express-validator": "^7.3.0",
     "firebase-admin": "^13.6.0",
     "framer-motion": "^11.18.2",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.5.0",
-    "three": "^0.175.0",
     "helmet": "^7.2.0",
     "html2canvas": "^1.4.1",
     "ical.js": "^2.2.1",
@@ -309,7 +306,6 @@
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
     "@types/supertest": "^6.0.3",
-    "@types/three": "^0.175.0",
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.23",
     "chalk": "^4.1.2",
@@ -359,7 +355,7 @@
       "node-forge": ">=1.3.2",
       "jws@^3": "3.2.3",
       "jws@^4": "4.0.1",
-      "qs": ">=6.14.1"
+      "qs@<6.14.1": ">=6.14.1"
     }
   },
   "simple-git-hooks": {

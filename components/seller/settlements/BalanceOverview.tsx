@@ -64,6 +64,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           disabled={balance.available < 500}
           className="w-full mt-4"
           variant="default"
+          aria-label={balance.available < 500 ? "الحد الأدنى 500 ر.س (Min 500 SAR)" : "طلب سحب (Request Withdrawal)"}
         >
           {balance.available < 500
             ? "الحد الأدنى 500 ر.س (Min 500 SAR)"

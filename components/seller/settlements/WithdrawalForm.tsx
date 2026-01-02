@@ -192,7 +192,7 @@ export function WithdrawalForm({
           </div>
         </div>
 
-        <Button type="submit" disabled={loading} className="w-full">
+        <Button type="submit" disabled={loading} className="w-full" aria-label="Submit withdrawal request (طلب سحب)" title="Submit withdrawal request">
           {loading
             ? "جاري الإرسال... (Submitting...)"
             : "طلب سحب (Submit Withdrawal)"}

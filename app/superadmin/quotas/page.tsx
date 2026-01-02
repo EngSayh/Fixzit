@@ -252,10 +252,10 @@ function QuotaEditDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} aria-label={t("accessibility.cancel", "Cancel and close dialog")} title={t("accessibility.cancel", "Cancel and close dialog")}>
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} aria-label={saving ? t("accessibility.saving", "Saving quota changes") : t("accessibility.saveQuota", "Save quota changes")} title={t("accessibility.saveQuota", "Save quota changes")}>
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </Button>
         </DialogFooter>
@@ -366,7 +366,7 @@ export default function SuperadminQuotasPage() {
             {t("superadmin.quotas.subtitle", "Manage storage, users, and API limits per tenant")}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchQuotas} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={fetchQuotas} disabled={loading} aria-label={t("common.refresh", "Refresh quota data")} title={t("common.refresh", "Refresh quota data")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
           {t("common.refresh", "Refresh")}
         </Button>
@@ -523,6 +523,8 @@ export default function SuperadminQuotasPage() {
                           setSelectedTenant(quota);
                           setEditDialogOpen(true);
                         }}
+                        aria-label={t("superadmin.quotas.editQuota", `Edit ${quota.tenantName} quota`)}
+                        title={t("superadmin.quotas.editQuota", "Edit quota")}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

@@ -143,6 +143,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
             variant="outline"
             onClick={handleSearch}
             disabled={isLoading || isSearching || !orgName.trim()}
+            aria-label="Search organizations"
           >
             {isSearching ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -165,6 +166,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
                 key={org.id}
                 type="button"
                 onClick={() => handleSelectOrg(org.id, org.name)}
+                aria-label={`Select organization ${org.name}`}
                 className="w-full text-start px-3 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-gray-200 dark:border-gray-700 transition-colors"
               >
                 <div className="font-medium text-gray-900 dark:text-white">{org.name}</div>
@@ -208,6 +210,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
           type="submit"
           disabled={isLoading || !orgId.trim()}
           className="flex-1"
+          aria-label="Set impersonation context for selected organization"
         >
           {isLoading ? (
             <>
@@ -224,6 +227,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
           variant="outline"
           onClick={handleClearImpersonation}
           disabled={isLoading}
+          aria-label="Clear impersonation context"
         >
           Clear Context
         </Button>

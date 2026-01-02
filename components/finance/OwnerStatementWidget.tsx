@@ -99,6 +99,8 @@ export default function OwnerStatementWidget() {
             variant="outline"
             disabled={!canLoad || loading}
             onClick={load}
+            aria-label={t("finance.owner.refresh", "Refresh owner statement")}
+            title={t("finance.owner.refresh", "Refresh owner statement")}
           >
             {t("common.refresh", "Refresh")}
           </Button>

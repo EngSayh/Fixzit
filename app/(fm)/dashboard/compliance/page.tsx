@@ -69,6 +69,8 @@ export default function ComplianceDashboard() {
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
+            aria-label={auto("Switch to {{tab}} tab", "tabs.switchAria", { tab: tab.label })}
+            aria-selected={activeTab === tab.id}
           >
             {tab.label}
           </button>

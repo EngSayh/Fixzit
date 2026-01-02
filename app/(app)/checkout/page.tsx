@@ -65,7 +65,7 @@ function CheckoutContent() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">{t("checkout.invalidPlan") || "Invalid Plan"}</h1>
           <p className="text-muted-foreground mb-4">{t("checkout.invalidPlanDescription") || "The selected plan does not exist."}</p>
-          <Button onClick={() => router.push("/pricing")}>{t("checkout.backToPricing") || "Back to Pricing"}</Button>
+          <Button onClick={() => router.push("/pricing")} aria-label={t("checkout.backToPricing", "Back to Pricing")} title={t("checkout.backToPricing", "Back to Pricing")}>{t("checkout.backToPricing") || "Back to Pricing"}</Button>
         </div>
       </div>
     );
@@ -254,7 +254,7 @@ function CheckoutContent() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={() => router.push("/login")}>
+            <Button className="w-full" onClick={() => router.push("/login")} aria-label={t("checkout.success.login", "Go to Login")} title={t("checkout.success.login", "Go to Login")}>
               {t("checkout.success.login", "Go to Login")}
             </Button>
           </CardFooter>
@@ -270,6 +270,8 @@ function CheckoutContent() {
           variant="ghost"
           onClick={() => router.push("/pricing")}
           className="mb-6 flex items-center gap-2"
+          aria-label={t("checkout.back", "Back to Pricing")}
+          title={t("checkout.back", "Back to Pricing")}
         >
           <ArrowLeft className="h-4 w-4" />
           {t("checkout.back", "Back to Pricing")}
@@ -440,7 +442,7 @@ function CheckoutContent() {
                       {t("checkout.terms", "I agree to the terms and conditions and privacy policy")}
                     </Label>
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" aria-label={t("checkout.continueToPayment", "Continue to Payment")} title={t("checkout.continueToPayment", "Continue to Payment")}>
                     {t("checkout.continueToPayment", "Continue to Payment")}
                   </Button>
                 </form>
@@ -476,10 +478,10 @@ function CheckoutContent() {
                   </div>
 
                   <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setStep("account")} className="flex-1">
+                    <Button variant="outline" onClick={() => setStep("account")} className="flex-1" aria-label={t("checkout.back", "Back")} title={t("checkout.back", "Back")}>
                       {t("checkout.back", "Back")}
                     </Button>
-                    <Button onClick={handlePayment} disabled={loading} className="flex-1">
+                    <Button onClick={handlePayment} disabled={loading} className="flex-1" aria-label={`${t("checkout.pay", "Pay")} SR ${total.toFixed(2)}`} title={t("checkout.pay", "Pay")}>
                       {loading ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin me-2" />

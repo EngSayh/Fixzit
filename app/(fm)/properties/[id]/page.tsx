@@ -161,13 +161,13 @@ export default function PropertyDetailPage() {
           <div
             className={`p-6 border-t bg-muted flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
           >
-            <button type="button" className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
+            <button type="button" className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors" aria-label={auto("View Units", "actions.viewUnitsAria")}>
               {auto("View Units", "actions.viewUnits")}
             </button>
-            <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
+            <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors" aria-label={auto("Create Work Order", "actions.createWorkOrderAria")}>
               {auto("Create Work Order", "actions.createWorkOrder")}
             </button>
-            <button type="button" className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors">
+            <button type="button" className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors" aria-label={auto("View Reports", "actions.viewReportsAria")}>
               {auto("View Reports", "actions.viewReports")}
             </button>
           </div>

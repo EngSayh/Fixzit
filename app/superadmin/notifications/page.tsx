@@ -14,16 +14,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { IconButton } from "@/components/ui/action-feedback";
 import { 
-  Bell, RefreshCw, Send, Eye,
+  Bell, RefreshCw, Send, Eye, ChevronLeft, ChevronRight,
   Mail, MessageSquare, Smartphone, Clock, AlertCircle, CheckCircle, XCircle,
 } from "@/components/ui/icons";
 
@@ -68,9 +66,6 @@ export default function SuperadminNotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedNotification, setSelectedNotification] = useState<NotificationLog | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -81,7 +76,7 @@ export default function SuperadminNotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+      const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (channelFilter !== "all") params.set("channel", channelFilter);
       
       const response = await fetch(`/api/superadmin/notifications/history?${params}`, { credentials: "include" });
@@ -89,14 +84,13 @@ export default function SuperadminNotificationsPage() {
       const data = await response.json();
       setNotifications(data.notifications || []);
       setTotalPages(data.pages || 1);
-      setTotalItems(data.total || data.notifications?.length || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
       toast.error("Failed to load notifications");
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, channelFilter]);
+  }, [page, channelFilter]);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -162,10 +156,10 @@ export default function SuperadminNotificationsPage() {
           <p className="text-muted-foreground">System-wide notification management and history</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setSendDialogOpen(true)}>
+          <Button onClick={() => setSendDialogOpen(true)} aria-label={t("superadmin.notifications.send", "Send new notification")} title={t("superadmin.notifications.send", "Send new notification")}>
             <Send className="h-4 w-4 me-2" />Send Notification
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchNotifications} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={fetchNotifications} disabled={loading} aria-label={t("common.refresh", "Refresh notifications")} title={t("common.refresh", "Refresh notifications")}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -227,32 +221,19 @@ export default function SuperadminNotificationsPage() {
                         <TableCell><div className="flex gap-1">{n.channelResults?.map((ch) => (<span key={ch.channel} className="text-muted-foreground">{CHANNEL_ICONS[ch.channel]}</span>))}</div></TableCell>
                         <TableCell><Badge variant="outline" className={STATUS_COLORS[n.status] || ""}>{n.status}</Badge></TableCell>
                         <TableCell className="text-muted-foreground">{n.metrics ? `${n.metrics.succeeded}/${n.metrics.attempted}` : "—"}</TableCell>
-                        <TableCell><IconButton icon={<Eye className="h-4 w-4" />} tooltip={t("superadmin.notifications.viewDetails", "View notification details")} onClick={() => { setSelectedNotification(n); setViewDialogOpen(true); }} /></TableCell>
+                        <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedNotification(n); setViewDialogOpen(true); }} aria-label={t("superadmin.notifications.viewDetails", `View details for ${n.title}`)} title={t("superadmin.notifications.viewDetails", `View details`)}><Eye className="h-4 w-4" /></Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               )}
-              {totalPages >= 1 && (
-                <div className="border-t border-border">
-                  <Pagination
-                    currentPage={page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    itemsPerPage={pageSize}
-                    showingAll={showingAll}
-                    onPageChange={setPage}
-                    onPageSizeChange={(size) => {
-                      if (size === "all") {
-                        setShowingAll(true);
-                        setPageSize(totalItems || 100);
-                      } else {
-                        setShowingAll(false);
-                        setPageSize(size);
-                      }
-                      setPage(1);
-                    }}
-                  />
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t">
+                  <p className="text-sm text-muted-foreground">Page {page} of {totalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} aria-label={t("pagination.previous", "Go to previous page")} title={t("pagination.previous", "Go to previous page")}><ChevronLeft className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} aria-label={t("pagination.next", "Go to next page")} title={t("pagination.next", "Go to next page")}><ChevronRight className="h-4 w-4" /></Button>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -281,7 +262,7 @@ export default function SuperadminNotificationsPage() {
                         {config?.[channel as keyof NotificationConfig]?.enabled ? "Active" : "Inactive"}
                       </span>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleTestChannel(channel)}>
+                    <Button variant="outline" size="sm" onClick={() => handleTestChannel(channel)} aria-label={t("superadmin.notifications.testChannel", `Test ${channel} notification`)} title={t("superadmin.notifications.testChannel", `Test ${channel} notification`)}>
                       Test
                     </Button>
                   </div>
@@ -304,8 +285,8 @@ export default function SuperadminNotificationsPage() {
             <div><Label htmlFor="notification-message">Message</Label><Textarea id="notification-message" value={sendForm.message} onChange={(e) => setSendForm(f => ({ ...f, message: e.target.value }))} rows={4} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSendDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSendNotification} disabled={sending}>{sending ? "Sending..." : "Send"}</Button>
+            <Button variant="outline" onClick={() => setSendDialogOpen(false)} aria-label={t("common.cancel", "Cancel sending notification")} title={t("common.cancel", "Cancel")}>Cancel</Button>
+            <Button onClick={handleSendNotification} disabled={sending} aria-label={t("superadmin.notifications.sendNotification", "Send notification now")} title={t("superadmin.notifications.sendNotification", "Send notification now")}>{sending ? "Sending..." : "Send"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -340,7 +321,7 @@ export default function SuperadminNotificationsPage() {
               )}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)} aria-label={t("common.close", "Close notification details")} title={t("common.close", "Close")}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

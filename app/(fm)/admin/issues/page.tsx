@@ -29,7 +29,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
@@ -39,7 +38,10 @@ import {
 } from "@/components/ui/card";
 import {
   Select,
+  SelectContent,
   SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -51,7 +53,6 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useI18n } from "@/i18n/useI18n";
 import {
   Dialog,
   DialogContent,
@@ -154,7 +155,6 @@ const CATEGORY_ICONS: Record<string, typeof Bug> = {
 export default function AdminIssuesPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { t } = useI18n();
 
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -176,16 +176,13 @@ export default function AdminIssuesPage() {
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch issues
   const fetchIssues = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       params.set("page", page.toString());
-      params.set("limit", pageSize.toString());
+      params.set("limit", "25");
 
       if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
       if (priorityFilter && priorityFilter !== "all") params.set("priority", priorityFilter);
@@ -203,18 +200,17 @@ export default function AdminIssuesPage() {
       const data = await response.json();
       setIssues(data.issues || []);
       setTotalPages(data.pagination?.totalPages || 1);
-      setTotalItems(data.pagination?.total || data.issues?.length || 0);
     } catch (_error) {
       toast({
-        title: t("common.toast.error", "Error"),
-        description: t("common.toast.loadIssuesFailed", "Failed to load issues"),
+        title: "Error",
+        description: "Failed to load issues",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, pageSize, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t]);
+  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -271,13 +267,13 @@ export default function AdminIssuesPage() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: t("common.toast.exportComplete", "Export Complete"),
-        description: t("common.toast.exportedCount", "Exported {{count}} issues").replace("{{count}}", String(data.issues.length)),
+        title: "Export Complete",
+        description: `Exported ${data.issues.length} issues`,
       });
     } catch (_error) {
       toast({
-        title: t("common.toast.exportFailed", "Export Failed"),
-        description: t("common.toast.exportFailedDescription", "Could not export issues"),
+        title: "Export Failed",
+        description: "Could not export issues",
         variant: "destructive",
       });
     }
@@ -287,8 +283,8 @@ export default function AdminIssuesPage() {
   const handleImport = async (dryRun = false) => {
     if (!importData.trim()) {
       toast({
-        title: t("superadmin.issues.toast.noDataTitle", "No Data"),
-        description: t("superadmin.issues.toast.noDataDescription", "Please paste issues JSON or markdown"),
+        title: "No Data",
+        description: "Please paste issues JSON or markdown",
         variant: "destructive",
       });
       return;
@@ -386,17 +382,17 @@ export default function AdminIssuesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label="Refresh issues">
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export issues">
             <Download className="h-4 w-4 me-2" />
             Export
           </Button>
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" aria-label="Import issues">
                 <Upload className="h-4 w-4 me-2" />
                 Import
               </Button>
@@ -420,15 +416,15 @@ export default function AdminIssuesPage() {
                   />
                 </div>
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={handleSyncPendingMaster} disabled={importing}>
+                  <Button variant="outline" onClick={handleSyncPendingMaster} disabled={importing} aria-label="Sync from PENDING_MASTER">
                     <Database className="h-4 w-4 me-2" />
                     Sync PENDING_MASTER
                   </Button>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
+                    <Button variant="outline" onClick={() => handleImport(true)} disabled={importing} aria-label="Dry run import">
                       Dry Run
                     </Button>
-                    <Button onClick={() => handleImport(false)} disabled={importing}>
+                    <Button onClick={() => handleImport(false)} disabled={importing} aria-label="Import issues">
                       {importing ? "Importing..." : "Import"}
                     </Button>
                   </div>
@@ -436,7 +432,7 @@ export default function AdminIssuesPage() {
               </div>
             </DialogContent>
           </Dialog>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create new issue">
             <Plus className="h-4 w-4 me-2" />
             New Issue
           </Button>
@@ -591,31 +587,46 @@ export default function AdminIssuesPage() {
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[140px]">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="in_review">In Review</SelectItem>
-              <SelectItem value="blocked">Blocked</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="in_review">In Review</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-[140px]">
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="P0">P0 Critical</SelectItem>
-              <SelectItem value="P1">P1 High</SelectItem>
-              <SelectItem value="P2">P2 Medium</SelectItem>
-              <SelectItem value="P3">P3 Low</SelectItem>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="P0">P0 Critical</SelectItem>
+                <SelectItem value="P1">P1 High</SelectItem>
+                <SelectItem value="P2">P2 Medium</SelectItem>
+                <SelectItem value="P3">P3 Low</SelectItem>
+              </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[140px]">
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="bug">Bug</SelectItem>
-              <SelectItem value="security">Security</SelectItem>
-              <SelectItem value="efficiency">Efficiency</SelectItem>
-              <SelectItem value="missing_test">Missing Test</SelectItem>
-              <SelectItem value="logic_error">Logic Error</SelectItem>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="security">Security</SelectItem>
+                <SelectItem value="efficiency">Efficiency</SelectItem>
+                <SelectItem value="missing_test">Missing Test</SelectItem>
+                <SelectItem value="logic_error">Logic Error</SelectItem>
+              </SelectContent>
             </Select>
 
             <div className="flex items-center gap-2">
@@ -623,6 +634,7 @@ export default function AdminIssuesPage() {
                 variant={viewMode === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("all")}
+                aria-label="Show all issues"
               >
                 All
               </Button>
@@ -630,6 +642,7 @@ export default function AdminIssuesPage() {
                 variant={viewMode === "quickWins" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("quickWins")}
+                aria-label="Show quick wins"
               >
                 <Zap className="h-4 w-4 me-1" />
                 Quick Wins
@@ -638,6 +651,7 @@ export default function AdminIssuesPage() {
                 variant={viewMode === "stale" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("stale")}
+                aria-label="Show stale issues"
               >
                 <Clock className="h-4 w-4 me-1" />
                 Stale
@@ -746,26 +760,29 @@ export default function AdminIssuesPage() {
       </Card>
 
       {/* Pagination */}
-      {totalPages >= 1 && (
-        <div className="border rounded-lg border-border bg-card">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={pageSize}
-            showingAll={showingAll}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              if (size === "all") {
-                setShowingAll(true);
-                setPageSize(totalItems || 100);
-              } else {
-                setShowingAll(false);
-                setPageSize(size);
-              }
-              setPage(1);
-            }}
-          />
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            aria-label="Previous page"
+          >
+            Previous
+          </Button>
+          <span className="flex items-center px-4 text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+            aria-label="Next page"
+          >
+            Next
+          </Button>
         </div>
       )}
     </div>

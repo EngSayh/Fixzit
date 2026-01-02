@@ -146,7 +146,7 @@ export default function SuperadminImportExportPage() {
                       <CardTitle className="text-foreground">Select Collections</CardTitle>
                       <CardDescription className="text-muted-foreground">Choose up to 5 collections to export</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={selectAll} className="border-input">
+                    <Button variant="outline" size="sm" onClick={selectAll} className="border-input" aria-label={selectedCollections.length === EXPORTABLE_COLLECTIONS.length ? t("common.deselectAll", "Deselect all collections") : t("common.selectAll", "Select all collections")} title={selectedCollections.length === EXPORTABLE_COLLECTIONS.length ? t("common.deselectAll", "Deselect all") : t("common.selectAll", "Select all")}>
                       {selectedCollections.length === EXPORTABLE_COLLECTIONS.length ? "Deselect All" : "Select All"}
                     </Button>
                   </div>
@@ -207,7 +207,7 @@ export default function SuperadminImportExportPage() {
                     </div>
                   )}
 
-                  <Button onClick={handleExport} disabled={exporting || selectedCollections.length === 0} className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={handleExport} disabled={exporting || selectedCollections.length === 0} className="w-full bg-blue-600 hover:bg-blue-700" aria-label={exporting ? t("common.exporting", "Export in progress") : t("superadmin.importExport.exportData", "Export selected collections")} title={t("superadmin.importExport.exportData", "Export data")}>
                     {exporting ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Exporting...</> : <><Download className="h-4 w-4 me-2" />Export Data</>}
                   </Button>
 

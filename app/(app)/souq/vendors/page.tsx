@@ -16,7 +16,7 @@ export default function VendorsPage() {
             {auto("Manage approved suppliers and vendors", "header.subtitle")}
           </p>
         </div>
-        <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
+        <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors" aria-label={auto("Add Vendor", "actions.add")} title={auto("Add Vendor", "actions.add")}>
           {auto("Add Vendor", "actions.add")}
         </button>
       </div>
@@ -74,7 +74,7 @@ export default function VendorsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button type="button" className="text-primary hover:text-primary">
+                  <button type="button" className="text-primary hover:text-primary" aria-label={auto("View vendor details for Al-Rashid Steel Co.", "actions.viewVendor")} title={auto("View", "actions.view")}>
                     {auto("View", "actions.view")}
                   </button>
                 </td>
@@ -107,7 +107,7 @@ export default function VendorsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button type="button" className="text-primary hover:text-primary">
+                  <button type="button" className="text-primary hover:text-primary" aria-label={auto("View vendor details for Saudi Electric Supply", "actions.viewVendor")} title={auto("View", "actions.view")}>
                     {auto("View", "actions.view")}
                   </button>
                 </td>

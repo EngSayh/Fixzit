@@ -41,12 +41,14 @@ export function SaveConfirmation({
           <button type="button"
             onClick={onConfirm}
             className="flex-1 bg-success text-success-foreground px-4 py-2 rounded-md hover:bg-success/90 transition-colors"
+            aria-label={confirmText}
           >
             {confirmText}
           </button>
           <button type="button"
             onClick={onCancel}
             className="flex-1 bg-muted text-muted-foreground px-4 py-2 rounded-md hover:bg-muted/80 transition-colors"
+            aria-label={cancelText}
           >
             {cancelText}
           </button>

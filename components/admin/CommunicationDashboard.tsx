@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
 import {
   MessageSquare,
   Mail,
@@ -72,9 +71,8 @@ export default function CommunicationDashboard({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [pageSize, setPageSize] = useState(50);
-  const [showingAll, setShowingAll] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
+
+  const limit = 50;
 
   // Fetch communications
   const fetchCommunications = useCallback(async () => {
@@ -82,8 +80,8 @@ export default function CommunicationDashboard({
 
     try {
       const params = new URLSearchParams({
-        limit: pageSize.toString(),
-        skip: ((page - 1) * pageSize).toString(),
+        limit: limit.toString(),
+        skip: ((page - 1) * limit).toString(),
       });
 
       if (channelFilter && channelFilter !== "all") {
@@ -106,7 +104,6 @@ export default function CommunicationDashboard({
         setCommunications(data.data.communications);
         setStatistics(data.data.statistics);
         setTotalPages(pages);
-        setTotalItems(data.data.pagination?.total || data.data.communications?.length || 0);
         if (page > pages) {
           setPage(pages);
         }
@@ -121,7 +118,7 @@ export default function CommunicationDashboard({
     } finally {
       setLoading(false);
     }
-  }, [channelFilter, debouncedSearch, pageSize, page, statusFilter]);
+  }, [channelFilter, debouncedSearch, limit, page, statusFilter]);
 
   // Initial fetch
   useEffect(() => {
@@ -236,6 +233,7 @@ export default function CommunicationDashboard({
             size="sm"
             disabled={communications.length === 0}
             className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            aria-label={t("communications.export", "Export")}
           >
             <Download className="h-4 w-4" />
             {t("communications.export", "Export")}
@@ -246,6 +244,7 @@ export default function CommunicationDashboard({
             size="sm"
             disabled={loading}
             className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            aria-label={t("communications.refresh", "Refresh")}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             {t("communications.refresh", "Refresh")}
@@ -494,6 +493,7 @@ export default function CommunicationDashboard({
                         variant="ghost"
                         size="sm"
                         className="flex items-center gap-1"
+                        aria-label={t("communications.viewDetails", "View communication details")}
                       >
                         <Eye className="h-4 w-4" />
                         {t("communications.view", "View")}
@@ -507,26 +507,32 @@ export default function CommunicationDashboard({
         </div>
 
         {/* Pagination */}
-        {totalPages >= 1 && (
-          <div className="border-t border-border">
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              itemsPerPage={pageSize}
-              showingAll={showingAll}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => {
-                if (size === "all") {
-                  setShowingAll(true);
-                  setPageSize(totalItems || 100);
-                } else {
-                  setShowingAll(false);
-                  setPageSize(size);
-                }
-                setPage(1);
-              }}
-            />
+        {totalPages > 1 && (
+          <div
+            className={`px-4 py-3 border-t border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <Button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              variant="outline"
+              size="sm"
+              aria-label={t("communications.previousPage", "Go to previous page")}
+            >
+              {t("communications.previous", "Previous")}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {t("communications.page", "Page")} {page}{" "}
+              {t("communications.of", "of")} {totalPages}
+            </span>
+            <Button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || loading}
+              variant="outline"
+              size="sm"
+              aria-label={t("communications.nextPage", "Go to next page")}
+            >
+              {t("communications.next", "Next")}
+            </Button>
           </div>
         )}
       </div>
@@ -550,6 +556,7 @@ export default function CommunicationDashboard({
               <button type="button"
                 onClick={() => setSelectedLog(null)}
                 className="text-muted-foreground hover:text-foreground"
+                aria-label={t("communications.closeDetails", "Close details")}
               >
                 ✕
               </button>
