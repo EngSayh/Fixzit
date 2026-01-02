@@ -248,6 +248,334 @@ const issues = [
     riskTags: ["DATA_INTEGRITY"],
     labels: ["schema", "deferred", "refactor"],
     source: "automated_scan"
+  },
+  // ============== NEW FINDINGS FROM DEEP SCAN 2025-01-02 ==============
+  // P0 Critical - Security/Compliance
+  {
+    title: "PII encryption not implemented in Employee model",
+    description: "Employee.ts line 38 indicates PII encryption is not implemented. Critical compliance/security risk for employee personal data.",
+    category: "security",
+    priority: "P0",
+    effort: "L",
+    location: { filePath: "server/models/Employee.ts", lineStart: 38 },
+    module: "hr",
+    action: "Implement PII encryption at rest for sensitive employee fields (SSN, bank details, etc.)",
+    definitionOfDone: "Employee PII fields encrypted at rest with key rotation support",
+    riskTags: ["SECURITY", "DATA_INTEGRITY"],
+    labels: ["pii", "encryption", "compliance", "hr"],
+    source: "automated_scan"
+  },
+  // P1 High - Workflow/Business Logic
+  {
+    title: "Vendor analytics TODO - 5 functions incomplete",
+    description: "vendor-intelligence.ts has TODO markers at lines 780, 818, 834, 849, 864 for analytics and fraud detection features.",
+    category: "feature",
+    priority: "P1",
+    effort: "XL",
+    location: { filePath: "services/souq/vendor-intelligence.ts", lineStart: 780 },
+    module: "souq",
+    action: "Implement vendor analytics: performance metrics, trust scores, risk indicators",
+    definitionOfDone: "All 5 analytics methods return real calculated data",
+    riskTags: ["DATA_INTEGRITY"],
+    labels: ["analytics", "vendor", "marketplace"],
+    source: "automated_scan"
+  },
+  {
+    title: "Customer insights trend calculation TODO",
+    description: "customer-insights.ts line 1090 has TODO for real trend calculation instead of placeholder values.",
+    category: "feature",
+    priority: "P1",
+    effort: "M",
+    location: { filePath: "services/analytics/customer-insights.ts", lineStart: 1090 },
+    module: "analytics",
+    action: "Implement real trend calculation using historical data analysis",
+    definitionOfDone: "Trend metrics based on actual time-series data",
+    riskTags: ["DATA_INTEGRITY"],
+    labels: ["analytics", "trends", "customer-insights"],
+    source: "automated_scan"
+  },
+  {
+    title: "Mock provider data in production route",
+    description: "route.ts line 60 uses mock data that needs replacement with real DB queries. Misleading data risk.",
+    category: "bug",
+    priority: "P1",
+    effort: "M",
+    location: { filePath: "app/api/providers/route.ts", lineStart: 60 },
+    module: "api",
+    action: "Replace mock provider data with actual database queries",
+    definitionOfDone: "Provider endpoint returns real data from DB",
+    riskTags: ["DATA_INTEGRITY"],
+    labels: ["mock-data", "production-risk", "api"],
+    source: "automated_scan"
+  },
+  {
+    title: "Vendor assignment persistence not implemented",
+    description: "route.ts lines 115, 259 indicate data source/persistence not implemented for vendor assignments.",
+    category: "bug",
+    priority: "P1",
+    effort: "L",
+    location: { filePath: "app/api/vendors/route.ts", lineStart: 115 },
+    module: "souq",
+    action: "Implement vendor assignment persistence to MongoDB",
+    definitionOfDone: "Vendor assignments persisted and queryable",
+    riskTags: ["DATA_INTEGRITY"],
+    labels: ["vendor", "persistence", "workflow-break"],
+    source: "automated_scan"
+  },
+  {
+    title: "ClaimsOrder schema mismatch - deferred/blocked",
+    description: "ClaimsOrder.ts lines 16, 33 have DEFERRED/BLOCKED markers for schema mismatches risking data integrity.",
+    category: "bug",
+    priority: "P1",
+    effort: "L",
+    location: { filePath: "server/models/ClaimsOrder.ts", lineStart: 16 },
+    module: "souq",
+    action: "Resolve schema mismatches in ClaimsOrder model",
+    definitionOfDone: "Schema consistent with domain requirements",
+    riskTags: ["DATA_INTEGRITY"],
+    labels: ["schema", "claims", "data-integrity"],
+    source: "automated_scan"
+  },
+  // P2 Medium - Features/UI
+  {
+    title: "Support ticketing integration TODO",
+    description: "route.ts line 32 has TODO for ticketing system integration to reduce manual support handling.",
+    category: "feature",
+    priority: "P2",
+    effort: "XL",
+    location: { filePath: "app/api/support/route.ts", lineStart: 32 },
+    module: "support",
+    action: "Integrate with ticketing system (Zendesk/Freshdesk/internal)",
+    definitionOfDone: "Support tickets created/synced with ticketing platform",
+    riskTags: [],
+    labels: ["support", "ticketing", "integration"],
+    source: "automated_scan"
+  },
+  {
+    title: "Inspection report generation TODO",
+    description: "inspection-service.ts line 754 has TODO for automated report generation pipeline.",
+    category: "feature",
+    priority: "P2",
+    effort: "L",
+    location: { filePath: "services/fm/inspection-service.ts", lineStart: 754 },
+    module: "fm",
+    action: "Implement automated inspection report generation (PDF/email)",
+    definitionOfDone: "Inspection reports auto-generated and distributed",
+    riskTags: [],
+    labels: ["inspection", "reports", "automation"],
+    source: "automated_scan"
+  },
+  {
+    title: "FM issues comments API not implemented",
+    description: "page.tsx line 313 indicates comments feature for FM issues is not implemented.",
+    category: "feature",
+    priority: "P2",
+    effort: "M",
+    location: { filePath: "app/fm/issues/page.tsx", lineStart: 313 },
+    module: "fm",
+    action: "Implement comments API for FM issue collaboration",
+    definitionOfDone: "Users can add/view comments on FM issues",
+    riskTags: [],
+    labels: ["fm", "comments", "collaboration"],
+    source: "automated_scan"
+  },
+  {
+    title: "Notification count badge for superadmin header",
+    description: "SuperadminHeader.tsx line 212 has TODO for notification count badge display.",
+    category: "feature",
+    priority: "P3",
+    effort: "S",
+    location: { filePath: "components/SuperadminHeader.tsx", lineStart: 212 },
+    module: "ui",
+    action: "Add notification count badge to superadmin header",
+    definitionOfDone: "Badge shows unread notification count",
+    riskTags: [],
+    labels: ["ui", "notifications", "superadmin"],
+    source: "automated_scan"
+  },
+  // P2 Medium - Placeholders
+  {
+    title: "TBD placeholders in production UI",
+    description: "Multiple TBD fallback values in page.tsx at lines 113, 373, 266 and ics-generator.ts:151.",
+    category: "bug",
+    priority: "P2",
+    effort: "S",
+    location: { filePath: "app/page.tsx", lineStart: 113 },
+    module: "ui",
+    action: "Replace TBD placeholders with actual values or proper fallbacks",
+    definitionOfDone: "No TBD strings visible to end users",
+    riskTags: ["DATA_INTEGRITY"],
+    labels: ["placeholders", "ui", "tbd"],
+    source: "automated_scan"
+  },
+  {
+    title: "Actor name TBD in FM approval engine undermines audit",
+    description: "fm-approval-engine.ts line 757 uses 'TBD' as actorName, undermining audit trail integrity.",
+    category: "security",
+    priority: "P1",
+    effort: "M",
+    location: { filePath: "lib/fm/fm-approval-engine.ts", lineStart: 757 },
+    module: "fm",
+    action: "Replace TBD with actual actor resolution from session/context",
+    definitionOfDone: "All approval actions have proper actor attribution",
+    riskTags: ["SECURITY", "DATA_INTEGRITY"],
+    labels: ["audit", "compliance", "approval"],
+    source: "automated_scan"
+  },
+  {
+    title: "CHANGEME placeholder in production route",
+    description: "route.ts line 167 contains 'changeme' placeholder that needs actual configuration.",
+    category: "bug",
+    priority: "P2",
+    effort: "XS",
+    location: { filePath: "app/api/route.ts", lineStart: 167 },
+    module: "api",
+    action: "Replace changeme placeholder with proper value",
+    definitionOfDone: "Placeholder removed, proper config in place",
+    riskTags: [],
+    labels: ["placeholder", "config"],
+    source: "automated_scan"
+  },
+  {
+    title: "TBD file path defaults in issue-log tooling",
+    description: "issue-log.ts has TBD file path defaults at lines 225, 242, 272, 343, 518 and route.ts:433.",
+    category: "refactor",
+    priority: "P3",
+    effort: "S",
+    location: { filePath: "tools/issue-log.ts", lineStart: 225 },
+    module: "tooling",
+    action: "Replace TBD file paths with proper defaults or required validation",
+    definitionOfDone: "Issue log tool uses proper file paths",
+    riskTags: [],
+    labels: ["tooling", "issue-log", "tbd"],
+    source: "automated_scan"
+  },
+  // P3 Low - Tests/Tools
+  {
+    title: "Vitest config infrastructure TODOs",
+    description: "vitest.config.ts lines 57, 140 have test infrastructure TODOs for improvements.",
+    category: "missing_test",
+    priority: "P3",
+    effort: "S",
+    location: { filePath: "vitest.config.ts", lineStart: 57 },
+    module: "tests",
+    action: "Complete vitest configuration improvements",
+    definitionOfDone: "Vitest config optimized per TODOs",
+    riskTags: ["TEST_GAP"],
+    labels: ["vitest", "test-config"],
+    source: "automated_scan"
+  },
+  {
+    title: "S3 cleanup testability improvement needed",
+    description: "patch.route.test.ts line 275 has TODO for S3 cleanup testability improvements.",
+    category: "missing_test",
+    priority: "P3",
+    effort: "M",
+    location: { filePath: "tests/api/patch.route.test.ts", lineStart: 275 },
+    module: "tests",
+    action: "Improve S3 cleanup testability with mock isolation",
+    definitionOfDone: "S3 operations properly mocked in tests",
+    riskTags: ["TEST_GAP"],
+    labels: ["tests", "s3", "mocking"],
+    source: "automated_scan"
+  },
+  {
+    title: "FilterPresetsDropdown component tests not implemented",
+    description: "ProductsList.query.test.tsx:90 and PropertiesList.query.test.tsx:94 indicate FilterPresetsDropdown not implemented in tests.",
+    category: "missing_test",
+    priority: "P3",
+    effort: "S",
+    location: { filePath: "tests/components/ProductsList.query.test.tsx", lineStart: 90 },
+    module: "tests",
+    action: "Implement FilterPresetsDropdown component tests",
+    definitionOfDone: "FilterPresetsDropdown has test coverage",
+    riskTags: ["TEST_GAP"],
+    labels: ["tests", "components", "filter-presets"],
+    source: "automated_scan"
+  },
+  {
+    title: "API test generator has placeholder templates",
+    description: "generate-api-test.js lines 127, 202, 212, 244 have generator placeholder code to complete.",
+    category: "refactor",
+    priority: "P3",
+    effort: "M",
+    location: { filePath: "scripts/generate-api-test.js", lineStart: 127 },
+    module: "tooling",
+    action: "Complete API test generator templates",
+    definitionOfDone: "Generator produces complete test files",
+    riskTags: [],
+    labels: ["tooling", "code-gen", "tests"],
+    source: "automated_scan"
+  },
+  {
+    title: "Demo users check script type-safety TODOs",
+    description: "check-demo-users.ts lines 28, 37 have schema type-safety improvements needed.",
+    category: "refactor",
+    priority: "P3",
+    effort: "S",
+    location: { filePath: "scripts/check-demo-users.ts", lineStart: 28 },
+    module: "tooling",
+    action: "Add proper type definitions for demo user schema",
+    definitionOfDone: "Script has full TypeScript type coverage",
+    riskTags: [],
+    labels: ["tooling", "typescript", "demo-users"],
+    source: "automated_scan"
+  },
+  {
+    title: "Guard admin checks exit behavior TODO",
+    description: "guard-admin-checks.js line 149 has TODO to tighten exit behavior.",
+    category: "refactor",
+    priority: "P3",
+    effort: "XS",
+    location: { filePath: "scripts/guard-admin-checks.js", lineStart: 149 },
+    module: "tooling",
+    action: "Improve exit behavior consistency",
+    definitionOfDone: "Script exits with proper codes in all scenarios",
+    riskTags: [],
+    labels: ["tooling", "guards"],
+    source: "automated_scan"
+  },
+  {
+    title: "P2 fix automation script TODO templates",
+    description: "fix-priority-2-automated.ts lines 108, 239 have TODO templates to complete.",
+    category: "refactor",
+    priority: "P3",
+    effort: "S",
+    location: { filePath: "scripts/fix-priority-2-automated.ts", lineStart: 108 },
+    module: "tooling",
+    action: "Complete P2 fix automation templates",
+    definitionOfDone: "Automation script fully functional",
+    riskTags: [],
+    labels: ["tooling", "automation"],
+    source: "automated_scan"
+  },
+  {
+    title: "Smart merge conflicts manual review marker",
+    description: "smart-merge-conflicts.ts line 134 has manual review TODO marker.",
+    category: "refactor",
+    priority: "P3",
+    effort: "XS",
+    location: { filePath: "scripts/smart-merge-conflicts.ts", lineStart: 134 },
+    module: "tooling",
+    action: "Improve merge conflict detection heuristics",
+    definitionOfDone: "Fewer false positives requiring manual review",
+    riskTags: [],
+    labels: ["tooling", "merge-conflicts"],
+    source: "automated_scan"
+  },
+  {
+    title: "Souq service tests have deferred imports",
+    description: "Multiple Souq service test files have deferred service imports at line 29: account-health, buybox, auto-repricer, seller-kyc, inventory.",
+    category: "missing_test",
+    priority: "P3",
+    effort: "M",
+    location: { filePath: "tests/services/souq/account-health-service.test.ts", lineStart: 29 },
+    module: "tests",
+    action: "Resolve deferred service imports in Souq tests",
+    definitionOfDone: "All Souq service tests have proper imports and run",
+    riskTags: ["TEST_GAP"],
+    labels: ["tests", "souq", "imports"],
+    source: "automated_scan"
   }
 ];
 
@@ -262,6 +590,9 @@ async function importIssues() {
   let created = 0;
   let updated = 0;
   let errors = [];
+  
+  // Helper to add delay between requests to avoid rate limiting
+  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   
   for (const issue of issues) {
     try {
@@ -285,10 +616,35 @@ async function importIssues() {
       } else if (res.status === 409) {
         updated++;
         console.log(`📝 Exists: ${issue.title.substring(0, 50)}`);
+      } else if (res.status === 429) {
+        // Rate limited - wait and retry
+        console.log(`⏳ Rate limited, waiting 2s...`);
+        await delay(2000);
+        const retryRes = await fetch(baseUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(issue)
+        });
+        const retryData = await retryRes.json();
+        if (retryRes.status === 201) {
+          created++;
+          console.log(`✅ Created (retry): ${retryData.data.issue.issueId} - ${issue.title.substring(0, 50)}`);
+        } else if (retryRes.status === 409 || (retryRes.status === 200 && retryData.data?.duplicate)) {
+          updated++;
+          console.log(`📝 Exists (retry): ${issue.title.substring(0, 50)}`);
+        } else {
+          errors.push({ title: issue.title, error: retryData.error || retryRes.status });
+        }
       } else {
         errors.push({ title: issue.title, error: data.error || res.status });
         console.log(`❌ Error: ${issue.title.substring(0, 50)} - ${data.error || res.status}`);
       }
+      
+      // Add small delay between requests to avoid rate limiting
+      await delay(200);
     } catch (err) {
       errors.push({ title: issue.title, error: err.message });
       console.log(`❌ Error: ${issue.title.substring(0, 50)} - ${err.message}`);
