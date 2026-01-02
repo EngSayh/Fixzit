@@ -7,6 +7,8 @@
  * @module api/superadmin/export
  */
 
+/* eslint-disable local/require-tenant-scope -- Superadmin route: intentionally queries across all tenants */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { connectDb } from "@/lib/mongodb-unified";
@@ -154,7 +156,6 @@ export async function POST(request: NextRequest) {
       try {
         const collection = mongoose.connection.collection(collectionName);
         // Superadmin export reads entire collections for platform backup - intentionally unscoped
-        // eslint-disable-next-line local/require-tenant-scope
         const docs = await collection
           .find({})
           .limit(MAX_DOCS_PER_COLLECTION)

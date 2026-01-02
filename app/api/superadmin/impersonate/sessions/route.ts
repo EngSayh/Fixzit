@@ -48,10 +48,11 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Query audit logs for impersonation events
+    // Impersonation logs use LOGIN/LOGOUT action with metadata.impersonationType
     /* eslint-disable local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant audit visibility */
     const [sessions, total] = await Promise.all([
       AuditLogModel.find({
-        action: { $in: ["impersonate_start", "impersonate_end", "tenant_switch"] },
+        "metadata.impersonationType": { $in: ["START", "END"] },
       })
         .sort({ timestamp: -1 })
         .skip(skip)
@@ -59,23 +60,28 @@ export async function GET(request: NextRequest) {
         .select("action userId userName userEmail orgId metadata timestamp context")
         .lean(),
       AuditLogModel.countDocuments({
-        action: { $in: ["impersonate_start", "impersonate_end", "tenant_switch"] },
+        "metadata.impersonationType": { $in: ["START", "END"] },
       }),
     ]);
     /* eslint-enable local/require-tenant-scope */
 
     // Transform audit logs to session format
-    const formattedSessions = sessions.map((log: AuditLog & { _id: unknown }) => ({
-      id: log._id,
-      action: log.action,
-      superadmin: log.userName || log.userEmail || log.userId || "unknown",
-      targetOrgId: log.orgId || (log.metadata as Record<string, unknown>)?.targetOrgId,
-      targetOrgName: (log.metadata as Record<string, unknown>)?.orgName || (log.metadata as Record<string, unknown>)?.targetOrgName,
-      startedAt: log.timestamp,
-      ip: log.context?.ipAddress,
-      userAgent: log.context?.userAgent,
-      metadata: log.metadata,
-    }));
+    const formattedSessions = sessions.map((log: AuditLog & { _id: unknown }) => {
+      // Safely extract metadata
+      const metadata = log.metadata && typeof log.metadata === 'object' ? log.metadata as Record<string, unknown> : {};
+      
+      return {
+        id: log._id,
+        action: log.action,
+        superadmin: log.userName || log.userEmail || log.userId || "unknown",
+        targetOrgId: log.orgId || metadata.targetOrgId,
+        targetOrgName: metadata.orgName || metadata.targetOrgName,
+        startedAt: log.timestamp,
+        ip: log.context?.ipAddress,
+        userAgent: log.context?.userAgent,
+        metadata: log.metadata,
+      };
+    });
 
     logger.debug("[Superadmin:ImpersonateSessions] Sessions fetched", {
       superadminUsername: session.username,

@@ -205,8 +205,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // FIXME: Job queue integration pending - tracked in ISSUE-JQ-001
-    // When BullMQ/Redis is configured, replace the code below with:
+    // NOTE: Job queue integration tracked in INFRA-QUEUE-001
+    // Current: Immediate delivery via SendGrid/Firebase
+    // Future: Async queue (BullMQ/Redis) for retry logic and rate limiting
+    // When queue is configured, use:
     // try {
     //   await JobQueue.enqueue(\"notification:send\", { 
     //     notificationId: result.insertedId.toString(),

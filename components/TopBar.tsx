@@ -908,6 +908,7 @@ function NotificationPopup({
                   key={filter.id}
                   type="button"
                   onClick={() => setNotifFilter(filter.id)}
+                  aria-pressed={notifFilter === filter.id}
                   className={`rounded-full px-3 py-1 text-xs ${
                     notifFilter === filter.id
                       ? "bg-primary text-primary-foreground"

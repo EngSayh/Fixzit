@@ -712,6 +712,8 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
               <button type="button"
                 key={action.name}
                 onClick={() => setActiveTool(prev => prev === action.name ? null : action.name)}
+                aria-label={action.label}
+                aria-pressed={activeTool === action.name}
                 className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${activeTool === action.name ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground hover:border-primary hover:text-primary'}`}
               >
                 {toolIcons[action.name] || <ClipboardList className="h-4 w-4" />}
@@ -731,10 +733,10 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
                 <div className="mb-2 text-xs font-semibold text-muted-foreground">{quickActions.find(a => a.name === activeTool)?.label}</div>
                 {renderForm(activeTool)}
                 <div className="mt-3 flex items-center justify-end gap-2">
-                  <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted">
+                  <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} aria-label={t.cancel} className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted">
                     {t.cancel}
                   </button>
-                  <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-dark">
+                  <button type="button" onClick={() => submitTool(activeTool)} aria-label={t.run} className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-dark">
                     {t.run}
                   </button>
                 </div>

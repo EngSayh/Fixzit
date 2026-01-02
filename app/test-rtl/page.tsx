@@ -58,12 +58,16 @@ export default function RTLTestPage() {
             <button type="button"
               onClick={() => setLanguage("ar")}
               className={`px-4 py-2 rounded ${language === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+              aria-label={auto("Switch to Arabic", "language.switchToAr")}
+              aria-pressed={language === "ar"}
             >
               {auto("Arabic (العربية)", "language.ar")}
             </button>
             <button type="button"
               onClick={() => setLanguage("en")}
               className={`px-4 py-2 rounded ${language === "en" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+              aria-label={auto("Switch to English", "language.switchToEn")}
+              aria-pressed={language === "en"}
             >
               {auto("English", "language.en")}
             </button>

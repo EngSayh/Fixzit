@@ -78,8 +78,11 @@ export async function GET(request: NextRequest) {
           indexes: stats.nindexes || 0,
           indexSize: stats.totalIndexSize || 0,
         });
-      } catch {
-        // Some collections might not have stats (views, etc.)
+      } catch (collError) {
+        // Views and system collections may not support collStats
+        logger.warn(`[Superadmin:DatabaseStats] Could not get stats for '${coll.name}' (expected for views/system collections)`, {
+          error: collError instanceof Error ? collError.message : String(collError),
+        });
         collectionStats.push({
           name: coll.name,
           count: 0,
