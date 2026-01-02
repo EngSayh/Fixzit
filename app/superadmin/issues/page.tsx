@@ -1293,17 +1293,112 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
       <FloatingBulkActions
         selectedCount={selectedIssues.size}
         onClearSelection={() => setSelectedIssues(new Set())}
-        onMarkResolved={() => {
-          toast({ title: "Bulk action", description: `Marking ${selectedIssues.size} issues as resolved` });
+        onMarkResolved={async () => {
+          const count = selectedIssues.size;
+          const issueIds = Array.from(selectedIssues);
+          toast({ title: t("superadmin.issues.bulk.processing", "Processing..."), description: t("superadmin.issues.bulk.markingResolved", `Marking ${count} issues as resolved`) });
+          
+          let successCount = 0;
+          let failCount = 0;
+          
+          for (const issueId of issueIds) {
+            try {
+              const response = await fetch(`/api/issues/${issueId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "resolved", statusReason: "Marked resolved via bulk action [AGENT-001-A]" }),
+              });
+              if (response.ok) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch {
+              failCount++;
+            }
+          }
+          
           setSelectedIssues(new Set());
+          
+          if (failCount === 0) {
+            toast({ title: "✓ " + t("superadmin.issues.bulk.success", "Success"), description: t("superadmin.issues.bulk.resolvedCount", `${successCount} issues marked as resolved`) });
+          } else {
+            toast({ title: t("superadmin.issues.bulk.partial", "Partial success"), description: t("superadmin.issues.bulk.resolvedPartial", `${successCount} resolved, ${failCount} failed`), variant: "destructive" });
+          }
+          
+          // Refresh the list
+          fetchIssues();
+          fetchStats();
         }}
-        onArchive={() => {
-          toast({ title: "Bulk action", description: `Archiving ${selectedIssues.size} issues` });
+        onArchive={async () => {
+          const count = selectedIssues.size;
+          const issueIds = Array.from(selectedIssues);
+          toast({ title: t("superadmin.issues.bulk.processing", "Processing..."), description: t("superadmin.issues.bulk.archiving", `Archiving ${count} issues`) });
+          
+          let successCount = 0;
+          let failCount = 0;
+          
+          for (const issueId of issueIds) {
+            try {
+              const response = await fetch(`/api/issues/${issueId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "archived", statusReason: "Archived via bulk action [AGENT-001-A]" }),
+              });
+              if (response.ok) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch {
+              failCount++;
+            }
+          }
+          
           setSelectedIssues(new Set());
+          
+          if (failCount === 0) {
+            toast({ title: "✓ " + t("superadmin.issues.bulk.success", "Success"), description: t("superadmin.issues.bulk.archivedCount", `${successCount} issues archived`) });
+          } else {
+            toast({ title: t("superadmin.issues.bulk.partial", "Partial success"), description: t("superadmin.issues.bulk.archivedPartial", `${successCount} archived, ${failCount} failed`), variant: "destructive" });
+          }
+          
+          fetchIssues();
+          fetchStats();
         }}
-        onDelete={() => {
-          toast({ title: "Bulk action", description: `Deleting ${selectedIssues.size} issues`, variant: "destructive" });
+        onDelete={async () => {
+          const count = selectedIssues.size;
+          const issueIds = Array.from(selectedIssues);
+          toast({ title: t("superadmin.issues.bulk.processing", "Processing..."), description: t("superadmin.issues.bulk.deleting", `Deleting ${count} issues`), variant: "destructive" });
+          
+          let successCount = 0;
+          let failCount = 0;
+          
+          for (const issueId of issueIds) {
+            try {
+              const response = await fetch(`/api/issues/${issueId}`, {
+                method: "DELETE",
+              });
+              if (response.ok) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch {
+              failCount++;
+            }
+          }
+          
           setSelectedIssues(new Set());
+          
+          if (failCount === 0) {
+            toast({ title: "✓ " + t("superadmin.issues.bulk.success", "Success"), description: t("superadmin.issues.bulk.deletedCount", `${successCount} issues deleted`) });
+          } else {
+            toast({ title: t("superadmin.issues.bulk.partial", "Partial success"), description: t("superadmin.issues.bulk.deletedPartial", `${successCount} deleted, ${failCount} failed`), variant: "destructive" });
+          }
+          
+          fetchIssues();
+          fetchStats();
         }}
       />
 
