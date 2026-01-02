@@ -19,6 +19,51 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-14 16:00 (Asia/Riyadh) — PR Sync & Cleanup Session [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Unblocking and syncing open PRs after PR #646 merge
+
+#### 📋 Summary
+
+Session focused on unblocking and cleaning up stale PRs after PR #646 was merged.
+
+#### ✅ Actions Taken
+
+| Action | Target | Result |
+|--------|--------|--------|
+| **Sync PR #641** | `feat/p2-subscription-flows` | ✅ Merged main, resolved conflicts, pushed |
+| **Sync PR #640** | `feat/p1-compliance-fixes-sprint1` | ✅ Merged main, resolved conflicts, pushed |
+| **Close PR #643** | Stale acknowledgment PR | ✅ Closed (no code changes) |
+| **Close PR #644** | Stale acknowledgment PR | ✅ Closed (0 files changed) |
+
+#### 📊 PR Status
+
+| PR | Title | Status | CI |
+|----|-------|--------|-----|
+| #646 | REFAC-0003 FM Properties Schema | ✅ Merged | ✅ |
+| #641 | P2 Sprint (Subscriptions + Security) | ⏳ Synced, CI running | 🔄 |
+| #640 | P1 Compliance + Fraud + Ejar | ⏳ Synced, CI running | 🔄 |
+| #643 | Review directive acknowledgment | ❌ Closed | N/A |
+| #644 | Governance acknowledgment | ❌ Closed | N/A |
+
+#### 🔧 Conflict Resolutions
+
+**PR #641 (feat/p2-subscription-flows):**
+- `TODO_SCAN_ACTION_PLAN_2026-01-02.md` - took main's version (more complete)
+
+**PR #640 (feat/p1-compliance-fixes-sprint1):**
+- `PENDING_MASTER.md` - took main's version (included Sprint 5+6 entries)
+
+#### 📊 Verification
+
+| Gate | Result |
+|------|--------|
+| TypeScript (both branches) | ✅ 0 errors |
+| ESLint (both branches) | ✅ 0 errors (23-27 pre-existing warnings) |
+
+---
+
 ### 2026-01-14 14:30 (Asia/Riyadh) — REFAC-0003: FM Properties Schema Alignment [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
