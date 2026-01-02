@@ -47,28 +47,26 @@
 
 ## P1 High Priority Issues
 
-### FEAT-0027: Vendor Fraud Detection Stubs
+### FEAT-0027: Vendor Fraud Detection Stubs ✅ CLOSED
 - **Module:** souq
 - **File:** `services/souq/vendor-intelligence.ts:817-864`
-- **Stubs:** 
-  - Activity spike detection
-  - Duplicate listings detection
-  - Price manipulation detection
-  - Fake review detection
-- **Action:** Implement ML-based fraud detection algorithms
-- **Effort:** XL
+- **Status:** CLOSED - PR #640, commit 8d54ff790
+- **Implemented:** 
+  - `checkActivitySpike()` - Order volume spike detection (3x threshold)
+  - `checkDuplicateListings()` - N-gram fingerprinting for duplicates
+  - `checkPriceManipulation()` - 50% price swing detection in 24h
+  - `checkFakeReviews()` - Review velocity and pattern detection
 
-### FEAT-0028: Ejar API Integration
+### FEAT-0028: Ejar API Integration ✅ CLOSED
 - **Module:** aqar
 - **File:** `services/aqar/lease-service.ts:1028`
-- **Action:** Complete Ejar API integration for Saudi rental contracts
-- **Effort:** L
+- **Status:** CLOSED - PR #640, commit 8d54ff790
+- **Implemented:** `callEjarApi()` helper with EJAR_API_URL, EJAR_API_KEY, EJAR_ENABLED config
 
-### OTP Bypass Blocking Disabled
+### OTP Bypass Blocking Disabled ✅ FIXED
 - **File:** `instrumentation-node.ts:66`
-- **Risk:** Security feature disabled
-- **Action:** Fix detection and re-enable blocking
-- **Effort:** M
+- **Status:** FIXED - Commit 3e7bcf3e4 on main
+- **Resolution:** Re-enabled blocking in production
 
 ### Runtime 501 Stubs ✅ ANALYZED - FALSE POSITIVE
 - **Analysis Date:** 2026-01-02
