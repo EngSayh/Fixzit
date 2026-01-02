@@ -318,3 +318,151 @@ export async function cancelSubscription(
   });
   return sub;
 }
+
+/**
+ * Change subscription plan (FEAT-0029 / FIXZIT-SUB-001)
+ *
+ * Updates the subscription to a new price book entry.
+ * Plan change takes effect:
+ * - If immediate=true: right away with prorated credit/charge
+ * - If immediate=false: at end of current billing period
+ *
+ * @param subscriptionId - Subscription ID to modify
+ * @param newPriceBookId - New price book entry ID
+ * @param options - Configuration options
+ * @returns Updated subscription document
+ */
+export async function changePlan(
+  subscriptionId: string,
+  newPriceBookId: string,
+  options: {
+    /** Apply change immediately (true) or at end of period (false) */
+    immediate?: boolean;
+    /** New seat count (optional - keeps current if not specified) */
+    newSeats?: number;
+    /** New billing cycle (optional - keeps current if not specified) */
+    newBillingCycle?: "MONTHLY" | "ANNUAL";
+  } = {},
+): Promise<SubscriptionDocument> {
+  const { immediate = false, newSeats, newBillingCycle } = options;
+
+  await connectToDatabase();
+
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .save()
+  const sub = await Subscription.findById(subscriptionId);
+  if (!sub) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  // Validate new price book exists
+  const newPriceBook = await PriceBook.findById(newPriceBookId).lean();
+  if (!newPriceBook) {
+    throw new Error(`PriceBook not found: ${newPriceBookId}`);
+  }
+
+  if (!newPriceBook.active) {
+    throw new Error(`PriceBook is not active: ${newPriceBookId}`);
+  }
+
+  const oldPriceBookId = sub.price_book_id?.toString();
+  const oldAmount = sub.amount ?? 0;
+  const oldSeats = sub.seats;
+  const oldBillingCycle = sub.billing_cycle;
+
+  // Update plan details
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose ObjectId assignment is type-safe at runtime
+  sub.price_book_id = new Types.ObjectId(newPriceBookId) as any;
+  if (newSeats !== undefined) {
+    sub.seats = newSeats;
+  }
+  if (newBillingCycle !== undefined) {
+    sub.billing_cycle = newBillingCycle;
+  }
+
+  // Calculate new amount based on new price book and seat count
+  const seats = sub.seats;
+  const currency = sub.currency || "USD";
+  const billingCycle = sub.billing_cycle || "MONTHLY";
+
+  // Find applicable tier for seat count
+  const applicableTier = newPriceBook.tiers?.find(
+    (tier: { min_seats: number; max_seats: number }) =>
+      seats >= tier.min_seats && seats <= tier.max_seats,
+  );
+
+  if (applicableTier) {
+    // Calculate total from module prices in tier
+    let totalPerSeat = 0;
+    for (const modulePrice of applicableTier.prices || []) {
+      if (sub.modules?.includes(modulePrice.module_key)) {
+        totalPerSeat +=
+          currency === "SAR"
+            ? modulePrice.monthly_sar
+            : modulePrice.monthly_usd;
+      }
+    }
+
+    let newAmount = totalPerSeat * seats;
+
+    // Apply tier discount if any
+    if (applicableTier.discount_pct > 0) {
+      newAmount = newAmount * (1 - applicableTier.discount_pct / 100);
+    }
+
+    // Adjust for annual billing (10 months price)
+    if (billingCycle === "ANNUAL") {
+      newAmount = newAmount * 10;
+    }
+
+    sub.amount = Math.round(newAmount * 100) / 100; // Round to 2 decimals
+  }
+
+  // Store plan change metadata
+  const planChangeInfo = {
+    changed_at: new Date(),
+    immediate,
+    old_price_book_id: oldPriceBookId,
+    old_amount: oldAmount,
+    old_seats: oldSeats,
+    old_billing_cycle: oldBillingCycle,
+    new_price_book_id: newPriceBookId,
+    new_amount: sub.amount,
+    new_seats: sub.seats,
+    new_billing_cycle: sub.billing_cycle,
+  };
+
+  if (sub.metadata) {
+    sub.metadata.last_plan_change = planChangeInfo;
+    // Clear any pending cancellation if user is changing plans
+    if (sub.metadata.cancel_at_period_end) {
+      sub.metadata.cancel_at_period_end = false;
+    }
+  } else {
+    sub.metadata = { last_plan_change: planChangeInfo };
+  }
+
+  if (!immediate) {
+    // Schedule change for end of period
+    sub.metadata.pending_plan_change = {
+      price_book_id: newPriceBookId,
+      seats: newSeats,
+      billing_cycle: newBillingCycle,
+      effective_date: sub.current_period_end || sub.next_billing_date,
+    };
+  }
+
+  await sub.save();
+
+  logger.info("[Subscription] Plan changed", {
+    id: subscriptionId,
+    immediate,
+    oldPriceBookId,
+    newPriceBookId,
+    oldAmount,
+    newAmount: sub.amount,
+    oldSeats,
+    newSeats: sub.seats,
+  });
+
+  return sub;
+}

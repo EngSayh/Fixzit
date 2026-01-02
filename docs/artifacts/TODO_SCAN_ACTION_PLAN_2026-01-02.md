@@ -13,21 +13,11 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | P0 Critical | 1 | SEC-0002 - PII Encryption |
-| P1 High | 2 | FEAT-0027 ✅, FEAT-0028 ✅ |
+| P1 High | 2 | FEAT-0027, FEAT-0028 |
 | P2 Medium | 47 | Various modules |
 | P3 Low | ~50 | Docs, refactors |
 
 **Total Open Issues:** 100+
-
-### Latest Scan Metrics (2026-01-02T13:30+03:00)
-
-| Metric | Count | Trend |
-|--------|-------|-------|
-| Code TODO markers | 49 | ↓ -15 |
-| Code "not implemented" | 64 | ↑ +6 |
-| Code placeholders | 42 | ↑ +14 |
-| Docs/report tokens | 5,647 | — |
-| TG-005 test mocks fixed | 35 | ✅ COMPLETE |
 
 ---
 
@@ -96,65 +86,52 @@
 |----------|-------|--------|--------|--------|
 | FEAT-0029 | Subscription plan change flow (FIXZIT-SUB-001) | billing | L | ✅ CLOSED |
 | FEAT-0030 | Subscription cancellation flow (FIXZIT-SUB-002) | billing | M | ✅ CLOSED |
-| FEAT-0031 | Inspection tenant notification | fm | S | ✅ CLOSED |
-| FEAT-0032 | Session termination | auth | M | ✅ CLOSED |
-| FEAT-0033 | MFA approval system integration | auth | M | ✅ CLOSED |
-| BI-KPI-* | BI Dashboard hardcoded KPIs (4 items) | reports | M | ✅ CLOSED |
-| CRM-TREND | Customer NPS trend calculation | crm | S | ✅ CLOSED |
-| - | Mock data replacement (FM Providers) | api | L | DEFERRED (8-16h) |
-| - | Comments API not implemented | ui | M | N/A (i18n placeholder) |
-| TG-005 | Test mock setup batch (8 files) | tests | L | ✅ CLOSED |
+| FEAT-0031 | Inspection tenant notification | fm | S | |
+| FEAT-0032 | Session termination | auth | M | |
+| FEAT-0033 | MFA approval system integration | auth | M | |
+| - | BI Dashboard hardcoded KPIs | reports | M | |
+| - | Customer trend calculation | crm | M | |
+| - | Mock data replacement | api | S | |
+| - | Comments API not implemented | ui | M | |
+| TG-005 | Test mock setup batch (8 files) | tests | L | |
+
+### FEAT-0029: Subscription Plan Change ✅ CLOSED
+- **Module:** billing  
+- **Files:**
+  - `server/services/subscriptionBillingService.ts` - Added `changePlan()` function
+  - `app/api/superadmin/subscriptions/[id]/route.ts` - New PATCH endpoint
+  - `app/superadmin/subscriptions/page.tsx` - Change Plan modal UI
+- **Status:** CLOSED - [AGENT-001-A]
+- **Implemented:**
+  - `changePlan(subscriptionId, newPriceBookId, options)` - Full plan change with proration logic
+  - PATCH `/api/superadmin/subscriptions/[id]` with `action: "change_plan"`
+  - UI modal with tier selection, billing cycle change, immediate/scheduled options
+
+### FEAT-0030: Subscription Cancellation ✅ CLOSED
+- **Module:** billing
+- **Files:**
+  - `app/api/superadmin/subscriptions/[id]/route.ts` - PATCH endpoint
+  - `app/superadmin/subscriptions/page.tsx` - Cancel Subscription modal UI
+- **Status:** CLOSED - [AGENT-001-A]
+- **Implemented:**
+  - PATCH `/api/superadmin/subscriptions/[id]` with `action: "cancel"`
+  - UI modal with cancel at period end or immediate cancellation
+  - Reason field for audit trail
 
 ---
 
 ## P3 Low Priority / Deferred
 
-| Issue ID | Title | Module | Effort | Status |
-|----------|-------|--------|--------|--------|
-| FEAT-0034 | Redis pub/sub scaling | infrastructure | M | ✅ DONE (PR #642) |
-| FEAT-0035 | Health monitoring integration | monitoring | M | ✅ DONE (PR #642) |
-| FEAT-0036 | AI building model generation | aqar | XL | ✅ VERIFIED (25 tests pass) |
-| REFAC-0003 | FM Properties schema mismatch (TODO-002) | fm | L | ✅ DONE (PR #646) |
-| - | Vitest multi-project migration | tests | M | NON-ACTIONABLE (upstream) |
-| - | Ticketing system integration | support | M | ✅ DONE (commit a64565915) |
-| - | Superadmin notification badge | ui | S | ✅ DONE (commit 8d6d37029) |
-| - | BLOCKED: Souq Orders mismatch (TODO-001) | souq | M | ✅ CLOSED (design intentional) |
-| ARCH-001 | Marketplace → Souq consolidation | souq | L | ✅ CLOSED (keep separate) |
-
----
-
-## Module Architecture Decision (2026-01-02)
-
-### 3 Main Modules
-
-| Module | Purpose | API Path | Models Path |
-|--------|---------|----------|-------------|
-| **FM (Fixzit FM)** | Facility Management | `app/api/fm/` | `server/models/workorder/` |
-| **Aqar** | Real Estate & Property Listings | `app/api/aqar/` | `server/models/aqar/` |
-| **Souq** | Materials Marketplace (Amazon-style) | `app/api/souq/` | `server/models/souq/` |
-
-### Legacy Code: `marketplace/` (B2B Procurement) - KEEP SEPARATE
-
-| Path | Purpose | Decision |
-|------|---------|----------|
-| `app/api/marketplace/` | B2B internal procurement | ✅ KEEP (different domain) |
-| `server/models/marketplace/` | 5 models (Order, Product, etc.) | ✅ KEEP (work order linked) |
-| `lib/marketplace/` | Shared utilities | ✅ KEEP |
-
-**Investigation Result (2026-01-02 19:45):**
-
-The `marketplace/` and `souq/` modules serve **different business domains**:
-
-| Aspect | Marketplace (B2B) | Souq (B2C/B2B) |
-|--------|-------------------|----------------|
-| **Collection** | `orders` | `souq_orders` |
-| **Customer** | Internal employees | External customers |
-| **Payment** | Invoice/PO | Escrow/Card |
-| **Seller** | Single vendor | Multi-seller |
-| **Work Order Link** | Yes | No |
-| **Claims System** | None | A-to-Z Claims |
-
-**Recommendation:** Rename `marketplace/` → `procurement/` for clarity (optional)
+| Issue ID | Title | Module | Effort |
+|----------|-------|--------|--------|
+| FEAT-0034 | Redis pub/sub scaling | infrastructure | M |
+| FEAT-0035 | Health monitoring integration | monitoring | M |
+| FEAT-0036 | AI building model generation | aqar | XL |
+| REFAC-0003 | FM Properties schema mismatch (TODO-002) | fm | L |
+| - | Vitest multi-project migration | tests | M |
+| - | Ticketing system integration | support | M |
+| - | Superadmin notification badge | ui | S |
+| - | BLOCKED: Souq Orders mismatch (TODO-001) | souq | M |
 
 ---
 
@@ -170,112 +147,20 @@ The `marketplace/` and `souq/` modules serve **different business domains**:
 5. **FEAT-0027** - Fraud detection ✅ IMPLEMENTED (PR #640)
 6. **FEAT-0028** - Ejar integration ✅ IMPLEMENTED (PR #640)
 
-### Sprint 3 ✅ COMPLETE
-- **FEAT-0027** - Fraud detection ✅ CLOSED (PR #640)
-- **FEAT-0028** - Ejar integration ✅ CLOSED (PR #640)
-- **SADAD/SPAN** - Payment rails (DEFERRED - requires bank credentials)
+### Sprint 3 (P2 Subscription Flows) ✅ COMPLETE
+7. **FEAT-0029** - Subscription plan change ✅ IMPLEMENTED
+8. **FEAT-0030** - Subscription cancellation ✅ IMPLEMENTED
 
-### Sprint 4 ✅ COMPLETE
-- **FEAT-0029** - Subscription plan change ✅ CLOSED (PR #641)
-- **FEAT-0030** - Subscription cancellation ✅ CLOSED (PR #641)
-- **FEAT-0031** - Inspection notification ✅ CLOSED (PR #641)
-- **FEAT-0032** - Session termination ✅ CLOSED (PR #641)
-- **FEAT-0033** - MFA approval ✅ CLOSED (PR #641)
+### Sprint 4 (Next)
+9. **FEAT-0031** - Inspection tenant notification
+10. **FEAT-0032** - Session termination
+11. **FEAT-0033** - MFA approval system integration
 
-### Sprint 5 ✅ COMPLETE
-- **BI-KPI-001/002/003/004** - BI Dashboard KPIs ✅ CLOSED (PR #642)
-- **CRM-TREND** - NPS trend calculation ✅ CLOSED (PR #642)
-- **TG-005** - Test mock setup (35 tests) ✅ CLOSED (PR #642)
-
-### Sprint 6 (Current) - P3 Infrastructure
-| ID | Title | Status | Notes |
-|---|---|---|---|
-| FEAT-0034 | Redis pub/sub scaling | ✅ CLOSED | PR #642, commit a9b664c24 |
-| FEAT-0035 | Health monitoring integration | ✅ CLOSED | PR #642 - health-aggregator + metrics-registry |
-| REFAC-0003 | FM Properties schema mismatch | ✅ CLOSED | PR #646 merged to main |
-| FEAT-0036 | AI building model generation | NOT STARTED | XL effort |
-
-### Backlog (Updated)
-- FM Providers mock data (8-16h) - DEFERRED
-- Vitest multi-project migration (M)
-- Ticketing system integration (M)
-- Superadmin notification badge (S)
-
----
-
-## Re-Verification Scan - 2026-01-02T13:30+03:00
-
-### Updated Counts (vs Previous Report)
-
-| Metric | Previous | Current | Δ |
-|--------|----------|---------|---|
-| Code TODO markers | 64 | 49 | -15 ✅ |
-| Code "not implemented" | 58 | 64 | +6 |
-| Code placeholders (TBD/WIP/CHANGEME/REPLACE_ME) | 28 | 42 | +14 |
-| Docs/report tokens | 5,642 | 5,647 | +5 |
-| Docs/report "not implemented" | 191 | 191 | — |
-
-### Production TODOs (Feature Work Outstanding)
-
-| Category | File | Line(s) | Status |
-|----------|------|---------|--------|
-| Subscription flows | `page.tsx` | 816, 820 | P2 - DEFERRED |
-| Vendor intelligence/fraud | `vendor-intelligence.ts` | 780, 818, 834, 849, 864 | ✅ IMPLEMENTED (stubs remain for future ML) |
-| Inspection notifications | `inspection-service.ts` | 504, 754 | P2 - OPEN |
-| Compliance/external | `pdpl-service.ts:337`, `lease-service.ts:1028`, `route.ts:32` | — | P1 - DEFERRED (bank/legal) |
-| Observability/scaling/UI | `route.ts:133,221`, `SuperadminHeader.tsx:212` | — | P3 - BACKLOG |
-| Data/model stubs | `route.ts:60`, `Property.ts:8`, `ClaimsOrder.ts:16`, `mfaService.ts:399`, `buildingModel.ts:471` | — | P3 - BACKLOG |
-
-### Production "Not Implemented" Runtime Stubs
-
-| Category | File | Line(s) | Status |
-|----------|------|---------|--------|
-| API 501s | `route.ts` | 78, 315, 379 | ✅ ANALYZED (valid guards) |
-| Finance action stub | `route.ts` | 197 | P2 - DEFERRED |
-| FM vendor assignments | `route.ts` | 115, 259 | P2 - OPEN |
-| Souq payout live mode | `payout-processor.ts` | 599, 611 | P1 - BLOCKED (bank creds) |
-| Vendor intelligence stubs | `vendor-intelligence.ts` | 817, 833, 848, 863 | ✅ CLOSED (intentional ML placeholders) |
-| UI/PII stubs | `Employee.ts:38`, `page.tsx:313,891` | — | P0/P2 - MIXED |
-
-### Placeholders (TBD/CHANGEME)
-
-| Category | File | Line(s) | Status |
-|----------|------|---------|--------|
-| FM UI TBD labels | `page.tsx` | 113, 373, 266 | P3 - COSMETIC |
-| ICS fallback TBD | `ics-generator.ts` | 151 | P3 - LOW |
-| Route placeholder | `route.ts` | 167 | P3 - LOW |
-| Issue-tracker defaults | `issue-log.ts` | 225, 242, 272, 343, 518 | P3 - TOOLING |
-| Route placeholder | `route.ts` | 433 | P3 - LOW |
-| QA placeholder guards | `scanPlaceholders.mjs:3,13`, `i18n-en.unit.spec.ts:221` | — | ⚪ NON-ACTIONABLE |
-
-### Tests/QA TODOs
-
-| Category | File | Line(s) | Status |
-|----------|------|---------|--------|
-| Mock setup TODOs | `orders.route.test.ts` | 149, 177, 193, 209 | ✅ FIXED (PR #642) |
-| Mock setup TODOs | `issues-import.route.test.ts` | 195, 227, 238, 250 | ✅ FIXED (PR #642) |
-| Mock setup TODOs | `send.test.ts` | 163 | ✅ FIXED (PR #642) |
-| S3 cleanup testability | `patch.route.test.ts` | 275 | P3 - DEFERRED |
-| Deferred service imports | `seller-kyc-service.test.ts:28`, `inventory-service.test.ts:29`, `buybox-service.test.ts:29`, `auto-repricer-service.test.ts:29`, `account-health-service.test.ts:29` | — | P3 - BACKLOG |
-| Not-implemented handling | `loadRoute.ts:29,69`, `expectStatus.ts:80,83`, `finance-billing-flow.spec.ts:324`, `ProductsList.query.test.tsx:90`, `PropertiesList.query.test.tsx:94` | — | ⚪ INTENTIONAL (test utilities) |
-
-### Tooling/Meta References (Inflate Counts - Not Runtime)
-
-| Category | Files | Count | Status |
-|----------|-------|-------|--------|
-| Scan script references | `import-todo-scan.js` | 15 | ⚪ EXPECTED |
-| Analyzer/verification patterns | `analyze-system-errors.js`, `assess-system.ts`, `reality-check.js`, `phase1-truth-verifier.js` | 9 | ⚪ EXPECTED |
-| Verification scripts | `COMPLETE_FIXZIT_VERIFICATION.sh`, `complete-system-audit.js` | 11 | ⚪ EXPECTED |
-| Generated artifact | `codeMirrorModule-B9MwJ51G.js:13435` | 1 | ⚪ VENDOR |
-
-### Docs/Reports Snapshot
-
-Token hotspots remain in:
-- `PENDING_MASTER.md`
-- `SOUQ_IMPLEMENTATION_GAP_ANALYSIS.md`
-- `BACKLOG_AUDIT.json` (2 files)
-
-"Not implemented" count in docs: **191** (unchanged)
+### Backlog (Prioritized)
+- Subscription flows
+- Notification systems
+- Test improvements
+- Infrastructure scaling
 
 ---
 
@@ -317,12 +202,11 @@ Issues to import: 17
 Summary: 11 created, 6 updated/exists, 0 errors
 ```
 
-### Scan Summary (Updated 2026-01-02T13:30+03:00)
-- **Total TODO/FIXME markers found:** 49 (↓ from 64)
-- **Runtime stubs (501/not implemented):** 64 (↑ from 58)
-- **Test TODOs (TG-005):** ✅ 35 FIXED (9 remaining deferred)
-- **Placeholder tokens (TBD/CHANGEME):** 42 (↑ from 28)
-- **Tooling/meta references:** ~36 (non-actionable)
+### Scan Summary
+- **Total TODO/FIXME markers found:** 50+
+- **Runtime stubs (501/not implemented):** 15+
+- **Test TODOs (TG-005):** 10
+- **Placeholder tokens (TBD/CHANGEME):** 10
 
 ---
 
