@@ -530,6 +530,9 @@ export async function getFinanceKPIs(
     });
     
     // BI-KPI-001: Real cash flow calculation (inflows - outflows)
+    // NOTE: Uses "payments" collection (cash basis) not "transactions" (accrual basis)
+    // - payments = actual cash received/paid (cash flow statement)
+    // - transactions = ledger entries for accounting (P&L statement)
     const cashFlowPipeline = [
       {
         $match: {
@@ -575,6 +578,8 @@ export async function getFinanceKPIs(
     const prevCashFlowValue = prevInflows - prevOutflows;
     
     // BI-KPI-002: Real expense ratio calculation
+    // NOTE: Uses "transactions" collection (accrual accounting) for expense ratio
+    // This is correct for financial ratios as it matches the revenue calculation above
     const expensePipeline = [
       {
         $match: {
