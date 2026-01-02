@@ -15,7 +15,7 @@ import {
 } from "@/lib/export/worker-helpers";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { Invoice } from "@/server/models/Invoice";
-import { Employee } from "@/server/models/Employee";
+import { Employee } from "@/server/models/hr.models"; // SEC-0002: Use encrypted Employee model
 import { User } from "@/server/models/User";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { Property } from "@/server/models/Property";
@@ -71,8 +71,9 @@ async function fetchRows(entity: FilterEntityType, orgId: string, filters: Sanit
         .lean()
         .exec();
     case "employees":
+      // SEC-0002: Using hr.models.ts Employee with PII encryption
       return Employee.find(query)
-        .select("firstName lastName department role status createdAt orgId")
+        .select("firstName lastName departmentId jobTitle employmentStatus createdAt orgId")
         .limit(EXPORT_LIMIT)
         .lean()
         .exec();

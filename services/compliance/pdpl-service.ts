@@ -306,12 +306,37 @@ export interface ErasureResult {
 }
 
 /**
+ * Anonymization constants for PDPL erasure
+ * These values replace PII fields during erasure
+ */
+const ANONYMIZATION_VALUES = {
+  email: "deleted@erased.local",
+  name: "[ERASED]",
+  firstName: "[ERASED]",
+  lastName: "[ERASED]",
+  phone: "+000000000000",
+  address: "[ERASED]",
+  nationalId: "[ERASED]",
+  iban: "[ERASED]",
+  ip: "0.0.0.0",
+} as const;
+
+/**
  * Execute erasure request (anonymization/deletion)
+ * 
+ * PDPL Compliance:
+ * - Article 22: Right to erasure within 30 days
+ * - ZATCA retention: Financial records retained 6 years (anonymized only)
+ * - Audit trail: All erasure operations logged
+ * 
+ * Strategy:
+ * - DELETE: Non-essential data (activities, preferences, consents)
+ * - ANONYMIZE: Essential structure + financial data (keep for ZATCA)
  */
 export async function executeErasure(
   userId: ObjectId,
   tenantId: ObjectId | undefined,
-  _db: unknown
+  db: unknown
 ): Promise<ErasureResult> {
   const result: ErasureResult = {
     success: false,
@@ -321,39 +346,203 @@ export async function executeErasure(
     errors: [],
   };
   
+  // Type guard for MongoDB database handle
+  const dbHandle = db as { collection: (name: string) => {
+    updateMany: (filter: object, update: object) => Promise<{ modifiedCount: number }>;
+    deleteMany: (filter: object) => Promise<{ deletedCount: number }>;
+  } } | null;
+  
+  if (!dbHandle || typeof dbHandle.collection !== "function") {
+    result.errors.push("Invalid database handle provided");
+    logger.error("PDPL erasure failed: Invalid database handle", { userId: userId.toString() });
+    return result;
+  }
+  
+  // Build tenant-scoped filter
+  const baseFilter: Record<string, unknown> = { user_id: userId };
+  if (tenantId) {
+    baseFilter.tenant_id = tenantId;
+  }
+  
+  // Alternative filters for collections with different field names
+  const orgFilter: Record<string, unknown> = { userId };
+  if (tenantId) {
+    orgFilter.orgId = tenantId;
+  }
+  
   try {
-    // In production, iterate through collections and anonymize/delete
-    const collectionsToProcess = [
-      "users",
-      "profiles",
-      "consents",
-      "activities",
-      "preferences",
+    // =========================================================================
+    // STEP 1: Delete non-essential collections (GDPR/PDPL right to erasure)
+    // =========================================================================
+    const collectionsToDelete = [
+      { name: "activities", filter: baseFilter },
+      { name: "preferences", filter: baseFilter },
+      { name: "sessions", filter: { userId } }, // Auth sessions
     ];
     
-    // Note: Financial records must be retained for 6 years (ZATCA)
-    // Only anonymize PII, don't delete invoices
+    for (const { name, filter } of collectionsToDelete) {
+      try {
+        const deleteResult = await dbHandle.collection(name).deleteMany(filter);
+        result.records_deleted += deleteResult.deletedCount;
+        result.collections_processed.push(`${name}:deleted`);
+        
+        logger.info("PDPL erasure: Collection deleted", {
+          collection: name,
+          userId: userId.toString(),
+          deletedCount: deleteResult.deletedCount,
+        });
+      } catch (collError) {
+        // Collection may not exist - log but continue
+        const msg = collError instanceof Error ? collError.message : String(collError);
+        if (!msg.includes("ns not found") && !msg.includes("doesn't exist")) {
+          result.errors.push(`${name}: ${msg}`);
+        }
+      }
+    }
     
-    // TODO: Implement actual deletion logic
-    // Example:
-    // for (const collection of collectionsToProcess) {
-    //   await db.collection(collection).updateMany(
-    //     { user_id: userId, tenant_id: tenantId },
-    //     { $set: { email: 'deleted@deleted.com', name: 'DELETED', ... } }
-    //   );
-    // }
+    // =========================================================================
+    // STEP 2: Anonymize user profiles (retain structure, remove PII)
+    // =========================================================================
+    const collectionsToAnonymize = [
+      {
+        name: "users",
+        filter: { _id: userId },
+        update: {
+          $set: {
+            email: ANONYMIZATION_VALUES.email,
+            firstName: ANONYMIZATION_VALUES.firstName,
+            lastName: ANONYMIZATION_VALUES.lastName,
+            phone: ANONYMIZATION_VALUES.phone,
+            "profile.address": ANONYMIZATION_VALUES.address,
+            "profile.nationalId": ANONYMIZATION_VALUES.nationalId,
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletionReason: "PDPL_ERASURE_REQUEST",
+          },
+        },
+      },
+      {
+        name: "profiles",
+        filter: baseFilter,
+        update: {
+          $set: {
+            email: ANONYMIZATION_VALUES.email,
+            name: ANONYMIZATION_VALUES.name,
+            phone: ANONYMIZATION_VALUES.phone,
+            address: ANONYMIZATION_VALUES.address,
+            isDeleted: true,
+            deletedAt: new Date(),
+          },
+        },
+      },
+      {
+        name: "employees",
+        filter: orgFilter,
+        update: {
+          $set: {
+            firstName: ANONYMIZATION_VALUES.firstName,
+            lastName: ANONYMIZATION_VALUES.lastName,
+            email: ANONYMIZATION_VALUES.email,
+            phone: ANONYMIZATION_VALUES.phone,
+            "personal.firstName": ANONYMIZATION_VALUES.firstName,
+            "personal.lastName": ANONYMIZATION_VALUES.lastName,
+            "personal.email": ANONYMIZATION_VALUES.email,
+            "personal.phone": ANONYMIZATION_VALUES.phone,
+            "bankDetails.iban": ANONYMIZATION_VALUES.iban,
+            "bankDetails.accountNumber": ANONYMIZATION_VALUES.iban,
+            isDeleted: true,
+            deletedAt: new Date(),
+          },
+        },
+      },
+    ];
     
-    // Mark as not implemented - do not falsely report success
-    result.errors.push(
-      `PDPL erasure not yet implemented for user ${userId.toString()}. Collections pending: ${collectionsToProcess.join(", ")}`
-    );
-    result.collections_processed = []; // None actually processed
-    result.success = false;
+    for (const { name, filter, update } of collectionsToAnonymize) {
+      try {
+        const updateResult = await dbHandle.collection(name).updateMany(filter, update);
+        result.records_anonymized += updateResult.modifiedCount;
+        result.collections_processed.push(`${name}:anonymized`);
+        
+        logger.info("PDPL erasure: Collection anonymized", {
+          collection: name,
+          userId: userId.toString(),
+          modifiedCount: updateResult.modifiedCount,
+        });
+      } catch (collError) {
+        const msg = collError instanceof Error ? collError.message : String(collError);
+        if (!msg.includes("ns not found") && !msg.includes("doesn't exist")) {
+          result.errors.push(`${name}: ${msg}`);
+        }
+      }
+    }
     
-    logger.warn("PDPL erasure requested but not implemented", {
+    // =========================================================================
+    // STEP 3: Anonymize consents (keep for audit trail, remove identifying info)
+    // =========================================================================
+    try {
+      const consentResult = await dbHandle.collection("consents").updateMany(
+        baseFilter,
+        {
+          $set: {
+            ip_address: ANONYMIZATION_VALUES.ip,
+            user_agent: "[ERASED]",
+            status: "withdrawn",
+            withdrawn_at: new Date(),
+            erasure_applied: true,
+          },
+        }
+      );
+      result.records_anonymized += consentResult.modifiedCount;
+      result.collections_processed.push("consents:anonymized");
+    } catch (consentError) {
+      const msg = consentError instanceof Error ? consentError.message : String(consentError);
+      if (!msg.includes("ns not found")) {
+        result.errors.push(`consents: ${msg}`);
+      }
+    }
+    
+    // =========================================================================
+    // STEP 4: Mark financial records (ZATCA 6-year retention - anonymize only)
+    // =========================================================================
+    try {
+      const invoiceResult = await dbHandle.collection("invoices").updateMany(
+        { ...orgFilter, "customer.userId": userId },
+        {
+          $set: {
+            "customer.name": ANONYMIZATION_VALUES.name,
+            "customer.email": ANONYMIZATION_VALUES.email,
+            "customer.phone": ANONYMIZATION_VALUES.phone,
+            "customer.address": ANONYMIZATION_VALUES.address,
+            pdplErasureApplied: true,
+            pdplErasureDate: new Date(),
+            // DO NOT delete - ZATCA requires 6-year retention
+          },
+        }
+      );
+      result.records_anonymized += invoiceResult.modifiedCount;
+      if (invoiceResult.modifiedCount > 0) {
+        result.collections_processed.push("invoices:pii_anonymized");
+      }
+    } catch (invoiceError) {
+      const msg = invoiceError instanceof Error ? invoiceError.message : String(invoiceError);
+      if (!msg.includes("ns not found")) {
+        result.errors.push(`invoices: ${msg}`);
+      }
+    }
+    
+    // =========================================================================
+    // FINALIZE
+    // =========================================================================
+    result.success = result.errors.length === 0;
+    
+    logger.info("PDPL erasure completed", {
       userId: userId.toString(),
       tenantId: tenantId?.toString(),
-      collectionsToProcess,
+      success: result.success,
+      collectionsProcessed: result.collections_processed,
+      recordsAnonymized: result.records_anonymized,
+      recordsDeleted: result.records_deleted,
+      errors: result.errors,
     });
     
   } catch (error) {

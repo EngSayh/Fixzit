@@ -62,12 +62,11 @@ export async function registerNode(): Promise<void> {
           environment: guardResult.environment,
           diagnostic: safeDiag,
         });
-        // ⚠️ TEMPORARY: Log error but don't block startup - investigating false positive OTP_BYPASS detection
-        // TODO: Re-enable blocking once OTP bypass variable detection is fixed
-        // throw new Error(
-        //   `Production environment safety guards failed. codes=${safeDiag.errorCodes.join(",") || "unknown"}`
-        // );
-        logger.warn("[Instrumentation] Continuing despite env guard failure - investigating false positive");
+        // 🔒 SECURITY: Re-enabled blocking after confirming env-guards.ts logic is correct
+        // OTP bypass variables must NOT exist in production (even if set to "false")
+        throw new Error(
+          `Production environment safety guards failed. codes=${safeDiag.errorCodes.join(",") || "unknown"}`
+        );
       }
       
       if (!guardResult.passed && isPreview) {
@@ -89,15 +88,14 @@ export async function registerNode(): Promise<void> {
       logger.error("[Instrumentation] Env guard check failed", {
         error: guardError instanceof Error ? guardError.message : String(guardError),
       });
-      // ⚠️ TEMPORARY: Don't re-throw - allow startup while investigating OTP bypass false positive
-      // const isTrueProduction = 
-      //   process.env.NODE_ENV === "production" && 
-      //   process.env.VERCEL_ENV === "production";
-      // 
-      // if (isTrueProduction) {
-      //   throw guardError;
-      // }
-      logger.warn("[Instrumentation] Continuing despite env guard failure - investigating false positive");
+      // 🔒 SECURITY: Re-throw in production to block startup with invalid env config
+      const isTrueProduction = 
+        process.env.NODE_ENV === "production" && 
+        process.env.VERCEL_ENV === "production";
+      
+      if (isTrueProduction) {
+        throw guardError;
+      }
     }
 
     // Validate environment variables
