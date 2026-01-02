@@ -19,6 +19,69 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-15 02:30 (Asia/Riyadh) — PR #641 Security Review Comments Addressed [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/p2-subscription-flows`  
+**PR:** #641  
+**Commit:** `09109b4ec`
+
+#### 📊 Summary
+
+Addressed all P0/P1 security review comments from CodeRabbit, Gemini, and ChatGPT-Codex on PR #641.
+
+#### ✅ P0 Security Fixes (Critical)
+
+| Issue | File | Fix Applied |
+|-------|------|-------------|
+| **Hardcoded MFA fallback secret** | `server/models/MFAApprovalToken.ts` | Replaced `TOKEN_SECRET = ... \|\| "mfa-approval-fallback"` with `getTokenSecret()` that throws if not configured |
+| **org_id not required in RevokedSession** | `server/models/RevokedSession.ts` | Changed `org_id?: string` to `org_id: string` (required), added to all queries for tenant isolation |
+
+#### ✅ P1 Fixes (High Priority)
+
+| Issue | File | Fix Applied |
+|-------|------|-------------|
+| **Race condition in token validation** | `server/models/MFAApprovalToken.ts` | Changed to atomic `findOneAndUpdate` with `usedAt: null` condition to prevent double-use |
+| **Silent failure when no tier matches** | `server/services/subscriptionBillingService.ts` | Now throws `Error("No matching pricing tier for X seats")` instead of falling through |
+| **Immediate plan changes when scheduled** | `server/services/subscriptionBillingService.ts` | Wrapped field updates in `if (immediate)` block; deferred changes only set metadata |
+
+#### ✅ Medium Priority Fixes
+
+| Issue | File | Fix Applied |
+|-------|------|-------------|
+| **Regex injection in userId** | `server/models/RevokedSession.ts` | Added `userId.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")` in `hasUserBulkRevocation` |
+| **Missing ObjectId validation** | `app/api/superadmin/mfa-approvals/route.ts` | Added `ObjectId.isValid(targetUserId)` checks before `new ObjectId()` |
+| **orgId not required in terminate** | `app/api/superadmin/sessions/terminate/route.ts` | Added validation and passed `orgId` to all revocation functions |
+
+#### 📊 Files Modified
+
+| File | Changes |
+|------|---------|
+| `server/models/MFAApprovalToken.ts` | `getTokenSecret()`, atomic `findOneAndUpdate`, rollback logic |
+| `server/models/RevokedSession.ts` | Required `org_id`, query scoping, regex escaping |
+| `server/services/subscriptionBillingService.ts` | Throw on missing tier, defer updates when `!immediate` |
+| `app/api/superadmin/mfa-approvals/route.ts` | ObjectId.isValid checks |
+| `app/api/superadmin/sessions/terminate/route.ts` | Required orgId validation |
+
+#### 📊 Verification
+
+| Gate | Result |
+|------|--------|
+| TypeScript | ✅ 0 errors |
+| ESLint | ✅ 0 errors (27 pre-existing warnings) |
+| Pre-commit hooks | ✅ Passed (lint:prod, mongo-unwrap, typecheck) |
+| Git push | ✅ Commit `09109b4ec` pushed to `origin/feat/p2-subscription-flows` |
+
+#### 📋 Next Steps
+
+| Priority | Task | Status |
+|----------|------|--------|
+| P0 | Wait for CI re-run on PR #641 | ⏳ Running |
+| P1 | Address remaining 28 medium/low review comments | ⏸️ After CI passes |
+| P1 | Merge PR #641 if CI passes | ⏸️ Blocked on CI |
+
+---
+
 ### 2026-01-02 16:55 (Asia/Riyadh) — PR Merge Strategy [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
