@@ -20,7 +20,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -263,14 +262,12 @@ export default function NewSupportTicketPage() {
                       value === "" ? "" : (value as ModuleOption),
                     )
                   }
+                  placeholder={auto(
+                    "Select a module",
+                    "fields.module.placeholder",
+                  )}
                 >
                   <SelectTrigger>
-                    <SelectValue
-                      placeholder={auto(
-                        "Select a module",
-                        "fields.module.placeholder",
-                      )}
-                    />
                   </SelectTrigger>
                   <SelectContent>
                     {MODULE_OPTIONS.map((option) => (
@@ -290,7 +287,6 @@ export default function NewSupportTicketPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {PRIORITY_OPTIONS.map((option) => (

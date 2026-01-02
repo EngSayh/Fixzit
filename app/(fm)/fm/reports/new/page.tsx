@@ -13,7 +13,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -173,15 +172,13 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                 <Select
                   value={reportType}
                   onValueChange={setReportType}
+                  placeholder={auto(
+                    "Select report type...",
+                    "fields.typePlaceholder",
+                  )}
                   required
                 >
                   <SelectTrigger id="reportType">
-                    <SelectValue
-                      placeholder={auto(
-                        "Select report type...",
-                        "fields.typePlaceholder",
-                      )}
-                    />
                   </SelectTrigger>
                   <SelectContent>
                     {REPORT_TYPES.map((type) => (
@@ -226,7 +223,6 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                   }}
                 >
                   <SelectTrigger id="dateRange">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {DATE_RANGES.map((range) => (
@@ -309,7 +305,6 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                 </Label>
                 <Select value={format} onValueChange={setFormat}>
                   <SelectTrigger id="format">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {FORMATS.map((fmt) => (

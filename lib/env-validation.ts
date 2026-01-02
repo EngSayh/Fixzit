@@ -180,11 +180,8 @@ export function validateDatabaseConfig(options: ValidationOptions = {}): EnvVali
     }
   }
 
-  if (!process.env.REDIS_URL && !process.env.UPSTASH_REDIS_REST_URL) {
-    warnings.push(
-      "No Redis configuration found. BullMQ queues and caching will be disabled."
-    );
-  }
+  // NOTE: Redis has been intentionally removed from the codebase.
+  // The system now uses in-memory fallback for all Redis-related functionality.
 
   return {
     valid: errors.length === 0,
@@ -216,11 +213,8 @@ export function validatePaymentConfig(options: ValidationOptions = {}): EnvValid
     const msg = `Tap Payments not configured. Set TAP_ENVIRONMENT and ${tapKeyName} to enable payments.`;
     // CHANGED: Payment is optional - warn instead of error to allow graceful degradation
     warnings.push(msg);
-  } else {
-    if (!process.env.TAP_WEBHOOK_SECRET) {
-      warnings.push("TAP_WEBHOOK_SECRET not set - Tap payment webhooks will be rejected.");
-    }
   }
+  // NOTE: TAP_WEBHOOK_SECRET check is done in SEC-001 webhook secrets validation above
 
   return {
     valid: errors.length === 0,

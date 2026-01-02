@@ -17,7 +17,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { ExternalLink, Loader2, Plus } from "@/components/ui/icons";
 import { toast } from "sonner";
@@ -331,10 +330,8 @@ function CreateReportDialog({
             <label htmlFor="report-type" className="text-sm font-medium">
               {auto("Report Type", "fields.type")}
             </label>
-            <Select value={type} onValueChange={setType} disabled={isSubmitting}>
-              <SelectTrigger id="report-type">
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={type} onValueChange={setType} disabled={isSubmitting} placeholder="Select report type">
+              <SelectTrigger id="report-type"></SelectTrigger>
               <SelectContent>
                 {reportTypes.map((rt) => (
                   <SelectItem key={rt.value} value={rt.value}>
@@ -349,10 +346,8 @@ function CreateReportDialog({
             <label htmlFor="report-format" className="text-sm font-medium">
               {auto("Format", "fields.format")}
             </label>
-            <Select value={format} onValueChange={setFormat} disabled={isSubmitting}>
-              <SelectTrigger id="report-format">
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={format} onValueChange={setFormat} disabled={isSubmitting} placeholder="Select format">
+              <SelectTrigger id="report-format"></SelectTrigger>
               <SelectContent>
                 {formats.map((f) => (
                   <SelectItem key={f.value} value={f.value}>

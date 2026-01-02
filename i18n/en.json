@@ -2949,6 +2949,14 @@
       "loadData": "Load Data"
     },
     "success": "Success",
+    "toast": {
+      "error": "Error",
+      "loadIssuesFailed": "Failed to load issues",
+      "exportComplete": "Export Complete",
+      "exportFailed": "Export Failed",
+      "exportFailedDescription": "Could not export issues",
+      "exportedCount": "Exported {{count}} issues"
+    },
     "feedback": {
       "copied": "Copied",
       "copyFailed": "Copy failed",
@@ -5307,6 +5315,51 @@
       "support": "Support Tickets",
       "vendors": "Vendors",
       "footerContent": "Footer & Policies"
+    },
+    "dashboard": {
+      "title": "Dashboard Overview",
+      "subtitle": "System health, metrics, and recent activity",
+      "selectTenant": "Filter by tenant",
+      "allTenants": "All Tenants",
+      "filteringBy": "Filtering by tenant:",
+      "totalTenants": "Total Tenants",
+      "activeUsers": "Active Users Today",
+      "systemUptime": "System Uptime",
+      "avgResponseTime": "Avg Response Time",
+      "serviceHealth": "Service Health",
+      "serviceHealthDesc": "Real-time status of platform services",
+      "noServices": "No service data available",
+      "recentActivity": "Recent Activity",
+      "noActivity": "No recent activity",
+      "moduleStatus": "Module Status",
+      "moduleStatusDesc": "Platform modules and their health",
+      "quickActions": "Quick Actions",
+      "routes": "routes",
+      "tenantsLoadFailed": "Failed to load tenant list",
+      "loadFailed": "Failed to load dashboard",
+      "lastUpdated": "Last updated:"
+    },
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "down": "Down",
+      "warning": "Warning",
+      "error": "Error",
+      "unknown": "Unknown"
+    },
+    "issues": {
+      "toast": {
+        "errorTitle": "Error",
+        "loadFailed": "Failed to load issues",
+        "noSelectionTitle": "No selection",
+        "noSelectionDescription": "Please select issues to copy",
+        "noDataTitle": "No data",
+        "noDataDescription": "No issues to export",
+        "bulkActionTitle": "Bulk action",
+        "markingResolved": "Marking {{count}} issues as resolved",
+        "archiving": "Archiving {{count}} issues",
+        "deleting": "Deleting {{count}} issues"
+      }
     },
     "groups": {
       "ssot": "Issue Tracking",

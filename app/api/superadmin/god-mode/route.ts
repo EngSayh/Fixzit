@@ -15,6 +15,7 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { createHash } from "crypto";
+import { ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(req: NextRequest) {
@@ -30,7 +31,28 @@ export async function GET(req: NextRequest) {
     
     const db = await getDatabase();
     
-    // Fetch real tenant counts
+    // Read tenantId from query params for scoped filtering
+    const { searchParams } = new URL(req.url);
+    const tenantIdParam = searchParams.get("tenantId");
+    
+    // Validate tenantId if provided
+    let tenantObjectId: ObjectId | null = null;
+    if (tenantIdParam) {
+      if (!ObjectId.isValid(tenantIdParam)) {
+        return NextResponse.json(
+          { error: { code: "FIXZIT-VALIDATION-001", message: "Invalid tenantId format" } },
+          { status: 400 }
+        );
+      }
+      tenantObjectId = new ObjectId(tenantIdParam);
+    }
+    
+    // Build scoped filters - use tenantId when provided, otherwise platform-wide
+    const orgFilter = tenantObjectId ? { _id: tenantObjectId } : {};
+    const orgIdFilter = tenantObjectId ? { orgId: tenantObjectId } : {};
+    const tenantIdFilter = tenantObjectId ? { tenant_id: tenantObjectId } : {};
+    
+    // Fetch real tenant counts (scoped by tenantId if provided)
     const [
       totalTenants,
       activeTenants,
@@ -38,16 +60,16 @@ export async function GET(req: NextRequest) {
       suspendedTenants,
       pendingOffboarding,
     ] = await Promise.all([
-      db.collection("organizations").countDocuments({}),
-      db.collection("organizations").countDocuments({ status: "active" }),
-      db.collection("organizations").countDocuments({ plan: "trial" }),
-      db.collection("organizations").countDocuments({ status: "suspended" }),
-      db.collection("organizations").countDocuments({ status: "pending_offboarding" }),
+      db.collection("organizations").countDocuments(orgFilter),
+      db.collection("organizations").countDocuments({ ...orgFilter, status: "active" }),
+      db.collection("organizations").countDocuments({ ...orgFilter, plan: "trial" }),
+      db.collection("organizations").countDocuments({ ...orgFilter, status: "suspended" }),
+      db.collection("organizations").countDocuments({ ...orgFilter, status: "pending_offboarding" }),
     ]);
     
-    // Fetch top tenants (sanitize - only expose necessary fields)
+    // Fetch top tenants (sanitize - only expose necessary fields) - scoped by tenantId if provided
     const topTenants = await db.collection("organizations")
-      .find({ status: { $in: ["active", "trial"] } })
+      .find({ ...orgFilter, status: { $in: ["active", "trial"] } })
       .project({ 
         _id: 1, 
         name: 1, 
@@ -75,9 +97,9 @@ export async function GET(req: NextRequest) {
       plan: tenant.plan || "starter",
     }));
     
-    // Fetch active kill switch events
+    // Fetch active kill switch events (scoped by tenantId if provided)
     const activeKillSwitchEvents = await db.collection("kill_switch_events")
-      .find({ deactivated_at: { $exists: false } })
+      .find({ ...tenantIdFilter, deactivated_at: { $exists: false } })
       .sort({ activated_at: -1 })
       .limit(10)
       .toArray();
@@ -102,14 +124,14 @@ export async function GET(req: NextRequest) {
       scheduled_reactivation: event.scheduled_reactivation || null,
     }));
     
-    // Fetch snapshot stats
+    // Fetch snapshot stats (scoped by tenantId if provided)
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const [totalSnapshots, snapshots24h, recentSnapshots] = await Promise.all([
-      db.collection("tenant_snapshots").countDocuments({}),
-      db.collection("tenant_snapshots").countDocuments({ created_at: { $gte: yesterday } }),
+      db.collection("tenant_snapshots").countDocuments(tenantIdFilter),
+      db.collection("tenant_snapshots").countDocuments({ ...tenantIdFilter, created_at: { $gte: yesterday } }),
       db.collection("tenant_snapshots")
-        .find({})
+        .find(tenantIdFilter)
         .sort({ created_at: -1 })
         .limit(5)
         .toArray(),
@@ -134,13 +156,14 @@ export async function GET(req: NextRequest) {
       status: snap.status,
     }));
     
-    // Fetch active ghost sessions
+    // Fetch active ghost sessions (scoped by tenantId if provided)
     const activeGhostSessions = await db.collection("ghost_sessions")
-      .find({ active: true })
+      .find({ ...tenantIdFilter, active: true })
       .limit(10)
       .toArray();
     
     // Fetch 24h metrics from aggregation (or provide estimates if collection doesn't exist)
+    // Note: These metrics are scoped by tenantId if provided via orgIdFilter
     let metrics24h = {
       api_requests: 0,
       unique_users: 0,
@@ -159,15 +182,15 @@ export async function GET(req: NextRequest) {
         invoicesToday,
         paymentsToday,
       ] = await Promise.all([
-        db.collection("users").countDocuments({ lastLoginAt: { $gte: yesterday } }),
-        db.collection(COLLECTIONS.WORK_ORDERS).countDocuments({ createdAt: { $gte: yesterday } }),
-        db.collection("invoices").countDocuments({ createdAt: { $gte: yesterday } }),
-        db.collection("payments").countDocuments({ createdAt: { $gte: yesterday } }),
+        db.collection("users").countDocuments({ ...orgIdFilter, lastLoginAt: { $gte: yesterday } }),
+        db.collection(COLLECTIONS.WORK_ORDERS).countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
+        db.collection("invoices").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
+        db.collection("payments").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
       ]);
       
-      // Calculate payments total
+      // Calculate payments total (scoped by tenantId if provided)
       const paymentsAgg = await db.collection("payments").aggregate([
-        { $match: { createdAt: { $gte: yesterday }, status: "completed" } },
+        { $match: { ...orgIdFilter, createdAt: { $gte: yesterday }, status: "completed" } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]).toArray();
       
@@ -188,6 +211,8 @@ export async function GET(req: NextRequest) {
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
+      // Scope indicator - null means platform-wide, otherwise scoped to specific tenant
+      scoped_tenant_id: tenantObjectId ? tenantIdParam : null,
       // Use SHA-256 hash for audit trail to protect PII (not reversible like base64)
       operator_id: `sa_${createHash('sha256').update(session.username).digest('hex').slice(0, 12)}`,
       operator_username: session.username, // Only visible to current superadmin

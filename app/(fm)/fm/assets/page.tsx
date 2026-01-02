@@ -22,7 +22,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -191,10 +190,10 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
             <Select
               value={typeFilter}
               onValueChange={setTypeFilter}
+              placeholder={auto("Asset Type", "filters.type")}
               className="w-48"
             >
               <SelectTrigger>
-                <SelectValue placeholder={auto("Asset Type", "filters.type")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">
@@ -210,10 +209,10 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
+              placeholder={auto("Status", "filters.status")}
               className="w-48"
             >
               <SelectTrigger>
-                <SelectValue placeholder={auto("Status", "filters.status")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">
@@ -654,15 +653,13 @@ function CreateAssetForm({
                 value={field.value}
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
+                placeholder={auto("Select type", "form.placeholders.type")}
               >
                 <SelectTrigger
                   id="type"
                   aria-invalid={!!errors.type}
                   aria-describedby={errors.type ? "type-error" : undefined}
                 >
-                  <SelectValue
-                    placeholder={auto("Select type", "form.placeholders.type")}
-                  />
                 </SelectTrigger>
                 <SelectContent>
                   {ASSET_TYPES.map((type) => (
@@ -789,11 +786,9 @@ function CreateAssetForm({
               value={field.value}
               onValueChange={field.onChange}
               disabled={isSubmitting}
+              placeholder={auto("Select status", "form.placeholders.status")}
             >
               <SelectTrigger id="status">
-                <SelectValue
-                  placeholder={auto("Select status", "form.placeholders.status")}
-                />
               </SelectTrigger>
               <SelectContent>
                 {ASSET_STATUSES.map((status) => (
@@ -819,14 +814,12 @@ function CreateAssetForm({
               value={field.value}
               onValueChange={field.onChange}
               disabled={isSubmitting}
+              placeholder={auto(
+                "Select criticality",
+                "form.placeholders.criticality",
+              )}
             >
               <SelectTrigger id="criticality">
-                <SelectValue
-                  placeholder={auto(
-                    "Select criticality",
-                    "form.placeholders.criticality",
-                  )}
-                />
               </SelectTrigger>
               <SelectContent>
                 {ASSET_CRITICALITY_LEVELS.map((level) => (
@@ -948,13 +941,13 @@ function EditAssetForm({
                 value={field.value}
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
+                placeholder={auto("Select type", "form.placeholders.type")}
               >
                 <SelectTrigger
                   id="edit-type"
                   aria-invalid={!!errors.type}
                   aria-describedby={errors.type ? "edit-type-error" : undefined}
                 >
-                  <SelectValue placeholder={auto("Select type", "form.placeholders.type")} />
                 </SelectTrigger>
                 <SelectContent>
                   {ASSET_TYPES.map((type) => (
@@ -1004,9 +997,9 @@ function EditAssetForm({
                 value={field.value}
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
+                placeholder={auto("Select status", "form.placeholders.status")}
               >
                 <SelectTrigger id="edit-status">
-                  <SelectValue placeholder={auto("Select status", "form.placeholders.status")} />
                 </SelectTrigger>
                 <SelectContent>
                   {ASSET_STATUSES.map((status) => (
@@ -1031,9 +1024,9 @@ function EditAssetForm({
                 value={field.value}
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
+                placeholder={auto("Select criticality", "form.placeholders.criticality")}
               >
                 <SelectTrigger id="edit-criticality">
-                  <SelectValue placeholder={auto("Select criticality", "form.placeholders.criticality")} />
                 </SelectTrigger>
                 <SelectContent>
                   {ASSET_CRITICALITY_LEVELS.map((level) => (

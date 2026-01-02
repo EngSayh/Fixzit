@@ -9,7 +9,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
@@ -186,11 +185,9 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
           <Select
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
+            placeholder={t("fm.properties.selectType", "Select type")}
           >
             <SelectTrigger>
-              <SelectValue
-                placeholder={t("fm.properties.selectType", "Select type")}
-              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="INDIVIDUAL">

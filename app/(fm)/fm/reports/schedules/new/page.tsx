@@ -13,7 +13,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -144,15 +143,13 @@ export default function NewSchedulePage() {
                 <Select
                   value={reportType}
                   onValueChange={setReportType}
+                  placeholder={auto(
+                    "Select report type...",
+                    "fields.typePlaceholder",
+                  )}
                   required
                 >
                   <SelectTrigger id="reportType">
-                    <SelectValue
-                      placeholder={auto(
-                        "Select report type...",
-                        "fields.typePlaceholder",
-                      )}
-                    />
                   </SelectTrigger>
                   <SelectContent>
                     {REPORT_TYPES.map((type) => (
@@ -187,7 +184,6 @@ export default function NewSchedulePage() {
                 </Label>
                 <Select value={frequency} onValueChange={setFrequency}>
                   <SelectTrigger id="frequency">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {FREQUENCIES.map((freq) => (
@@ -218,7 +214,6 @@ export default function NewSchedulePage() {
                 </Label>
                 <Select value={format} onValueChange={setFormat}>
                   <SelectTrigger id="format">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {FORMATS.map((fmt) => (

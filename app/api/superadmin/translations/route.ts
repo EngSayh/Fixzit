@@ -18,6 +18,14 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
+/**
+ * Escape special regex characters to prevent ReDoS attacks.
+ * User input could contain patterns like (a+)+$ that cause catastrophic backtracking.
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const TRANSLATION_STATUSES = ["draft", "pending_review", "approved", "published"] as const;
 
 const CreateTranslationSchema = z.object({
@@ -204,10 +212,11 @@ export async function GET(request: NextRequest) {
       query.category = category;
     }
     if (search) {
+      const escapedSearch = escapeRegex(search);
       query.$or = [
-        { key: { $regex: search, $options: "i" } },
-        { "values.en": { $regex: search, $options: "i" } },
-        { "values.ar": { $regex: search, $options: "i" } },
+        { key: { $regex: escapedSearch, $options: "i" } },
+        { "values.en": { $regex: escapedSearch, $options: "i" } },
+        { "values.ar": { $regex: escapedSearch, $options: "i" } },
       ];
     }
 

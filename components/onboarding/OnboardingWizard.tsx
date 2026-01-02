@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -34,6 +33,7 @@ import {
   Building2,
   FileText,
   CheckCircle,
+  type LucideIcon,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
 
@@ -53,7 +53,7 @@ interface StepConfig {
   titleAr: string;
   description: string;
   descriptionAr: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }
 
 const STEPS: StepConfig[] = [
@@ -507,9 +507,9 @@ export default function OnboardingWizard({
           <Select
             value={basicInfo.country}
             onValueChange={(value) => setBasicInfo((prev) => ({ ...prev, country: value }))}
+            placeholder={t("onboarding.selectCountry", "Select country")}
           >
             <SelectTrigger id="country">
-              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="SA">{isRTL ? "المملكة العربية السعودية" : "Saudi Arabia"}</SelectItem>

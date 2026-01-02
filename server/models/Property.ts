@@ -212,6 +212,20 @@ const PropertySchema = new Schema(
           monthlyRent: Number,
         },
         amenities: [String],
+        
+        // 3D Building Model Integration
+        /** Maps this unit to a generated 3D building model node (e.g., "F3-A12") */
+        designKey: { type: String, index: true },
+        /** Number of halls/living rooms */
+        halls: Number,
+        /** Electricity meter number */
+        electricityMeter: String,
+        /** Water meter number */
+        waterMeter: String,
+        /** Floor number (string to support mezzanines like "2M") */
+        floor: String,
+        /** Area in square meters (alias for area field) */
+        sizeSqm: Number,
       },
     ],
 

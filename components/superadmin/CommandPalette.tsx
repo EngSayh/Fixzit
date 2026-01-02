@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { Search, Users, Building2, Settings, FileText, Clock } from '@/components/ui/icons';
+import { Search, Users, Building2, Settings, FileText, Clock, type LucideIcon } from '@/components/ui/icons';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 interface CommandItem {
   id: string;
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   action: () => void;
   category: string;
 }

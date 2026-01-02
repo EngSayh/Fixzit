@@ -20,7 +20,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -187,11 +186,8 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")}>
               <SelectTrigger className="w-48">
-                <SelectValue
-                  placeholder={t("fm.tenants.tenantType", "Tenant Type")}
-                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">

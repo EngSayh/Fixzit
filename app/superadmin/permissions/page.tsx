@@ -16,10 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
-  Grid3x3, RefreshCw, Search, Edit, Plus, Shield,
+  Grid3x3, RefreshCw, Edit, Plus, Shield,
   Check, X, Minus, Lock, Users, Building2,
   Settings, CreditCard, Package, Home,
   BarChart3, Save,
@@ -488,25 +488,30 @@ export default function SuperadminPermissionsPage() {
       </Card>
 
       {/* Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search permissions..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
-          </div>
-          <Select value={selectedModule} onValueChange={setSelectedModule} placeholder="Filter by module">
-            <SelectTrigger className="w-[200px] bg-muted border-input">
-              <SelectValue placeholder="All Modules" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modules</SelectItem>
-              {MODULES.map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      <SimpleFilterBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search permissions...",
+        }}
+        filters={[
+          {
+            id: "module",
+            value: selectedModule,
+            placeholder: "All Modules",
+            options: [
+              { value: "all", label: "All Modules" },
+              ...MODULES.map(m => ({ value: m.id, label: m.name })),
+            ],
+            onChange: setSelectedModule,
+            width: "w-[180px]",
+          },
+        ]}
+        onClear={() => {
+          setSearch("");
+          setSelectedModule("all");
+        }}
+      />
 
       {/* Permission Matrix */}
       <Card className="bg-card border-border">

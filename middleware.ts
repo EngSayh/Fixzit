@@ -42,6 +42,7 @@ const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-de
 const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
 // SECURITY: Enable CSRF protection for state-changing requests
 const CSRF_PROTECTION_ENABLED = process.env.CSRF_PROTECTION !== 'false'; // enabled by default
+const ISSUE_API_TOKEN = process.env.ISSUE_API_TOKEN?.trim();
 
 // ---------- CSRF Protection ----------
 // Routes exempt from CSRF validation (auth callbacks, webhooks, etc.)
@@ -54,6 +55,7 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/qa/reconnect', // QA heartbeat endpoint used by Playwright harness
   '/api/projects',   // Projects mock API used by Playwright tests
   '/api/superadmin/login', // Superadmin login cannot send CSRF (no session yet); uses its own rate limiting
+  '/api/superadmin/logout', // Superadmin logout doesn't require CSRF; clears session
 ];
 
 /**
@@ -68,6 +70,16 @@ function validateCSRF(request: NextRequest): boolean {
   }
   
   const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith('/api/issues') && ISSUE_API_TOKEN) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (token && token === ISSUE_API_TOKEN) {
+        return true;
+      }
+    }
+  }
   
   // Skip for exempt routes
   if (CSRF_EXEMPT_ROUTES.some(route => pathname.startsWith(route))) {
@@ -336,12 +348,13 @@ export async function middleware(request: NextRequest) {
     // Use exact regex match to align with layout.tsx and prevent auth bypass on routes like /superadmin/login-history
     const isLoginPage = /^\/superadmin\/login\/?$/i.test(pathname);
     const isLoginApi = /^\/api\/superadmin\/login\/?$/i.test(pathname);
+    const isLogoutApi = /^\/api\/superadmin\/logout\/?$/i.test(pathname);
     const isLogin = isLoginPage || isLoginApi;
     const isHealth = pathname === '/api/superadmin/health';
     const isDebug = pathname === '/api/superadmin/debug';
     const isCheckCookie = pathname === '/api/superadmin/check-cookie';
-    // Allow login, health, debug, and check-cookie endpoints pre-auth (for diagnostics)
-    if (isLogin || isHealth || isDebug || isCheckCookie) {
+    // Allow login, logout, health, debug, and check-cookie endpoints pre-auth (for diagnostics)
+    if (isLogin || isLogoutApi || isHealth || isDebug || isCheckCookie) {
       // CRITICAL: Inject x-pathname into REQUEST headers (not response) so layout.tsx can read via headers()
       const requestHeaders = new Headers(sanitizedRequest.headers);
       requestHeaders.set('x-pathname', pathname);

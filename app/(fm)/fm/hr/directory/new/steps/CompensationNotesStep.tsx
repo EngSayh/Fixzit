@@ -5,7 +5,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,15 +43,12 @@ export default function CompensationNotesStep({
             onValueChange={(value) => onChange("compensationType", value)}
             disabled={loading && lookups.compensationTypes.length === 0}
             onFocus={onOpenLookups}
+            placeholder={t(
+              "auto.fm.hr.directory.new.form.compensationType.placeholder",
+              "Select compensation type",
+            )}
           >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={t(
-                  "auto.fm.hr.directory.new.form.compensationType.placeholder",
-                  "Select compensation type",
-                )}
-              />
-            </SelectTrigger>
+            <SelectTrigger></SelectTrigger>
             <SelectContent>
               {lookups.compensationTypes.map((type) => (
                 <SelectItem key={type} value={type}>

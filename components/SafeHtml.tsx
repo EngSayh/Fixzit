@@ -1,4 +1,5 @@
-import type { ComponentPropsWithoutRef, ElementType } from "react";
+import type { ComponentPropsWithoutRef } from "react";
+import { createElement } from "react";
 import { sanitizeHtml, type SanitizeHtmlOptions } from "@/lib/sanitize-html";
 
 type SafeHtmlProps<T extends keyof JSX.IntrinsicElements> = {
@@ -17,18 +18,15 @@ export function SafeHtml<T extends keyof JSX.IntrinsicElements = "div">({
   sanitizeOptions,
   ...rest
 }: SafeHtmlProps<T>) {
-  const Component = (as ?? "div") as ElementType;
+  const tag = (as ?? "div") as string;
   const cleaned = sanitizeHtml(html ?? "", {
     allowedAttributes: sanitizeOptions?.allowedAttributes,
     allowedTags: sanitizeOptions?.allowedTags,
   });
 
-  return (
-    <Component
-      {...rest}
-      dangerouslySetInnerHTML={{
-        __html: cleaned,
-      }}
-    />
-  );
+  // Use createElement to avoid TypeScript inference issues with generic element types
+  return createElement(tag, {
+    ...rest,
+    dangerouslySetInnerHTML: { __html: cleaned },
+  } as React.HTMLAttributes<HTMLElement> & { dangerouslySetInnerHTML: { __html: string } });
 }

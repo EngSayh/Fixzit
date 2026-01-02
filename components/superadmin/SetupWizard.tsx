@@ -23,7 +23,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Check, Upload } from "@/components/ui/icons";
 import { toast } from "sonner";
@@ -347,9 +346,9 @@ export function SetupWizard() {
                   onValueChange={(value) =>
                     setDefaults({ ...defaults, language: value })
                   }
+                  placeholder="Select language"
                 >
                   <SelectTrigger id="language">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="en">English</SelectItem>
@@ -365,9 +364,9 @@ export function SetupWizard() {
                   onValueChange={(value) =>
                     setDefaults({ ...defaults, currency: value })
                   }
+                  placeholder="Select currency"
                 >
                   <SelectTrigger id="currency">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SAR">SAR - Saudi Riyal</SelectItem>
@@ -385,9 +384,9 @@ export function SetupWizard() {
                   onValueChange={(value) =>
                     setDefaults({ ...defaults, timezone: value })
                   }
+                  placeholder="Select timezone"
                 >
                   <SelectTrigger id="timezone">
-                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Asia/Riyadh">Asia/Riyadh (GMT+3)</SelectItem>

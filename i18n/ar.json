@@ -2934,6 +2934,14 @@
       "loadData": "تحميل البيانات"
     },
     "success": "نجح",
+    "toast": {
+      "error": "خطأ",
+      "loadIssuesFailed": "فشل تحميل المشكلات",
+      "exportComplete": "اكتمل التصدير",
+      "exportFailed": "فشل التصدير",
+      "exportFailedDescription": "تعذر تصدير المشكلات",
+      "exportedCount": "تم تصدير {{count}} مشكلة"
+    },
     "feedback": {
       "copied": "تم النسخ",
       "copyFailed": "فشل النسخ",
@@ -5354,7 +5362,33 @@
       "noActivity": "لا يوجد نشاط حديث",
       "moduleStatus": "حالة الوحدات",
       "moduleStatusDesc": "وحدات المنصة وصحتها",
-      "quickActions": "إجراءات سريعة"
+      "quickActions": "إجراءات سريعة",
+      "routes": "مسارات",
+      "tenantsLoadFailed": "فشل تحميل قائمة المستأجرين",
+      "loadFailed": "فشل تحميل لوحة التحكم",
+      "lastUpdated": "آخر تحديث:"
+    },
+    "status": {
+      "healthy": "سليم",
+      "degraded": "متدهور",
+      "down": "متوقف",
+      "warning": "تحذير",
+      "error": "خطأ",
+      "unknown": "غير معروف"
+    },
+    "issues": {
+      "toast": {
+        "errorTitle": "خطأ",
+        "loadFailed": "فشل تحميل المشكلات",
+        "noSelectionTitle": "لا يوجد تحديد",
+        "noSelectionDescription": "يرجى تحديد المشكلات للنسخ",
+        "noDataTitle": "لا توجد بيانات",
+        "noDataDescription": "لا توجد مشكلات للتصدير",
+        "bulkActionTitle": "إجراء جماعي",
+        "markingResolved": "تحديد {{count}} مشكلة كمحلولة",
+        "archiving": "أرشفة {{count}} مشكلة",
+        "deleting": "حذف {{count}} مشكلة"
+      }
     },
     "userLogs": {
       "subtitle": "مراقبة نشاط المستخدمين والجلسات والتفاعلات للدعم",

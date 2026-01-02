@@ -24,11 +24,13 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
+  Box,
 } from "@/components/ui/icons";
 import Link from "next/link";
 import ClientDate from "@/components/ClientDate";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import { BuildingModelTab } from "@/components/fm/properties/BuildingModelTab";
 import type { ReactNode } from "react";
 
 interface MaintenanceIssue {
@@ -356,6 +358,19 @@ function PropertyDetailsContent({
               </CardContent>
             </Card>
           )}
+
+          {/* 3D Building Model */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Box className="w-5 h-5 me-2" />
+                {t("fm.properties.detail.buildingModel.title", "3D Building Model")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BuildingModelTab propertyId={propertyId || ""} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Summary */}

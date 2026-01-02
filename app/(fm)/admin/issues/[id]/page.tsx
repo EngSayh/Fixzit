@@ -39,7 +39,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -511,10 +510,8 @@ export default function AdminIssueDetailPage({
                 <CardContent className="space-y-4">
                   <div>
                     <Label>Status</Label>
-                    <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={status} onValueChange={setStatus} placeholder="Select status">
+                      <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {STATUS_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
@@ -526,10 +523,8 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority">
+                      <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {PRIORITY_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value} className={opt.color}>
@@ -541,10 +536,8 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Effort</Label>
-                    <Select value={effort} onValueChange={setEffort}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort">
+                      <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {EFFORT_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
@@ -556,10 +549,8 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Category</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={category} onValueChange={setCategory} placeholder="Select category">
+                      <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {CATEGORY_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>

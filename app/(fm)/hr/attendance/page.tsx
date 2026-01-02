@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
@@ -258,17 +257,9 @@ export default function AttendancePage() {
             <Select
               value={selectedEmployee}
               onValueChange={(value) => setSelectedEmployee(value)}
+              placeholder={t("hr.attendance.selectPlaceholder", "Choose employee")}
             >
               <SelectTrigger>
-                <SelectValue>
-                  {selectedEmployee
-                    ? employees.find((e) => e._id === selectedEmployee)
-                        ?.firstName +
-                      " " +
-                      employees.find((e) => e._id === selectedEmployee)
-                        ?.lastName
-                    : t("hr.attendance.selectPlaceholder", "Choose employee")}
-                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {employees.map((employee) => (
@@ -314,12 +305,9 @@ export default function AttendancePage() {
                 onValueChange={(value) =>
                   setStatusFilter(value as AttendanceStatus | "ALL")
                 }
+                placeholder={t("hr.attendance.filters.status", "Status")}
               >
                 <SelectTrigger>
-                  <SelectValue>
-                    {statusOptions.find((o) => o.value === statusFilter)
-                      ?.label || t("hr.attendance.filters.status", "Status")}
-                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
@@ -341,12 +329,9 @@ export default function AttendancePage() {
                     value as "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC",
                   )
                 }
+                placeholder={t("hr.attendance.filters.source", "Source")}
               >
                 <SelectTrigger>
-                  <SelectValue>
-                    {sourceOptions.find((o) => o.value === sourceFilter)
-                      ?.label || t("hr.attendance.filters.source", "Source")}
-                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {sourceOptions.map((option) => (

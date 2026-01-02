@@ -130,7 +130,7 @@ function MetricCard({
   title: string; 
   value: string | number; 
   change?: number;
-  icon: React.ElementType; 
+  icon: React.ComponentType<{ className?: string }>; 
   loading: boolean;
 }) {
   return (

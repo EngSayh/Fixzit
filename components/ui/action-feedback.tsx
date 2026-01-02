@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, forwardRef } from "react";
-import { CheckCircle2, XCircle, Loader2, Copy, Save, Trash2, Plus, Send, Download, Upload, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Copy, Save, Trash2, Plus, Send, Download, Upload, RefreshCw, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -42,7 +42,7 @@ interface ActionFeedbackProps {
   useI18nMessage?: boolean;
 }
 
-const ACTION_ICONS: Record<ActionType, React.ElementType> = {
+const ACTION_ICONS: Record<ActionType, LucideIcon> = {
   copy: Copy,
   save: Save,
   delete: Trash2,

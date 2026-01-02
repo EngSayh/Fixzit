@@ -53,7 +53,6 @@ const metrics: RedisMetrics = {
 };
 
 let redis: Redis | null = null;
-let warnedStub = false;
 
 function ensureClient(): Redis {
   if (!redis) {
@@ -62,10 +61,6 @@ function ensureClient(): Redis {
     metrics.currentStatus = "ready";
     metrics.lastConnectedAt = new Date();
     redis = new Redis();
-    if (!warnedStub) {
-      logger.info("[Redis] External Redis removed — using in-memory stub");
-      warnedStub = true;
-    }
   }
   return redis;
 }
