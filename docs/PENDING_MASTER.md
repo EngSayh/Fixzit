@@ -19,6 +19,34 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-14 16:40 (Asia/Riyadh) — Superadmin Notification Badge [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** fix/tg-005-test-mocks | Implement superadmin notification badge (P3 quick win)  
+**Commit:** `8d6d37029`
+
+**Changes:**
+| File | Action | Description |
+|------|--------|-------------|
+| `app/api/superadmin/notifications/count/route.ts` | NEW | Lightweight count endpoint for badge |
+| `hooks/superadmin/useSuperadminNotificationCount.ts` | NEW | React hook with 30s polling |
+| `components/superadmin/SuperadminHeader.tsx` | MODIFIED | Added badge to Bell icon |
+
+**Feature Details:**
+- Badge shows count of pending notifications, failed deliveries (7d), and MFA approvals
+- Display caps at "99+" for large counts
+- 30s poll interval with silent 401 handling
+- Accessible aria-label with count
+
+**Verification:**
+- [x] `pnpm typecheck` — 0 errors
+- [x] `pnpm lint` — 0 errors (25 pre-existing warnings)
+- [x] Pushed to origin/fix/tg-005-test-mocks
+
+**Related:** PR #642 (Sprint 5+6)
+
+---
+
 ### 2026-01-14 12:55 (Asia/Riyadh) — Test Infrastructure: 100% Pass Rate [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
