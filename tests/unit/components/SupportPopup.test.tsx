@@ -70,7 +70,7 @@ function typeInto(selectorText: string, value: string) {
 describe("SupportPopup - rendering and validation", () => {
   test("disables Submit Ticket and Copy details when subject and description are empty", () => {
     render(<SupportPopup open={true} onClose={vi.fn()} />);
-    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    const copyBtn = screen.getByRole("button", { name: /Copy details/i });
     const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
     expect(copyBtn).toBeDisabled();
     expect(submitBtn).toBeDisabled();
@@ -79,7 +79,7 @@ describe("SupportPopup - rendering and validation", () => {
   test("enables Copy details when subject is provided", () => {
     render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "A subject");
-    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    const copyBtn = screen.getByRole("button", { name: /Copy details/i });
     expect(copyBtn).toBeEnabled();
   });
 
@@ -167,7 +167,7 @@ describe("SupportPopup - copy details", () => {
   test("copies subject when description is empty", async () => {
     render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "Subject only");
-    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    const copyBtn = screen.getByRole("button", { name: /Copy details/i });
     fireEvent.click(copyBtn);
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
@@ -180,7 +180,7 @@ describe("SupportPopup - copy details", () => {
     render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "S");
     typeInto("Description *", "Full details...");
-    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    const copyBtn = screen.getByRole("button", { name: /Copy details/i });
     fireEvent.click(copyBtn);
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
@@ -196,7 +196,7 @@ describe("SupportPopup - copy details", () => {
       .mockRejectedValue(new Error("Clipboard denied"));
     render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "X");
-    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    const copyBtn = screen.getByRole("button", { name: /Copy details/i });
     fireEvent.click(copyBtn);
     await waitFor(() => {
       // The clipboard.writeText should still be attempted

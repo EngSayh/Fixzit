@@ -14,6 +14,8 @@
  * - Filterable by type, status, lease_status
  * - Supports pagination (page, limit)
  * - Full-text search on name
+ * 
+ * REFAC-0003: Schema aligned with Property model flat fields
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
@@ -29,18 +31,38 @@ import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId } from "../utils/tenant";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
+/**
+ * PropertyDocument - MongoDB document structure for properties
+ * REFAC-0003: Aligned with Property model schema
+ * Supports both flat fields (FM API) and nested structure (full property data)
+ */
 type PropertyDocument = {
   _id: ObjectId;
-  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
+  orgId: string;
   name: string;
   code?: string;
   type?: string;
   status?: string;
+  // Flat fields for FM API backward compatibility (REFAC-0003)
   lease_status?: string;
-  address?: Record<string, unknown> | null;
-  metadata?: Record<string, unknown>;
   area?: number;
   floors?: number;
+  metadata?: Record<string, unknown>;
+  // Nested structure (full property data)
+  address?: Record<string, unknown> | null;
+  details?: {
+    totalArea?: number;
+    builtArea?: number;
+    floors?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+  };
+  ownership?: {
+    lease?: {
+      startDate?: Date;
+      endDate?: Date;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -65,20 +87,40 @@ const normalizeListParam = (value: string | null) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const mapProperty = (doc: PropertyDocument) => ({
-  id: doc._id.toString(),
-  name: doc.name,
-  code: doc.code,
-  type: doc.type,
-  status: doc.status,
-  leaseStatus: doc.lease_status,
-  address: doc.address ?? null,
-  metadata: doc.metadata ?? {},
-  area: doc.area ?? null,
-  floors: doc.floors ?? null,
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt,
-});
+/**
+ * Map MongoDB document to API response format
+ * REFAC-0003: Handles both flat fields and nested structure
+ * Prefers flat fields for backward compatibility, falls back to nested
+ */
+const mapProperty = (doc: PropertyDocument) => {
+  // Prefer flat fields, fall back to nested structure (REFAC-0003)
+  const area = doc.area ?? doc.details?.totalArea ?? null;
+  const floors = doc.floors ?? doc.details?.floors ?? null;
+  
+  // Derive lease status: prefer flat field, else compute from nested lease dates
+  // FIX: Compare endDate with current date to correctly handle expired leases
+  const leaseStatus = doc.lease_status ?? (() => {
+    const endDate = doc.ownership?.lease?.endDate;
+    if (endDate && new Date(endDate) >= new Date()) return "Leased";
+    if (endDate && new Date(endDate) < new Date()) return "Expired";
+    return "Vacant";
+  })();
+  
+  return {
+    id: doc._id.toString(),
+    name: doc.name,
+    code: doc.code,
+    type: doc.type,
+    status: doc.status,
+    leaseStatus,
+    address: doc.address ?? null,
+    metadata: doc.metadata ?? {},
+    area,
+    floors,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
 
 export async function GET(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, {

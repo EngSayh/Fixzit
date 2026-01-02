@@ -95,7 +95,7 @@ describe("SupportOrgSwitcher", () => {
       expect.objectContaining({ credentials: "include" }),
     );
 
-    // Button text: "Use org" for selecting an organization
+    // Button text: "Use org"
     const useOrgButton = await screen.findByRole("button", {
       name: /Use org/i,
     });
@@ -118,9 +118,9 @@ describe("SupportOrgSwitcher", () => {
     render(<SupportOrgSwitcher />);
 
     const user = userEvent.setup();
-    // Button text: "Org: Acme Org" when org is selected
+    // Button text: "Org: {name}" when org is selected
     await user.click(screen.getByRole("button", { name: /Org: Acme Org/i }));
-    // Button text: "Clear selection" for clear action
+    // Button text: "Clear selection"
     const clearButton = await screen.findByRole("button", {
       name: /Clear selection/i,
     });
