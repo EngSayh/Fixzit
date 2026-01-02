@@ -192,7 +192,7 @@ The `marketplace/` and `souq/` modules serve **different business domains**:
 |---|---|---|---|
 | FEAT-0034 | Redis pub/sub scaling | ✅ CLOSED | PR #642, commit a9b664c24 |
 | FEAT-0035 | Health monitoring integration | ✅ CLOSED | PR #642 - health-aggregator + metrics-registry |
-| REFAC-0003 | FM Properties schema mismatch | DEFERRED | Marked in code (TODO-002) |
+| REFAC-0003 | FM Properties schema mismatch | ✅ CLOSED | PR #646 merged to main |
 | FEAT-0036 | AI building model generation | NOT STARTED | XL effort |
 
 ### Backlog (Updated)
