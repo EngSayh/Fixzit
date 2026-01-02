@@ -5,12 +5,12 @@
  * @description Represents physical properties managed across FM and Aqar modules.
  * Supports multi-tenancy, geolocation, ownership tracking, and work order linkage.
  * 
- * // DEFERRED: TODO-002 - FM Properties schema mismatch
- * // Route expects flat schema (lease_status, area, floors) but model has nested structure.
- * // Do not refactor at this time. Leave existing implementation as-is.
+ * // REFAC-0003: FM Properties schema alignment
+ * // Added flat fields (lease_status, area, floors) for API backward compatibility
+ * // while maintaining nested structure for full property data.
  * // File: server/models/Property.ts
  * // Related routes: app/api/fm/properties/route.ts
- * // Status: DEFERRED per STRICT v4.1 Recovery Plan
+ * // Status: RESOLVED - flat fields added for FM API compatibility
  * 
  * @features
  * - Multi-tenant isolation (property_owner_id per property)
@@ -20,6 +20,7 @@
  * - Financial metrics (value, rental income)
  * - Unit hierarchy (properties can contain units)
  * - Work order association for maintenance
+ * - FM API backward compatibility via flat fields
  * 
  * @types
  * - RESIDENTIAL: Houses, apartments, villas
@@ -105,6 +106,28 @@ const PropertySchema = new Schema(
     // Classification
     type: { type: String, enum: PropertyType, required: true },
     subtype: { type: String }, // Apartment, Villa, Office, Retail, etc.
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FLAT FIELDS (REFAC-0003: FM API backward compatibility)
+    // These fields provide direct access for FM routes while nested structure
+    // remains available for full property management.
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    /** Lease status (flat field for FM API) - values: Leased, Vacant, Pending */
+    lease_status: { 
+      type: String, 
+      enum: ["Leased", "Vacant", "Pending", "Active", "Expired"],
+      default: "Vacant",
+    },
+    
+    /** Total area in sqm (flat field for FM API) */
+    area: { type: Number },
+    
+    /** Number of floors (flat field for FM API) */
+    floors: { type: Number },
+    
+    /** Property metadata object for custom fields */
+    metadata: { type: Schema.Types.Mixed, default: {} },
 
     // Location
     address: {
