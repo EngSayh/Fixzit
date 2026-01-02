@@ -1,8 +1,7 @@
 /**
  * @fileoverview Superadmin Footer Link by ID API
- * @description Update/delete individual footer link (placeholder)
- * @route PUT /api/superadmin/content/footer-links/[id]
- * @route DELETE /api/superadmin/content/footer-links/[id]
+ * @description Update and delete individual footer links
+ * @route PUT, DELETE /api/superadmin/content/footer-links/[id]
  * @access Superadmin only (JWT auth)
  * @module api/superadmin/content/footer-links/[id]
  */
@@ -11,24 +10,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { connectDb } from "@/lib/mongodb-unified";
+import { FooterLink } from "@/server/models/FooterLink";
+import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import { isValidObjectId } from "mongoose";
+import { z } from "zod";
 
-// Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
-
-// Response headers
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+const UpdateFooterLinkSchema = z.object({
+  label: z.string().trim().min(1).optional(),
+  labelAr: z.string().trim().optional(),
+  url: z.string().trim().min(1).optional(),
+  section: z.enum(["company", "support", "legal", "social"]).optional(),
+  icon: z.string().trim().optional(),
+  isExternal: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().optional(),
+});
 
 /**
  * PUT /api/superadmin/content/footer-links/[id]
- * Update a footer link (placeholder)
+ * Update an existing footer link
  */
-export async function PUT(request: NextRequest, context: RouteContext) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const rateLimitResponse = enforceRateLimit(request, {
-    keyPrefix: "superadmin-content-footer-links:put",
+    keyPrefix: "superadmin-footer-links:put",
     requests: 20,
     windowMs: 60_000,
   });
@@ -43,22 +55,64 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { id } = await context.params;
+    const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: "Invalid link ID" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
 
-    logger.info("[Superadmin:Content:FooterLinks] Link update requested (not persisted)", {
+    const { data: body, error: parseError } = await parseBodySafe(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    const validation = UpdateFooterLinkSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: validation.error.issues },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant link update
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    const link = await FooterLink.findByIdAndUpdate(
       id,
+      { $set: validation.data },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!link) {
+      return NextResponse.json(
+        { error: "Footer link not found" },
+        { status: 404, headers: ROBOTS_HEADER }
+      );
+    }
+
+    logger.info("[Superadmin:FooterLinks] Link updated", {
+      linkId: id,
+      updates: Object.keys(validation.data),
       by: session.username,
     });
 
     return NextResponse.json(
-      {
-        message: "Footer links feature pending - model not yet implemented",
-        acknowledged: true,
-      },
-      { status: 202, headers: ROBOTS_HEADER }
+      { link, message: "Footer link updated successfully" },
+      { headers: ROBOTS_HEADER }
     );
   } catch (error) {
-    logger.error("[Superadmin:Content:FooterLinks] Failed to update link", { error });
+    logger.error("[Superadmin:FooterLinks] Failed to update link", { error });
     return NextResponse.json(
       { error: "Failed to update footer link" },
       { status: 500, headers: ROBOTS_HEADER }
@@ -68,12 +122,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 /**
  * DELETE /api/superadmin/content/footer-links/[id]
- * Delete a footer link (placeholder)
+ * Delete a footer link
  */
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const rateLimitResponse = enforceRateLimit(request, {
-    keyPrefix: "superadmin-content-footer-links:delete",
-    requests: 10,
+    keyPrefix: "superadmin-footer-links:delete",
+    requests: 20,
     windowMs: 60_000,
   });
   if (rateLimitResponse) return rateLimitResponse;
@@ -87,22 +144,44 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { id } = await context.params;
+    const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: "Invalid link ID" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
 
-    logger.info("[Superadmin:Content:FooterLinks] Link delete requested (not persisted)", {
-      id,
+    await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant link deletion
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    const link = await FooterLink.findByIdAndDelete(id).lean();
+
+    if (!link) {
+      return NextResponse.json(
+        { error: "Footer link not found" },
+        { status: 404, headers: ROBOTS_HEADER }
+      );
+    }
+
+    logger.info("[Superadmin:FooterLinks] Link deleted", {
+      linkId: id,
+      label: link.label,
       by: session.username,
     });
 
     return NextResponse.json(
-      {
-        message: "Footer links feature pending - model not yet implemented",
-        acknowledged: true,
-      },
-      { status: 202, headers: ROBOTS_HEADER }
+      { message: "Footer link deleted successfully" },
+      { headers: ROBOTS_HEADER }
     );
   } catch (error) {
-    logger.error("[Superadmin:Content:FooterLinks] Failed to delete link", { error });
+    logger.error("[Superadmin:FooterLinks] Failed to delete link", { error });
     return NextResponse.json(
       { error: "Failed to delete footer link" },
       { status: 500, headers: ROBOTS_HEADER }

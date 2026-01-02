@@ -1,31 +1,69 @@
 /**
  * @fileoverview Superadmin Company Info API
- * @description Company information management (placeholder)
- * @route GET /api/superadmin/content/company
- * @route PUT /api/superadmin/content/company
+ * @description Manage company contact and branding information
+ * @route GET, PUT /api/superadmin/content/company
  * @access Superadmin only (JWT auth)
  * @module api/superadmin/content/company
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
-import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { connectDb } from "@/lib/mongodb-unified";
+import { CompanyInfo } from "@/server/models/CompanyInfo";
+import { parseBodySafe } from "@/lib/api/parse-body";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import { z } from "zod";
 
-// Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
-
-// Response headers
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
+
+const SocialLinksSchema = z.object({
+  twitter: z.string().trim().url().optional().or(z.literal("")),
+  facebook: z.string().trim().url().optional().or(z.literal("")),
+  instagram: z.string().trim().url().optional().or(z.literal("")),
+  linkedin: z.string().trim().url().optional().or(z.literal("")),
+  youtube: z.string().trim().url().optional().or(z.literal("")),
+}).optional();
+
+const CompanyInfoSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  nameAr: z.string().trim().min(1).max(200).optional(),
+  tagline: z.string().trim().max(500).optional(),
+  taglineAr: z.string().trim().max(500).optional(),
+  email: z.string().trim().email().optional(),
+  phone: z.string().trim().max(20).optional(),
+  alternatePhone: z.string().trim().max(20).optional(),
+  address: z.string().trim().max(500).optional(),
+  addressAr: z.string().trim().max(500).optional(),
+  vatNumber: z.string().trim().max(50).optional(),
+  crNumber: z.string().trim().max(50).optional(),
+  logoUrl: z.string().trim().url().optional().or(z.literal("")),
+  faviconUrl: z.string().trim().url().optional().or(z.literal("")),
+  socialLinks: SocialLinksSchema,
+});
+
+// Default company info for new installations
+const DEFAULT_COMPANY_INFO = {
+  name: "Fixzit",
+  nameAr: "فكسزت",
+  tagline: "Facility Management Made Easy",
+  taglineAr: "إدارة المرافق أصبحت سهلة",
+  email: "support@fixzit.com",
+  phone: "+966 11 000 0000",
+  address: "Riyadh, Saudi Arabia",
+  addressAr: "الرياض، المملكة العربية السعودية",
+  socialLinks: {},
+};
 
 /**
  * GET /api/superadmin/content/company
- * Get company information (placeholder)
+ * Retrieve company information (per-tenant singleton)
  */
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
-    keyPrefix: "superadmin-content-company:get",
+    keyPrefix: "superadmin-company:get",
     requests: 30,
     windowMs: 60_000,
   });
@@ -40,27 +78,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: Implement CompanyInfo model and fetch from database
-    return NextResponse.json(
-      {
-        company: {
-          name: "Fixzit",
-          nameAr: "فكسزت",
-          email: "",
-          phone: "",
-          address: "",
-          addressAr: "",
-          crNumber: "",
-          vatNumber: "",
-        },
-        message: "Company info feature pending - model not yet implemented",
-      },
-      { headers: ROBOTS_HEADER }
-    );
+    await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant singleton query
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own company info
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
+    const companyInfo = await CompanyInfo.findOne({}).lean();
+
+    if (!companyInfo) {
+      // Return defaults if no company info exists yet
+      return NextResponse.json(DEFAULT_COMPANY_INFO, { headers: ROBOTS_HEADER });
+    }
+
+    return NextResponse.json(companyInfo, { headers: ROBOTS_HEADER });
   } catch (error) {
-    logger.error("[Superadmin:Content:Company] Failed to load info", { error });
+    logger.error("[Superadmin:Company] Failed to fetch company info", { error });
     return NextResponse.json(
-      { error: "Failed to load company info" },
+      { error: "Failed to fetch company information" },
       { status: 500, headers: ROBOTS_HEADER }
     );
   }
@@ -68,12 +108,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * PUT /api/superadmin/content/company
- * Update company information (placeholder)
+ * Update company information (upsert pattern - creates if not exists)
  */
 export async function PUT(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
-    keyPrefix: "superadmin-content-company:put",
-    requests: 20,
+    keyPrefix: "superadmin-company:put",
+    requests: 10,
     windowMs: 60_000,
   });
   if (rateLimitResponse) return rateLimitResponse;
@@ -87,38 +127,52 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { data: body, error: parseError } = await parseBodySafe<{
-      name?: string;
-      nameAr?: string;
-      email?: string;
-      phone?: string;
-      address?: string;
-      addressAr?: string;
-    }>(request, { logPrefix: "[superadmin:content:company]" });
-
-    if (parseError) {
+    const { data: body, error: parseError } = await parseBodySafe(request);
+    if (parseError || !body) {
       return NextResponse.json(
-        { error: "Invalid request body" },
+        { error: parseError || "Invalid JSON body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
 
-    logger.info("[Superadmin:Content:Company] Info update requested (not persisted)", {
-      name: body?.name,
+    const validation = CompanyInfoSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: validation.error.issues },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    await connectDb();
+
+    // Set tenant context from superadmin session for per-tenant singleton
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username 
+    });
+
+    // Per-tenant singleton: each org has its own company info (upsert)
+    // eslint-disable-next-line local/require-tenant-scope -- Tenant context set above via setTenantContext
+    const companyInfo = await CompanyInfo.findOneAndUpdate(
+      {},
+      { $set: validation.data },
+      { new: true, upsert: true, runValidators: true }
+    ).lean();
+
+    logger.info("[Superadmin:Company] Company info updated", {
+      updates: Object.keys(validation.data),
       by: session.username,
     });
 
     return NextResponse.json(
-      {
-        message: "Company info feature pending - model not yet implemented",
-        acknowledged: true,
-      },
-      { status: 202, headers: ROBOTS_HEADER }
+      { ...companyInfo, message: "Company information updated successfully" },
+      { headers: ROBOTS_HEADER }
     );
   } catch (error) {
-    logger.error("[Superadmin:Content:Company] Failed to update info", { error });
+    logger.error("[Superadmin:Company] Failed to update company info", { error });
     return NextResponse.json(
-      { error: "Failed to update company info" },
+      { error: "Failed to update company information" },
       { status: 500, headers: ROBOTS_HEADER }
     );
   }

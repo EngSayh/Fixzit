@@ -27,6 +27,7 @@ describe("Pricing Service Unit Tests", () => {
   let discountRuleId: mongoose.Types.ObjectId;
   let mongoServer: MongoMemoryServer | undefined;
   let ownsConnection = false;
+  let originalMongoUri: string | undefined;
   const originalAllowDisconnect = process.env.VITEST_ALLOW_DISCONNECT;
   const seedPriceBooks = async () => {
     const priceBook = await PriceBook.create({
@@ -101,6 +102,9 @@ describe("Pricing Service Unit Tests", () => {
 
   beforeAll(async () => {
     process.env.VITEST_ALLOW_DISCONNECT = "true";
+    // Save original connection URI for restoration in afterAll
+    // Capture from both env var AND current connection (whichever is available)
+    originalMongoUri = process.env.MONGODB_URI || (mongoose.connection.readyState === 1 ? mongoose.connection.host && mongoose.connection.db?.databaseName ? `mongodb://${mongoose.connection.host}/${mongoose.connection.db.databaseName}` : undefined : undefined);
     // Always isolate this suite to avoid cross-URI conflicts with other tests
     await mongoose.disconnect();
     mongoServer = await startMongoMemoryServer({
@@ -112,15 +116,29 @@ describe("Pricing Service Unit Tests", () => {
   }, 120000);
 
   afterAll(async () => {
-    await PriceBook.deleteMany({ orgId: TEST_ORG_ID });
-    await DiscountRule.deleteMany({ orgId: TEST_ORG_ID });
-    process.env.VITEST_ALLOW_DISCONNECT = originalAllowDisconnect;
+    try {
+      await PriceBook.deleteMany({ orgId: TEST_ORG_ID });
+      await DiscountRule.deleteMany({ orgId: TEST_ORG_ID });
+    } catch {
+      // Ignore cleanup errors during teardown
+    }
     if (ownsConnection && mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
     if (ownsConnection && mongoServer) {
       await mongoServer.stop();
     }
+    // Restore original global MongoMemoryServer connection for subsequent tests
+    // IMPORTANT: This is required to prevent breaking tests that run after this suite
+    process.env.VITEST_ALLOW_DISCONNECT = "false";
+    if (originalMongoUri && mongoose.connection.readyState === 0) {
+      try {
+        await mongoose.connect(originalMongoUri);
+      } catch (err) {
+        console.warn('[pricing.test.ts] Failed to restore MongoDB connection:', (err as Error).message);
+      }
+    }
+    process.env.VITEST_ALLOW_DISCONNECT = originalAllowDisconnect;
   });
 
   beforeEach(async () => {
