@@ -19,6 +19,66 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-14 16:15 (Asia/Riyadh) — TODO Scan Analysis & Action Plan [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Fresh TODO scan post-patches, creating prioritized action plan
+
+#### 📊 Current Scan Counts
+
+| Category | Count | Breakdown |
+|----------|-------|-----------|
+| **Code TODO markers** | 50 | prod 21, tests 7, tools 22 |
+| **Code "not implemented"** | 64 | prod 15, tests 9, tools 40 |
+| **Code placeholders** | 42 | prod 6, tools 30 |
+| **Docs tokens** | 5,668 | docs/report "not implemented": 196 |
+
+#### 📋 Key Findings
+
+**Runtime-Facing TODOs (require implementation):**
+
+| Category | Location | Issue IDs | Priority |
+|----------|----------|-----------|----------|
+| BI Dashboard | `bi-dashboard.ts:533,570,1638,1701` | BI-DATA-001, BI-DATA-002 | P1 (schema mismatch) |
+| Vendor Intelligence | `vendor-intelligence.ts:780-864` | VENDOR-LOGIN-001 | P2 (fallback OK) |
+| Fraud Detection Stubs | `vendor-intelligence.ts:817-863` | FRAUD-*-001 series | P2 (returns null safely) |
+
+**501 API Responses (intentional feature gates):**
+- S3 upload endpoints: Return 501 if S3 not configured (correct behavior)
+- LinkedIn integration: Return 501 if not enabled (correct behavior)
+- Marketplace products: Return 501 pending marketplace module enablement
+
+**Notable Closures (vs prior scan):**
+- ✅ SuperadminHeader.tsx TODO - no longer appears
+- ✅ Property.ts deferred TODO - no longer appears (REFAC-0003 closed)
+
+#### 📋 Prioritized Action Plan
+
+| Priority | Issue ID | Location | Action Required | Effort |
+|----------|----------|----------|-----------------|--------|
+| **P0** | - | PR #641, #640 | Wait for CI re-run (QA job), merge if passes | - |
+| **P1** | BI-DATA-001 | `bi-dashboard.ts:533` | Fix schema mismatch (org_id vs orgId, collection name) | M |
+| **P1** | BI-DATA-002 | `bi-dashboard.ts:570` | Fix transactions collection (use module-specific) | M |
+| **P2** | VENDOR-LOGIN-001 | `vendor-intelligence.ts:780` | Query actual login analytics (neutral fallback OK) | S |
+| **P2** | FRAUD-*-001 | `vendor-intelligence.ts:817-863` | Implement fraud detection stubs (returns null safely) | L |
+| **P3** | Test scaffolding | `generate-api-test.js` | Improve test generator patterns | S |
+| **P3** | Script markers | Various tools/ | Clean up script guidance comments | S |
+
+#### 📊 PR Status
+
+| PR | Branch | Status | CI |
+|----|--------|--------|-----|
+| #641 | `feat/p2-subscription-flows` | ⏳ QA re-run requested | 🔄 Running |
+| #640 | `feat/p1-compliance-fixes-sprint1` | ⏳ Open | 🔄 Running |
+
+#### 🔧 CI Notes
+
+- **QA Job Failure**: Both PRs had QA job fail despite 958/958 tests passing locally
+- **Action**: Requested re-run of failed jobs via `gh run rerun --failed`
+- **Root Cause**: Likely CI environment race condition (no code failure)
+
+---
+
 ### 2026-01-14 16:05 (Asia/Riyadh) — CI Fix & PR Progress Session [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
