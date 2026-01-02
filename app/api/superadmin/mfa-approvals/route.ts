@@ -42,6 +42,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (targetUserId) {
+      // Validate ObjectId format to prevent BSONError
+      if (!ObjectId.isValid(targetUserId)) {
+        return NextResponse.json(
+          { error: "Invalid targetUserId format" },
+          { status: 400 }
+        );
+      }
       query.targetUserId = new ObjectId(targetUserId);
     }
 
@@ -128,6 +135,14 @@ export async function POST(request: NextRequest) {
     if (justification.length < 10) {
       return NextResponse.json(
         { error: "Justification must be at least 10 characters" },
+        { status: 400 }
+      );
+    }
+
+    // Validate ObjectId format to prevent BSONError
+    if (!ObjectId.isValid(targetUserId)) {
+      return NextResponse.json(
+        { error: "Invalid targetUserId format" },
         { status: 400 }
       );
     }

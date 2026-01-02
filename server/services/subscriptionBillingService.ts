@@ -369,20 +369,25 @@ export async function changePlan(
   const oldSeats = sub.seats;
   const oldBillingCycle = sub.billing_cycle;
 
-  // Update plan details
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose ObjectId assignment is type-safe at runtime
-  sub.price_book_id = new Types.ObjectId(newPriceBookId) as any;
-  if (newSeats !== undefined) {
-    sub.seats = newSeats;
-  }
-  if (newBillingCycle !== undefined) {
-    sub.billing_cycle = newBillingCycle;
+  // P1 Fix: Only update plan details immediately if immediate=true
+  // For scheduled changes (immediate=false), defer the actual field updates
+  if (immediate) {
+    // Update plan details immediately
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose ObjectId assignment is type-safe at runtime
+    sub.price_book_id = new Types.ObjectId(newPriceBookId) as any;
+    if (newSeats !== undefined) {
+      sub.seats = newSeats;
+    }
+    if (newBillingCycle !== undefined) {
+      sub.billing_cycle = newBillingCycle;
+    }
   }
 
   // Calculate new amount based on new price book and seat count
-  const seats = sub.seats;
+  // For deferred changes, we still need to validate the tier exists
+  const seats = newSeats ?? sub.seats;
   const currency = sub.currency || "USD";
-  const billingCycle = sub.billing_cycle || "MONTHLY";
+  const billingCycle = newBillingCycle ?? sub.billing_cycle ?? "MONTHLY";
 
   // Find applicable tier for seat count
   const applicableTier = newPriceBook.tiers?.find(
@@ -390,31 +395,48 @@ export async function changePlan(
       seats >= tier.min_seats && seats <= tier.max_seats,
   );
 
-  if (applicableTier) {
-    // Calculate total from module prices in tier
-    let totalPerSeat = 0;
-    for (const modulePrice of applicableTier.prices || []) {
-      if (sub.modules?.includes(modulePrice.module_key)) {
-        totalPerSeat +=
-          currency === "SAR"
-            ? modulePrice.monthly_sar
-            : modulePrice.monthly_usd;
-      }
+  if (!applicableTier) {
+    // P1 Fix: Fail loudly when no tier matches instead of silently keeping old amount
+    logger.error("[Subscription] No pricing tier found for seat count", {
+      subscriptionId,
+      seats,
+      priceBookId: newPriceBookId,
+      currency,
+    });
+    throw new Error(
+      `No applicable pricing tier found for ${seats} seats in PriceBook ${newPriceBookId}. ` +
+      `Please verify the price book configuration has a tier covering this seat count.`
+    );
+  }
+
+  // Calculate total from module prices in tier
+  let totalPerSeat = 0;
+  for (const modulePrice of applicableTier.prices || []) {
+    if (sub.modules?.includes(modulePrice.module_key)) {
+      totalPerSeat +=
+        currency === "SAR"
+          ? modulePrice.monthly_sar
+          : modulePrice.monthly_usd;
     }
+  }
 
-    let newAmount = totalPerSeat * seats;
+  let newAmount = totalPerSeat * seats;
 
-    // Apply tier discount if any
-    if (applicableTier.discount_pct > 0) {
-      newAmount = newAmount * (1 - applicableTier.discount_pct / 100);
-    }
+  // Apply tier discount if any
+  if (applicableTier.discount_pct > 0) {
+    newAmount = newAmount * (1 - applicableTier.discount_pct / 100);
+  }
 
-    // Adjust for annual billing (10 months price)
-    if (billingCycle === "ANNUAL") {
-      newAmount = newAmount * 10;
-    }
+  // Adjust for annual billing (10 months price)
+  if (billingCycle === "ANNUAL") {
+    newAmount = newAmount * 10;
+  }
 
-    sub.amount = Math.round(newAmount * 100) / 100; // Round to 2 decimals
+  const calculatedAmount = Math.round(newAmount * 100) / 100; // Round to 2 decimals
+
+  // Only update amount immediately if immediate=true
+  if (immediate) {
+    sub.amount = calculatedAmount;
   }
 
   // Store plan change metadata
@@ -426,9 +448,9 @@ export async function changePlan(
     old_seats: oldSeats,
     old_billing_cycle: oldBillingCycle,
     new_price_book_id: newPriceBookId,
-    new_amount: sub.amount,
-    new_seats: sub.seats,
-    new_billing_cycle: sub.billing_cycle,
+    new_amount: calculatedAmount,
+    new_seats: newSeats ?? sub.seats,
+    new_billing_cycle: newBillingCycle ?? sub.billing_cycle,
   };
 
   if (sub.metadata) {
@@ -442,11 +464,12 @@ export async function changePlan(
   }
 
   if (!immediate) {
-    // Schedule change for end of period
+    // Schedule change for end of period - include calculated amount for the scheduled change
     sub.metadata.pending_plan_change = {
       price_book_id: newPriceBookId,
       seats: newSeats,
       billing_cycle: newBillingCycle,
+      amount: calculatedAmount,
       effective_date: sub.current_period_end || sub.next_billing_date,
     };
   }
@@ -459,7 +482,7 @@ export async function changePlan(
     oldPriceBookId,
     newPriceBookId,
     oldAmount,
-    newAmount: sub.amount,
+    newAmount: immediate ? sub.amount : calculatedAmount,
     oldSeats,
     newSeats: sub.seats,
   });

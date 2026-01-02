@@ -193,8 +193,22 @@ export const MFAApprovalToken: Model<MFAApprovalTokenDocument> = getModel(
 // Helper Functions
 // ============================================================================
 
-const TOKEN_SECRET = process.env.MFA_APPROVAL_SECRET || process.env.JWT_SECRET || "mfa-approval-fallback";
 const DEFAULT_EXPIRY_MINUTES = 15;
+
+/**
+ * Get the token signing secret - fails fast if not configured
+ * @throws Error if neither MFA_APPROVAL_SECRET nor JWT_SECRET is set
+ */
+function getTokenSecret(): string {
+  const secret = process.env.MFA_APPROVAL_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      "MFA_APPROVAL_SECRET or JWT_SECRET must be configured for MFA approval tokens. " +
+      "This is a security requirement - tokens cannot be signed without a secret."
+    );
+  }
+  return secret;
+}
 
 /**
  * Generate a cryptographically secure token ID
@@ -208,7 +222,7 @@ function generateTokenId(): string {
  */
 function signPayload(payload: string): string {
   return crypto
-    .createHmac("sha256", TOKEN_SECRET)
+    .createHmac("sha256", getTokenSecret())
     .update(payload)
     .digest("hex");
 }
@@ -281,29 +295,47 @@ export async function validateMFAApprovalToken(params: {
 
   const [tokenId, providedSignature] = parts;
 
-  // Find token in database
-  const tokenRecord = await MFAApprovalToken.findOne({
-    orgId: params.orgId,
-    tokenId,
-  }).lean();
+  // Atomically find and mark token as used to prevent race conditions
+  // This ensures single-use enforcement even under concurrent validation attempts
+  const tokenRecord = await MFAApprovalToken.findOneAndUpdate(
+    {
+      orgId: params.orgId,
+      tokenId,
+      used: false,
+      revoked: false,
+      expiresAt: { $gt: new Date() },
+    },
+    {
+      $set: {
+        used: true,
+        usedAt: new Date(),
+        usedByIp: params.ipAddress,
+      },
+    },
+    { new: false } // Return the original document before update
+  ).lean();
 
   if (!tokenRecord) {
-    return { valid: false, errorCode: "TOKEN_NOT_FOUND", error: "Token not found" };
-  }
+    // Token not found or already used/revoked/expired - need to check which
+    const existingToken = await MFAApprovalToken.findOne({
+      orgId: params.orgId,
+      tokenId,
+    }).lean();
 
-  // Check if revoked
-  if (tokenRecord.revoked) {
-    return { valid: false, errorCode: "TOKEN_REVOKED", error: "Token has been revoked" };
-  }
-
-  // Check if already used
-  if (tokenRecord.used) {
-    return { valid: false, errorCode: "TOKEN_ALREADY_USED", error: "Token has already been used" };
-  }
-
-  // Check expiry
-  if (new Date() > new Date(tokenRecord.expiresAt)) {
-    return { valid: false, errorCode: "TOKEN_EXPIRED", error: "Token has expired" };
+    if (!existingToken) {
+      return { valid: false, errorCode: "TOKEN_NOT_FOUND", error: "Token not found" };
+    }
+    if (existingToken.revoked) {
+      return { valid: false, errorCode: "TOKEN_REVOKED", error: "Token has been revoked" };
+    }
+    if (existingToken.used) {
+      return { valid: false, errorCode: "TOKEN_ALREADY_USED", error: "Token has already been used" };
+    }
+    if (new Date() > new Date(existingToken.expiresAt)) {
+      return { valid: false, errorCode: "TOKEN_EXPIRED", error: "Token has expired" };
+    }
+    // Fallback for unexpected state
+    return { valid: false, errorCode: "TOKEN_INVALID", error: "Token is not valid" };
   }
 
   // Verify signature
@@ -316,26 +348,25 @@ export async function validateMFAApprovalToken(params: {
 
   // Verify target user matches
   if (tokenRecord.targetUserId.toString() !== params.targetUserId) {
+    // Token was already marked used by atomic update - need to rollback
+    await MFAApprovalToken.updateOne(
+      { _id: tokenRecord._id },
+      { $set: { used: false, usedAt: null, usedByIp: null } }
+    );
     return { valid: false, errorCode: "TARGET_MISMATCH", error: "Token not valid for this user" };
   }
 
   // Verify action matches
   if (tokenRecord.action !== params.action) {
+    // Token was already marked used by atomic update - need to rollback
+    await MFAApprovalToken.updateOne(
+      { _id: tokenRecord._id },
+      { $set: { used: false, usedAt: null, usedByIp: null } }
+    );
     return { valid: false, errorCode: "ACTION_MISMATCH", error: "Token not valid for this action" };
   }
 
-  // Mark token as used
-  await MFAApprovalToken.updateOne(
-    { _id: tokenRecord._id },
-    {
-      $set: {
-        used: true,
-        usedAt: new Date(),
-        usedByIp: params.ipAddress,
-      },
-    }
-  );
-
+  // Token already marked as used atomically above - no additional update needed
   return { valid: true, tokenRecord };
 }
 

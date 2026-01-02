@@ -62,6 +62,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // orgId is required for tenant isolation
+    if (!orgId || typeof orgId !== "string") {
+      return NextResponse.json(
+        { error: "orgId is required for tenant isolation" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
     const validReasons = [
       "manual",
       "security_incident",
@@ -80,6 +88,7 @@ export async function POST(request: NextRequest) {
       // Revoke all sessions for the user
       const count = await revokeAllUserSessions({
         userId,
+        orgId,
         reason: normalizedReason as
           | "manual"
           | "security_incident"
@@ -121,7 +130,7 @@ export async function POST(request: NextRequest) {
     await revokeSession({
       sessionId,
       userId,
-      orgId: typeof orgId === "string" ? orgId : undefined,
+      orgId,
       reason: normalizedReason as
         | "manual"
         | "security_incident"

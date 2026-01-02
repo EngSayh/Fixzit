@@ -31,8 +31,8 @@ export interface IRevokedSession {
   session_id: string;
   /** User ID whose session was revoked */
   user_id: string;
-  /** Organization ID (for audit scoping) */
-  org_id?: string;
+  /** Organization ID (required for tenant isolation) */
+  org_id: string;
   /** Reason for revocation */
   reason: "manual" | "security_incident" | "password_change" | "account_disabled" | "bulk_revoke";
   /** Who revoked the session */
@@ -63,7 +63,7 @@ const RevokedSessionSchema = new Schema<IRevokedSession>(
     },
     org_id: {
       type: String,
-      required: false,
+      required: true,
       index: true,
     },
     reason: {
@@ -111,12 +111,17 @@ export const RevokedSessionModel = getModel<IRevokedSession>(
 
 /**
  * Check if a session is revoked
+ * @param sessionId - The session token to check
+ * @param orgId - Organization ID (required for tenant isolation)
  */
-export async function isSessionRevoked(sessionId: string): Promise<boolean> {
+export async function isSessionRevoked(sessionId: string, orgId?: string): Promise<boolean> {
   if (!sessionId) return false;
-  const revoked = await RevokedSessionModel.findOne({
-    session_id: sessionId,
-  }).lean();
+  const query: Record<string, unknown> = { session_id: sessionId };
+  // Include org_id in query for tenant isolation when provided
+  if (orgId) {
+    query.org_id = orgId;
+  }
+  const revoked = await RevokedSessionModel.findOne(query).lean();
   return !!revoked;
 }
 
@@ -126,7 +131,7 @@ export async function isSessionRevoked(sessionId: string): Promise<boolean> {
 export async function revokeSession(params: {
   sessionId: string;
   userId: string;
-  orgId?: string;
+  orgId: string;
   reason: IRevokedSession["reason"];
   revokedBy: string;
   sessionIp?: string;
@@ -152,6 +157,7 @@ export async function revokeSession(params: {
  */
 export async function revokeAllUserSessions(params: {
   userId: string;
+  orgId: string;
   reason: IRevokedSession["reason"];
   revokedBy: string;
   notes?: string;
@@ -161,6 +167,7 @@ export async function revokeAllUserSessions(params: {
   const doc = await RevokedSessionModel.create({
     session_id: `all:${params.userId}:${Date.now()}`,
     user_id: params.userId,
+    org_id: params.orgId,
     reason: params.reason,
     revoked_by: params.revokedBy,
     revoked_at: new Date(),
@@ -173,14 +180,21 @@ export async function revokeAllUserSessions(params: {
 
 /**
  * Check if user has any bulk revocation active
+ * @param userId - User ID to check
+ * @param orgId - Organization ID (required for tenant isolation)
+ * @param sinceDate - Optional date to check revocations since
  */
 export async function hasUserBulkRevocation(
   userId: string,
+  orgId: string,
   sinceDate?: Date
 ): Promise<boolean> {
+  // Escape regex special characters in userId to prevent injection
+  const escapedUserId = userId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const query: Record<string, unknown> = {
     user_id: userId,
-    session_id: { $regex: `^all:${userId}:` },
+    org_id: orgId,
+    session_id: { $regex: `^all:${escapedUserId}:` },
   };
   if (sinceDate) {
     query.revoked_at = { $gte: sinceDate };
