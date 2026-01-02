@@ -54,28 +54,43 @@ export default function SuperadminDatabasePage() {
   const fetchHealth = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/health", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
+      // Fetch real database stats from API
+      const statsResponse = await fetch("/api/superadmin/database/stats", { credentials: "include" });
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        // Read from health object if available, otherwise from top-level properties
         setHealth({
-          connected: data.db?.status === "connected" || data.database?.connected === true,
-          latencyMs: data.db?.latencyMs || data.database?.latencyMs || 0,
-          replicaSet: data.db?.replicaSet || data.database?.replicaSet,
-          serverVersion: data.db?.version || data.database?.version,
+          connected: statsData.health?.connected ?? statsData.connections?.connected ?? true,
+          latencyMs: statsData.health?.latency ?? statsData.connections?.latency ?? 0,
+          replicaSet: statsData.health?.replicaSet ?? null,
+          serverVersion: statsData.health?.version ?? statsData.version ?? "unknown",
         });
+        // Map API response to our format
+        if (statsData.collections) {
+          setCollections(statsData.collections.map((c: { name: string; count: number; avgObjSize: number; size: number; storageSize: number; indexes: number }) => ({
+            name: c.name,
+            count: c.count,
+            avgObjSize: c.avgObjSize,
+            size: c.size,
+            storageSize: c.storageSize,
+            indexCount: c.indexes || 0,
+          })));
+        }
+      } else {
+        // Fallback to health endpoint if stats API fails
+        // Clear collections to avoid showing stale data
+        setCollections([]);
+        const response = await fetch("/api/health", { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          setHealth({
+            connected: data.db?.status === "connected" || data.database?.connected === true,
+            latencyMs: data.db?.latencyMs || data.database?.latencyMs || 0,
+            replicaSet: data.db?.replicaSet || data.database?.replicaSet,
+            serverVersion: data.db?.version || data.database?.version,
+          });
+        }
       }
-
-      // Simulated collection stats (real endpoint would provide this)
-      setCollections([
-        { name: "workorders", count: 12450, avgObjSize: 2048, size: 25497600, storageSize: 30000000, indexCount: 8 },
-        { name: "properties", count: 3240, avgObjSize: 1536, size: 4976640, storageSize: 6000000, indexCount: 6 },
-        { name: "vendors", count: 856, avgObjSize: 1024, size: 876544, storageSize: 1000000, indexCount: 5 },
-        { name: "units", count: 15680, avgObjSize: 512, size: 8028160, storageSize: 10000000, indexCount: 7 },
-        { name: "users", count: 4520, avgObjSize: 768, size: 3471360, storageSize: 4000000, indexCount: 6 },
-        { name: "invoices", count: 28340, avgObjSize: 1280, size: 36275200, storageSize: 40000000, indexCount: 9 },
-        { name: "tenancies", count: 8920, avgObjSize: 640, size: 5708800, storageSize: 7000000, indexCount: 5 },
-        { name: "auditlogs", count: 156780, avgObjSize: 256, size: 40135680, storageSize: 50000000, indexCount: 4 },
-      ]);
     } catch {
       toast.error("Failed to fetch database health");
     } finally {

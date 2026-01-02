@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
@@ -97,16 +98,19 @@ interface DashboardData {
 // ============================================================================
 
 function StatusBadge({ status }: { status: "healthy" | "degraded" | "down" | "warning" | "error" | "unknown" }) {
+  const { t } = useI18n();
   const config = {
-    healthy: { color: "bg-green-500", label: "Healthy" },
-    degraded: { color: "bg-yellow-500", label: "Degraded" },
-    down: { color: "bg-red-500", label: "Down" },
-    warning: { color: "bg-yellow-500", label: "Warning" },
-    error: { color: "bg-red-500", label: "Error" },
-    unknown: { color: "bg-gray-500", label: "Unknown" },
+    healthy: { color: "bg-green-500", labelKey: "superadmin.dashboard.status.healthy" },
+    degraded: { color: "bg-yellow-500", labelKey: "superadmin.dashboard.status.degraded" },
+    down: { color: "bg-red-500", labelKey: "superadmin.dashboard.status.down" },
+    warning: { color: "bg-yellow-500", labelKey: "superadmin.dashboard.status.warning" },
+    error: { color: "bg-red-500", labelKey: "superadmin.dashboard.status.error" },
+    unknown: { color: "bg-gray-500", labelKey: "superadmin.dashboard.status.unknown" },
   };
   
-  const { color, label } = config[status];
+  const { color, labelKey } = config[status];
+  // Fallback to capitalized status if key not found
+  const label = t(labelKey, status.charAt(0).toUpperCase() + status.slice(1));
   
   return (
     <Badge variant="outline" className="gap-1.5">
@@ -240,6 +244,11 @@ function ModuleRow({ module, loading }: { module: ModuleStatus; loading: boolean
 // MAIN COMPONENT
 // ============================================================================
 
+interface TenantOption {
+  _id: string;
+  name: string;
+}
+
 export default function SuperadminDashboardPage() {
   const { t } = useI18n();
   // Session hook available for future use (auth checks handled by layout)
@@ -248,6 +257,33 @@ export default function SuperadminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  
+  // P1: Tenant filter for scoped metrics
+  const [tenants, setTenants] = useState<TenantOption[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<string>("all");
+  const [tenantsLoading, setTenantsLoading] = useState(true);
+
+  // Fetch tenants for filter dropdown
+  const fetchTenants = useCallback(async () => {
+    try {
+      setTenantsLoading(true);
+      const response = await fetch("/api/superadmin/tenants?limit=100&sortBy=name", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTenants(data.organizations || []);
+      }
+    } catch {
+      // Silently fail - tenants filter is optional
+    } finally {
+      setTenantsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTenants();
+  }, [fetchTenants]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -343,6 +379,26 @@ export default function SuperadminDashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {/* P1: Tenant Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={selectedTenant}
+              onValueChange={setSelectedTenant}
+              disabled={tenantsLoading}
+              placeholder={t("superadmin.dashboard.selectTenant", "Filter by tenant")}
+              className="w-[200px]"
+            >
+              <SelectItem value="all">
+                {t("superadmin.dashboard.allTenants", "All Tenants")}
+              </SelectItem>
+              {tenants.map((tenant) => (
+                <SelectItem key={tenant._id} value={tenant._id}>
+                  {tenant.name}
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
           {lastRefresh && (
             <span className="text-sm text-muted-foreground">
               Last updated: {lastRefresh.toLocaleTimeString()}
@@ -361,6 +417,30 @@ export default function SuperadminDashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Tenant Filter Active Indicator */}
+      {selectedTenant !== "all" && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                {t("superadmin.dashboard.filteringBy", "Filtering by tenant:")}
+              </span>
+              <Badge variant="secondary">
+                {tenants.find(t => t._id === selectedTenant)?.name || selectedTenant}
+              </Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedTenant("all")}
+            >
+              {t("common.clearFilter", "Clear Filter")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <Card className="border-destructive">

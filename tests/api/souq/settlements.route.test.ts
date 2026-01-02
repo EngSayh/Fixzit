@@ -20,6 +20,10 @@ type SessionUser = {
 };
 let sessionUser: SessionUser | null = null;
 let mockRateLimitResponse: Response | null = null;
+const { findMock, countDocumentsMock } = vi.hoisted(() => ({
+  findMock: vi.fn(),
+  countDocumentsMock: vi.fn(),
+}));
 
 // Mock authentication
 vi.mock("@/auth", () => ({
@@ -42,13 +46,13 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 // Mock Settlement model
 vi.mock("@/server/models/souq/Settlement", () => ({
   SouqSettlement: {
-    find: vi.fn().mockReturnValue({
+    find: findMock.mockReturnValue({
       skip: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       sort: vi.fn().mockReturnThis(),
       lean: vi.fn().mockResolvedValue([]),
     }),
-    countDocuments: vi.fn().mockResolvedValue(0),
+    countDocuments: countDocumentsMock.mockResolvedValue(0),
     aggregate: vi.fn().mockResolvedValue([]),
   },
 }));
@@ -120,8 +124,7 @@ describe("API /api/souq/settlements", () => {
       expect(res.status).toBe(403);
     });
 
-    // TODO(TG-005): Complete settlement DB mocks for deterministic test
-    it.skip("returns settlements for authenticated seller", async () => {
+    it("returns settlements for authenticated seller", async () => {
       mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
@@ -131,12 +134,17 @@ describe("API /api/souq/settlements", () => {
       };
 
       const req = new NextRequest(
-        "http://localhost:3000/api/souq/settlements?sellerId=seller-123"
+        "http://localhost:3000/api/souq/settlements?sellerId=user-123"
       );
       const res = await GET(req);
 
-      // Requires settlement DB mocks for 200 response
       expect(res.status).toBe(200);
+      expect(findMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sellerId: "user-123",
+          orgId: "507f1f77bcf86cd799439011",
+        }),
+      );
     });
 
     it("requires targetOrgId for super admin without session org", async () => {
@@ -155,13 +163,12 @@ describe("API /api/souq/settlements", () => {
       expect(data.error).toContain("targetOrgId");
     });
 
-    // TODO(TG-005): Complete settlement DB mocks for deterministic pagination test
-    it.skip("supports pagination parameters", async () => {
+    it("supports pagination parameters", async () => {
       mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
-        role: "SELLER",
+        role: "ADMIN",
       };
 
       const req = new NextRequest(
@@ -169,12 +176,16 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      // Requires settlement DB mocks to verify pagination
       expect(res.status).toBe(200);
+      expect(findMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sellerId: "s1",
+          orgId: "507f1f77bcf86cd799439011",
+        }),
+      );
     });
 
-    // TODO(TG-005): Complete settlement DB mocks to verify status filter
-    it.skip("supports status filter", async () => {
+    it("supports status filter", async () => {
       mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
@@ -187,8 +198,21 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      // Requires settlement DB mocks to verify status filter applied
       expect(res.status).toBe(200);
+      expect(findMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sellerId: "s1",
+          orgId: "507f1f77bcf86cd799439011",
+          status: "COMPLETED",
+        }),
+      );
+      expect(countDocumentsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sellerId: "s1",
+          orgId: "507f1f77bcf86cd799439011",
+          status: "COMPLETED",
+        }),
+      );
     });
   });
 });

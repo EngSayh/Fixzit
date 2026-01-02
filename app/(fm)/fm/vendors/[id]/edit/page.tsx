@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -251,13 +252,12 @@ export default function EditVendorPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={vendorId ? `/fm/vendors/${vendorId}` : "/fm/vendors"}>
-          <Button
+          <IconButton
+            icon={<ChevronLeft className="h-5 w-5" />}
+            tooltip={auto("Back to vendor details", "common.back")}
             variant="ghost"
-            size="icon"
             aria-label={auto("Back to vendor details", "common.back")}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+          />
         </Link>
         <div>
           <h1 className="text-3xl font-bold text-foreground">

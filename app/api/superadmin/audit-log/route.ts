@@ -6,6 +6,8 @@
  * @module api/superadmin/audit-log
  */
 
+/* eslint-disable local/require-tenant-scope -- Superadmin route: intentionally queries across all tenants */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { connectDb } from "@/lib/mongodb-unified";
@@ -62,7 +64,6 @@ export async function POST(request: NextRequest) {
     const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
 
     // Superadmin audit logs are platform-wide (cross-tenant) by design - tracks all admin actions
-    // eslint-disable-next-line local/require-tenant-scope
     const auditLog = await AuditLogModel.create({
       userId: session.username,
       action: body.action,

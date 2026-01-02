@@ -16,6 +16,12 @@ import { normalizeRole as normalizeFmRole } from "@/domain/fm/fm.behavior";
 
 type RoleChecker = (_role?: string | null) => boolean;
 
+// SEC-001: Legacy HR roles should map to allowed HR access checks.
+const LEGACY_ROLE_ALIASES: Record<string, readonly string[]> = {
+  HR_ADMIN: ["HR", "HR_OFFICER"],
+  HR_MANAGER: ["HR", "HR_OFFICER"],
+};
+
 const normalizeRole = (role?: string | null): string | null => {
   const canonical = normalizeFmRole(role);
   if (canonical) return canonical;
@@ -65,6 +71,13 @@ export function hasAllowedRole(
   allowedRoles: readonly string[] = []
 ): boolean {
   const allowedSet = new Set(allowedRoles.map(r => r.toUpperCase()));
+
+  const hasLegacyAlias = (value?: string | null) => {
+    if (!value) return false;
+    const aliases = LEGACY_ROLE_ALIASES[value];
+    if (!aliases) return false;
+    return aliases.some((alias) => allowedSet.has(alias));
+  };
   
   // Get both raw uppercased AND FM-normalized versions
   const rawRole = typeof role === "string" ? role.trim().toUpperCase() : null;
@@ -76,6 +89,11 @@ export function hasAllowedRole(
   if (rawRole && allowedSet.has(rawRole)) {
     return true;
   }
+
+  // Check if legacy role should be treated as HR/HR_OFFICER
+  if (hasLegacyAlias(rawRole)) {
+    return true;
+  }
   
   // Check if FM-normalized role matches (for canonical roles like TEAM_MEMBER)
   if (normalizedRole && allowedSet.has(normalizedRole)) {
@@ -84,6 +102,10 @@ export function hasAllowedRole(
   
   // Check if raw subRole matches
   if (rawSubRole && allowedSet.has(rawSubRole)) {
+    return true;
+  }
+
+  if (hasLegacyAlias(rawSubRole)) {
     return true;
   }
   

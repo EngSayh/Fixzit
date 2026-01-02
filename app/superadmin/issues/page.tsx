@@ -721,6 +721,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {stats?.total || 0}
+                </p>
                 <div className="mt-2 h-10">
                   <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="var(--color-sparkline-blue, #0061A8)" />
                 </div>

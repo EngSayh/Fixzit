@@ -270,4 +270,38 @@ export class JobQueue {
       return 0;
     }
   }
+
+  /**
+   * Get recent jobs with optional filters
+   */
+  static async getJobs(options: {
+    type?: JobType;
+    status?: Job["status"];
+    limit?: number;
+    skip?: number;
+  } = {}): Promise<{ jobs: Job[]; total: number }> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const filter: Record<string, unknown> = {};
+      if (options.type) filter.type = options.type;
+      if (options.status) filter.status = options.status;
+
+      const [jobs, total] = await Promise.all([
+        collection
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(options.skip || 0)
+          .limit(options.limit || 50)
+          .toArray(),
+        collection.countDocuments(filter),
+      ]);
+
+      return { jobs, total };
+    } catch (error) {
+      logger.error("Failed to get jobs", error as Error);
+      return { jobs: [], total: 0 };
+    }
+  }
 }

@@ -53,6 +53,7 @@ const STATUS_COLORS: Record<string, string> = {
   processing: "bg-blue-500/20 text-blue-400",
   completed: "bg-green-500/20 text-green-400",
   failed: "bg-red-500/20 text-red-400",
+  paused: "bg-gray-500/20 text-gray-400",
 };
 
 export default function SuperadminJobsPage() {
@@ -66,26 +67,40 @@ export default function SuperadminJobsPage() {
   const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
-      // Get job stats from processing endpoint (stats-only, no side effects)
-      const response = await fetch("/api/jobs/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Fetch all jobs from superadmin API (filter by type client-side)
+      // Note: typeFilter is for job types (email, report, etc), not statuses
+      const response = await fetch("/api/superadmin/jobs", {
         credentials: "include",
-        body: JSON.stringify({ maxJobs: 0, retryStuckJobs: false }), // Stats only, no processing
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.stats) setStats(data.stats);
+        // API returns: { jobs, summary, executionStats, recentExecutions }
+        if (data.summary && data.executionStats) {
+          setStats({
+            pending: data.summary.idle || 0,
+            processing: data.summary.running || 0,
+            completed: data.executionStats.success || 0,
+            failed: data.summary.error || 0,
+          });
+        }
+        // Map jobs to display format with proper paused status handling
+        if (data.jobs) {
+          setJobs(data.jobs.map((job: { id: string; name: string; status: string; lastRunAt?: string; priority?: number; lastError?: string }) => ({
+            _id: job.id,
+            type: job.name || "task",
+            status: job.status === "running" ? "processing" 
+              : job.status === "error" ? "failed" 
+              : job.status === "idle" ? "pending" 
+              : job.status === "paused" ? "paused"
+              : "completed",
+            priority: job.priority || 1,
+            attempts: 1,
+            maxAttempts: 3,
+            createdAt: job.lastRunAt || new Date().toISOString(),
+            error: job.lastError,
+          })));
+        }
       }
-
-      // Simulated recent jobs (would come from dedicated endpoint)
-      setJobs([
-        { _id: "1", type: "email", status: "completed", priority: 1, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 60000).toISOString(), processedAt: new Date().toISOString() },
-        { _id: "2", type: "s3-cleanup", status: "completed", priority: 2, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 120000).toISOString(), processedAt: new Date(Date.now() - 30000).toISOString() },
-        { _id: "3", type: "notification", status: "pending", priority: 1, attempts: 0, maxAttempts: 3, createdAt: new Date().toISOString() },
-        { _id: "4", type: "email", status: "failed", priority: 1, attempts: 3, maxAttempts: 3, createdAt: new Date(Date.now() - 300000).toISOString(), error: "SMTP connection timeout" },
-        { _id: "5", type: "report", status: "processing", priority: 2, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 45000).toISOString() },
-      ]);
     } catch {
       toast.error(t("superadmin.jobs.fetchError", "Failed to load job stats; showing defaults"));
     } finally {
@@ -108,8 +123,8 @@ export default function SuperadminJobsPage() {
       const data = await response.json();
       toast.success(`Processed ${data.processed?.total || 0} jobs (${data.processed?.success || 0} success, ${data.processed?.failed || 0} failed)`);
       fetchJobs();
-    } catch {
-      toast.error("Failed to process jobs");
+    } catch (error) {
+      toast.error(`Failed to process jobs: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setProcessing(false);
     }

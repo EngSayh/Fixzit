@@ -47,6 +47,8 @@ export function TopMegaMenu() {
               key={id}
               type="button"
               onClick={() => router.push(path)}
+              aria-label={t(name, fallbackLabel)}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 'rounded-full px-3 py-1 text-xs transition-colors',
                 active

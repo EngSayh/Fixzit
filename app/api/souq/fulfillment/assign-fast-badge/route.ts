@@ -89,16 +89,13 @@ export async function POST(request: NextRequest) {
 
       const listings = await SouqListing.find(listingQuery).lean();
 
-      for (const listing of listings) {
-        const result = await fulfillmentService.assignFastBadge(
-          listing._id.toString(),
-          orgId,
-        );
-        if (result) {
-          eligible++;
-          updated++;
-        }
-      }
+      const listingIds = listings
+        .map((listing) => listing.listingId || listing._id?.toString?.())
+        .filter((id): id is string => Boolean(id));
+
+      const result = await fulfillmentService.assignFastBadges(listingIds, orgId);
+      eligible = result.eligible;
+      updated = result.updated;
     } else {
       return NextResponse.json(
         {

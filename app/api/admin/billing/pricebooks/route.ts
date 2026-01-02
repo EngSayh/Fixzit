@@ -14,6 +14,7 @@ import { dbConnect } from "@/db/mongoose";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -30,7 +31,12 @@ export async function POST(req: NextRequest) {
 
     await dbConnect();
     await requireSuperAdmin(req);
-    const body = await req.json();
+    const { data: body, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[admin:billing:pricebooks]",
+    });
+    if (parseError || !body) {
+      return createSecureResponse({ error: "Invalid JSON payload" }, 400, req);
+    }
 
     const doc = await PriceBook.create(body);
     return createSecureResponse(doc, 200, req);

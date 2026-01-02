@@ -102,15 +102,232 @@ function inferModule(filePath = '') {
   return { module: 'core' };
 }
 
+const EXTERNAL_ID_PATTERN = /\b[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)*-\d+\b/;
+
+function stripDecorations(value = '') {
+  return value.replace(/[*_`]/g, '').replace(/[^\w\s:./-]+/g, '').trim();
+}
+
+function isPlaceholderTitle(value = '') {
+  const cleaned = stripDecorations(value).toUpperCase();
+  if (!cleaned) return true;
+  if (/^P[0-3]$/.test(cleaned)) return true;
+  if (/^\d+$/.test(cleaned)) return true;
+  return ['OPEN', 'PENDING', 'DONE', 'RESOLVED', 'CLOSED', 'DEFERRED'].includes(cleaned);
+}
+
+function parseSnippetColumns(snippet = '') {
+  if (!snippet.includes('|')) return [];
+  return snippet
+    .split('|')
+    .map((col) => col.trim())
+    .filter(Boolean);
+}
+
+function isHeaderRow(snippet = '') {
+  const normalized = snippet.toLowerCase();
+  if (!normalized.includes('|')) return false;
+  const hasId = normalized.includes('| id |');
+  const hasPriority = normalized.includes('| priority |');
+  const hasTitle = normalized.includes('| title |');
+  const hasModule = normalized.includes('| module |');
+  const hasComponent = normalized.includes('| component');
+  return hasId && hasPriority && (hasTitle || hasModule || hasComponent);
+}
+
+function isStatusToken(value = '') {
+  const cleaned = stripDecorations(value).toLowerCase();
+  return (
+    cleaned.includes('open') ||
+    cleaned.includes('pending') ||
+    cleaned.includes('in_progress') ||
+    cleaned.includes('in-progress') ||
+    cleaned.includes('blocked') ||
+    cleaned.includes('resolved') ||
+    cleaned.includes('closed') ||
+    cleaned.includes('deferred')
+  );
+}
+
+function isEffortToken(value = '') {
+  const cleaned = stripDecorations(value).toLowerCase();
+  if (/^\d+\s*(m|h|d)$/.test(cleaned)) return true;
+  return ['xs', 's', 'm', 'l', 'xl'].includes(cleaned);
+}
+
+function extractExternalIdFromText(text = '') {
+  const match = text.match(EXTERNAL_ID_PATTERN);
+  return match ? match[0] : null;
+}
+
+function resolveExternalId(rawIssue) {
+  if (rawIssue.externalId && EXTERNAL_ID_PATTERN.test(rawIssue.externalId)) {
+    return rawIssue.externalId;
+  }
+  const fromSnippet = extractExternalIdFromText(rawIssue.evidenceSnippet || '');
+  return fromSnippet || null;
+}
+
+function extractTitleFromSnippet(snippet, externalId) {
+  const columns = parseSnippetColumns(snippet);
+  if (columns.length === 0) return null;
+
+  const candidates = columns.filter((col) => {
+    if (!col) return false;
+    if (isPlaceholderTitle(col)) return false;
+    if (isStatusToken(col)) return false;
+    if (isEffortToken(col)) return false;
+    return true;
+  });
+
+  if (externalId) {
+    const withId = candidates.find((col) => col.includes(externalId) && stripDecorations(col).length > externalId.length);
+    if (withId) return stripDecorations(withId);
+  }
+
+  const nonSummary = candidates.filter((col) => !/open prs/i.test(col));
+  const pick = (nonSummary.length ? nonSummary : candidates).sort(
+    (a, b) => stripDecorations(b).length - stripDecorations(a).length
+  )[0];
+  return pick ? stripDecorations(pick) : null;
+}
+
+function resolveTitle(rawIssue, externalId) {
+  const rawTitle = rawIssue.title ? rawIssue.title.trim() : '';
+  if (rawTitle && !isPlaceholderTitle(rawTitle)) {
+    return rawTitle;
+  }
+
+  const action = rawIssue.action ? rawIssue.action.trim() : '';
+  if (action && !isPlaceholderTitle(action)) {
+    return action;
+  }
+
+  const fromSnippet = extractTitleFromSnippet(rawIssue.evidenceSnippet || '', externalId);
+  if (fromSnippet) return fromSnippet;
+
+  return externalId || rawTitle || 'Pending item';
+}
+
+function shouldSkipImport(rawIssue, externalId) {
+  if (rawIssue.evidenceSnippet && isHeaderRow(rawIssue.evidenceSnippet)) {
+    return true;
+  }
+  const title = rawIssue.title ? rawIssue.title.trim() : '';
+  if (!isPlaceholderTitle(title)) return false;
+  if (externalId) return false;
+  if (!rawIssue.evidenceSnippet || !rawIssue.evidenceSnippet.includes('|')) return false;
+  const snippet = rawIssue.evidenceSnippet.toLowerCase();
+  if (snippet.includes('open prs') || snippet.includes('status summary') || snippet.includes('metrics overview')) {
+    return true;
+  }
+  return true;
+}
+
+function normalizeCategory(category, externalId) {
+  const normalized = (category || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_');
+
+  const externalPrefix = externalId ? externalId.split('-')[0] : '';
+  const externalMap = {
+    BUG: 'bug',
+    LOGIC: 'logic_error',
+    TEST: 'missing_test',
+    PERF: 'efficiency',
+    SEC: 'security',
+    FEAT: 'feature',
+    REFAC: 'refactor',
+    DOC: 'documentation',
+    TASK: 'next_step',
+    OTP: 'bug',
+  };
+  const fromExternal = externalMap[externalPrefix];
+  if (fromExternal) return fromExternal;
+
+  switch (normalized) {
+    case 'logic':
+    case 'logic_error':
+    case 'logic_errors':
+      return 'logic_error';
+    case 'missing_test':
+    case 'missing_tests':
+    case 'test':
+    case 'tests':
+      return 'missing_test';
+    case 'efficiency':
+    case 'performance':
+    case 'perf':
+      return 'efficiency';
+    case 'security':
+      return 'security';
+    case 'feature':
+      return 'feature';
+    case 'refactor':
+      return 'refactor';
+    case 'documentation':
+    case 'docs':
+      return 'documentation';
+    case 'next_step':
+    case 'next_steps':
+    case 'task':
+      return 'next_step';
+    default:
+      return fromExternal || 'bug';
+  }
+}
+
+function normalizePriority(rawIssue) {
+  const value = String(rawIssue.priority || rawIssue.priorityLabel || 'P2').toUpperCase();
+  if (/^P[0-3]$/.test(value)) return value;
+  return 'P2';
+}
+
+function normalizeStatus(rawIssue) {
+  const value = String(rawIssue.status || 'open').toLowerCase();
+  if (value === 'pending') return 'open';
+  if (['open', 'in_progress', 'in_review', 'blocked', 'resolved', 'closed', 'wont_fix'].includes(value)) {
+    return value;
+  }
+  return 'open';
+}
+
+function normalizeEvidence(snippet = '') {
+  const words = snippet.split(/\s+/).filter(Boolean).slice(0, 25);
+  return words.join(' ').slice(0, 300);
+}
+
 /**
  * Build a schema-safe issue document from the lean BACKLOG_AUDIT format.
  */
 function buildIssueDocument(rawIssue) {
+  const normalizedExternalId = resolveExternalId(rawIssue);
+  if (shouldSkipImport(rawIssue, normalizedExternalId)) {
+    return null;
+  }
+
+  const normalizedTitle = resolveTitle(rawIssue, normalizedExternalId);
+  const normalizedDescription = (
+    rawIssue.impact ||
+    rawIssue.evidenceSnippet ||
+    rawIssue.description ||
+    normalizedTitle ||
+    'Backlog issue imported from audit log'
+  ).slice(0, 2000);
+  const normalizedCategory = normalizeCategory(rawIssue.category, normalizedExternalId);
+  const normalizedPriority = normalizePriority(rawIssue);
+  const normalizedStatus = normalizeStatus(rawIssue);
+  const normalizedEvidence = normalizeEvidence(rawIssue.evidenceSnippet || normalizedDescription);
+  const rawAction = rawIssue.action ? rawIssue.action.trim() : '';
+  const normalizedAction =
+    rawAction && !isPlaceholderTitle(rawAction) ? rawAction : `Fix: ${normalizedTitle}`;
+
   const now = new Date();
   const location = parseLocation(rawIssue.location);
   const moduleInfo = inferModule(location.filePath);
-  const key = rawIssue.key || rawIssue.issueId || rawIssue.externalId || `ISSUE-${Date.now()}`;
-  const issueId = rawIssue.issueId || rawIssue.key || key;
+  const key = normalizedExternalId || rawIssue.key || rawIssue.issueId || `ISSUE-${Date.now()}`;
+  const issueId = normalizedExternalId || rawIssue.issueId || rawIssue.key || key;
 
   const baseAuditEntry = {
     sessionId: auditMeta.sessionId,
@@ -126,10 +343,10 @@ function buildIssueDocument(rawIssue) {
   };
 
   const statusHistory = [];
-  if (rawIssue.status && rawIssue.status !== 'open') {
+  if (normalizedStatus && normalizedStatus !== 'open') {
     statusHistory.push({
       from: 'open',
-      to: rawIssue.status,
+      to: normalizedStatus,
       changedBy: 'backlog-sync',
       changedAt: auditMeta.timestamp,
       reason: 'Imported from backlog audit',
@@ -139,22 +356,18 @@ function buildIssueDocument(rawIssue) {
   return {
     key,
     issueId,
-    externalId: rawIssue.externalId,
-    legacyId: rawIssue.externalId,
-    title: (rawIssue.title || 'Untitled issue').slice(0, 200),
-    description:
-      rawIssue.impact ||
-      rawIssue.evidenceSnippet ||
-      rawIssue.title ||
-      'Backlog issue imported from audit log',
-    category: rawIssue.category || 'bug',
-    priority: rawIssue.priority || 'P3',
-    status: rawIssue.status || 'open',
+    externalId: normalizedExternalId || rawIssue.externalId,
+    legacyId: normalizedExternalId || rawIssue.externalId,
+    title: normalizedTitle.slice(0, 200),
+    description: normalizedDescription,
+    category: normalizedCategory,
+    priority: normalizedPriority,
+    status: normalizedStatus,
     effort: rawIssue.effort || 'M',
     location,
     module: moduleInfo.module,
     subModule: moduleInfo.subModule,
-    action: rawIssue.proposedFix || rawIssue.action || rawIssue.title || 'Investigate and fix',
+    action: rawIssue.proposedFix || normalizedAction,
     rootCause: rawIssue.rootCause,
     resolution: rawIssue.resolution?.notes,
     definitionOfDone:
@@ -164,7 +377,7 @@ function buildIssueDocument(rawIssue) {
     sourceDetail: auditMeta.source,
     sourcePath: rawIssue.sourcePath,
     sourceRef: rawIssue.sourceRef,
-    sourceSnippet: rawIssue.evidenceSnippet,
+    sourceSnippet: normalizedEvidence,
     reportedBy: rawIssue.resolution?.resolvedBy || 'backlog-sync',
     orgId: ORG_ID,
     sprintReady: true,
@@ -208,6 +421,10 @@ async function importIssues() {
     for (const rawIssue of auditData.issues) {
       try {
         const doc = buildIssueDocument(rawIssue);
+        if (!doc) {
+          skipped += 1;
+          continue;
+        }
         const now = new Date();
 
         const scopedExisting = await issuesCollection.findOne({

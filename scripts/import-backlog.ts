@@ -19,10 +19,14 @@ loadEnvConfig(process.cwd());
 
 const args = new Set(process.argv.slice(2));
 const isConfirmed = args.has('--confirm');
+const isVerbose = args.has('--verbose');
 const allowLocalhost =
   process.env.ALLOW_LOCALHOST_IMPORT === 'true' || args.has('--allow-localhost');
 
 const SUPER_ADMIN_ORG = new mongoose.Types.ObjectId('000000000000000000000001');
+const AGENT_ID = 'AGENT-003-A';
+const progressIntervalRaw = Number(process.env.IMPORT_LOG_EVERY || '250');
+const logEvery = Number.isFinite(progressIntervalRaw) && progressIntervalRaw > 0 ? progressIntervalRaw : 250;
 
 interface IssueImport {
   key: string;
@@ -98,6 +102,17 @@ function parseSnippetColumns(snippet: string): string[] {
     .filter(Boolean);
 }
 
+function isHeaderRow(snippet: string): boolean {
+  const normalized = snippet.toLowerCase();
+  if (!normalized.includes('|')) return false;
+  const hasId = normalized.includes('| id |');
+  const hasPriority = normalized.includes('| priority |');
+  const hasTitle = normalized.includes('| title |');
+  const hasModule = normalized.includes('| module |');
+  const hasComponent = normalized.includes('| component');
+  return hasId && hasPriority && (hasTitle || hasModule || hasComponent);
+}
+
 function isStatusToken(value: string): boolean {
   const cleaned = stripDecorations(value).toLowerCase();
   return (
@@ -157,22 +172,29 @@ function extractTitleFromSnippet(snippet: string, externalId?: string): string |
 
 function resolveTitle(raw: IssueImport, externalId?: string): string {
   const rawTitle = raw.title?.trim() || '';
+  let result: string;
+  
   if (rawTitle && !isPlaceholderTitle(rawTitle)) {
-    return rawTitle;
+    result = rawTitle;
+  } else {
+    const action = raw.action?.trim() || '';
+    if (action && !isPlaceholderTitle(action)) {
+      result = action;
+    } else {
+      const fromSnippet = extractTitleFromSnippet(raw.evidenceSnippet || '', externalId);
+      result = fromSnippet || externalId || rawTitle || 'Pending item';
+    }
   }
-
-  const action = raw.action?.trim() || '';
-  if (action && !isPlaceholderTitle(action)) {
-    return action;
+  
+  // Truncate to 200 chars to avoid validation errors
+  if (result.length > 200) {
+    result = result.slice(0, 197) + '...';
   }
-
-  const fromSnippet = extractTitleFromSnippet(raw.evidenceSnippet || '', externalId);
-  if (fromSnippet) return fromSnippet;
-
-  return externalId || rawTitle || 'Pending item';
+  return result;
 }
 
 function shouldSkipImport(raw: IssueImport, externalId?: string): boolean {
+  if (raw.evidenceSnippet && isHeaderRow(raw.evidenceSnippet)) return true;
   const title = raw.title?.trim() || '';
   if (!isPlaceholderTitle(title)) return false;
   if (externalId) return false;
@@ -204,6 +226,7 @@ function normalizeCategory(category?: string, externalId?: string): string {
     OTP: 'bug',
   };
   const fromExternal = externalMap[externalPrefix];
+  if (fromExternal) return fromExternal;
 
   switch (normalized) {
     case 'logic':
@@ -252,6 +275,11 @@ function normalizeStatus(raw: IssueImport): string {
   return 'open';
 }
 
+function normalizeEvidence(snippet: string): string {
+  const words = snippet.split(/\s+/).filter(Boolean).slice(0, 25);
+  return words.join(' ').slice(0, 300);
+}
+
 function maskUri(uri: string): string {
   try {
     const url = new URL(uri);
@@ -295,6 +323,7 @@ async function importBacklog() {
   }
 
   const backlogData = JSON.parse(fs.readFileSync(backlogPath, 'utf-8'));
+  const totalIssues = Array.isArray(backlogData.issues) ? backlogData.issues.length : 0;
 
   console.log('📦 Importing BACKLOG_AUDIT.json directly to MongoDB...');
   console.log(`   Total issues: ${backlogData.counts.total}`);
@@ -329,7 +358,14 @@ async function importBacklog() {
   const issueIds: string[] = [];
   const startTime = new Date().toISOString();
 
+  let processed = 0;
   for (const raw of backlogData.issues as IssueImport[]) {
+    processed += 1;
+    if (!isVerbose && logEvery > 0 && processed % logEvery === 0) {
+      console.log(
+        `[progress] ${processed}/${totalIssues} processed (created=${summary.created} updated=${summary.updated} skipped=${summary.skipped} errors=${summary.errors.length})`
+      );
+    }
     try {
       const normalizedExternalId = resolveExternalId(raw);
       if (shouldSkipImport(raw, normalizedExternalId)) {
@@ -341,6 +377,7 @@ async function importBacklog() {
       const normalizedDescription = (raw.description || normalizedTitle || raw.evidenceSnippet || raw.title || '')
         .trim()
         .slice(0, 2000);
+      const normalizedEvidence = normalizeEvidence(raw.evidenceSnippet || normalizedDescription || normalizedTitle);
       const normalizedCategory = normalizeCategory(raw.category, normalizedExternalId);
       const normalizedPriority = normalizePriority(raw);
       const normalizedStatus = normalizeStatus(raw);
@@ -348,18 +385,27 @@ async function importBacklog() {
       const normalizedAction =
         rawAction && !isPlaceholderTitle(rawAction) ? rawAction : `Fix: ${normalizedTitle}`;
 
-      const key = normalizedExternalId?.trim() || raw.key?.trim() || slugify(normalizedTitle);
-      if (!key) {
+      const candidateKey = normalizedExternalId?.trim() || raw.key?.trim() || slugify(normalizedTitle);
+      if (!candidateKey) {
         summary.errors.push(`Invalid key: ${raw.key || raw.title}`);
         summary.skipped++;
         continue;
       }
-      const existing = await Issue.findOne({ orgId: SUPER_ADMIN_ORG, key });
+      const lookupConditions = [{ key: candidateKey }];
+      if (normalizedExternalId) {
+        const lowerExternal = normalizedExternalId.toLowerCase();
+        lookupConditions.push({ key: lowerExternal });
+        lookupConditions.push({ issueId: normalizedExternalId });
+        lookupConditions.push({ issueId: lowerExternal });
+        lookupConditions.push({ externalId: normalizedExternalId });
+      }
+      const existing = await Issue.findOne({ orgId: SUPER_ADMIN_ORG, $or: lookupConditions });
+      const key = existing?.key || candidateKey;
       const issueId =
-        normalizedExternalId ||
         existing?.issueId ||
+        normalizedExternalId ||
         (await Issue.generateIssueId(normalizedCategory as any));
-      const externalId = normalizedExternalId || raw.externalId || undefined;
+      const externalId = normalizedExternalId || existing?.externalId || raw.externalId || undefined;
 
       const locationObj =
         typeof raw.location === 'string' ? { filePath: raw.location } : raw.location;
@@ -384,7 +430,7 @@ async function importBacklog() {
         location: locationObj,
         sourcePath: raw.sourcePath,
         sourceRef: raw.sourceRef,
-        evidenceSnippet: raw.evidenceSnippet,
+        evidenceSnippet: normalizedEvidence,
         riskTags: Array.isArray(raw.riskTags)
           ? raw.riskTags.filter((tag: string) =>
               [
@@ -428,39 +474,93 @@ async function importBacklog() {
             type: 'UPDATED',
             orgId: SUPER_ADMIN_ORG,
             metadata: {
-              actor: 'system',
+              actor: AGENT_ID,
               actorRef: 'import-backlog-script',
-              changes: { status: raw.status, updatedAt: new Date() },
+              by: AGENT_ID,
+              changes: { status: normalizedStatus, updatedAt: new Date() },
             },
           });
 
           summary.updated++;
-          console.log(`✓ Updated: ${key}`);
+          if (isVerbose) {
+            console.log(`✓ Updated: ${key}`);
+          }
         } else {
-          const newIssue = await Issue.create(issueData);
+          try {
+            const newIssue = await Issue.create(issueData);
 
-          await IssueEvent.create({
-            issueId: newIssue._id,
-            key,
-            type: 'SYNCED',
-            orgId: SUPER_ADMIN_ORG,
-            metadata: {
-              actor: 'system',
-              actorRef: 'import-backlog-script',
-              status: raw.status,
-            },
-          });
+            await IssueEvent.create({
+              issueId: newIssue._id,
+              key,
+              type: 'SYNCED',
+              orgId: SUPER_ADMIN_ORG,
+              metadata: {
+                actor: AGENT_ID,
+                actorRef: 'import-backlog-script',
+                by: AGENT_ID,
+                status: normalizedStatus,
+              },
+            });
 
-          summary.created++;
-          console.log(`+ Created: ${key}`);
+            summary.created++;
+            if (isVerbose) {
+              console.log(`+ Created: ${key}`);
+            }
+          } catch (createError) {
+            // Handle duplicate key error (E11000) by merging into existing issue
+            // Detect E11000 via code property OR string fallback when code is absent
+            const mongoError = createError as { code?: number; keyPattern?: Record<string, number>; keyValue?: Record<string, unknown> };
+            const hasE11000InMessage = createError instanceof Error && createError.message.includes('E11000');
+            const isDuplicateKeyError = mongoError.code === 11000 || String(mongoError.code) === '11000' || (!mongoError.code && hasE11000InMessage);
+            const isIssueIdDuplicate = isDuplicateKeyError && (
+              (mongoError.keyPattern && 'issueId' in mongoError.keyPattern) ||
+              (mongoError.keyValue && 'issueId' in mongoError.keyValue) ||
+              // Also check message for issueId when using string fallback
+              (hasE11000InMessage && createError instanceof Error && createError.message.includes('issueId'))
+            );
+
+            if (isIssueIdDuplicate) {
+              // Find the existing issue by issueId and merge
+              const existingByIssueId = await Issue.findOne({ issueId });
+              if (existingByIssueId) {
+                // Merge: append evidence snippet to description if different
+                const mergedDescription = existingByIssueId.description?.includes(issueData.evidenceSnippet || '')
+                  ? existingByIssueId.description
+                  : `${existingByIssueId.description || ''}\n\n---\nMerged from: ${issueData.key}\n${issueData.evidenceSnippet || ''}`.slice(0, 2000);
+                
+                await Issue.updateOne(
+                  { _id: existingByIssueId._id },
+                  {
+                    $set: {
+                      description: mergedDescription,
+                      lastSeenAt: new Date(),
+                    },
+                    $inc: { mentionCount: 1 },
+                  }
+                );
+                summary.updated++;
+                if (isVerbose) {
+                  console.log(`⇄ Merged: ${key} into ${existingByIssueId.key} (${issueId})`);
+                }
+              } else {
+                throw createError;
+              }
+            } else {
+              throw createError;
+            }
+          }
         }
       } else {
         if (existing) {
           summary.updated++;
-          console.log(`[DRY-RUN] Would update: ${key}`);
+          if (isVerbose) {
+            console.log(`[DRY-RUN] Would update: ${key}`);
+          }
         } else {
           summary.created++;
-          console.log(`[DRY-RUN] Would create: ${key}`);
+          if (isVerbose) {
+            console.log(`[DRY-RUN] Would create: ${key}`);
+          }
         }
       }
 
@@ -521,3 +621,4 @@ importBacklog().catch((err) => {
   console.error('❌ Import failed:', err);
   process.exit(1);
 });
+

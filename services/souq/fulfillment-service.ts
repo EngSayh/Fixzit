@@ -717,6 +717,103 @@ class FulfillmentService {
   }
 
   /**
+   * Bulk-assign Fast Badge for multiple listings.
+   * Reduces N+1 queries by batching listing + inventory reads and bulk updates.
+   */
+  async assignFastBadges(
+    listingIds: string[],
+    orgId: string,
+  ): Promise<{ eligible: number; updated: number }> {
+    if (!orgId) {
+      logger.warn("assignFastBadges called without orgId - rejecting", {
+        listingCount: listingIds.length,
+      });
+      return { eligible: 0, updated: 0 };
+    }
+
+    const uniqueListingIds = Array.from(
+      new Set(
+        listingIds.map((id) => id?.trim()).filter((id): id is string => Boolean(id)),
+      ),
+    );
+    if (uniqueListingIds.length === 0) {
+      return { eligible: 0, updated: 0 };
+    }
+
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+    const listings = await SouqListing.find({
+      listingId: { $in: uniqueListingIds },
+      ...orgFilter,
+    })
+      .select("listingId badges")
+      .lean();
+
+    if (listings.length === 0) {
+      return { eligible: 0, updated: 0 };
+    }
+
+    const inventories = await SouqInventory.find({
+      listingId: { $in: listings.map((listing) => listing.listingId) },
+      ...orgFilter,
+    })
+      .select("listingId fulfillmentType availableQuantity")
+      .lean();
+
+    const inventoryMap = new Map(
+      inventories.map((inventory) => [inventory.listingId?.toString?.(), inventory]),
+    );
+
+    let eligible = 0;
+    const updates: Array<{ listingId: string; badges: string[] }> = [];
+
+    for (const listing of listings) {
+      const inventory = inventoryMap.get(listing.listingId?.toString?.());
+      if (!inventory) {
+        continue;
+      }
+
+      let qualifies = false;
+      if (inventory.fulfillmentType === "FBF") {
+        qualifies = inventory.availableQuantity >= 5;
+      } else {
+        const sellerOnTimeRate = 0.96;
+        qualifies = sellerOnTimeRate >= 0.95 && inventory.availableQuantity >= 5;
+      }
+      if (qualifies) {
+        eligible += 1;
+      }
+
+      const badges = Array.isArray(listing.badges) ? listing.badges : [];
+      const hasFastBadge = badges.includes("fast");
+
+      if (qualifies && !hasFastBadge) {
+        updates.push({ listingId: listing.listingId, badges: [...badges, "fast"] });
+      } else if (!qualifies && hasFastBadge) {
+        updates.push({
+          listingId: listing.listingId,
+          badges: badges.filter((badge) => badge !== "fast"),
+        });
+      }
+    }
+
+    let modifiedCount = 0;
+    if (updates.length > 0) {
+      const bulkResult = await SouqListing.bulkWrite(
+        updates.map((update) => ({
+          updateOne: {
+            filter: { listingId: update.listingId, ...orgFilter },
+            update: { $set: { badges: update.badges, updatedAt: new Date() } },
+          },
+        })),
+        { ordered: false },
+      );
+      modifiedCount = bulkResult.modifiedCount;
+    }
+
+    return { eligible, updated: modifiedCount };
+  }
+
+  /**
    * Get shipping rates from all carriers
    */
   async getRates(params: IRateParams): Promise<IRate[]> {

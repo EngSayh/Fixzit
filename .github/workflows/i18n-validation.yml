@@ -250,3 +250,4 @@ jobs:
             tests/smoke/rtl-dashboard-system.smoke.spec.ts \
             tests/smoke/rtl-souq.smoke.spec.ts \
             --project=chromium --workers=1
+

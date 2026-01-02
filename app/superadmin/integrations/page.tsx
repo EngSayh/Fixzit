@@ -32,17 +32,6 @@ interface Integration {
   config?: Record<string, unknown>;
 }
 
-const INTEGRATIONS: Integration[] = [
-  { id: "quickbooks", name: "QuickBooks", description: "Accounting and invoicing sync", category: "Finance", icon: "CreditCard", enabled: false, status: "disconnected" },
-  { id: "xero", name: "Xero", description: "Financial management integration", category: "Finance", icon: "CreditCard", enabled: false, status: "disconnected" },
-  { id: "stripe", name: "Stripe", description: "Payment processing", category: "Payments", icon: "CreditCard", enabled: true, status: "connected", lastSync: "2025-01-20T10:30:00Z" },
-  { id: "sendgrid", name: "SendGrid", description: "Email delivery service", category: "Communications", icon: "Mail", enabled: true, status: "connected", lastSync: "2025-01-20T12:00:00Z" },
-  { id: "twilio", name: "Twilio", description: "SMS and WhatsApp messaging", category: "Communications", icon: "MessageSquare", enabled: true, status: "connected" },
-  { id: "zatca", name: "ZATCA", description: "Saudi tax authority e-invoicing", category: "Compliance", icon: "FileText", enabled: false, status: "pending" },
-  { id: "s3", name: "AWS S3", description: "File storage and CDN", category: "Infrastructure", icon: "Cloud", enabled: true, status: "connected" },
-  { id: "sentry", name: "Sentry", description: "Error tracking and monitoring", category: "Monitoring", icon: "Shield", enabled: true, status: "connected" },
-];
-
 const CATEGORY_COLORS: Record<string, string> = {
   Finance: "bg-green-500/20 text-green-400",
   Payments: "bg-blue-500/20 text-blue-400",
@@ -61,10 +50,22 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ICONS: Record<string, React.ElementType> = { CreditCard, Mail, MessageSquare, FileText, Cloud, Shield };
 
+// Default integrations to show when API fails
+const DEFAULT_INTEGRATIONS: Integration[] = [
+  { id: "quickbooks", name: "QuickBooks", description: "Accounting and invoicing sync", category: "Finance", icon: "CreditCard", enabled: false, status: "disconnected" },
+  { id: "xero", name: "Xero", description: "Financial management integration", category: "Finance", icon: "CreditCard", enabled: false, status: "disconnected" },
+  { id: "stripe", name: "Stripe", description: "Payment processing", category: "Payments", icon: "CreditCard", enabled: true, status: "connected", lastSync: "2025-01-20T10:30:00Z" },
+  { id: "sendgrid", name: "SendGrid", description: "Email delivery service", category: "Communications", icon: "Mail", enabled: true, status: "connected", lastSync: "2025-01-20T12:00:00Z" },
+  { id: "twilio", name: "Twilio", description: "SMS and WhatsApp messaging", category: "Communications", icon: "MessageSquare", enabled: true, status: "connected" },
+  { id: "zatca", name: "ZATCA", description: "Saudi tax authority e-invoicing", category: "Compliance", icon: "FileText", enabled: false, status: "pending" },
+  { id: "s3", name: "AWS S3", description: "File storage and CDN", category: "Infrastructure", icon: "Cloud", enabled: true, status: "connected" },
+  { id: "sentry", name: "Sentry", description: "Error tracking and monitoring", category: "Monitoring", icon: "Shield", enabled: true, status: "connected" },
+];
+
 export default function SuperadminIntegrationsPage() {
   const { t } = useI18n();
-  const [integrations, setIntegrations] = useState<Integration[]>(INTEGRATIONS);
-  const [loading, setLoading] = useState(false);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -75,10 +76,14 @@ export default function SuperadminIntegrationsPage() {
       const response = await fetch("/api/fm/system/integrations", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
-        if (data.integrations) setIntegrations(data.integrations);
+        setIntegrations(data.integrations || DEFAULT_INTEGRATIONS);
+      } else {
+        // Use defaults on non-OK response
+        setIntegrations(DEFAULT_INTEGRATIONS);
       }
     } catch {
-      // Use default integrations list
+      // Use default integrations list on error
+      setIntegrations(DEFAULT_INTEGRATIONS);
     } finally {
       setLoading(false);
     }
