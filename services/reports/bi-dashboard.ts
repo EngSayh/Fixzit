@@ -530,23 +530,23 @@ export async function getFinanceKPIs(
     });
     
     // BI-KPI-001: Real cash flow calculation (inflows - outflows)
-    // TODO: [BI-DATA-001] Schema mismatch flagged in PR #642 review:
-    // - Current: uses `org_id`, `date`, `status: "completed"`, `type: "income/expense"`
-    // - Actual Payment model: `orgId`, `paymentDate`, PaymentStatus enum, `paymentType: RECEIVED/MADE`
-    // - Collection: should use COLLECTIONS.PAYMENTS (finance_payments) not "payments"
-    // This requires data model review before fix. Currently returns 0 safely.
+    // FIX: [BI-DATA-001] Corrected to use actual Payment model schema:
+    // - Collection: finance_payments
+    // - Field: orgId (not org_id), paymentDate (not date)
+    // - Status: CLEARED (not "completed")
+    // - PaymentType: RECEIVED (inflows) / MADE (outflows)
     const createCashFlowPipeline = (range: DateRange) => [
       {
         $match: {
-          org_id: orgId,
-          date: { $gte: range.start, $lte: range.end },
-          status: "completed",
+          orgId: new ObjectId(orgId),
+          paymentDate: { $gte: range.start, $lte: range.end },
+          status: "CLEARED",
         },
       },
       {
         $group: {
-          _id: "$type",
-          total: { $sum: "$amount" },
+          _id: "$paymentType",
+          total: { $sum: { $toDouble: "$amount" } }, // Decimal128 to number
         },
       },
     ];
@@ -554,31 +554,32 @@ export async function getFinanceKPIs(
     const prevCashFlowPipeline = createCashFlowPipeline(previousRange);
     
     const [cashFlowResult, prevCashFlowResult] = await Promise.all([
-      db.collection("payments").aggregate(cashFlowPipeline).toArray(),
-      db.collection("payments").aggregate(prevCashFlowPipeline).toArray(),
+      db.collection("finance_payments").aggregate(cashFlowPipeline).toArray(),
+      db.collection("finance_payments").aggregate(prevCashFlowPipeline).toArray(),
     ]);
     
-    const inflows = cashFlowResult.find(r => r._id === "income")?.total || 0;
-    const outflows = cashFlowResult.find(r => r._id === "expense")?.total || 0;
+    // RECEIVED = inflows, MADE = outflows
+    const inflows = cashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
+    const outflows = cashFlowResult.find(r => r._id === "MADE")?.total || 0;
     const cashFlowValue = inflows - outflows;
     
-    const prevInflows = prevCashFlowResult.find(r => r._id === "income")?.total || 0;
-    const prevOutflows = prevCashFlowResult.find(r => r._id === "expense")?.total || 0;
+    const prevInflows = prevCashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
+    const prevOutflows = prevCashFlowResult.find(r => r._id === "MADE")?.total || 0;
     const prevCashFlowValue = prevInflows - prevOutflows;
     
     // BI-KPI-002: Real expense ratio calculation
-    // TODO: [BI-DATA-002] Schema mismatch flagged in PR #642 review:
-    // - No generic "transactions" collection exists
-    // - FM uses: fm_financial_transactions
-    // - Souq uses: souq_transactions
-    // This requires data model review before fix. Currently returns 0 safely.
+    // FIX: [BI-DATA-002] Corrected to use FMFinancialTransaction model:
+    // - Collection: fm_financial_transactions
+    // - Field: orgId, transactionDate
+    // - Type: EXPENSE
+    // - Status: POSTED or PAID (completed)
     const createExpensePipeline = (range: DateRange) => [
       {
         $match: {
-          org_id: orgId,
-          date: { $gte: range.start, $lte: range.end },
-          type: "expense",
-          status: "completed",
+          orgId: new ObjectId(orgId),
+          transactionDate: { $gte: range.start, $lte: range.end },
+          type: "EXPENSE",
+          status: { $in: ["POSTED", "PAID"] },
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -587,8 +588,8 @@ export async function getFinanceKPIs(
     const prevExpensePipeline = createExpensePipeline(previousRange);
     
     const [expenseResult, prevExpenseResult] = await Promise.all([
-      db.collection("transactions").aggregate(expensePipeline).toArray(),
-      db.collection("transactions").aggregate(prevExpensePipeline).toArray(),
+      db.collection("fm_financial_transactions").aggregate(expensePipeline).toArray(),
+      db.collection("fm_financial_transactions").aggregate(prevExpensePipeline).toArray(),
     ]);
     
     const totalExpenses = expenseResult[0]?.total || 0;
