@@ -388,21 +388,61 @@ export async function completeMFASetup(
   }
 }
 
+import { 
+  validateMFAApprovalToken, 
+  isMFAApprovalSystemConfigured 
+} from "@/server/models/MFAApprovalToken";
+
 async function validateAdminApprovalToken(params: {
   approvalToken: string;
   orgId: string;
   adminId: string;
   targetUserId: string;
   action: "disable_mfa";
+  ipAddress?: string;
 }): Promise<{ valid: boolean; errorCode?: string; error?: string }> {
-  void params;
-  // TODO: Integrate with centralized approval system to validate signature/expiry/scope.
-  // Return explicit error code so UI can detect and hide/disable admin override flows
-  return {
-    valid: false,
-    errorCode: "APPROVAL_NOT_CONFIGURED",
-    error: "Admin approval system not configured",
-  };
+  // Check if approval system is configured
+  if (!isMFAApprovalSystemConfigured()) {
+    return {
+      valid: false,
+      errorCode: "APPROVAL_NOT_CONFIGURED",
+      error: "Admin approval system not configured",
+    };
+  }
+
+  // Validate the token using the centralized approval system
+  const result = await validateMFAApprovalToken({
+    token: params.approvalToken,
+    orgId: params.orgId,
+    targetUserId: params.targetUserId,
+    action: params.action,
+    ipAddress: params.ipAddress,
+  });
+
+  if (!result.valid) {
+    logger.warn("[MFA] Admin approval token validation failed", {
+      errorCode: result.errorCode,
+      orgId: params.orgId,
+      adminId: params.adminId,
+      targetUserId: params.targetUserId,
+    });
+    return {
+      valid: false,
+      errorCode: result.errorCode,
+      error: result.error,
+    };
+  }
+
+  // Log successful validation
+  logger.info("[MFA] Admin approval token validated successfully", {
+    orgId: params.orgId,
+    adminId: params.adminId,
+    targetUserId: params.targetUserId,
+    action: params.action,
+    tokenIssuer: result.tokenRecord?.issuedByEmail,
+  });
+
+  return { valid: true };
 }
 
 /**
@@ -449,6 +489,7 @@ export async function disableMFA(
         adminId: disabledBy,
         targetUserId: userId,
         action: "disable_mfa",
+        ipAddress,
       });
       if (!approvalValidation.valid) {
         logger.warn("Admin MFA disable denied - invalid approval token", {

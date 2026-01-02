@@ -86,9 +86,9 @@
 |----------|-------|--------|--------|--------|
 | FEAT-0029 | Subscription plan change flow (FIXZIT-SUB-001) | billing | L | ✅ CLOSED |
 | FEAT-0030 | Subscription cancellation flow (FIXZIT-SUB-002) | billing | M | ✅ CLOSED |
-| FEAT-0031 | Inspection tenant notification | fm | S | |
-| FEAT-0032 | Session termination | auth | M | |
-| FEAT-0033 | MFA approval system integration | auth | M | |
+| FEAT-0031 | Inspection tenant notification | fm | S | ✅ CLOSED |
+| FEAT-0032 | Session termination | auth | M | ✅ CLOSED |
+| FEAT-0033 | MFA approval system integration | auth | M | ✅ CLOSED |
 | - | BI Dashboard hardcoded KPIs | reports | M | |
 | - | Customer trend calculation | crm | M | |
 | - | Mock data replacement | api | S | |
@@ -151,10 +151,10 @@
 7. **FEAT-0029** - Subscription plan change ✅ IMPLEMENTED
 8. **FEAT-0030** - Subscription cancellation ✅ IMPLEMENTED
 
-### Sprint 4 (Next)
-9. **FEAT-0031** - Inspection tenant notification
-10. **FEAT-0032** - Session termination
-11. **FEAT-0033** - MFA approval system integration
+### Sprint 4 (P2 Notifications + Auth) ✅ COMPLETE
+9. **FEAT-0031** - Inspection tenant notification ✅ IMPLEMENTED (PR #641, commit c8eb4df8d)
+10. **FEAT-0032** - Session termination ✅ IMPLEMENTED (PR #641, commit c8eb4df8d)
+11. **FEAT-0033** - MFA approval system integration ✅ IMPLEMENTED (PR #641)
 
 ### Backlog (Prioritized)
 - Subscription flows
