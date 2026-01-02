@@ -1306,6 +1306,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               const response = await fetch(`/api/issues/${issueId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ status: "resolved", statusReason: "Marked resolved via bulk action [AGENT-001-A]" }),
               });
               if (response.ok) {
@@ -1343,6 +1344,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               const response = await fetch(`/api/issues/${issueId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ status: "archived", statusReason: "Archived via bulk action [AGENT-001-A]" }),
               });
               if (response.ok) {
@@ -1388,6 +1390,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             issueIds.map(async (issueId) => {
               const response = await fetch(`/api/issues/${issueId}`, {
                 method: "DELETE",
+                credentials: "include",
               });
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
