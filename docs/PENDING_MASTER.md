@@ -19,6 +19,81 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-03 01:00 (Asia/Riyadh) — PR Batch Review & Action Plan Update [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `fix/superadmin-lint-exemptions`  
+**Context:** Continuing PR Copilot batch review, updating SSOT with action plan
+
+#### 📋 Action Plan (Priority Order)
+
+| Priority | Task | PR | Status |
+|----------|------|-----|--------|
+| **P0** | Merge lint exemptions (unblocks all PRs) | #648 | ⏳ CI pending |
+| **P1** | Merge BI-DATA schema fix | #647 | ⏸️ Blocked on #648 |
+| **P1** | Merge P2 subscriptions + security | #641 | ⏸️ Blocked on #648 |
+| **P1** | Merge P1 compliance + fraud + Ejar | #640 | ⏸️ Blocked on #648 (conflict in PENDING_MASTER.md) |
+| **P2** | Fix user-logs duration bug | #641 | Line 484 (ms vs seconds) |
+
+#### 📊 Open PRs Status (4 Total)
+
+| PR | Title | Branch | Review Comments | Code Status |
+|----|-------|--------|-----------------|-------------|
+| **#648** 🔥 | Superadmin lint exemptions | `fix/superadmin-lint-exemptions` | ✅ Clean | 12 files, +20/-3 |
+| **#647** | BI-DATA schema fix | `fix/bi-data-schema-mismatch` | ✅ Clean | 1 file, +28/-27 |
+| **#641** | P2 Sprint (subscriptions, MFA, sessions) | `feat/p2-subscription-flows` | 31 comments → 6 verified addressed | P0/P1 fixes done |
+| **#640** | P1 Compliance (fraud, Ejar) | `feat/p1-compliance-fixes-sprint1` | ✅ Clean | 3 files, fraud + Ejar implemented |
+
+#### ✅ PR #641 Review Comment Verification (This Session)
+
+Verified that P0/P1 security comments from CodeRabbit, Gemini, and ChatGPT-Codex are **already addressed in code**:
+
+| Priority | Issue | File | Status | Evidence |
+|----------|-------|------|--------|----------|
+| **P0** | Hardcoded MFA fallback secret | `MFAApprovalToken.ts` | ✅ FIXED | `getTokenSecret()` throws if not configured |
+| **P0** | org_id not required in RevokedSession | `RevokedSession.ts` | ✅ FIXED | `org_id: { type: String, required: true }` |
+| **P1** | Race condition in token validation | `MFAApprovalToken.ts` | ✅ FIXED | Atomic `findOneAndUpdate` with `used:false` |
+| **P1** | Scheduled plan changes applied immediately | `subscriptionBillingService.ts` | ✅ FIXED | Only updates fields when `immediate=true` |
+| **P1** | Silent failure when no tier matches | `subscriptionBillingService.ts` | ✅ FIXED | Throws error with descriptive message |
+| **P1** | ObjectId validation missing | `mfa-approvals/route.ts` | ✅ FIXED | `ObjectId.isValid()` checks added |
+| **Medium** | Regex injection in userId | `RevokedSession.ts` | ✅ FIXED | Regex special chars escaped |
+| **Medium** | orgId not required in terminate | `sessions/terminate/route.ts` | ✅ FIXED | orgId validation added |
+
+#### ⚠️ Remaining Issue (1)
+
+| File | Line | Issue | Fix Required |
+|------|------|-------|--------------|
+| `app/superadmin/user-logs/page.tsx` | 484 | Duration calculation uses milliseconds but `formatDuration()` expects seconds | `Math.floor((Date.now() - new Date(s.startedAt).getTime()) / 1000)` |
+
+#### 🔧 Known Blockers
+
+1. **PR #648 CI**: Must merge first to unblock lint warnings on other PRs
+2. **PR #640 Conflict**: PENDING_MASTER.md has merge markers (resolve after #648)
+3. **Vercel OOM**: PR #641 preview build fails (Three.js bundle - non-blocking for merge)
+
+#### 📋 Merge Sequence
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PR #648 (lint) → main → Rebase #647, #641, #640 → Merge all   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**User Actions Required** (when PR #648 CI passes):
+```bash
+# 1. Merge lint exemptions
+gh pr merge 648 --squash --delete-branch
+
+# 2. Rebase and push other PRs
+for branch in fix/bi-data-schema-mismatch feat/p2-subscription-flows feat/p1-compliance-fixes-sprint1; do
+  git checkout $branch && git rebase origin/main && git push --force-with-lease
+done
+
+# 3. Merge remaining PRs in order: #647 → #641 → #640
+```
+
+---
+
 ### 2026-01-02 23:00 (Asia/Riyadh) — CI Re-run + Merge Strategy Execution [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
