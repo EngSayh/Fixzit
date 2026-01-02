@@ -529,19 +529,92 @@ export async function getFinanceKPIs(
       status: "active",
     });
     
+    // BI-KPI-001: Real cash flow calculation (inflows - outflows)
+    const cashFlowPipeline = [
+      {
+        $match: {
+          org_id: orgId,
+          date: { $gte: dateRange.start, $lte: dateRange.end },
+          status: "completed",
+        },
+      },
+      {
+        $group: {
+          _id: "$type",
+          total: { $sum: "$amount" },
+        },
+      },
+    ];
+    const prevCashFlowPipeline = [
+      {
+        $match: {
+          org_id: orgId,
+          date: { $gte: previousRange.start, $lte: previousRange.end },
+          status: "completed",
+        },
+      },
+      {
+        $group: {
+          _id: "$type",
+          total: { $sum: "$amount" },
+        },
+      },
+    ];
+    
+    const [cashFlowResult, prevCashFlowResult] = await Promise.all([
+      db.collection("payments").aggregate(cashFlowPipeline).toArray(),
+      db.collection("payments").aggregate(prevCashFlowPipeline).toArray(),
+    ]);
+    
+    const inflows = cashFlowResult.find(r => r._id === "income")?.total || 0;
+    const outflows = cashFlowResult.find(r => r._id === "expense")?.total || 0;
+    const cashFlowValue = inflows - outflows;
+    
+    const prevInflows = prevCashFlowResult.find(r => r._id === "income")?.total || 0;
+    const prevOutflows = prevCashFlowResult.find(r => r._id === "expense")?.total || 0;
+    const prevCashFlowValue = prevInflows - prevOutflows;
+    
+    // BI-KPI-002: Real expense ratio calculation
+    const expensePipeline = [
+      {
+        $match: {
+          org_id: orgId,
+          date: { $gte: dateRange.start, $lte: dateRange.end },
+          type: "expense",
+          status: "completed",
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ];
+    const prevExpensePipeline = [
+      {
+        $match: {
+          org_id: orgId,
+          date: { $gte: previousRange.start, $lte: previousRange.end },
+          type: "expense",
+          status: "completed",
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ];
+    
+    const [expenseResult, prevExpenseResult] = await Promise.all([
+      db.collection("transactions").aggregate(expensePipeline).toArray(),
+      db.collection("transactions").aggregate(prevExpensePipeline).toArray(),
+    ]);
+    
+    const totalExpenses = expenseResult[0]?.total || 0;
+    const prevExpenses = prevExpenseResult[0]?.total || 0;
+    const expenseRatioValue = totalRevenueValue > 0 ? (totalExpenses / totalRevenueValue) * 100 : 0;
+    const prevExpenseRatioValue = prevRevenueValue > 0 ? (prevExpenses / prevRevenueValue) * 100 : 0;
+    
     return {
       totalRevenue: createKPIResult(totalRevenueValue, prevRevenueValue),
       outstandingReceivables: createKPIResult(receivablesResult[0]?.total || 0, 0, "lower_better"),
-      // TODO: [BI-KPI-001] cashFlow is a placeholder estimate (80% of revenue).
-      // SSOT: FEAT-BI-CASHFLOW-001 (P2 - BI Dashboard Real Metrics)
-      // Replace with actual cash flow calculation from transactions collection.
-      // Implementation: Query payments collection for inflows/outflows by period
-      cashFlow: createKPIResult(totalRevenueValue * 0.8, prevRevenueValue * 0.8),
-      // TODO: [BI-KPI-002] expenseRatio is hardcoded (35%).
-      // SSOT: FEAT-BI-EXPENSE-001 (P2 - BI Dashboard Real Metrics)
-      // Replace with actual expense/revenue ratio from finance ledger.
-      // Implementation: Query expenses collection and divide by revenue
-      expenseRatio: createKPIResult(35, 38, "lower_better", 30),
+      // BI-KPI-001: FIXED - Now using actual cash flow from payments collection
+      cashFlow: createKPIResult(cashFlowValue, prevCashFlowValue),
+      // BI-KPI-002: FIXED - Now using actual expense/revenue ratio
+      expenseRatio: createKPIResult(expenseRatioValue, prevExpenseRatioValue, "lower_better", 30),
       revenuePerUnit: createKPIResult(
         unitCount > 0 ? totalRevenueValue / unitCount : 0,
         unitCount > 0 ? prevRevenueValue / unitCount : 0
@@ -654,12 +727,13 @@ export async function getOperationsKPIs(
       avgResolutionTime: createKPIResult(avgResolutionHours, 0, "lower_better", 24),
       slaCompliance: createKPIResult(slaCompliance, 0, "higher_better", 95),
       preventiveMaintenance: createKPIResult(preventiveRatio, 0, "higher_better", 30),
-      // TODO: [BI-KPI-003] firstTimeFixRate is hardcoded (85%).
-      // SSOT: FEAT-BI-FTFR-001 (P2 - BI Dashboard Real Metrics)
-      // Replace with actual calculation from work_orders collection:
-      // Implementation: (work orders resolved on first visit / total work orders) * 100
-      // Query: workorders where resolution_attempts = 1 / total workorders
-      firstTimeFixRate: createKPIResult(85, 82, "higher_better", 90),
+      // BI-KPI-003: FIXED - Now calculating actual first time fix rate
+      firstTimeFixRate: createKPIResult(
+        await calculateFirstTimeFixRate(db, orgId, dateRange),
+        await calculateFirstTimeFixRate(db, orgId, previousRange),
+        "higher_better",
+        90
+      ),
     };
   } catch (error) {
     logError("get operations KPIs", error);
@@ -789,6 +863,7 @@ export async function getHRKPIs(
     if (!dateRange) {
       throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
     }
+    const previousRange = getPreviousPeriodRange(timeRange);
     
     // Employee count
     const employeeCount = await db.collection("employees").countDocuments({
@@ -876,11 +951,11 @@ export async function getHRKPIs(
       attendanceRate: createKPIResult(attendanceRate, 0, "higher_better", 95),
       turnoverRate: createKPIResult(turnoverRate, 0, "lower_better", 10),
       avgTenure: createKPIResult(avgTenureYears, 0),
-      // TODO: [BI-KPI-004] trainingHours is hardcoded placeholder (40 hours).
-      // SSOT: FEAT-BI-TRAINING-001 (P2 - BI Dashboard Real Metrics)
-      // Replace with actual training hours from HR training module.
-      // Implementation: Query employee training records for total hours
-      trainingHours: createKPIResult(40, 35),
+      // BI-KPI-004: FIXED - Now calculating actual training hours per employee
+      trainingHours: createKPIResult(
+        (await calculateTrainingHours(db, orgId, dateRange)).current,
+        (await calculateTrainingHours(db, orgId, previousRange)).current
+      ),
       payrollCost: createKPIResult(payrollResult[0]?.total || 0, 0),
     };
   } catch (error) {
@@ -1556,6 +1631,78 @@ async function getMetricValue(
     .aggregate(pipeline).toArray();
   
   return result[0]?.value || 0;
+}
+
+/**
+ * BI-KPI-003: Calculate First Time Fix Rate
+ * (Work orders resolved on first visit / Total completed work orders) * 100
+ */
+async function calculateFirstTimeFixRate(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  orgId: string,
+  dateRange: DateRange
+): Promise<number> {
+  // Total completed work orders in period
+  const totalCompleted = await db.collection("work_orders").countDocuments({
+    org_id: orgId,
+    status: "completed",
+    completedAt: { $gte: dateRange.start, $lte: dateRange.end },
+  });
+  
+  if (totalCompleted === 0) {
+    return 0;
+  }
+  
+  // Work orders resolved on first visit (resolution_attempts = 1 or not set)
+  const firstVisitResolved = await db.collection("work_orders").countDocuments({
+    org_id: orgId,
+    status: "completed",
+    completedAt: { $gte: dateRange.start, $lte: dateRange.end },
+    $or: [
+      { resolution_attempts: 1 },
+      { resolution_attempts: { $exists: false } },
+      { visit_count: 1 },
+      { visit_count: { $exists: false } },
+    ],
+  });
+  
+  return (firstVisitResolved / totalCompleted) * 100;
+}
+
+/**
+ * BI-KPI-004: Calculate Training Hours per Employee
+ */
+async function calculateTrainingHours(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  orgId: string,
+  dateRange: DateRange
+): Promise<{ current: number; previous: number }> {
+  const pipeline = [
+    {
+      $match: {
+        org_id: orgId,
+        completed_at: { $gte: dateRange.start, $lte: dateRange.end },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalHours: { $sum: "$duration_hours" },
+        employeeCount: { $addToSet: "$employee_id" },
+      },
+    },
+  ];
+  
+  const result = await db.collection("training_records")
+    .aggregate(pipeline).toArray();
+  
+  const totalHours = result[0]?.totalHours || 0;
+  const employeeCount = result[0]?.employeeCount?.length || 0;
+  
+  return {
+    current: employeeCount > 0 ? totalHours / employeeCount : 0,
+    previous: 0, // Will be calculated separately for comparison
+  };
 }
 
 // ============================================================================

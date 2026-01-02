@@ -82,18 +82,18 @@
 
 ## P2 Medium Priority Issues (11 New)
 
-| Issue ID | Title | Module | Effort |
-|----------|-------|--------|--------|
-| FEAT-0029 | Subscription plan change flow (FIXZIT-SUB-001) | billing | L |
-| FEAT-0030 | Subscription cancellation flow (FIXZIT-SUB-002) | billing | M |
-| FEAT-0031 | Inspection tenant notification | fm | S |
-| FEAT-0032 | Session termination | auth | M |
-| FEAT-0033 | MFA approval system integration | auth | M |
-| - | BI Dashboard hardcoded KPIs | reports | M |
-| - | Customer trend calculation | crm | M |
-| - | Mock data replacement | api | S |
-| - | Comments API not implemented | ui | M |
-| TG-005 | Test mock setup batch (8 files) | tests | L |
+| Issue ID | Title | Module | Effort | Status |
+|----------|-------|--------|--------|--------|
+| FEAT-0029 | Subscription plan change flow (FIXZIT-SUB-001) | billing | L | ✅ CLOSED |
+| FEAT-0030 | Subscription cancellation flow (FIXZIT-SUB-002) | billing | M | ✅ CLOSED |
+| FEAT-0031 | Inspection tenant notification | fm | S | ✅ CLOSED |
+| FEAT-0032 | Session termination | auth | M | ✅ CLOSED |
+| FEAT-0033 | MFA approval system integration | auth | M | ✅ CLOSED |
+| BI-KPI-* | BI Dashboard hardcoded KPIs (4 items) | reports | M | ✅ CLOSED |
+| - | Customer trend calculation | crm | M | |
+| - | Mock data replacement | api | S | |
+| - | Comments API not implemented | ui | M | |
+| TG-005 | Test mock setup batch (8 files) | tests | L | |
 
 ---
 
