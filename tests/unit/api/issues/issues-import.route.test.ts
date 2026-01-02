@@ -21,6 +21,16 @@ vi.mock("next/server", () => ({
   },
 }));
 
+// Mock mongoose (TG-005: ObjectId constructor and isValidObjectId must work for orgId)
+vi.mock("mongoose", () => ({
+  default: {
+    Types: {
+      ObjectId: vi.fn().mockImplementation((id: string) => ({ toString: () => id })),
+    },
+    isValidObjectId: vi.fn().mockReturnValue(true),
+  },
+}));
+
 vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
@@ -62,21 +72,29 @@ import { mockSuperadmin } from "@/tests/helpers/superadminAuth";
 // Mock parse body
 vi.mock("@/lib/api/parse-body", () => ({}));
 
-// Mock Issue model
-const findOneMock = vi.fn().mockResolvedValue(null);
-const updateOneMock = vi.fn().mockResolvedValue({});
-const saveMock = vi.fn().mockResolvedValue({
-  _id: "new-issue-1",
-  title: "Test Issue",
-});
-
+// Mock Issue model (TG-005: Complete mock for import success path)
 vi.mock("@/server/models/Issue", () => {
-  const IssueMock: any = vi.fn().mockImplementation(() => ({
+  // TG-005: All mocks must be self-contained inside factory (can't reference outer scope)
+  const saveMock = vi.fn().mockResolvedValue({
     _id: "new-issue-1",
+    title: "Test Issue",
+    key: "bug-1",
+    issueId: "BUG-0001",
+  });
+
+  // TG-005: Issue constructor returns an object with _id and save method
+  const IssueMock: any = vi.fn().mockImplementation((data: any) => ({
+    _id: "new-issue-1",
+    ...data,
     save: saveMock,
   }));
-  IssueMock.findOne = findOneMock;
-  IssueMock.updateOne = updateOneMock;
+
+  // TG-005: findOne returns chainable with lean() that resolves to null (no existing issue)
+  IssueMock.findOne = vi.fn().mockImplementation(() => ({
+    lean: vi.fn().mockResolvedValue(null),
+  }));
+
+  IssueMock.updateOne = vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
   IssueMock.generateIssueId = vi.fn().mockResolvedValue("BUG-0001");
 
   return {
@@ -192,8 +210,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest();
       const res = await POST(req);
-      // TODO(TG-005): Fix mock setup - needs complete DB mocks
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("returns 400 when body parsing fails", async () => {
@@ -219,13 +236,22 @@ describe("Issues Import API Route", () => {
     it("skips duplicates when option is enabled", async () => {
       mockSuperadmin();
 
-      // Mock finding existing issue
-      findOneMock.mockResolvedValueOnce({ _id: "existing-1", title: "Test Issue 1", status: "OPEN" });
+      // Mock finding existing issue - use the lean() chainable pattern
+      const { Issue } = await import("@/server/models/Issue");
+      vi.mocked(Issue.findOne).mockImplementationOnce(() => ({
+        lean: vi.fn().mockResolvedValue({
+          _id: "existing-1",
+          title: "Test Issue 1",
+          status: "OPEN",
+          externalId: "EXT-001",
+          action: "Fix: Test Issue 1",
+          location: { filePath: "docs/test.md" },
+        }),
+      }) as any);
 
       const req = makeRequest();
       const res = await POST(req);
-      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete DB mocks
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("handles dry run mode", async () => {
@@ -235,8 +261,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest({ ...defaultPayload, dryRun: true });
       const res = await POST(req);
-      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete DB mocks
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("handles dry run mode", async () => {
@@ -247,8 +272,7 @@ describe("Issues Import API Route", () => {
         issues: [defaultPayload.issues[0]],
       });
       const res = await POST(req);
-      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete DB mocks
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("propagates Retry-After when rate limited", async () => {

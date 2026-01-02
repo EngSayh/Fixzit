@@ -39,17 +39,34 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: () => mockRateLimitResponse,
 }));
 
-// Mock Order model
+// Mock Order model with proper mock data for TG-005 fix
+const mockOrders = [
+  {
+    _id: "order-1",
+    orgId: "507f1f77bcf86cd799439011",
+    customerId: "customer-1",
+    status: "PENDING",
+    items: [{ listingId: "listing-1", sellerId: "507f1f77bcf86cd799439011", quantity: 1, price: 100 }],
+    total: 100,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
+// TG-005 FIX: Create chainable mock that supports all query methods including populate
+const createChainableMock = (data: unknown[]) => ({
+  populate: vi.fn().mockReturnThis(),
+  skip: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  sort: vi.fn().mockReturnThis(),
+  lean: vi.fn().mockResolvedValue(data),
+});
+
 vi.mock("@/server/models/souq/Order", () => ({
   SouqOrder: {
-    find: vi.fn().mockReturnValue({
-      skip: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      sort: vi.fn().mockReturnThis(),
-      lean: vi.fn().mockResolvedValue([]),
-    }),
-    countDocuments: vi.fn().mockResolvedValue(0),
-    create: vi.fn(),
+    find: vi.fn(() => createChainableMock(mockOrders)),
+    countDocuments: vi.fn().mockResolvedValue(1),
+    create: vi.fn().mockResolvedValue(mockOrders[0]),
   },
 }));
 
@@ -146,8 +163,8 @@ describe("API /api/souq/orders", () => {
       expect(res.status).toBe(403);
     });
 
-    // TODO(TG-005): Complete mock setup for deterministic test
-    it.skip("returns orders for authenticated user with orgId", async () => {
+    // TG-005 FIXED: Mock setup now includes proper order data with populate support
+    it("returns orders for authenticated user with orgId", async () => {
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
@@ -158,8 +175,12 @@ describe("API /api/souq/orders", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
-      // Requires complete session/DB mocks for 200 response
+      // With proper mocks, should return 200
       expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.data).toBeDefined();
+      expect(data.pagination).toBeDefined();
     });
 
     it("supports status filter", async () => {
@@ -174,8 +195,8 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
-      expect([200, 500]).toContain(res.status);
+      // TG-005 FIXED: Proper mocks should return 200
+      expect(res.status).toBe(200);
     });
 
     it("supports customerId filter", async () => {
@@ -190,8 +211,8 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
-      expect([200, 500]).toContain(res.status);
+      // TG-005 FIXED: Proper mocks should return 200
+      expect(res.status).toBe(200);
     });
 
     it("supports pagination parameters", async () => {
@@ -206,8 +227,8 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
-      expect([200, 500]).toContain(res.status);
+      // TG-005 FIXED: Proper mocks should return 200
+      expect(res.status).toBe(200);
     });
   });
 
