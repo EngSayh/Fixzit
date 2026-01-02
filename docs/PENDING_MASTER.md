@@ -19,6 +19,35 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-02 17:15 (Asia/Riyadh) — Admin Support Tickets Integration [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** fix/tg-005-test-mocks | Connect admin support-tickets API to FM collection  
+**Commit:** `a64565915`
+
+**Changes:**
+| File | Action | Description |
+|------|--------|-------------|
+| `app/api/admin/support-tickets/route.ts` | MODIFIED | Integrated with fm_support_tickets collection |
+
+**Feature Details:**
+- Platform-wide query for superadmin (NO_TENANT_SCOPE)
+- Pagination with limit/skip (max 200)
+- Filtering by status and priority
+- Sorted by newest first
+- Removed placeholder TODO
+
+**Verification:**
+- [x] `pnpm typecheck` — 0 errors
+- [x] `pnpm lint` — 0 errors (25 pre-existing warnings)
+- [x] Pushed to origin/fix/tg-005-test-mocks
+
+**P3 Status Update:**
+- Ticketing integration: ✅ DONE
+- Vitest migration: NON-ACTIONABLE (upstream dependency)
+
+---
+
 ### 2026-01-14 16:40 (Asia/Riyadh) — Superadmin Notification Badge [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  

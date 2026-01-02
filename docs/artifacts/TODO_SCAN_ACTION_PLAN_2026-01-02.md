@@ -115,8 +115,8 @@
 | FEAT-0035 | Health monitoring integration | monitoring | M | ✅ DONE (PR #642) |
 | FEAT-0036 | AI building model generation | aqar | XL | Backlog |
 | REFAC-0003 | FM Properties schema mismatch (TODO-002) | fm | L | ✅ DONE (PR #646) |
-| - | Vitest multi-project migration | tests | M | Backlog |
-| - | Ticketing system integration | support | M | Backlog |
+| - | Vitest multi-project migration | tests | M | NON-ACTIONABLE (upstream) |
+| - | Ticketing system integration | support | M | ✅ DONE (commit a64565915) |
 | - | Superadmin notification badge | ui | S | ✅ DONE (commit 8d6d37029) |
 | - | BLOCKED: Souq Orders mismatch (TODO-001) | souq | M | BLOCKED |
 
