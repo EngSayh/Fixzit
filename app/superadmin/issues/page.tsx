@@ -414,7 +414,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
       if (viewMode === "quickWins") params.set("quickWins", "true");
       if (viewMode === "stale") params.set("stale", "true");
 
-      const response = await fetch(`/api/issues?${params.toString()}`);
+      const response = await fetch(`/api/issues?${params.toString()}`, {
+        credentials: "include",
+      });
       
       if (!response.ok) {
         // Check for specific error types
@@ -472,7 +474,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch("/api/issues/stats");
+      const response = await fetch("/api/issues/stats", {
+        credentials: "include",
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -549,7 +553,9 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
   // Export handler
   const handleExport = async () => {
     try {
-      const response = await fetch("/api/issues?limit=5000");
+      const response = await fetch("/api/issues?limit=5000", {
+        credentials: "include",
+      });
       const data = await response.json();
       const payload = data.data || data;
       const issuesCount = (payload.issues || []).length;
@@ -606,6 +612,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
       const response = await fetch("/api/issues/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           issues,
           dryRun,
