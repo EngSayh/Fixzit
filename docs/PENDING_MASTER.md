@@ -19,60 +19,77 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
-### 2026-01-03 01:00 (Asia/Riyadh) — Superadmin Vercel Diagnostic [AGENT-001-A]
+### 2026-01-03 01:00 (Asia/Riyadh) — PR Batch Review & Action Plan Update [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
-**Context:** Created diagnostic endpoint to troubleshoot superadmin login failure on Vercel production
+**Branch:** `fix/superadmin-lint-exemptions`  
+**Context:** Continuing PR Copilot batch review, updating SSOT with action plan
 
-#### 🔴 ISSUE: Superadmin Works Locally, Fails on Vercel Production
+#### 📋 Action Plan (Priority Order)
 
-**Symptoms:**
-- Login works on localhost:3000
-- Login fails on Vercel production (fixzit.vercel.app)
-- Service worker cache failure errors in browser
+| Priority | Task | PR | Status |
+|----------|------|-----|--------|
+| **P0** | Merge lint exemptions (unblocks all PRs) | #648 | ⏳ CI pending |
+| **P1** | Merge BI-DATA schema fix | #647 | ⏸️ Blocked on #648 |
+| **P1** | Merge P2 subscriptions + security | #641 | ⏸️ Blocked on #648 |
+| **P1** | Merge P1 compliance + fraud + Ejar | #640 | ⏸️ Blocked on #648 (conflict in PENDING_MASTER.md) |
+| **P2** | Fix user-logs duration bug | #641 | Line 484 (ms vs seconds) |
 
-**Root Cause Analysis:**
-Superadmin login requires these environment variables. If any category is missing, login will fail silently:
+#### 📊 Open PRs Status (4 Total)
 
-| Category | Required Env Var | Fallbacks |
-|----------|-----------------|-----------|
-| **JWT Secret** | `SUPERADMIN_JWT_SECRET` | `NEXTAUTH_SECRET`, `AUTH_SECRET` |
-| **Password** | `SUPERADMIN_PASSWORD_HASH` | `SUPERADMIN_PASSWORD` |
-| **Org ID** | `SUPERADMIN_ORG_ID` | `PUBLIC_ORG_ID`, `DEFAULT_ORG_ID` |
+| PR | Title | Branch | Review Comments | Code Status |
+|----|-------|--------|-----------------|-------------|
+| **#648** 🔥 | Superadmin lint exemptions | `fix/superadmin-lint-exemptions` | ✅ Clean | 12 files, +20/-3 |
+| **#647** | BI-DATA schema fix | `fix/bi-data-schema-mismatch` | ✅ Clean | 1 file, +28/-27 |
+| **#641** | P2 Sprint (subscriptions, MFA, sessions) | `feat/p2-subscription-flows` | 31 comments → 6 verified addressed | P0/P1 fixes done |
+| **#640** | P1 Compliance (fraud, Ejar) | `feat/p1-compliance-fixes-sprint1` | ✅ Clean | 3 files, fraud + Ejar implemented |
 
-**Resolution (PR #650):**
-1. Created `/api/superadmin/diag` endpoint for remote diagnosis
-2. Added SUPERADMIN vars to `scripts/check-vercel-env.ts`
+#### ✅ PR #641 Review Comment Verification (This Session)
 
-#### 📋 User Action Required
+Verified that P0/P1 security comments from CodeRabbit, Gemini, and ChatGPT-Codex are **already addressed in code**:
 
-1. **Deploy PR #650** to Vercel preview
-2. **Access diagnostic endpoint**:
-   ```bash
-   curl -H "x-diag-key: YOUR_INTERNAL_API_SECRET" \
-        https://your-preview-url.vercel.app/api/superadmin/diag
-   ```
-3. **Check which variables are missing** in response
-4. **Add missing env vars in Vercel dashboard** → Settings → Environment Variables
-5. **Redeploy** after adding variables
+| Priority | Issue | File | Status | Evidence |
+|----------|-------|------|--------|----------|
+| **P0** | Hardcoded MFA fallback secret | `MFAApprovalToken.ts` | ✅ FIXED | `getTokenSecret()` throws if not configured |
+| **P0** | org_id not required in RevokedSession | `RevokedSession.ts` | ✅ FIXED | `org_id: { type: String, required: true }` |
+| **P1** | Race condition in token validation | `MFAApprovalToken.ts` | ✅ FIXED | Atomic `findOneAndUpdate` with `used:false` |
+| **P1** | Scheduled plan changes applied immediately | `subscriptionBillingService.ts` | ✅ FIXED | Only updates fields when `immediate=true` |
+| **P1** | Silent failure when no tier matches | `subscriptionBillingService.ts` | ✅ FIXED | Throws error with descriptive message |
+| **P1** | ObjectId validation missing | `mfa-approvals/route.ts` | ✅ FIXED | `ObjectId.isValid()` checks added |
+| **Medium** | Regex injection in userId | `RevokedSession.ts` | ✅ FIXED | Regex special chars escaped |
+| **Medium** | orgId not required in terminate | `sessions/terminate/route.ts` | ✅ FIXED | orgId validation added |
 
-#### 📊 Open PR Status (As of 01:00)
+#### ⚠️ Remaining Issue (1)
 
-| PR | Branch | Mergeable | Status | Priority |
-|----|--------|-----------|--------|----------|
-| **#650** 🆕 | `fix/superadmin-vercel-diag` | ✅ MERGEABLE | CI Running | **MERGE FOR DIAG** |
-| **#649** | `fix/todo-placeholder-cleanup-p0` | ✅ MERGEABLE | CI Passed | READY |
-| **#648** | `fix/superadmin-lint-exemptions` | ✅ MERGEABLE | CI Running | READY |
-| **#647** | `fix/bi-data-schema-mismatch` | ✅ MERGEABLE | CI Running | READY |
-| **#641** | `feat/p2-subscription-flows` | ❌ CONFLICTING | Needs Rebase | After #648-650 |
-| **#640** | `feat/p1-compliance-fixes-sprint1` | ❌ CONFLICTING | Needs Rebase | After #641 |
+| File | Line | Issue | Fix Required |
+|------|------|-------|--------------|
+| `app/superadmin/user-logs/page.tsx` | 484 | Duration calculation uses milliseconds but `formatDuration()` expects seconds | `Math.floor((Date.now() - new Date(s.startedAt).getTime()) / 1000)` |
 
-#### 🎯 Recommended Merge Sequence
+#### 🔧 Known Blockers
+
+1. **PR #648 CI**: Must merge first to unblock lint warnings on other PRs
+2. **PR #640 Conflict**: PENDING_MASTER.md has merge markers (resolve after #648)
+3. **Vercel OOM**: PR #641 preview build fails (Three.js bundle - non-blocking for merge)
+
+#### 📋 Merge Sequence
 
 ```
-#650 (diag) ──merge──▶ #649 ──merge──▶ #648 ──merge──▶ #647 ──merge──▶ main
-                                                                        │
-#641 (rebase on main) ──merge──▶ #640 (rebase on main) ──merge──▶ done
+┌─────────────────────────────────────────────────────────────────┐
+│  PR #648 (lint) → main → Rebase #647, #641, #640 → Merge all   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**User Actions Required** (when PR #648 CI passes):
+```bash
+# 1. Merge lint exemptions
+gh pr merge 648 --squash --delete-branch
+
+# 2. Rebase and push other PRs
+for branch in fix/bi-data-schema-mismatch feat/p2-subscription-flows feat/p1-compliance-fixes-sprint1; do
+  git checkout $branch && git rebase origin/main && git push --force-with-lease
+done
+
+# 3. Merge remaining PRs in order: #647 → #641 → #640
 ```
 
 ---

@@ -54,6 +54,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for integration test functions
     const integration = await Integration.findById(id);
     if (!integration) {
       return NextResponse.json(
