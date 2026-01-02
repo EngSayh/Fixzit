@@ -19,6 +19,57 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-14 14:30 (Asia/Riyadh) — REFAC-0003: FM Properties Schema Alignment [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `fix/refac-0003-fm-properties-schema`  
+**PR:** #646
+
+#### 📊 Issue Summary
+
+| Field | Value |
+|-------|-------|
+| Issue ID | REFAC-0003 / TODO-002 |
+| Module | FM (Facility Management) |
+| Effort | L (Low) |
+| Status | ✅ RESOLVED |
+
+#### 🐛 Problem
+
+Schema mismatch between FM Properties API route and Property model:
+- **Route expected**: Flat fields (`lease_status`, `area`, `floors`)
+- **Model had**: Nested structure (`details.totalArea`, `details.floors`, `ownership.lease`)
+
+#### ✅ Solution
+
+Backward-compatible schema alignment:
+
+1. **Property Model** (`server/models/Property.ts`):
+   - Added flat fields: `lease_status`, `area`, `floors`, `metadata`
+   - Updated header comment from DEFERRED to RESOLVED
+
+2. **FM Route** (`app/api/fm/properties/route.ts`):
+   - Extended PropertyDocument type with nested structure support
+   - Implemented fallback mapper: flat fields → nested structure → defaults
+
+#### 📋 Backward Compatibility
+
+| Scenario | Behavior |
+|----------|----------|
+| Existing docs (nested) | ✅ Mapped via fallback |
+| New docs (flat) | ✅ Direct field access |
+| Query filters | ✅ Work with both |
+
+#### 📊 Verification Gates
+
+| Gate | Result | Evidence |
+|------|--------|----------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` |
+| ESLint | ✅ 0 errors | 25 pre-existing warnings |
+| Pre-commit hooks | ✅ Pass | Commit a01d1b9e9 |
+
+---
+
 ### 2026-01-14 12:55 (Asia/Riyadh) — Test Infrastructure: 100% Pass Rate [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
