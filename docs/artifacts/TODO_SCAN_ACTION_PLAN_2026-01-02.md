@@ -90,9 +90,9 @@
 | FEAT-0032 | Session termination | auth | M | ✅ CLOSED |
 | FEAT-0033 | MFA approval system integration | auth | M | ✅ CLOSED |
 | BI-KPI-* | BI Dashboard hardcoded KPIs (4 items) | reports | M | ✅ CLOSED |
-| - | Customer trend calculation | crm | M | |
-| - | Mock data replacement | api | S | |
-| - | Comments API not implemented | ui | M | |
+| CRM-TREND | Customer NPS trend calculation | crm | S | ✅ CLOSED |
+| - | Mock data replacement (FM Providers) | api | L | DEFERRED (8-16h) |
+| - | Comments API not implemented | ui | M | N/A (i18n placeholder) |
 | TG-005 | Test mock setup batch (8 files) | tests | L | |
 
 ---
