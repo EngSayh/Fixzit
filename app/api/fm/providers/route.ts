@@ -58,16 +58,23 @@ export async function GET(request: Request) {
     }
     
     // TODO: [ISSUE-FM-002] Replace hardcoded mock data with real database queries
+    // SSOT: FEAT-FM-PROVIDERS-001 (P2 - FM Provider Marketplace)
     // Current implementation returns static provider data for all tenants.
     // Priority: P2 - Required for production FM Provider marketplace
-    // Implementation:
-    //   1. Import ServiceProvider model and provider-network service
-    //   2. Query providers filtered by org_id, category, city
-    //   3. Calculate real statistics from ServiceProvider collection
-    //   4. Return actual bid data from Bid collection
-    // See: services/fm/provider-network.ts for service layer
+    // Implementation Requirements:
+    //   1. Create "service_providers" collection in MongoDB
+    //   2. Add SERVICE_PROVIDERS to lib/db/collection-names.ts
+    //   3. Create ServiceProvider Mongoose model
+    //   4. Import provider-network service from services/fm/provider-network.ts
+    //   5. Query providers filtered by org_id, category, city
+    //   6. Calculate real statistics from ServiceProvider collection
+    //   7. Return actual bid data from Bid collection
+    // See: services/fm/provider-network.ts for service layer types
+    // Estimated effort: 8-16 hours
+    // Risk: LOW - Demo mode provides fallback
     
     // Provider Network Data (DEMO/STUB - replace with real queries per TODO above)
+    // WARNING: This mock data is returned for ALL tenants until FEAT-FM-PROVIDERS-001 is implemented
     const providerNetwork = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,

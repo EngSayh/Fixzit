@@ -746,15 +746,32 @@ export async function updateApprovalDecision(
       approval.delegationReason = notes;
     }
 
-    // Add to history
+    // Add to history with actual actor name lookup
     const { Types } = await import("mongoose");
+    const { User } = await import("@/server/models/User");
+    
+    // Look up actor name from database - fallback to "Unknown" if not found
+    let actorName = "Unknown";
+    try {
+      const approver = await User.findById(approverId)
+        .select("personal.firstName personal.lastName email")
+        .lean<{ personal?: { firstName?: string; lastName?: string }; email?: string }>();
+      if (approver) {
+        const firstName = approver.personal?.firstName || "";
+        const lastName = approver.personal?.lastName || "";
+        actorName = [firstName, lastName].filter(Boolean).join(" ") || approver.email || "Unknown";
+      }
+    } catch (lookupError) {
+      logger.warn("[Approval] Failed to lookup actor name", { approverId, lookupError });
+    }
+    
     approval.history.push({
       timestamp: new Date(),
       action: decision,
       actorId: new Types.ObjectId(
         approverId,
       ) as unknown as Schema.Types.ObjectId,
-      actorName: "TBD",
+      actorName,
       previousStatus: "PENDING",
       newStatus: approval.status,
       notes,
