@@ -155,7 +155,7 @@
 | ID | Title | Status | Notes |
 |---|---|---|---|
 | FEAT-0034 | Redis pub/sub scaling | ✅ CLOSED | PR #642, commit a9b664c24 |
-| FEAT-0035 | Health monitoring integration | ⏳ IN PROGRESS | Health endpoints exist |
+| FEAT-0035 | Health monitoring integration | ✅ CLOSED | PR #642 - health-aggregator + metrics-registry |
 | REFAC-0003 | FM Properties schema mismatch | DEFERRED | Marked in code (TODO-002) |
 | FEAT-0036 | AI building model generation | NOT STARTED | XL effort |
 
