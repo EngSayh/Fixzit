@@ -721,19 +721,19 @@ export async function getOperationsKPIs(
     
     const preventiveRatio = completedCount > 0 ? (preventiveCount / completedCount) * 100 : 0;
     
+    // BI-KPI-003: Calculate first time fix rates for current and previous periods in parallel
+    const [currentFirstTimeFix, previousFirstTimeFix] = await Promise.all([
+      calculateFirstTimeFixRate(db, orgId, dateRange),
+      calculateFirstTimeFixRate(db, orgId, previousRange),
+    ]);
+    
     return {
       workOrdersCreated: createKPIResult(createdCount, prevCreatedCount),
       workOrdersCompleted: createKPIResult(completedCount, prevCompletedCount),
       avgResolutionTime: createKPIResult(avgResolutionHours, 0, "lower_better", 24),
       slaCompliance: createKPIResult(slaCompliance, 0, "higher_better", 95),
       preventiveMaintenance: createKPIResult(preventiveRatio, 0, "higher_better", 30),
-      // BI-KPI-003: FIXED - Now calculating actual first time fix rate
-      firstTimeFixRate: createKPIResult(
-        await calculateFirstTimeFixRate(db, orgId, dateRange),
-        await calculateFirstTimeFixRate(db, orgId, previousRange),
-        "higher_better",
-        90
-      ),
+      firstTimeFixRate: createKPIResult(currentFirstTimeFix, previousFirstTimeFix, "higher_better", 90),
     };
   } catch (error) {
     logError("get operations KPIs", error);
@@ -946,16 +946,18 @@ export async function getHRKPIs(
     const payrollResult = await db.collection("payroll_runs")
       .aggregate(payrollPipeline).toArray();
     
+    // BI-KPI-004: Calculate training hours for current and previous periods in parallel
+    const [currentTrainingHours, previousTrainingHours] = await Promise.all([
+      calculateTrainingHours(db, orgId, dateRange),
+      calculateTrainingHours(db, orgId, previousRange),
+    ]);
+    
     return {
       totalEmployees: createKPIResult(employeeCount, 0),
       attendanceRate: createKPIResult(attendanceRate, 0, "higher_better", 95),
       turnoverRate: createKPIResult(turnoverRate, 0, "lower_better", 10),
       avgTenure: createKPIResult(avgTenureYears, 0),
-      // BI-KPI-004: FIXED - Now calculating actual training hours per employee
-      trainingHours: createKPIResult(
-        (await calculateTrainingHours(db, orgId, dateRange)).current,
-        (await calculateTrainingHours(db, orgId, previousRange)).current
-      ),
+      trainingHours: createKPIResult(currentTrainingHours, previousTrainingHours),
       payrollCost: createKPIResult(payrollResult[0]?.total || 0, 0),
     };
   } catch (error) {
@@ -1635,7 +1637,13 @@ async function getMetricValue(
 
 /**
  * BI-KPI-003: Calculate First Time Fix Rate
- * (Work orders resolved on first visit / Total completed work orders) * 100
+ * (Work orders completed on first visit / Total completed work orders) * 100
+ *
+ * NOTE: This implementation assumes that a `status` of `"completed"`
+ * always represents a successfully resolved work order (i.e. excludes
+ * cancelled or closed-without-resolution states). If the data model
+ * distinguishes these via a separate resolution field, the queries
+ * below should be updated to also filter on that field.
  */
 async function calculateFirstTimeFixRate(
   db: Awaited<ReturnType<typeof getDatabase>>,
@@ -1653,16 +1661,26 @@ async function calculateFirstTimeFixRate(
     return 0;
   }
   
-  // Work orders resolved on first visit (resolution_attempts = 1 or not set)
+  // Work orders completed on first visit:
+  // - resolution_attempts is 1 or not set, AND
+  // - visit_count is 1 or not set
   const firstVisitResolved = await db.collection("work_orders").countDocuments({
     org_id: orgId,
     status: "completed",
     completedAt: { $gte: dateRange.start, $lte: dateRange.end },
-    $or: [
-      { resolution_attempts: 1 },
-      { resolution_attempts: { $exists: false } },
-      { visit_count: 1 },
-      { visit_count: { $exists: false } },
+    $and: [
+      {
+        $or: [
+          { resolution_attempts: 1 },
+          { resolution_attempts: { $exists: false } },
+        ],
+      },
+      {
+        $or: [
+          { visit_count: 1 },
+          { visit_count: { $exists: false } },
+        ],
+      },
     ],
   });
   
@@ -1671,12 +1689,13 @@ async function calculateFirstTimeFixRate(
 
 /**
  * BI-KPI-004: Calculate Training Hours per Employee
+ * Returns the average training hours per employee for the given period
  */
 async function calculateTrainingHours(
   db: Awaited<ReturnType<typeof getDatabase>>,
   orgId: string,
   dateRange: DateRange
-): Promise<{ current: number; previous: number }> {
+): Promise<number> {
   const pipeline = [
     {
       $match: {
@@ -1699,10 +1718,7 @@ async function calculateTrainingHours(
   const totalHours = result[0]?.totalHours || 0;
   const employeeCount = result[0]?.employeeCount?.length || 0;
   
-  return {
-    current: employeeCount > 0 ? totalHours / employeeCount : 0,
-    previous: 0, // Will be calculated separately for comparison
-  };
+  return employeeCount > 0 ? totalHours / employeeCount : 0;
 }
 
 // ============================================================================
