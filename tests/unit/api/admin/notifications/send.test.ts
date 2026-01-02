@@ -13,6 +13,28 @@ const mockSendSMS = vi.fn();
 const mockLogCommunication = vi.fn();
 const mockAudit = vi.fn();
 
+// TG-005: Mock mongodb ObjectId to prevent constructor errors in route
+vi.mock("mongodb", () => ({
+  ObjectId: class MockObjectId {
+    private id: string;
+    constructor(id?: string) {
+      this.id = id || "507f1f77bcf86cd799439099";
+    }
+    static isValid(id: unknown): boolean {
+      return typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
+    }
+    toString() {
+      return this.id;
+    }
+    equals(other: unknown): boolean {
+      return other?.toString?.() === this.id;
+    }
+    toHexString() {
+      return this.id;
+    }
+  },
+}));
+
 vi.mock("@/lib/mongodb-unified", () => ({
   getDatabase: () => mockGetDatabase(),
 }));
@@ -92,8 +114,13 @@ describe("/api/admin/notifications/send", () => {
     mockUsersCollection.find.mockReturnValue({
       toArray: vi.fn().mockResolvedValue([]),
     });
+    // TG-005: Mock getDatabase to return a db with collection supporting find, insertOne, updateOne
     mockGetDatabase.mockReturnValue({
-      collection: vi.fn(() => mockUsersCollection),
+      collection: vi.fn(() => ({
+        ...mockUsersCollection,
+        insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-inserted-id" }),
+        updateOne: vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 }),
+      })),
     });
 
     const mod = await import("@/app/api/admin/notifications/send/route");
@@ -160,11 +187,8 @@ describe("/api/admin/notifications/send", () => {
         }),
       );
       
-      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete notification mocks
-      // Auth is verified (not 401/403) - the 500 indicates send operation needs fuller mock setup
-      // The route has many dependencies (COLLECTIONS, getDatabase with specific collection patterns)
-      // that require comprehensive mocking to return 200
-      expect([200, 500]).toContain(res.status);
+      // TG-005: Fixed by adding mongodb ObjectId mock and insertOne to collection mock
+      expect(res.status).toBe(200);
     });
   });
 
