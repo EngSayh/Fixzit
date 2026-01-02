@@ -137,19 +137,46 @@ Y = Instance identifier (A, B, or C)
 | AGENT-005-A/B/C | Windsurf | HR/Payroll | `app/api/hr/**`, `app/api/payroll/**`, `lib/attendance/**`, `lib/leaves/**`, `lib/salaries/**` |
 | AGENT-006-A/B/C | Reserved | Tests/Scripts | `tests/**`, `__tests__/**`, `scripts/**`, `cypress/**`, `playwright/**`, `.github/workflows/**` |
 
-### 3.3 Required Agent Token Placements (NON-NEGOTIABLE)
+### 3.3 Auto-Generation of Agent Tokens
+
+Agent tokens are **auto-generated** based on file path context using the utility at `lib/agent-token.ts`.
+
+**Usage in code:**
+```typescript
+import { generateToken, createEventContext } from '@/lib/agent-token';
+
+// Generate token from file path
+const token = generateToken('app/api/finance/billing/route.ts'); 
+// Returns: '[AGENT-002-A]'
+
+// Create full event context for SSOT logging
+const ctx = createEventContext('app/api/souq/orders/route.ts');
+// Returns: { agentId: 'AGENT-003-A', agentToken: '[AGENT-003-A]', timestamp, sessionId }
+```
+
+**Environment overrides:**
+- `AGENT_TYPE` — Override agent type (e.g., `COPILOT`, `CLAUDE`, `CODEX`)
+- `AGENT_INSTANCE` — Override instance letter (`A`, `B`, or `C`)
+
+**Auto-generation rules:**
+1. File path is matched against Section 3.2 patterns
+2. First matching pattern determines agent type
+3. Instance defaults to `A` unless `AGENT_INSTANCE` env var is set
+4. Falls back to `AGENT-001-A` (VS Code Copilot) if no pattern matches
+
+### 3.4 Required Agent Token Placements (NON-NEGOTIABLE)
 
 Every action MUST be attributable to an Agent Token:
 
 1. **Task Claim Announcement** — MUST start with Agent Token
 2. **Every Commit Message** — MUST include Agent Token
 3. **Every PENDING_MASTER Entry** — MUST include Agent Token in header
-4. **Every MongoDB Issue Event** — MUST include Agent Token in `by` field
+4. **Every MongoDB Issue Event** — MUST include Agent Token in `by` field (auto-tracked via API)
 5. **Every PR Description** — MUST include Agent Token and Target Code Set
 
 **If Agent Token is missing in any of the above → AUTO-FAIL**
 
-### 3.4 Commit Message Format
+### 3.5 Commit Message Format
 
 
 

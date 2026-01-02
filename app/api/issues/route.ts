@@ -25,6 +25,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { createEventContext } from "@/lib/agent-token";
 
 // ============================================================================
 // TYPES
@@ -573,6 +574,7 @@ export async function POST(request: NextRequest) {
       const evidenceSnippet = (body.description || body.title).split(/\s+/).slice(0, 40).join(" ");
       const sourceHash = computeSourceHash(evidenceSnippet, body.location.filePath);
       const now = new Date();
+      const agentCtx = createEventContext(body.location.filePath);
 
       const updatedIssue = await Issue.findByIdAndUpdate(
         existing._id,
@@ -588,9 +590,11 @@ export async function POST(request: NextRequest) {
           },
           $push: {
             auditEntries: {
-              sessionId: `manual-${Date.now()}`,
+              sessionId: agentCtx.sessionId,
               timestamp: now,
               findings: body.description,
+              agentId: agentCtx.agentId,
+              sourceFile: body.location.filePath,
             },
           },
         },
@@ -612,8 +616,9 @@ export async function POST(request: NextRequest) {
     const key = deriveIssueKey(body, issueId);
     const evidenceSnippet = (body.description || body.title).split(/\s+/).slice(0, 40).join(" ");
     const sourceHash = computeSourceHash(evidenceSnippet, body.location.filePath);
+    const agentCtx = createEventContext(body.location.filePath);
     
-    // Create new issue
+    // Create new issue with agent token in initial audit entry
     const issue = new Issue({
       key,
       issueId,
@@ -647,6 +652,14 @@ export async function POST(request: NextRequest) {
       firstSeenAt: new Date(),
       lastSeenAt: new Date(),
       mentionCount: 1,
+      auditEntries: [{
+        sessionId: agentCtx.sessionId,
+        timestamp: new Date(),
+        action: 'CREATED',
+        findings: `Issue created via API ${agentCtx.agentToken}`,
+        agentId: agentCtx.agentId,
+        sourceFile: body.location.filePath,
+      }],
     });
     
     await issue.save();

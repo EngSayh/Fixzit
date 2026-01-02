@@ -26,6 +26,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { parseBodySafe } from '@/lib/api/parse-body';
 import { getSuperadminSession } from '@/lib/superadmin/auth';
+import { createEventContext } from '@/lib/agent-token';
 
 /** Lean document type for Issue.findOne().lean() results */
 type IssueLeanDoc = {
@@ -394,6 +395,7 @@ export async function PATCH(
     }
     
     if (statusChanged && previousStatus && nextStatus) {
+      const agentCtx = createEventContext((issue as IIssue).location?.filePath || 'unknown');
       await IssueEvent.create({
         issueId: issue._id,
         key: (issue as IIssue).key,
@@ -401,7 +403,12 @@ export async function PATCH(
         sourceRef: "manual-update",
         sourceHash: issue.sourceHash,
         orgId,
-        metadata: { from: previousStatus, to: nextStatus },
+        metadata: { 
+          from: previousStatus, 
+          to: nextStatus,
+          agentId: agentCtx.agentId,
+          agentToken: agentCtx.agentToken,
+        },
       });
     }
     

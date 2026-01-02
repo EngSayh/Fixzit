@@ -503,6 +503,14 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
     }
   }, [isAuthenticated, fetchIssues, fetchStats]);
 
+  // Refetch when filters change
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLoading(true);
+      fetchIssues();
+    }
+  }, [statusFilter, priorityFilter, categoryFilter, search, viewMode, page, isAuthenticated, fetchIssues]);
+
   // Tab visibility detection
   useEffect(() => {
     const handleVisibilityChange = () => {
