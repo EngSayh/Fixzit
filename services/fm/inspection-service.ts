@@ -218,6 +218,11 @@ export interface ScheduleInspectionRequest {
   inspectorId: string;
   inspectorName: string;
   notifyTenant?: boolean;
+  // FEAT-0031: Tenant contact info for notifications [AGENT-001-A]
+  tenantUserId?: string;
+  tenantName?: string;
+  tenantEmail?: string;
+  tenantPhone?: string;
 }
 
 /**
@@ -500,12 +505,47 @@ export async function scheduleInspection(
     };
     
     const result = await db.collection(INSPECTIONS_COLLECTION).insertOne(inspection);
+    const inspectionId = result.insertedId.toString();
     
-    // TODO: Send notification to tenant if requested
-    if (request.notifyTenant) {
-      logger.info("TODO: Send tenant inspection notification", {
-        component: "inspection-service",
-      });
+    // FEAT-0031: Send notification to tenant if requested [AGENT-001-A]
+    if (request.notifyTenant && request.tenantUserId) {
+      try {
+        const { buildNotification, sendNotification } = await import("@/lib/fm-notifications");
+        
+        const notification = buildNotification(
+          "onInspectionScheduled",
+          {
+            orgId: request.orgId,
+            inspectionId,
+            scheduledDate: request.scheduledDate,
+            inspectorName: request.inspectorName,
+            propertyId: request.propertyId,
+          },
+          [
+            {
+              userId: request.tenantUserId,
+              name: request.tenantName || "Tenant",
+              email: request.tenantEmail,
+              phone: request.tenantPhone,
+              preferredChannels: ["push", "email"],
+            },
+          ],
+        );
+        
+        await sendNotification(notification);
+        logger.info("Tenant inspection notification sent", {
+          component: "inspection-service",
+          inspectionId,
+          tenantUserId: request.tenantUserId,
+        });
+      } catch (notifyError) {
+        // Don't fail the inspection scheduling if notification fails
+        logger.error("Failed to send tenant inspection notification", {
+          component: "inspection-service",
+          inspectionId,
+          error: notifyError instanceof Error ? notifyError.message : String(notifyError),
+        });
+      }
     }
     
     logger.info("Inspection scheduled", {
@@ -513,7 +553,7 @@ export async function scheduleInspection(
       action: "scheduleInspection",
     });
     
-    return { success: true, inspectionId: result.insertedId.toString() };
+    return { success: true, inspectionId };
   } catch (_error) {
     logger.error("Failed to schedule inspection", { component: "inspection-service" });
     return { success: false, error: "Failed to schedule inspection" };
