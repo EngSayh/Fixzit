@@ -1,6 +1,6 @@
 /**
  * @fileoverview Superadmin Support Tickets API
- * @description Cross-tenant support ticket management
+ * @description Support ticket management for cross-tenant visibility
  * @route GET /api/superadmin/support-tickets
  * @access Superadmin only (JWT auth)
  * @module api/superadmin/support-tickets
@@ -12,18 +12,22 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
 
+// Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
+
+// Response headers
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 /**
  * GET /api/superadmin/support-tickets
- * List all support tickets across tenants with filtering and pagination
+ * Retrieve support tickets with filtering and pagination
  */
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
     keyPrefix: "superadmin-support-tickets:get",
-    requests: 60,
+    requests: 30,
     windowMs: 60_000,
   });
   if (rateLimitResponse) return rateLimitResponse;
@@ -39,39 +43,46 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // Parse query params
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const priority = searchParams.get("priority");
-    const ticketModule = searchParams.get("module");
+    // SUPER_ADMIN: Cross-tenant visibility - skip tenant filter for aggregate view
+    setTenantContext({ 
+      orgId: session.orgId, 
+      isSuperAdmin: true, 
+      userId: session.username,
+      skipTenantFilter: true  // Cross-tenant visibility for superadmin
+    });
 
-    // Parse and validate pagination with NaN protection
+    // Parse query params with safe defaults for NaN handling
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status")?.toLowerCase();
+    const priority = searchParams.get("priority")?.toLowerCase();
+    const ticketModule = searchParams.get("module")?.toLowerCase();
+    
     const parsedPage = parseInt(searchParams.get("page") || "1", 10);
     const parsedLimit = parseInt(searchParams.get("limit") || "50", 10);
-    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, Math.floor(parsedPage));
-    const limit = Number.isNaN(parsedLimit) ? 50 : Math.min(100, Math.max(1, Math.floor(parsedLimit)));
+    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
+    const limit = Number.isNaN(parsedLimit) ? 50 : Math.min(100, Math.max(1, parsedLimit));
     const skip = (page - 1) * limit;
 
-    // Build query filter
+    // Build query filter - use case-insensitive regex for text fields
     const filter: Record<string, unknown> = {};
     if (status && status !== "all") {
       // Map "open" to active statuses
       if (status === "open") {
         filter.status = { $in: ["New", "Open", "Waiting"] };
-      } else if (status === "closed") {
-        filter.status = { $in: ["Resolved", "Closed"] };
       } else {
-        filter.status = status;
+        // Case-insensitive match for status
+        filter.status = { $regex: new RegExp(`^${status}$`, "i") };
       }
     }
     if (priority && priority !== "all") {
-      filter.priority = priority;
+      // Case-insensitive match for priority
+      filter.priority = { $regex: new RegExp(`^${priority}$`, "i") };
     }
     if (ticketModule && ticketModule !== "all") {
-      filter.module = ticketModule;
+      // Case-insensitive match for module
+      filter.module = { $regex: new RegExp(`^${ticketModule}$`, "i") };
     }
 
-    // Query tickets across all tenants (superadmin privilege)
     const [tickets, total] = await Promise.all([
       SupportTicket.find(filter)
         .sort({ createdAt: -1 })
@@ -87,7 +98,6 @@ export async function GET(request: NextRequest) {
       total,
       page,
       limit,
-      filters: { status, priority, module: ticketModule },
     });
 
     return NextResponse.json(

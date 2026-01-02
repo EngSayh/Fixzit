@@ -1,124 +1,124 @@
-import { Schema, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
 /**
+ * CompanyInfo Model
+ * Manages company information displayed in footer and contact pages
+ * Per-tenant singleton: each organization has its own company info
+ * Super Admin only access for editing
+ * 
  * @module server/models/CompanyInfo
- * @description Company Info model for contact and branding information.
- * Singleton pattern - one record per platform.
- * Super Admin only access for configuration.
- *
- * @features
- * - Company name and tagline (bilingual)
- * - Contact information (email, phone, address)
- * - Business registration details (VAT, CR number)
- * - Social media links
- * - Logo and favicon URLs
- *
- * @audit
- * - createdAt/updatedAt: Info lifecycle (from timestamps)
- * - createdBy/updatedBy: Admin actions (from auditPlugin)
  */
-
 const SocialLinksSchema = new Schema(
   {
-    twitter: { type: String },
-    facebook: { type: String },
-    instagram: { type: String },
-    linkedin: { type: String },
-    youtube: { type: String },
-    tiktok: { type: String },
+    twitter: { type: String, required: false },
+    linkedin: { type: String, required: false },
+    facebook: { type: String, required: false },
+    instagram: { type: String, required: false },
+    youtube: { type: String, required: false },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const CompanyInfoSchema = new Schema(
   {
+    // orgId will be added by tenantIsolationPlugin
     name: {
       type: String,
+      required: true,
       default: "Fixzit",
-      maxlength: 200,
       comment: "Company name in English",
     },
     nameAr: {
       type: String,
-      maxlength: 200,
+      required: false,
       comment: "Company name in Arabic",
     },
     tagline: {
       type: String,
-      maxlength: 500,
-      comment: "Company tagline/slogan in English",
+      required: false,
+      default: "Facility Management Made Simple",
+      comment: "Company tagline in English",
     },
     taglineAr: {
       type: String,
-      maxlength: 500,
-      comment: "Company tagline/slogan in Arabic",
+      required: false,
+      comment: "Company tagline in Arabic",
     },
     email: {
       type: String,
-      lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, "Must be valid email"],
-      comment: "Primary contact email",
+      required: true,
+      default: "support@fixzit.sa",
+      comment: "Contact email",
     },
     phone: {
       type: String,
-      maxlength: 20,
-      comment: "Primary contact phone",
+      required: false,
+      comment: "Contact phone number",
     },
     alternatePhone: {
       type: String,
-      maxlength: 20,
-      comment: "Secondary contact phone",
+      required: false,
+      comment: "Alternate contact phone number",
     },
     address: {
       type: String,
-      maxlength: 500,
+      required: false,
       comment: "Physical address in English",
     },
     addressAr: {
       type: String,
-      maxlength: 500,
+      required: false,
       comment: "Physical address in Arabic",
     },
     vatNumber: {
       type: String,
-      maxlength: 50,
+      required: false,
       comment: "VAT registration number",
     },
     crNumber: {
       type: String,
-      maxlength: 50,
-      comment: "Commercial Registration number",
+      required: false,
+      comment: "Commercial registration number",
     },
     logoUrl: {
       type: String,
-      comment: "Company logo URL",
+      required: false,
+      comment: "Company logo image URL",
     },
     faviconUrl: {
       type: String,
-      comment: "Favicon URL",
+      required: false,
+      comment: "Favicon image URL",
     },
     socialLinks: {
       type: SocialLinksSchema,
       default: () => ({}),
       comment: "Social media profile URLs",
     },
-    // createdBy, updatedBy, createdAt, updatedAt handled by auditPlugin
+    // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
   },
   {
     timestamps: true,
-    collection: "company_info",
-    comment: "Company contact and branding information (singleton)",
-  }
+    comment: "Company contact and branding information (per-tenant singleton)",
+  },
 );
 
-// Apply audit plugin for tracking changes
+// Apply plugins BEFORE indexes
+CompanyInfoSchema.plugin(tenantIsolationPlugin);
 CompanyInfoSchema.plugin(auditPlugin);
+
+// Ensure only one company info document per tenant (singleton pattern)
+CompanyInfoSchema.index(
+  { orgId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type CompanyInfoDoc = InferSchemaType<typeof CompanyInfoSchema>;
 
-export const CompanyInfo = getModel<CompanyInfoDoc>(
+export const CompanyInfo: Model<CompanyInfoDoc> = getModel<CompanyInfoDoc>(
   "CompanyInfo",
-  CompanyInfoSchema
+  CompanyInfoSchema,
 );

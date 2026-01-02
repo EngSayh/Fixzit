@@ -637,7 +637,10 @@ beforeAll(async () => {
     
     // Skip if already connected to the correct URI
     // This handles the case when beforeAll runs for multiple test files
-    if (mongoose.connection.readyState === 1) {
+    const readyState = mongoose.connection.readyState;
+    // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    
+    if (readyState === 1) {
       // Already connected - check if it's the same URI
       if (mongoUriRef && mongoUri.startsWith(mongoUriRef.split('?')[0].split('/').slice(0, -1).join('/'))) {
         logger.debug("[MongoMemory] Already connected, skipping reconnection");
@@ -645,6 +648,40 @@ beforeAll(async () => {
       }
       // Different URI - need to disconnect and reconnect
       logger.debug("[MongoMemory] Connected to different URI, disconnecting first");
+    }
+    
+    // Wait for any pending connection operations before proceeding
+    if (readyState === 2) {
+      // Connecting - wait for connection to complete, then disconnect
+      logger.debug("[MongoMemory] Waiting for pending connection to complete...");
+      await new Promise<void>((resolve) => {
+        const onConnected = () => {
+          mongoose.connection.off("connected", onConnected);
+          mongoose.connection.off("error", onError);
+          resolve();
+        };
+        const onError = () => {
+          mongoose.connection.off("connected", onConnected);
+          mongoose.connection.off("error", onError);
+          resolve();
+        };
+        mongoose.connection.once("connected", onConnected);
+        mongoose.connection.once("error", onError);
+      });
+    } else if (readyState === 3) {
+      // Disconnecting - wait for disconnection to complete
+      logger.debug("[MongoMemory] Waiting for pending disconnection to complete...");
+      await new Promise<void>((resolve) => {
+        const onDisconnected = () => {
+          mongoose.connection.off("disconnected", onDisconnected);
+          resolve();
+        };
+        mongoose.connection.once("disconnected", onDisconnected);
+      });
+    }
+    
+    // Now handle disconnection if still connected
+    if (mongoose.connection.readyState !== 0) {
       // Clear all models to prevent stale model cache with old connection
       for (const modelName of Object.keys(mongoose.connection.models)) {
         mongoose.connection.deleteModel(modelName);
@@ -655,15 +692,7 @@ beforeAll(async () => {
     mongoUriRef = mongoUri;
     process.env.MONGODB_URI = mongoUri;
     process.env.MONGODB_DB = "fixzit-test";
-    // Ensure previous connections are closed before connecting
-    // Use realDisconnect to bypass the suppression wrapper (since this IS the setup)
-    if (mongoose.connection.readyState !== 0) {
-      // Clear all models to prevent stale model cache with old connection
-      for (const modelName of Object.keys(mongoose.connection.models)) {
-        mongoose.connection.deleteModel(modelName);
-      }
-      await realDisconnect();
-    }
+    
     await mongoose.connect(mongoUri, {
       autoCreate: true,
       autoIndex: true,

@@ -203,17 +203,17 @@ const MOCK_LOGS: DeliveryLog[] = [
 // COMPONENTS
 // ============================================================================
 
-function StatusBadge({ status }: { status: WebhookConfig["status"] }) {
+function StatusBadge({ status, t }: { status: WebhookConfig["status"]; t: (key: string, fallback?: string) => string }) {
   const config = {
-    active: { color: "bg-green-500/10 text-green-500", label: "Active" },
-    paused: { color: "bg-yellow-500/10 text-yellow-500", label: "Paused" },
-    failing: { color: "bg-red-500/10 text-red-500", label: "Failing" },
+    active: { color: "bg-green-500/10 text-green-500", label: t("superadmin.webhooks.status.active", "Active") },
+    paused: { color: "bg-yellow-500/10 text-yellow-500", label: t("superadmin.webhooks.status.paused", "Paused") },
+    failing: { color: "bg-red-500/10 text-red-500", label: t("superadmin.webhooks.status.failing", "Failing") },
   };
   const { color, label } = config[status];
   return <Badge className={color}>{label}</Badge>;
 }
 
-function DeliveryStatusBadge({ status }: { status: DeliveryLog["status"] }) {
+function DeliveryStatusBadge({ status, t }: { status: DeliveryLog["status"]; t: (key: string, fallback?: string) => string }) {
   const config = {
     success: { color: "bg-green-500/10 text-green-500", icon: CheckCircle },
     failed: { color: "bg-red-500/10 text-red-500", icon: XCircle },
@@ -224,7 +224,7 @@ function DeliveryStatusBadge({ status }: { status: DeliveryLog["status"] }) {
   return (
     <Badge className={`${color} gap-1`}>
       <Icon className="h-3 w-3" />
-      {status}
+      {t(`superadmin.webhooks.deliveryStatus.${status}`, status)}
     </Badge>
   );
 }
@@ -243,6 +243,8 @@ export default function WebhooksPage() {
   
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [webhookToDelete, setWebhookToDelete] = useState<string | null>(null);
   // Edit dialog reserved for future implementation
   const [showLogsDialog, setShowLogsDialog] = useState(false);
   const [selectedWebhook, setSelectedWebhook] = useState<WebhookConfig | null>(null);
@@ -328,10 +330,17 @@ export default function WebhooksPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this webhook?")) return;
+    setWebhookToDelete(id);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!webhookToDelete) return;
     
-    setWebhooks(prev => prev.filter(w => w.id !== id));
-    toast.success("Webhook deleted");
+    setWebhooks(prev => prev.filter(w => w.id !== webhookToDelete));
+    toast.success(t("superadmin.webhooks.deleted", "Webhook deleted"));
+    setShowDeleteDialog(false);
+    setWebhookToDelete(null);
   };
 
   const handleTest = async (webhook: WebhookConfig) => {
@@ -522,7 +531,7 @@ export default function WebhooksPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={webhook.status} />
+                      <StatusBadge status={webhook.status} t={t} />
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -693,7 +702,7 @@ export default function WebhooksPage() {
                         <code className="text-xs">{log.event}</code>
                       </TableCell>
                       <TableCell>
-                        <DeliveryStatusBadge status={log.status} />
+                        <DeliveryStatusBadge status={log.status} t={t} />
                       </TableCell>
                       <TableCell>
                         {log.statusCode && (
@@ -717,6 +726,26 @@ export default function WebhooksPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowLogsDialog(false)} aria-label={t("common.close", "Close delivery logs")} title={t("common.close", "Close delivery logs")}>
               {t("common.close", "Close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("common.confirmDelete", "Confirm Delete")}</DialogTitle>
+            <DialogDescription>
+              {t("superadmin.webhooks.deleteConfirm", "Are you sure you want to delete this webhook? This action cannot be undone.")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              {t("common.delete", "Delete")}
             </Button>
           </DialogFooter>
         </DialogContent>
