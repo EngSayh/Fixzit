@@ -24,6 +24,7 @@ import {
 } from "@/config/language-options";
 import type { Locale } from "@/i18n/config";
 import { useSuperadminSession } from "./superadmin-session";
+import { useSuperadminNotificationCount } from "@/hooks/superadmin/useSuperadminNotificationCount";
 
 const CurrencySelector = dynamic(
   () => import("@/components/i18n/CurrencySelector"),
@@ -75,6 +76,7 @@ export function SuperadminHeader() {
   const { theme, setTheme } = useThemeCtx();
   // BUG-001 FIX: Session now provided by server-side layout, no client fetch needed
   const session = useSuperadminSession();
+  const { count: notificationCount } = useSuperadminNotificationCount();
   const [loggingOut, setLoggingOut] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -199,17 +201,28 @@ export function SuperadminHeader() {
           {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
         </Button>
 
-        {/* Notifications Bell - Badge hidden until we have notification count API */}
+        {/* Notifications Bell with Badge */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/superadmin/notifications")}
           className="text-muted-foreground hover:text-foreground relative"
           title={t("superadmin.notificationsTitle", "Notifications")}
-          aria-label={t("superadmin.notificationsTitle", "Notifications")}
+          aria-label={
+            notificationCount > 0
+              ? t("superadmin.notificationsWithCount", `Notifications (${notificationCount} pending)`)
+              : t("superadmin.notificationsTitle", "Notifications")
+          }
         >
           <Bell className="h-4 w-4" />
-          {/* TODO: Add notification count badge when API is available */}
+          {notificationCount > 0 && (
+            <span
+              className="absolute -top-1 -end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-medium px-1"
+              aria-hidden="true"
+            >
+              {notificationCount > 99 ? "99+" : notificationCount}
+            </span>
+          )}
         </Button>
         {/* Language Selector (dropdown with flags) */}
         <SuperadminLanguageDropdown />
