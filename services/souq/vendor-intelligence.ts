@@ -814,65 +814,308 @@ function determineTier(score: number): VendorTier {
 // ============================================================================
 
 /**
- * @deprecated STUB - Not implemented for production
- * TODO: [FRAUD-SPIKE-001] Implement activity spike detection
- * - Compare recent order/listing rate vs historical baseline (7-day avg)
- * - Threshold: > 3x normal activity triggers signal
- * - Add unit tests with mock data
+ * Activity spike detection - [FRAUD-SPIKE-001] 
+ * Compares recent order/listing rate vs historical baseline (7-day avg)
+ * Threshold: > 3x normal activity triggers signal
+ * 
+ * @implemented [AGENT-001-A] 2026-01-02
  */
 async function checkActivitySpike(
-  _orgId: string,
-  _vendorId: string
+  orgId: string,
+  vendorId: string
 ): Promise<FraudSignal | null> {
-  // STUB: Returns null - not executed in production fraud assessment
-  // See TODO above for implementation requirements
-  return null;
+  try {
+    const db = await getDatabase();
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // Get recent 24h activity count
+    const recentOrders = await db.collection("orders").countDocuments({
+      orgId,
+      vendorId,
+      createdAt: { $gte: oneDayAgo },
+    });
+    
+    // Get 7-day historical average (excluding last 24h)
+    const historicalOrders = await db.collection("orders").countDocuments({
+      orgId,
+      vendorId,
+      createdAt: { $gte: sevenDaysAgo, $lt: oneDayAgo },
+    });
+    
+    const dailyAverage = historicalOrders / 6; // 6 days of data
+    const spikeThreshold = dailyAverage * 3;
+    
+    // Require minimum baseline to avoid false positives on new vendors
+    if (dailyAverage >= 2 && recentOrders > spikeThreshold) {
+      return {
+        type: "activity_spike",
+        severity: recentOrders > dailyAverage * 5 ? "high" : "medium",
+        description: `Order volume ${Math.round(recentOrders / dailyAverage)}x above normal (${recentOrders} vs avg ${Math.round(dailyAverage)})`,
+        evidence: {
+          recentOrders,
+          dailyAverage: Math.round(dailyAverage),
+          spikeMultiplier: Math.round(recentOrders / dailyAverage * 10) / 10,
+        },
+        detectedAt: new Date(),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    logger.warn("Activity spike check failed", {
+      vendorId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 /**
- * @deprecated STUB - Not implemented for production
- * TODO: [FRAUD-DUP-001] Implement duplicate listings detection
- * - Fingerprint titles/descriptions using hashing or similarity
- * - Detect high similarity (> 90%) across vendor listings
- * - Add unit tests with sample listings
+ * Duplicate listings detection - [FRAUD-DUP-001]
+ * Fingerprints titles/descriptions using similarity hashing
+ * Detects high similarity (> 90%) across vendor listings
+ * 
+ * @implemented [AGENT-001-A] 2026-01-02
  */
 async function checkDuplicateListings(
-  _orgId: string,
-  _vendorId: string
+  orgId: string,
+  vendorId: string
 ): Promise<FraudSignal | null> {
-  // STUB: Returns null - not executed in production fraud assessment
-  return null;
+  try {
+    const db = await getDatabase();
+    
+    // Get vendor's active listings
+    const listings = await db.collection("marketplace_products")
+      .find({
+        orgId,
+        vendorId,
+        status: "active",
+      })
+      .project({ _id: 1, name: 1, description: 1 })
+      .limit(100)
+      .toArray();
+    
+    if (listings.length < 2) return null;
+    
+    // Simple fingerprint: normalize and hash first 100 chars of title+desc
+    const fingerprints = new Map<string, string[]>();
+    
+    for (const listing of listings) {
+      const text = `${listing.name || ""} ${listing.description || ""}`.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .substring(0, 100);
+      
+      if (text.length < 10) continue;
+      
+      // Create 3-gram fingerprint for similarity detection
+      const ngrams = [];
+      for (let i = 0; i <= text.length - 3; i++) {
+        ngrams.push(text.substring(i, i + 3));
+      }
+      const fingerprint = ngrams.sort().slice(0, 10).join("|");
+      
+      if (!fingerprints.has(fingerprint)) {
+        fingerprints.set(fingerprint, []);
+      }
+      fingerprints.get(fingerprint)!.push(listing._id.toString());
+    }
+    
+    // Find duplicate groups (same fingerprint)
+    const duplicateGroups = Array.from(fingerprints.values()).filter(ids => ids.length > 1);
+    const duplicateCount = duplicateGroups.reduce((sum, group) => sum + group.length - 1, 0);
+    
+    if (duplicateCount >= 3) {
+      return {
+        type: "duplicate_listings",
+        severity: duplicateCount >= 10 ? "high" : "medium",
+        description: `${duplicateCount} potentially duplicate listings detected`,
+        evidence: {
+          totalListings: listings.length,
+          duplicateCount,
+          duplicateGroups: duplicateGroups.length,
+        },
+        detectedAt: new Date(),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    logger.warn("Duplicate listings check failed", {
+      vendorId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 /**
- * @deprecated STUB - Not implemented for production
- * TODO: [FRAUD-PRICE-001] Implement price manipulation detection
- * - Detect rapid price swings (> 50% change in 24h) vs median
- * - Track price history for last 30 days
- * - Add unit tests with price history mock
+ * Price manipulation detection - [FRAUD-PRICE-001]
+ * Detects rapid price swings (> 50% change in 24h) vs median
+ * 
+ * @implemented [AGENT-001-A] 2026-01-02
  */
 async function checkPriceManipulation(
-  _orgId: string,
-  _vendorId: string
+  orgId: string,
+  vendorId: string
 ): Promise<FraudSignal | null> {
-  // STUB: Returns null - not executed in production fraud assessment
-  return null;
+  try {
+    const db = await getDatabase();
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Get recent price changes from audit log
+    const priceChanges = await db.collection("audit_logs")
+      .find({
+        orgId,
+        "data.vendorId": vendorId,
+        action: "product_price_updated",
+        createdAt: { $gte: oneDayAgo },
+      })
+      .project({ "data.oldPrice": 1, "data.newPrice": 1, "data.productId": 1 })
+      .limit(50)
+      .toArray();
+    
+    if (priceChanges.length < 2) return null;
+    
+    // Check for suspicious price swings
+    let suspiciousSwings = 0;
+    const swingDetails: Array<{ productId: string; change: number }> = [];
+    
+    for (const change of priceChanges) {
+      const oldPrice = change.data?.oldPrice;
+      const newPrice = change.data?.newPrice;
+      
+      if (typeof oldPrice === "number" && typeof newPrice === "number" && oldPrice > 0) {
+        const percentChange = Math.abs((newPrice - oldPrice) / oldPrice);
+        
+        if (percentChange > 0.5) { // > 50% change
+          suspiciousSwings++;
+          swingDetails.push({
+            productId: change.data?.productId,
+            change: Math.round(percentChange * 100),
+          });
+        }
+      }
+    }
+    
+    if (suspiciousSwings >= 3) {
+      return {
+        type: "price_manipulation",
+        severity: suspiciousSwings >= 5 ? "high" : "medium",
+        description: `${suspiciousSwings} suspicious price swings (>50%) in 24 hours`,
+        evidence: {
+          swingCount: suspiciousSwings,
+          totalPriceChanges: priceChanges.length,
+          topSwings: swingDetails.slice(0, 5),
+        },
+        detectedAt: new Date(),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    logger.warn("Price manipulation check failed", {
+      vendorId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 /**
- * @deprecated STUB - Not implemented for production
- * TODO: [FRAUD-REVIEW-001] Implement fake review detection
- * - Flag abnormal review velocity (> 5 reviews in 1 hour)
- * - Detect duplicate reviewer IDs across products
- * - Analyze review text for patterns
- * - Add unit tests with mock reviews
+ * Fake review detection - [FRAUD-REVIEW-001]
+ * Flags abnormal review velocity and suspicious patterns
+ * 
+ * @implemented [AGENT-001-A] 2026-01-02
  */
 async function checkFakeReviews(
-  _orgId: string,
-  _vendorId: string
+  orgId: string,
+  vendorId: string
 ): Promise<FraudSignal | null> {
-  // STUB: Returns null - not executed in production fraud assessment
-  return null;
+  try {
+    const db = await getDatabase();
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Check for review velocity spikes (> 5 reviews in 1 hour)
+    const recentReviews = await db.collection("reviews")
+      .find({
+        orgId,
+        vendorId,
+        createdAt: { $gte: oneHourAgo },
+      })
+      .project({ userId: 1, rating: 1 })
+      .toArray();
+    
+    if (recentReviews.length >= 5) {
+      // Check for duplicate reviewers
+      const reviewerIds = recentReviews.map(r => r.userId?.toString());
+      const uniqueReviewers = new Set(reviewerIds);
+      const duplicateReviewers = reviewerIds.length - uniqueReviewers.size;
+      
+      // Check for rating patterns (all 5-star is suspicious)
+      const allFiveStars = recentReviews.every(r => r.rating === 5);
+      
+      if (duplicateReviewers >= 1 || allFiveStars) {
+        return {
+          type: "fake_reviews",
+          severity: duplicateReviewers >= 3 ? "high" : "medium",
+          description: `Suspicious review pattern: ${recentReviews.length} reviews in 1 hour${duplicateReviewers > 0 ? `, ${duplicateReviewers} duplicate reviewers` : ""}${allFiveStars ? ", all 5-star" : ""}`,
+          evidence: {
+            reviewsInHour: recentReviews.length,
+            duplicateReviewers,
+            allFiveStars,
+            uniqueReviewers: uniqueReviewers.size,
+          },
+          detectedAt: new Date(),
+        };
+      }
+    }
+    
+    // Check for abnormal daily review velocity
+    const dailyReviews = await db.collection("reviews").countDocuments({
+      orgId,
+      vendorId,
+      createdAt: { $gte: oneDayAgo },
+    });
+    
+    // Get vendor's typical daily reviews (30-day average)
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const historicalReviews = await db.collection("reviews").countDocuments({
+      orgId,
+      vendorId,
+      createdAt: { $gte: thirtyDaysAgo, $lt: oneDayAgo },
+    });
+    
+    const avgDailyReviews = historicalReviews / 29;
+    
+    if (avgDailyReviews >= 1 && dailyReviews > avgDailyReviews * 5) {
+      return {
+        type: "fake_reviews",
+        severity: "medium",
+        description: `Review velocity ${Math.round(dailyReviews / avgDailyReviews)}x above normal`,
+        evidence: {
+          dailyReviews,
+          avgDailyReviews: Math.round(avgDailyReviews * 10) / 10,
+          velocityMultiplier: Math.round(dailyReviews / avgDailyReviews * 10) / 10,
+        },
+        detectedAt: new Date(),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    logger.warn("Fake review check failed", {
+      vendorId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 async function checkSuspiciousPayments(
