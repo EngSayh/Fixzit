@@ -31,6 +31,11 @@ const IGNORE_GLOBS = [
   "docs/**",
   "reports/**",
   "scripts/fixtures/**",
+  "tests/**",
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
 ];
 
 // Routes that are allowed but don't have direct page implementations
