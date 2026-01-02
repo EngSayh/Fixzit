@@ -39,9 +39,7 @@ import {
 } from "@/components/ui/card";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   Table,
@@ -593,40 +591,31 @@ export default function AdminIssuesPage() {
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
-              <SelectTrigger className="w-[140px]"></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="in_review">In Review</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[140px]">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="in_review">In Review</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority">
-              <SelectTrigger className="w-[140px]"></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="P0">P0 Critical</SelectItem>
-                <SelectItem value="P1">P1 High</SelectItem>
-                <SelectItem value="P2">P2 Medium</SelectItem>
-                <SelectItem value="P3">P3 Low</SelectItem>
-              </SelectContent>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-[140px]">
+              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="P0">P0 Critical</SelectItem>
+              <SelectItem value="P1">P1 High</SelectItem>
+              <SelectItem value="P2">P2 Medium</SelectItem>
+              <SelectItem value="P3">P3 Low</SelectItem>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
-              <SelectTrigger className="w-[140px]"></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="bug">Bug</SelectItem>
-                <SelectItem value="security">Security</SelectItem>
-                <SelectItem value="efficiency">Efficiency</SelectItem>
-                <SelectItem value="missing_test">Missing Test</SelectItem>
-                <SelectItem value="logic_error">Logic Error</SelectItem>
-              </SelectContent>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[140px]">
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="bug">Bug</SelectItem>
+              <SelectItem value="security">Security</SelectItem>
+              <SelectItem value="efficiency">Efficiency</SelectItem>
+              <SelectItem value="missing_test">Missing Test</SelectItem>
+              <SelectItem value="logic_error">Logic Error</SelectItem>
             </Select>
 
             <div className="flex items-center gap-2">

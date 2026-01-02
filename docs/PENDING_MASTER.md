@@ -18,6 +18,34 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-31 16:30 (Asia/Riyadh) - PR #627 CodeRabbit Review Fixes [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** CR-627-MONGO-RACE, CR-627-SELECT-DEPRECATED
+**Context:** fix/superadmin-full-implementation | PR #627 CodeRabbit review fixes
+**DB Sync:** Required
+
+#### Summary
+Addressed CodeRabbit review comments on PR #627 (3D Building Model Generator). Fixed MongoDB connection race condition and deprecated Select component patterns.
+
+#### Fixes Applied
+| Issue ID | File | Change |
+|----------|------|--------|
+| CR-627-MONGO-RACE | `app/api/superadmin/impersonate/route.ts` | Replaced fire-and-forget `ensureMongoConnection()` with `await connectToDatabase()` to fix race condition in audit logging |
+| CR-627-SELECT-DEPRECATED | `app/(fm)/admin/issues/page.tsx` | Removed deprecated SelectTrigger/SelectContent/SelectValue, using native Select with placeholder prop |
+
+#### Previously Fixed (Confirmed in codebase)
+| Issue ID | File | Status |
+|----------|------|--------|
+| CR-627-DASHBOARD-SELECT | `app/superadmin/dashboard/page.tsx` | Already using native Select pattern |
+| CR-627-DASHBOARD-I18N | `app/superadmin/dashboard/page.tsx` | StatusBadge already using t() with fallback |
+| CR-627-ISSUES-SELECT | `app/(dashboard)/issues/page.tsx` | Uses CompactFilterBar, no Select components |
+
+#### Verification
+- pnpm typecheck: 0 errors
+- pnpm lint: 6 errors in .artifacts (pre-existing), 27 warnings (pre-existing)
+- Changed files: 2 (impersonate/route.ts, fm/admin/issues/page.tsx)
+
+---
 ### 2025-12-31 11:25 (Asia/Riyadh) - Public Tour Security Fixes [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** SEC-TOUR-001, SEC-TOUR-002, QA-TOUR-001
