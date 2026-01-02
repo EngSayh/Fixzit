@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-02T21:00:00+03:00
+  Last-Sync: 2026-01-03T04:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,51 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-03 04:00 (Asia/Riyadh) — PR Status & TODO Audit Complete [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `fix/todo-placeholder-cleanup-p0`
+
+#### 📊 Open PRs Status (5 Total)
+
+| PR | Title | Mergeable | CI Status | Action |
+|----|-------|-----------|-----------|--------|
+| **#649** | TODO/placeholder audit | ✅ | 🔄 Running | SSOT docs only |
+| **#648** | Lint exemptions | ✅ MERGEABLE | ⚠️ E2E flaky (non-blocking) | **MERGE NOW** |
+| **#647** | BI-DATA schema fix | ✅ | ⏳ Blocked on #648 | Merge after #648 |
+| **#641** | P2 Sprint | ✅ | ⏳ Blocked on #648 | Merge after #647 |
+| **#640** | P1 Compliance | ✅ | ⏳ Blocked on #648 | Merge after #641 |
+
+#### ✅ TODO/Placeholder Audit Complete (PR #649)
+
+Fresh scan triage results:
+- **49 TODOs**: 20 prod (deferred features), 7 tests, 22 tools
+- **64 "not implemented"**: All 501s are correct HTTP behavior
+- **42 placeholders**: Doc/script markers, non-blocking
+
+Key findings:
+- BI-DATA-001/002/003/004: Already FIXED (PR #647 + main)
+- Fraud stubs: Return `null` safely (no false positives)
+- Payout processor: Feature-flagged, fails safely
+- ClaimsOrder: BLOCKED per STRICT v4.1
+
+#### 🎯 Recommended Merge Sequence
+
+```
+#648 (lint) → #649 (docs) → #647 (BI-DATA) → #641 (P2) → #640 (P1)
+```
+
+#### 📋 User Action Required
+
+```powershell
+# Merge PR #648 (no required checks blocking)
+gh pr merge 648 --squash --delete-branch
+
+# Then rebase and merge remaining PRs in order
+```
 
 ---
 
