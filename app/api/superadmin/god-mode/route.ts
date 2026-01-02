@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { createHash } from "crypto";
 import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(req: NextRequest) {
   try {
@@ -182,7 +183,7 @@ export async function GET(req: NextRequest) {
         paymentsToday,
       ] = await Promise.all([
         db.collection("users").countDocuments({ ...orgIdFilter, lastLoginAt: { $gte: yesterday } }),
-        db.collection("work_orders").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
+        db.collection(COLLECTIONS.WORK_ORDERS).countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
         db.collection("invoices").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
         db.collection("payments").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
       ]);
