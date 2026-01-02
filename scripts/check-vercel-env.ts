@@ -112,6 +112,15 @@ const envVars = {
   ARAMEX_USERNAME: !!process.env.ARAMEX_USERNAME,
   SMSA_USERNAME: !!process.env.SMSA_USERNAME,
   SPL_API_KEY: !!process.env.SPL_API_KEY,
+
+  // Superadmin Authentication
+  SUPERADMIN_USERNAME: !!process.env.SUPERADMIN_USERNAME,
+  SUPERADMIN_PASSWORD: !!process.env.SUPERADMIN_PASSWORD,
+  SUPERADMIN_PASSWORD_HASH: !!process.env.SUPERADMIN_PASSWORD_HASH,
+  SUPERADMIN_JWT_SECRET: !!process.env.SUPERADMIN_JWT_SECRET,
+  SUPERADMIN_ORG_ID: !!process.env.SUPERADMIN_ORG_ID,
+  SUPERADMIN_SECRET_KEY: !!process.env.SUPERADMIN_SECRET_KEY,
+  SUPERADMIN_ALLOWED_IPS: !!process.env.SUPERADMIN_ALLOWED_IPS,
 };
 
 console.log("Environment Variables Status:\n");
@@ -181,6 +190,15 @@ const categories = {
     "ARAMEX_USERNAME",
     "SMSA_USERNAME",
     "SPL_API_KEY",
+  ],
+  "👑 Superadmin Auth (CRITICAL)": [
+    "SUPERADMIN_USERNAME",
+    "SUPERADMIN_PASSWORD",
+    "SUPERADMIN_PASSWORD_HASH",
+    "SUPERADMIN_JWT_SECRET",
+    "SUPERADMIN_ORG_ID",
+    "SUPERADMIN_SECRET_KEY",
+    "SUPERADMIN_ALLOWED_IPS",
   ],
 };
 
