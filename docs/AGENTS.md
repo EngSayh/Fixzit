@@ -31,6 +31,7 @@
      - 4.2.16 [Quick Reference Checklist](#4216-quick-reference-checklist)
      - 4.2.17 [Forbidden Actions (Validation Violations)](#4217-forbidden-actions-validation-violations)
 5. [Multi-Agent Coordination](#5-multi-agent-coordination)
+   - 5.8 [Terminal Management Protocol](#58-terminal-management-protocol-mandatory)
 6. [Pre-Claim SSOT Validation (MANDATORY)](#6-pre-claim-ssot-validation-mandatory)
 7. [Deep-Dive & Fix-Once Protocol](#7-deep-dive--fix-once-protocol)
 8. [Scope Expansion & Delegation Protocol](#8-scope-expansion--delegation-protocol)
@@ -1056,6 +1057,75 @@ Only Eng. Sultan may authorize an emergency override.
 Authorization must be recorded in SSOT with timestamp and reason.
 
 No static override codes or secrets may be stored in the repo.
+
+### 5.8 Terminal Management Protocol (MANDATORY)
+
+**Goal:** Prevent terminal corruption and resource exhaustion when multiple agents/extensions operate in the same workspace.
+
+#### 5.8.1 Terminal Isolation Rules
+
+| Rule | Requirement |
+|------|-------------|
+| **Dedicated Terminal** | Each agent session MUST create and use a NEW terminal instance |
+| **No Terminal Reuse** | NEVER reuse an existing terminal that may be owned by another agent/extension |
+| **Naming Convention** | Name terminals with agent token: `[AGENT-001-A] Task Name` |
+| **Orphan Cleanup** | Kill all orphaned terminals created by this agent upon task completion |
+| **Max Terminals** | Limit to 3 concurrent terminals per agent session |
+
+#### 5.8.2 Terminal Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ TERMINAL LIFECYCLE (Per Agent Session)                          │
+├─────────────────────────────────────────────────────────────────┤
+│ 1. CLAIM PHASE                                                  │
+│    → Create NEW dedicated terminal for agent work               │
+│    → Never attach to existing/shared terminals                  │
+│                                                                 │
+│ 2. WORK PHASE                                                   │
+│    → Use only self-created terminals                            │
+│    → Track terminal PIDs for cleanup                            │
+│                                                                 │
+│ 3. COMPLETION PHASE (MANDATORY)                                 │
+│    → Kill all terminals created during this session             │
+│    → Verify no orphaned processes remain                        │
+│    → Report cleanup in task handoff                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 5.8.3 Cleanup Commands
+
+**PowerShell (Windows):**
+```powershell
+# Kill orphaned PowerShell terminals (keep current)
+Get-Process powershell | Where-Object { $_.Id -ne $PID } | Stop-Process -Force
+```
+
+**Bash (macOS/Linux):**
+```bash
+# List terminal processes for review
+ps aux | grep -E 'bash|zsh|sh' | grep -v grep
+```
+
+#### 5.8.4 Forbidden Terminal Actions
+
+- ❌ Reusing terminals from previous agent sessions
+- ❌ Sharing terminals between concurrent agents
+- ❌ Leaving orphaned terminals after task completion
+- ❌ Running commands in the Dev Server terminal
+- ❌ Killing terminals owned by other agents/extensions
+- ❌ Exceeding 3 concurrent terminals per agent
+
+#### 5.8.5 Multi-Agent Terminal Etiquette
+
+When multiple agents operate in the same workspace:
+
+1. **Check before creating:** Verify terminal count before creating new ones
+2. **Label clearly:** Use `[AGENT-XXX-X]` prefix in terminal names
+3. **Clean up immediately:** Don't wait for session end to clean obvious orphans
+4. **Preserve shared resources:** Never kill the Dev Server terminal (`Dev: Start Server`)
+
+---
 
 6. Pre-Claim SSOT Validation (MANDATORY)
 

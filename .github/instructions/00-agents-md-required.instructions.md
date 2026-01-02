@@ -42,3 +42,23 @@ Use read_file tool: docs/AGENTS.md, lines 1-600
 - ✅ All queries must include `org_id`/`tenantId`
 - ✅ All commits must pass CI gates
 - ✅ All PRs must address ALL comments before merge
+
+## 🖥️ Terminal Management (MANDATORY)
+
+**ALWAYS follow these terminal rules:**
+
+| Rule | Requirement |
+|------|-------------|
+| **Create New** | ALWAYS create a NEW terminal for your work |
+| **Never Reuse** | NEVER use existing/shared terminals |
+| **Kill Orphans** | ALWAYS kill orphaned terminals at task completion |
+| **Preserve Dev Server** | NEVER kill the `Dev: Start Server` terminal |
+| **Limit 3** | MAX 3 concurrent terminals per session |
+
+### At Task End (MANDATORY):
+```powershell
+# Windows: Kill orphans
+Get-Process powershell | Where-Object { $_.Id -ne $PID } | Stop-Process -Force
+```
+
+See **docs/AGENTS.md Section 5.8** for the complete Terminal Management Protocol.

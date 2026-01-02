@@ -24,4 +24,26 @@ Core rules (non-negotiable):
 - Do not edit build outputs; no force merge.
 - Verification: run required checks in AGENTS.md and report evidence.
 
-See docs/AGENTS.md for the full protocol (Agent Token, SSOT claim, handoff, extractor, CI gates).
+## 🖥️ TERMINAL MANAGEMENT (MANDATORY)
+
+**These rules are NON-NEGOTIABLE for all Copilot agents:**
+
+1. **ALWAYS create a NEW terminal** — Never reuse existing terminals
+2. **NEVER use shared terminals** — Other agents/extensions may own them
+3. **KILL orphaned terminals on task completion** — Default behavior, not optional
+4. **PRESERVE the Dev Server terminal** — Never kill `Dev: Start Server`
+5. **MAX 3 terminals per agent session** — Prevent resource exhaustion
+
+### Terminal Cleanup (Run at task end):
+```powershell
+# Windows: Kill orphaned PowerShell terminals (keeps current)
+Get-Process powershell | Where-Object { $_.Id -ne $PID } | Stop-Process -Force
+```
+
+### Forbidden:
+- ❌ Reusing terminals from other sessions
+- ❌ Leaving orphaned terminals after task completion
+- ❌ Running commands in another agent's terminal
+- ❌ Killing the Dev Server terminal
+
+See docs/AGENTS.md Section 5.8 for the full Terminal Management Protocol.
