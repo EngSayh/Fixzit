@@ -102,6 +102,7 @@ export default function AdminCMS() {
           type="button"
           className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90"
           onClick={save}
+          aria-label={t("admin.cms.saveAria", "Save CMS page content")}
         >
           {t("common.save", "Save")}
         </button>

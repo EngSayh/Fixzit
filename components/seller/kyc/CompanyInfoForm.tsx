@@ -361,7 +361,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting} aria-label={submitting ? auto("Submitting...", "actions.submitting") : auto("Continue to Documents", "actions.continue")}>
           {submitting
             ? auto("Submitting...", "actions.submitting")
             : auto("Continue to Documents", "actions.continue")}

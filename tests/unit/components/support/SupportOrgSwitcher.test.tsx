@@ -83,7 +83,8 @@ describe("SupportOrgSwitcher", () => {
     render(<SupportOrgSwitcher />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Select customer/i }));
+    // Button aria-label: "Select or change support organization"
+    await user.click(screen.getByRole("button", { name: /Select or change support/i }));
     const input = await screen.findByLabelText(/corporate id or code/i);
     await user.type(input, "7001234567");
     await user.click(screen.getByRole("button", { name: /Search/i }));
@@ -94,8 +95,9 @@ describe("SupportOrgSwitcher", () => {
       expect.objectContaining({ credentials: "include" }),
     );
 
+    // Button aria-label: "Select organization ${name}"
     const useOrgButton = await screen.findByRole("button", {
-      name: /Use org/i,
+      name: /Select organization/i,
     });
     await user.click(useOrgButton);
 
@@ -116,9 +118,11 @@ describe("SupportOrgSwitcher", () => {
     render(<SupportOrgSwitcher />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Org: Acme Org/i }));
+    // Button aria-label is always "Select or change support organization" regardless of button text
+    await user.click(screen.getByRole("button", { name: /Select or change support/i }));
+    // Button aria-label: "Clear support organization selection"
     const clearButton = await screen.findByRole("button", {
-      name: /Clear selection/i,
+      name: /Clear support organization/i,
     });
     await user.click(clearButton);
 

@@ -283,11 +283,11 @@ export default function CreateAssetRecordPage() {
               )}
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button type="button" variant="outline" disabled={isSubmitting}>
+              <Button type="button" variant="outline" disabled={isSubmitting} aria-label={auto("Upload asset from cloud drive", "form.attach.drive.ariaLabel")} title={auto("Upload from drive", "form.attach.drive")}>
                 <HardDriveDownload className="me-2 h-4 w-4" />
                 {auto("Upload from drive", "form.attach.drive")}
               </Button>
-              <Button type="button" disabled={isSubmitting}>
+              <Button type="button" disabled={isSubmitting} aria-label={auto("Add asset to hierarchy", "form.hierarchy.ariaLabel")} title={auto("Add to asset hierarchy", "form.hierarchy")}>
                 <Layers className="me-2 h-4 w-4" />
                 {auto("Add to asset hierarchy", "form.hierarchy")}
               </Button>
@@ -320,10 +320,12 @@ export default function CreateAssetRecordPage() {
             variant="outline"
             disabled={isSubmitting}
             onClick={() => reset()}
+            aria-label={auto("Reset asset form", "actions.reset.ariaLabel")}
+            title={auto("Reset form", "actions.reset")}
           >
             {auto("Reset form", "actions.reset")}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} aria-label={auto("Save asset to registry", "actions.save.ariaLabel")} title={auto("Save asset", "actions.save")}>
             {isSubmitting
               ? auto("Submitting...", "actions.submitting")
               : auto("Save asset", "actions.save")}

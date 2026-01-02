@@ -805,6 +805,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
+              aria-label={t('login.personalEmailTab', 'Sign in with personal email')}
+              aria-selected={loginMethod === 'personal'}
             >
               {t('login.personalEmailTab', 'Personal Email')}
             </button>
@@ -816,6 +818,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
+              aria-label={t('login.corporateAccountTab', 'Sign in with corporate account')}
+              aria-selected={loginMethod === 'corporate'}
             >
               {t('login.corporateAccountTab', 'Corporate Account')}
             </button>
@@ -827,6 +831,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
+              aria-label={t('login.ssoLoginTab', 'Sign in with single sign-on')}
+              aria-selected={loginMethod === 'sso'}
             >
               {t('login.ssoLoginTab', 'SSO Login')}
             </button>
@@ -1016,6 +1022,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                     ),
                   );
                 }}
+                aria-label={t('login.phoneOtp.cta', 'Switch to phone OTP login')}
+                title={t('login.phoneOtp.cta', 'Use phone OTP')}
               >
                 {t('login.phoneOtp.cta', 'Use phone OTP')}
               </Button>
@@ -1051,6 +1059,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                     size="sm"
                     variant="outline"
                     onClick={handleResendVerification}
+                    aria-label={t("login.resendVerification", "Resend email verification link")}
+                    title={t("login.resendVerification", "Resend")}
                   >
                     {t("login.resendVerification", "Resend")}
                   </Button>
@@ -1062,6 +1072,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                 type="submit"
                 data-testid="login-submit"
                 aria-disabled={submitDisabled}
+                aria-label={loading ? t('login.signingIn', 'Signing in...') : t('login.signIn', 'Sign in to your account')}
                 className={`w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors ${submitDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {loading ? (
@@ -1094,6 +1105,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                       <button 
                         type="button"
                         className={`flex items-center justify-center gap-3 w-full p-3 border border-border rounded-2xl hover:bg-muted transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                        aria-label={t('login.continueWith', 'Continue with Apple')}
+                        title={t('login.continueWith', 'Continue with Apple')}
                       >
                         <Apple className="h-5 w-5 text-foreground" />
                         <span>{t('login.continueWith', 'Continue with')} Apple</span>
@@ -1114,6 +1127,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                   <button 
                     type="button"
                     className={`flex items-center justify-center gap-3 w-full p-3 border border-border rounded-2xl hover:bg-muted transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                    aria-label={t('login.continueWith', 'Continue with Apple')}
+                    title={t('login.continueWith', 'Continue with Apple')}
                   >
                     <Apple className="h-5 w-5 text-foreground" />
                     <span>{t('login.continueWith', 'Continue with')} Apple</span>
@@ -1123,6 +1138,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                     type="button"
                     disabled
                     className={`flex items-center justify-center gap-3 w-full p-3 border border-dashed rounded-2xl text-muted-foreground bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    aria-label={t('login.appleUnavailable', 'Apple login not configured')}
                   >
                     <Apple className="h-5 w-5 text-muted-foreground" />
                     <span>{t('login.appleUnavailable', 'Apple login not configured')}</span>
@@ -1143,6 +1159,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                 type="button"
                 onClick={() => setLoginMethod('personal')}
                 className="w-full py-2 text-primary hover:text-primary font-medium transition-colors"
+                aria-label={t('login.usePersonalEmail', 'Switch to personal email login')}
               >
                 {t('login.usePersonalEmail', 'Use Personal Email')}
               </button>
@@ -1150,6 +1167,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                 type="button"
                 onClick={() => setLoginMethod('corporate')}
                 className="w-full py-2 text-primary hover:text-primary font-medium transition-colors"
+                aria-label={t('login.useCorporateAccount', 'Switch to corporate account login')}
               >
                 {t('login.useCorporateAccount', 'Use Corporate Account')}
               </button>

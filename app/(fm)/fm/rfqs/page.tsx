@@ -142,7 +142,7 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-teal-600 hover:bg-teal-700">
+            <Button className="bg-teal-600 hover:bg-teal-700" aria-label={auto("Create a new RFQ", "actions.newRfqLabel")}>
               <Plus className="w-4 h-4 me-2" />
               {auto("New RFQ", "actions.newRfq")}
             </Button>
@@ -282,6 +282,7 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
                 <Button
                   onClick={() => setCreateOpen(true)}
                   className="bg-teal-600 hover:bg-teal-700"
+                  aria-label={auto("Create your first RFQ", "actions.createLabel")}
                 >
                   <Plus className="w-4 h-4 me-2" />
                   {auto("Create RFQ", "actions.create")}
@@ -504,11 +505,12 @@ function RFQCard({
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/fm/rfqs/${rfq.id}`)}
+              aria-label={auto("View RFQ details", "card.viewLabel")}
             >
               <Eye className="w-4 h-4" />
             </Button>
             {rfq.status === "DRAFT" && (
-              <Button variant="ghost" size="sm" onClick={handlePublish}>
+              <Button variant="ghost" size="sm" onClick={handlePublish} aria-label={auto("Publish RFQ", "card.publishLabel")}>
                 <Send className="w-4 h-4" />
               </Button>
             )}
@@ -895,7 +897,7 @@ function CreateRFQForm({
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-teal-600 hover:bg-teal-700">
+        <Button type="submit" className="bg-teal-600 hover:bg-teal-700" aria-label={auto("Submit and create RFQ", "form.actions.submitLabel")}>
           {auto("Create RFQ", "form.actions.submit")}
         </Button>
       </div>

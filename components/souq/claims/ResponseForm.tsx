@@ -337,10 +337,12 @@ export default function ResponseForm({
             variant="outline"
             onClick={onCancel}
             disabled={isSubmitting}
+            aria-label="Cancel and close response form (إلغاء)"
+            title="Cancel response"
           >
             إلغاء (Cancel)
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} aria-label="Submit claim response (إرسال الرد)" title="Submit response">
             {isSubmitting ? "جاري الإرسال..." : "إرسال الرد (Submit Response)"}
           </Button>
         </CardFooter>

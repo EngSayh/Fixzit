@@ -536,6 +536,7 @@ export default function ClaimDetails({
                       key={index}
                       onClick={() => setSelectedMedia(evidence)}
                       className="relative group aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors"
+                      aria-label={`View evidence ${index + 1}: ${evidence.type}`}
                     >
                       {evidence.type === "photo" ? (
                         <img
@@ -625,12 +626,12 @@ export default function ClaimDetails({
             <div className="mt-6 flex justify-end gap-2">
               {userRole === "seller" &&
                 claim.status === "pending-seller-response" && (
-                  <Button onClick={onActionRequired}>
+                  <Button onClick={onActionRequired} aria-label="Submit response to this claim (تقديم رد)">
                     تقديم رد (Submit Response)
                   </Button>
                 )}
               {userRole === "buyer" && claim.decision && !claim.appeal && (
-                <Button onClick={onActionRequired} variant="outline">
+                <Button onClick={onActionRequired} variant="outline" aria-label="File an appeal for this claim decision (تقديم استئناف)">
                   تقديم استئناف (File Appeal)
                 </Button>
               )}

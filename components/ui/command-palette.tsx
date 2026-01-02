@@ -30,6 +30,7 @@ import {
   type Command,
   // CommandGroup type used for grouping logic
 } from "@/services/ux/command-palette";
+import { toast } from "sonner";
 
 // Icons mapping
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -158,13 +159,10 @@ export function CommandPalette({
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(action.value)
             .then(() => {
-              // Success feedback - could integrate with toast system
-              // eslint-disable-next-line no-console -- User feedback for clipboard action
-              console.info("Copied to clipboard (length:", action.value?.length ?? 0, "chars)");
+              toast.success("Copied to clipboard");
             })
-            .catch((err) => {
-              // eslint-disable-next-line no-console -- Error feedback for clipboard failure
-              console.error("Clipboard copy failed:", err.message || "Permission denied");
+            .catch(() => {
+              toast.error("Failed to copy to clipboard");
             });
         } else {
           // Fallback for environments without navigator.clipboard
@@ -175,11 +173,15 @@ export function CommandPalette({
             textArea.style.opacity = "0";
             document.body.appendChild(textArea);
             textArea.select();
-            document.execCommand("copy");
+            const success = document.execCommand("copy");
             document.body.removeChild(textArea);
+            if (success) {
+              toast.success("Copied to clipboard");
+            } else {
+              toast.error("Failed to copy to clipboard");
+            }
           } catch (_fallbackErr) {
-            // eslint-disable-next-line no-console -- Error feedback for fallback failure
-            console.error("Clipboard fallback failed");
+            toast.error("Failed to copy to clipboard");
           }
         }
         break;

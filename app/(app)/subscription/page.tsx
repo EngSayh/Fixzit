@@ -154,13 +154,13 @@ export default function SubscriptionPage() {
           <CardTitle>{auto("Actions", "actions.title")}</CardTitle>
         </CardHeader>
         <CardContent className="flex gap-4">
-          <Button variant="outline">
+          <Button variant="outline" aria-label={auto("Upgrade Plan", "actions.upgrade")} title={auto("Upgrade Plan", "actions.upgrade")}>
             {auto("Upgrade Plan", "actions.upgrade")}
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" aria-label={auto("Add Seats", "actions.addSeats")} title={auto("Add Seats", "actions.addSeats")}>
             {auto("Add Seats", "actions.addSeats")}
           </Button>
-          <Button variant="destructive">
+          <Button variant="destructive" aria-label={auto("Cancel Subscription", "actions.cancel")} title={auto("Cancel Subscription", "actions.cancel")}>
             {auto("Cancel Subscription", "actions.cancel")}
           </Button>
         </CardContent>

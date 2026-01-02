@@ -28,11 +28,11 @@ export default function Error({
         {error.message || "Unable to load terms of service. Please try again."}
       </p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label="Retry loading terms page" title="Retry loading terms page">
           <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label="Go to home page" title="Go to home page">
           <Link href="/">
             <Home className="w-4 h-4 me-2" />
             Go Home

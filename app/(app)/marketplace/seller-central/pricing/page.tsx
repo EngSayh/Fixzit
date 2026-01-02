@@ -217,6 +217,8 @@ export default function PricingDashboardPage() {
               onClick={handleRunRepricing}
               disabled={repricing || !settings?.enabled}
               variant="outline"
+              aria-label={auto("Run auto-repricer now", "autoRepricer.runNowAria")}
+              title={auto("Manually trigger repricing", "autoRepricer.runNowTitle")}
             >
               <RefreshCw
                 className={`w-4 h-4 me-2 ${repricing ? "animate-spin" : ""}`}
@@ -370,7 +372,12 @@ export default function PricingDashboardPage() {
                         : auto("Never", "listings.row.never")}
                     </td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`${auto("View Details", "listings.actions.view")} - ${listing.title}`}
+                        title={`${auto("View Details", "listings.actions.view")} - ${listing.title}`}
+                      >
                         {auto("View Details", "listings.actions.view")}
                       </Button>
                     </td>

@@ -163,7 +163,7 @@ export default function MarketplaceNewListingPage() {
             )}
           </p>
         </div>
-        <Button onClick={handleSubmit} disabled={!canSubmit || submitting}>
+        <Button onClick={handleSubmit} disabled={!canSubmit || submitting} aria-label={auto("Publish listing to marketplace", "actions.submitAria")}>
           {submitting
             ? auto("Submitting…", "actions.submitting")
             : auto("Publish Listing", "actions.submit")}

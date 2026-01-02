@@ -322,6 +322,7 @@ export default function ComplianceContractPage() {
                 variant="outline"
                 onClick={handleAttachmentClick}
                 disabled={submitting}
+                aria-label={auto("Attach certificates", "actions.attachAria")}
               >
                 <FileText className="me-2 h-4 w-4" />
                 {auto("Attach certificates", "actions.attach")}
@@ -351,7 +352,7 @@ export default function ComplianceContractPage() {
         </Card>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} aria-label={auto("Submit for legal review", "actions.submitAria")}>
             <Stamp className="me-2 h-4 w-4" />
             {submitting
               ? auto("Submitting...", "actions.submitting")

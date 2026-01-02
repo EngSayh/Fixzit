@@ -209,6 +209,9 @@ function SearchPageContent() {
                           ? "bg-primary/10 text-primary"
                           : "bg-white text-gray-600 hover:bg-gray-50"
                       }`}
+                      aria-label={auto("Grid view", "viewMode.grid")}
+                      aria-pressed={viewMode === "grid"}
+                      title={auto("Grid view", "viewMode.grid")}
                     >
                       <Grid className="h-5 w-5" />
                     </button>
@@ -219,6 +222,9 @@ function SearchPageContent() {
                           ? "bg-primary/10 text-primary"
                           : "bg-white text-gray-600 hover:bg-gray-50"
                       }`}
+                      aria-label={auto("List view", "viewMode.list")}
+                      aria-pressed={viewMode === "list"}
+                      title={auto("List view", "viewMode.list")}
                     >
                       <List className="h-5 w-5" />
                     </button>
@@ -320,6 +326,8 @@ function SearchPageContent() {
                       onClick={() => handlePageChange(page - 1)}
                       disabled={page <= 1}
                       className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={auto("Previous page", "pagination.previous")}
+                      title={auto("Previous page", "pagination.previous")}
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
@@ -337,6 +345,8 @@ function SearchPageContent() {
                                   ? "bg-primary text-white"
                                   : "border border-gray-300 hover:bg-gray-50"
                               }`}
+                              aria-label={`${auto("Go to page", "pagination.goToPage")} ${pageNum}`}
+                              aria-current={page === pageNum ? "page" : undefined}
                             >
                               {pageNum}
                             </button>
@@ -349,6 +359,8 @@ function SearchPageContent() {
                       onClick={() => handlePageChange(page + 1)}
                       disabled={page >= results.totalPages}
                       className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={auto("Next page", "pagination.next")}
+                      title={auto("Next page", "pagination.next")}
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>

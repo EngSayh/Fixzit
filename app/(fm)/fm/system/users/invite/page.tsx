@@ -191,6 +191,7 @@ export default function InviteUserPage() {
                     sending || !email || !firstName || !lastName || !role
                   }
                   className="w-full"
+                  aria-label={auto("Send Invitation", "submitAria")}
                 >
                   <Mail className="w-4 h-4 me-2" />
                   {auto("Send Invitation", "submit")}

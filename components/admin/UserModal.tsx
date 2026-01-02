@@ -156,13 +156,15 @@ export default function UserModal({
       closeOnClickOutside={false}
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} aria-label={t('admin.common.cancel', 'Cancel')} title={t('admin.common.cancel', 'Cancel')}>
             <X className="me-2 h-4 w-4" />
             {t('admin.common.cancel', 'Cancel')}
           </Button>
           <Button
             onClick={handleFormSubmit(onSubmit)}
             disabled={isSubmitting}
+            aria-label={editingUser ? t('admin.common.update', 'Update user') : t('admin.common.create', 'Create user')}
+            title={editingUser ? t('admin.common.update', 'Update user') : t('admin.common.create', 'Create user')}
           >
             <Save className="me-2 h-4 w-4" />
             {isSubmitting

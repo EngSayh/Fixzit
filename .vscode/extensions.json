@@ -1,7 +1,8 @@
 {
   "recommendations": [
     "github.copilot",
-    "redhat.vscode-yaml"
+    "redhat.vscode-yaml",
+    "google.geminicodeassist"
   ],
   "unwantedRecommendations": [
     "ms-vscode.vscode-typescript-tslint-plugin",

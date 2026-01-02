@@ -155,6 +155,7 @@ export default function VendorCatalogueManager({
           onClick={addProduct}
           disabled={loading}
           className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
+          aria-label="Publish product to marketplace"
         >
           {loading
             ? auto("Saving…", "form.saving")

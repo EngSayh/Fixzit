@@ -127,7 +127,7 @@ describe('SupportTicketPage', () => {
     expect(prioritySelect.value).toBe('Medium');
 
     // Submit button
-    expect(screen.getByRole('button', { name: /submit ticket/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submit support ticket/i })).toBeInTheDocument();
   });
 
   test('allows selecting different module, type, and priority values', async () => {
@@ -162,7 +162,7 @@ describe('SupportTicketPage', () => {
     await user.selectOptions(screen.getByLabelText(/^type$/i), 'Complaint');
     await user.selectOptions(screen.getByLabelText(/priority/i), 'Urgent');
 
-    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    const submit = screen.getByRole('button', { name: /Submit support ticket/i });
     await user.click(submit);
 
     await waitFor(() => {
@@ -212,7 +212,7 @@ describe('SupportTicketPage', () => {
 
     // Button returns to normal state
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /Submit support ticket/i })).toBeEnabled();
     });
   });
 
@@ -221,7 +221,7 @@ describe('SupportTicketPage', () => {
     const user = userEvent.setup();
     await fillRequiredFields(user);
 
-    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    const submit = screen.getByRole('button', { name: /Submit support ticket/i });
     await user.click(submit);
 
     await waitFor(() => {
@@ -241,7 +241,7 @@ describe('SupportTicketPage', () => {
     const user = userEvent.setup();
     await fillRequiredFields(user);
 
-    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    const submit = screen.getByRole('button', { name: /Submit support ticket/i });
     await user.click(submit);
 
     await waitFor(() => {
@@ -256,7 +256,7 @@ describe('SupportTicketPage', () => {
 
     // Button should be re-enabled and label restored
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled()
+      expect(screen.getByRole('button', { name: /Submit support ticket/i })).toBeEnabled()
     );
   });
 
@@ -266,7 +266,7 @@ describe('SupportTicketPage', () => {
     await renderPage();
     const user = await fillRequiredFields();
 
-    await user.click(screen.getByRole('button', { name: /submit ticket/i }));
+    await user.click(screen.getByRole('button', { name: /Submit support ticket/i }));
 
     await waitFor(() => {
       expect(global.alert).toHaveBeenCalledWith(
@@ -281,7 +281,7 @@ describe('SupportTicketPage', () => {
 
     // Only fill subject to simulate missing others
     await user.type(screen.getByLabelText(/subject \*/i), 'Partial input');
-    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    const submit = screen.getByRole('button', { name: /Submit support ticket/i });
     await user.click(submit);
 
     // Native form required should prevent submission; fetch should not be called
@@ -299,7 +299,7 @@ describe('SupportTicketPage', () => {
     await renderPage();
     const user = await fillRequiredFields();
 
-    const button = screen.getByRole('button', { name: /submit ticket/i });
+    const button = screen.getByRole('button', { name: /Submit support ticket/i });
     await user.click(button);
 
     // While pending, button should reflect submitting state and be disabled
@@ -311,7 +311,7 @@ describe('SupportTicketPage', () => {
     resolveFn({ ok: true, json: async () => ({ id: 't_456' }) });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /Submit support ticket/i })).toBeEnabled();
     });
   });
 });

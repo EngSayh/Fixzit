@@ -205,6 +205,8 @@ export default function ViewingScheduler({
         <button type="button"
           onClick={() => window.location.reload()}
           className="px-6 py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow"
+          aria-label="Schedule another property viewing"
+          title="Schedule another viewing"
         >
           Schedule Another Viewing
         </button>
@@ -286,6 +288,8 @@ export default function ViewingScheduler({
                 ? "border-accent bg-accent/10"
                 : "border-border hover:border-border"
             }`}
+            aria-label={t("aqar.viewing.types.inPerson.ariaLabel", "Select in-person viewing - visit the property with the agent")}
+            aria-pressed={viewingType === "IN_PERSON"}
           >
             <div
               className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
@@ -312,6 +316,8 @@ export default function ViewingScheduler({
                 ? "border-accent bg-accent/10"
                 : "border-border hover:border-border"
             }`}
+            aria-label={t("aqar.viewing.types.videoCall.ariaLabel", "Select video call - virtual walkthrough with agent via video")}
+            aria-pressed={viewingType === "VIDEO_CALL"}
           >
             <div
               className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
@@ -338,6 +344,8 @@ export default function ViewingScheduler({
                 ? "border-accent bg-accent/10"
                 : "border-border hover:border-border"
             }`}
+            aria-label={t("aqar.viewing.types.virtual.ariaLabel", "Select virtual tour - self-guided 360 degree tour")}
+            aria-pressed={viewingType === "VIRTUAL"}
           >
             <div
               className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
@@ -360,6 +368,7 @@ export default function ViewingScheduler({
           <button type="button"
             onClick={() => setStep("datetime")}
             className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+            aria-label={t("aqar.viewing.buttons.continue.ariaLabel", "Continue to date and time selection")}
           >
             {t("aqar.viewing.buttons.continue", "Continue")}
           </button>
@@ -379,6 +388,8 @@ export default function ViewingScheduler({
                 <button type="button"
                   key={date.toISOString()}
                   onClick={() => setSelectedDate(date)}
+                  aria-label={`Select date ${date.toLocaleDateString("en-SA", { weekday: "long", month: "short", day: "numeric" })}`}
+                  aria-pressed={selectedDate?.toDateString() === date.toDateString()}
                   className={`p-2 rounded-lg border text-center transition-colors ${
                     selectedDate &&
                     selectedDate.toDateString() === date.toDateString()
@@ -416,6 +427,8 @@ export default function ViewingScheduler({
                       <button type="button"
                         key={time}
                         onClick={() => setSelectedTime(time)}
+                        aria-label={`Select morning time slot ${time}`}
+                        aria-pressed={selectedTime === time}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
                           selectedTime === time
                             ? "border-warning bg-orange-50 text-foreground font-semibold"
@@ -438,6 +451,8 @@ export default function ViewingScheduler({
                       <button type="button"
                         key={time}
                         onClick={() => setSelectedTime(time)}
+                        aria-label={`Select afternoon time slot ${time}`}
+                        aria-pressed={selectedTime === time}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
                           selectedTime === time
                             ? "border-accent bg-accent/10 text-foreground font-semibold"
@@ -458,6 +473,8 @@ export default function ViewingScheduler({
                       <button type="button"
                         key={time}
                         onClick={() => setSelectedTime(time)}
+                        aria-label={`Select evening time slot ${time}`}
+                        aria-pressed={selectedTime === time}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
                           selectedTime === time
                             ? "border-accent bg-accent/10 text-foreground font-semibold"
@@ -477,6 +494,7 @@ export default function ViewingScheduler({
             <button type="button"
               onClick={() => setStep("type")}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
+              aria-label="Go back to viewing type selection"
             >
               Back
             </button>
@@ -484,6 +502,7 @@ export default function ViewingScheduler({
               onClick={() => setStep("details")}
               disabled={!selectedDate || !selectedTime}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Continue to additional details"
             >
               Continue
             </button>
@@ -532,6 +551,7 @@ export default function ViewingScheduler({
                     <button type="button"
                       onClick={() => removeParticipant(idx)}
                       className="px-3 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      aria-label={`Remove participant ${participant.name || idx + 1}`}
                     >
                       Remove
                     </button>
@@ -541,6 +561,7 @@ export default function ViewingScheduler({
               <button type="button"
                 onClick={addParticipant}
                 className="text-sm text-accent-dark hover:text-accent font-medium"
+                aria-label="Add another participant to the viewing"
               >
                 + Add Another Person
               </button>
@@ -565,12 +586,14 @@ export default function ViewingScheduler({
             <button type="button"
               onClick={() => setStep("datetime")}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
+              aria-label="Go back to date and time selection"
             >
               Back
             </button>
             <button type="button"
               onClick={() => setStep("confirm")}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+              aria-label="Review your viewing booking"
             >
               Review
             </button>
@@ -639,6 +662,7 @@ export default function ViewingScheduler({
             <button type="button"
               onClick={() => setStep("details")}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
+              aria-label="Go back to additional details"
             >
               Back
             </button>
@@ -646,6 +670,7 @@ export default function ViewingScheduler({
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Confirm and submit your viewing booking"
             >
               {isSubmitting ? "Scheduling..." : "Confirm Booking"}
             </button>

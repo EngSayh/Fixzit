@@ -230,6 +230,8 @@ export default function SearchBar({
           <button type="button"
             onClick={handleClear}
             className="absolute inset-y-0 end-0 pe-3 flex items-center text-gray-400 hover:text-gray-600"
+            aria-label="Clear search query"
+            title="Clear search"
           >
             <X className="h-5 w-5" />
           </button>
@@ -256,6 +258,7 @@ export default function SearchBar({
                     className={`w-full px-4 py-2 text-start hover:bg-gray-50 flex items-center gap-3 ${
                       selectedIndex === index ? "bg-gray-50" : ""
                     }`}
+                    aria-label={`Search for ${suggestion.text}`}
                   >
                     {suggestion.type === "recent" && (
                       <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />

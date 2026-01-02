@@ -65,12 +65,12 @@ export default function AdminError({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={reset} variant="default">
+          <Button onClick={reset} variant="default" aria-label={t("common.tryAgainAria", "Retry the failed operation")}>
             <RefreshCw className="w-4 h-4 me-2" />
             {t("common.actions.tryAgain", "Try Again")}
           </Button>
 
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" aria-label={t("common.goToDashboardAria", "Navigate to dashboard")}>
             <Link href="/dashboard">
               <Home className="w-4 h-4 me-2" />
               {t("common.actions.goToDashboard", "Dashboard")}

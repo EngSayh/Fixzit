@@ -148,6 +148,8 @@ export default function SSOTViewerPage() {
             onClick={fetchSSOT}
             disabled={loading}
             className="bg-muted border-input text-foreground hover:bg-muted/80"
+            aria-label={t("common.refresh", "Refresh SSOT content")}
+            title={t("common.refresh", "Refresh SSOT content")}
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             {t("common.refresh", "Refresh")}
@@ -158,6 +160,8 @@ export default function SSOTViewerPage() {
             onClick={handleDownload}
             disabled={!ssotData}
             className="bg-muted border-input text-foreground hover:bg-muted/80"
+            aria-label={t("common.download", "Download SSOT file")}
+            title={t("common.download", "Download SSOT file")}
           >
             <Download className="h-4 w-4 me-2" />
             {t("common.download", "Download")}
@@ -249,6 +253,8 @@ export default function SSOTViewerPage() {
                 size="sm"
                 onClick={fetchSSOT}
                 className="mt-4 bg-muted border-input text-foreground"
+                aria-label={t("common.retry", "Retry loading SSOT")}
+                title={t("common.retry", "Retry loading SSOT")}
               >
                 {t("common.retry", "Retry")}
               </Button>

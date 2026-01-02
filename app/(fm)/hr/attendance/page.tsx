@@ -242,6 +242,7 @@ export default function AttendancePage() {
           variant="outline"
           disabled={!filteredEntries.length || exporting}
           onClick={handleExportCsv}
+          aria-label={t("hr.attendance.actions.exportCsvAria", "Export attendance to CSV")}
         >
           {exporting && <Loader2 className="h-4 w-4 animate-spin me-2" />}
           {t("hr.attendance.actions.exportCsv", "Export CSV")}

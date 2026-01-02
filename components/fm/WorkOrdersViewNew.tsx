@@ -310,11 +310,11 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
       description="Adjust filters or create a new work order to get started."
       action={
         activeFilters.length > 0 ? (
-          <Button variant="outline" onClick={() => resetState()}>
+          <Button variant="outline" onClick={() => resetState()} aria-label="Clear all filters" title="Clear all filters">
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Create work order flow")}>
+          <Button onClick={() => toast.info("Create work order flow")} aria-label="Create new work order" title="Create new work order">
             <Plus className="w-4 h-4 me-2" />
             Create Work Order
           </Button>
@@ -350,11 +350,11 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh work orders list" title="Refresh work orders list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="Create new work order" title="Create new work order">
             <Plus className="w-4 h-4 me-2" />
             New Work Order
           </Button>
@@ -387,7 +387,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)} aria-label="Open filters drawer" title="Open filters drawer">
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -450,6 +450,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
               size="sm"
               disabled={(state.page || 1) === 1}
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
+              aria-label="Go to previous page"
+              title="Go to previous page"
             >
               Previous
             </Button>
@@ -461,6 +463,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
               size="sm"
               disabled={(state.page || 1) >= totalPages}
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
+              aria-label="Go to next page"
+              title="Go to next page"
             >
               Next
             </Button>
@@ -475,8 +479,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         title="Filter Work Orders"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={handleResetFilters} aria-label="Reset filters" title="Reset filters">Reset</Button>
+            <Button onClick={handleApplyFilters} aria-label="Apply filters" title="Apply filters">Apply Filters</Button>
           </div>
         }
       >

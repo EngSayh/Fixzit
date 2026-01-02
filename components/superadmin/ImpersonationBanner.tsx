@@ -72,6 +72,7 @@ export function ImpersonationBanner() {
           onClick={handleClearImpersonation}
           disabled={isClearing}
           className="text-yellow-900 hover:bg-yellow-600/20"
+          aria-label="Exit impersonation mode"
         >
           {isClearing ? (
             "Clearing..."

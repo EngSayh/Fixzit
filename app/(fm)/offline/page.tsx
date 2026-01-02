@@ -64,11 +64,11 @@ export default function OfflinePage() {
               isRTL ? "justify-end" : "justify-start"
             }`}
           >
-            <Button onClick={() => window.location.reload()}>
+            <Button onClick={() => window.location.reload()} aria-label={t("offline.retryAria", "Retry network connection")}>
               <RefreshCw className="me-2 h-4 w-4" />
               {t("offline.retry", "Retry Connection")}
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild aria-label={t("offline.backAria", "Navigate back to dashboard")}>
               <Link href="/fm">
                 {t("offline.back", "Back to dashboard")}
               </Link>

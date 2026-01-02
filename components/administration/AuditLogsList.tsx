@@ -406,8 +406,8 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         title="Filter Audit Logs"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={handleResetFilters} aria-label="Reset all filters">Reset</Button>
+            <Button onClick={handleApplyFilters} aria-label="Apply selected filters">Apply Filters</Button>
           </div>
         }
       >

@@ -15,6 +15,7 @@ import {
 } from "../../../server/models/plugins/tenantAudit";
 import { setTenantContext as setTenantIsolationContext } from "../../../server/plugins/tenantIsolation";
 import { toMinor, applyFx } from "../../../server/lib/currency";
+import { waitForMongoConnection } from "../../utils/mongo-helpers";
 
 // TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
 const TEST_ORG_ID = new mongoose.Types.ObjectId();
@@ -25,16 +26,9 @@ describe("postingService Unit Tests", () => {
   let revenueAccountId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    // Connection is managed by vitest.setup.ts (MongoMemoryServer)
-    // Wait for connection to be ready (set by global setup)
-    const maxWait = 30000;
-    const start = Date.now();
-    while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWait) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    if (mongoose.connection.readyState !== 1) {
-      throw new Error(`Mongoose not connected after ${maxWait}ms - setup may have failed`);
-    }
+    // Wait for shared MongoMemoryServer connection from vitest.setup.ts
+    // Do NOT disconnect/reconnect - it breaks the shared connection
+    await waitForMongoConnection({ timeoutMs: 30_000 });
 
     // Set context - TYPESCRIPT FIX: Context functions expect string IDs
     setTenantIsolationContext({ orgId: TEST_ORG_ID, skipTenantFilter: true });
@@ -71,13 +65,13 @@ describe("postingService Unit Tests", () => {
   });
 
   afterAll(async () => {
-    // Cleanup test data (connection is managed by vitest.setup.ts)
+    // Cleanup test data - do NOT disconnect (shared connection managed by vitest.setup.ts)
     await Journal.deleteMany({ orgId: TEST_ORG_ID });
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
     await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
     clearContext();
     setTenantIsolationContext({});
-    // Don't disconnect - managed by vitest.setup.ts global teardown
+    // Do NOT call mongoose.disconnect() - managed by vitest.setup.ts
   });
 
   beforeEach(async () => {

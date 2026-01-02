@@ -243,6 +243,7 @@ export function FilterPresetsDropdown({
               size="sm"
               disabled={isLoading}
               onClick={() => setShowPresetsDialog(true)}
+              aria-label="Open filter presets menu"
             >
               <Star className="w-4 h-4 me-2" />
               Presets
@@ -297,6 +298,7 @@ export function FilterPresetsDropdown({
                           e.stopPropagation();
                           handleEditPreset(preset._id, preset.name, preset.is_default ?? false);
                         }}
+                        aria-label={`Edit preset ${preset.name}`}
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -308,6 +310,7 @@ export function FilterPresetsDropdown({
                           e.stopPropagation();
                           handleDeletePreset(preset._id, preset.name);
                         }}
+                        aria-label={`Delete preset ${preset.name}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -319,7 +322,7 @@ export function FilterPresetsDropdown({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPresetsDialog(false)}>
+            <Button variant="outline" onClick={() => setShowPresetsDialog(false)} aria-label="Close presets dialog">
               Close
             </Button>
             <Button
@@ -328,6 +331,7 @@ export function FilterPresetsDropdown({
                 setShowSaveDialog(true);
               }}
               disabled={!hasActiveFilters}
+              aria-label="Save current filters as preset"
             >
               <Plus className="w-4 h-4 me-2" />
               Save Current Filters
@@ -371,10 +375,10 @@ export function FilterPresetsDropdown({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)} disabled={isSaving}>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)} disabled={isSaving} aria-label="Cancel saving preset">
               Cancel
             </Button>
-            <Button onClick={handleSavePreset} disabled={isSaving || !presetName.trim()}>
+            <Button onClick={handleSavePreset} disabled={isSaving || !presetName.trim()} aria-label="Save filter preset">
               {isSaving ? "Saving..." : "Save Preset"}
             </Button>
           </DialogFooter>
@@ -423,10 +427,10 @@ export function FilterPresetsDropdown({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSaving}>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSaving} aria-label="Cancel editing preset">
               Cancel
             </Button>
-            <Button onClick={handleUpdatePreset} disabled={isSaving || !presetName.trim()}>
+            <Button onClick={handleUpdatePreset} disabled={isSaving || !presetName.trim()} aria-label="Update filter preset">
               {isSaving ? "Updating..." : "Update Preset"}
             </Button>
           </DialogFooter>

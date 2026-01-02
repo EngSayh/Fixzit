@@ -96,12 +96,12 @@ export function DealsPage() {
               </div>
             </div>
             <div className="flex flex-shrink-0 gap-3">
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" aria-label={t("marketplace.deals.signUp", "Sign Up")}>
                 <Link href="/signup">
                   {t("marketplace.deals.signUp", "Sign Up")}
                 </Link>
               </Button>
-              <Button asChild size="sm">
+              <Button asChild size="sm" aria-label={t("marketplace.deals.signIn", "Sign In")}>
                 <Link href="/login">
                   {t("marketplace.deals.signIn", "Sign In")}
                 </Link>
@@ -130,6 +130,7 @@ export function DealsPage() {
           <button type="button"
             key={key}
             className="flex flex-shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            aria-label={`Filter by ${label}`}
           >
             <Icon className="h-4 w-4" />
             {label}
@@ -172,6 +173,7 @@ export function DealsPage() {
                 asChild
                 className="mt-4 w-full"
                 variant={isAuthenticated ? "default" : "outline"}
+                aria-label={isAuthenticated ? t("marketplace.deals.viewDeal", "View Deal") : t("marketplace.deals.signInToView", "Sign In to View")}
               >
                 {isAuthenticated ? (
                   <Link href={`/marketplace/product/${deal.id}`}>

@@ -192,7 +192,7 @@ export default function SuperadminSupportPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.support") || "Support Tools"}</h1>
           <p className="text-muted-foreground">User impersonation, session debugging, and support utilities</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchSessions(); fetchTickets(); }} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchSessions(); fetchTickets(); }} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh support data")} title={t("common.refresh", "Refresh support data")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -231,7 +231,7 @@ export default function SuperadminSupportPage() {
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="bg-muted border-input text-foreground"
                 />
-                <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("common.search", "Search for users")} title={t("common.search", "Search for users")}>
                   <Search className="h-4 w-4 me-2" />Search
                 </Button>
               </div>
@@ -290,6 +290,7 @@ export default function SuperadminSupportPage() {
                               className="border-input"
                               disabled={user.role === "SUPER_ADMIN"}
                               title={user.role === "SUPER_ADMIN" ? "Cannot impersonate Super Admin" : "Impersonate User"}
+                              aria-label={user.role === "SUPER_ADMIN" ? t("superadmin.support.cannotImpersonate", "Cannot impersonate Super Admin") : t("superadmin.support.impersonateUser", `Impersonate ${user.name}`)}
                             >
                               <LogIn className="h-4 w-4" />
                             </Button>
@@ -430,8 +431,8 @@ export default function SuperadminSupportPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setImpersonateDialogOpen(false)} className="border-input">Cancel</Button>
-            <Button onClick={handleImpersonate} disabled={isImpersonating || !impersonationReason.trim()} className="bg-yellow-600 hover:bg-yellow-700 text-black">
+            <Button variant="outline" onClick={() => setImpersonateDialogOpen(false)} className="border-input" aria-label={t("common.cancel", "Cancel impersonation")} title={t("common.cancel", "Cancel impersonation")}>Cancel</Button>
+            <Button onClick={handleImpersonate} disabled={isImpersonating || !impersonationReason.trim()} className="bg-yellow-600 hover:bg-yellow-700 text-black" aria-label={t("superadmin.support.startImpersonation", "Start impersonating user")} title={t("superadmin.support.startImpersonation", "Start impersonating user")}>
               {isImpersonating ? <RefreshCw className="h-4 w-4 animate-spin me-2" /> : <LogIn className="h-4 w-4 me-2" />}
               Start Impersonation
             </Button>

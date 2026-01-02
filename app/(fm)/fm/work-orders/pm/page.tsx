@@ -132,10 +132,10 @@ export default function PreventiveMaintenancePage() {
           />
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn-secondary">
+          <button type="button" className="btn-secondary" aria-label={t("workOrders.pm.importSchedule", "Import Schedule")}>
             {t("workOrders.pm.importSchedule", "Import Schedule")}
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" aria-label={t("workOrders.pm.newPM", "New PM Schedule")}>
             + {t("workOrders.pm.newPM", "New PM Schedule")}
           </button>
         </div>
@@ -319,10 +319,10 @@ export default function PreventiveMaintenancePage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <button type="button" className="text-primary hover:text-primary">
+                          <button type="button" className="text-primary hover:text-primary" aria-label={t("common.edit", "Edit")}>
                             {t("common.edit", "Edit")}
                           </button>
-                          <button type="button" className="text-success hover:text-success-foreground">
+                          <button type="button" className="text-success hover:text-success-foreground" aria-label={t("workOrders.pm.generate", "Generate")}>
                             {t("workOrders.pm.generate", "Generate")}
                           </button>
                         </div>
@@ -342,37 +342,37 @@ export default function PreventiveMaintenancePage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.pm.quickActions.schedule", "Schedule PM")}>
             <div className="text-2xl mb-2">📅</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.schedule", "Schedule PM")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.pm.quickActions.templates", "Templates")}>
             <div className="text-2xl mb-2">📋</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.templates", "Templates")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.pm.quickActions.reports", "Reports")}>
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.reports", "Reports")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.pm.quickActions.checklists", "Checklists")}>
             <div className="text-2xl mb-2">🔧</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.checklists", "Checklists")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.pm.quickActions.settings", "Settings")}>
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.settings", "Settings")}
             </div>
           </button>
-          <button type="button" className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center" aria-label={t("workOrders.pm.quickActions.export", "Export")}>
             <div className="text-2xl mb-2">📤</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.export", "Export")}

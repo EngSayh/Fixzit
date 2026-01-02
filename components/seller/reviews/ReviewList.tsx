@@ -192,6 +192,7 @@ export function ReviewList({
           <button type="button"
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1 || loading}
+            aria-label={auto("Previous", "pagination.previous")}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
             {auto("Previous", "pagination.previous")}
@@ -204,6 +205,7 @@ export function ReviewList({
           <button type="button"
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages || loading}
+            aria-label={auto("Next", "pagination.next")}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
             {auto("Next", "pagination.next")}

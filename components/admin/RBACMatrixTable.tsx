@@ -162,6 +162,8 @@ export default function RBACMatrixTable({
                 size="sm"
                 onClick={handleReset}
                 disabled={!isDirty || isSaving}
+                aria-label="Reset all permission changes"
+                title="Reset all permission changes to original values"
               >
                 <RotateCcw className="me-2 h-4 w-4" />
                 Reset
@@ -170,6 +172,8 @@ export default function RBACMatrixTable({
                 size="sm"
                 onClick={handleSave}
                 disabled={!isDirty || isSaving}
+                aria-label="Save permission changes"
+                title="Save all permission changes"
               >
                 <Save className="me-2 h-4 w-4" />
                 {isSaving ? "Saving..." : "Save Changes"}

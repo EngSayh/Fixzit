@@ -89,11 +89,11 @@ export default function HrPayrollControlCenter() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={auto("Upload payroll adjustments", "actions.adjustmentsAria")} title={auto("Upload payroll adjustments", "actions.adjustmentsAria")}>
             <FileSpreadsheet className="me-2 h-4 w-4" />
             {auto("Upload adjustments", "actions.adjustments")}
           </Button>
-          <Button>
+          <Button aria-label={auto("Start new payroll run", "actions.startRunAria")} title={auto("Start new payroll run", "actions.startRunAria")}>
             <Calculator className="me-2 h-4 w-4" />
             {auto("Start payroll run", "actions.startRun")}
           </Button>
@@ -147,6 +147,8 @@ export default function HrPayrollControlCenter() {
                   variant="outline"
                   className="mt-3"
                   onClick={() => refresh()}
+                  aria-label={auto("Retry loading payroll data", "cycles.retryAria")}
+                  title={auto("Retry loading payroll data", "cycles.retryAria")}
                 >
                   {auto("Retry", "cycles.retry")}
                 </Button>
@@ -176,7 +178,7 @@ export default function HrPayrollControlCenter() {
                       ? `${cycle.variance}%`
                       : auto("Awaiting variance", "cycles.variancePending")}
                   </span>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" aria-label={auto("Open payroll run book", "cycles.openRunAria")} title={auto("Open payroll run book", "cycles.openRunAria")}>
                     {auto("Open run book", "cycles.openRun")}
                   </Button>
                 </div>

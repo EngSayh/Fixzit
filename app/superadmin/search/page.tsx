@@ -136,7 +136,7 @@ function SuperadminSearchClient({ initialQuery }: { initialQuery: string }) {
             aria-label={t("accessibility.searchSuperadmin")}
           />
         </div>
-        <Button type="submit" variant="default">
+        <Button type="submit" variant="default" aria-label={t("common.search", "Search across modules")} title={t("common.search", "Search across modules")}>
           Search
         </Button>
       </form>

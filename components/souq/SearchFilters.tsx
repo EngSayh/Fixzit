@@ -111,6 +111,8 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
             <button type="button"
               onClick={clearAllFilters}
               className="text-xs text-primary hover:text-primary-dark font-medium"
+              aria-label={auto("Clear all active filters", "clearAllButton.ariaLabel")}
+              title={auto("Clear All", "clearAllButton")}
             >
               {auto("Clear All", "clearAllButton")}
             </button>
@@ -177,8 +179,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                   currentCategory === category
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-foreground"
-                }`}
-              >
+                }`}                aria-label={`${auto("Filter by category", "filter.category.ariaLabel")}: ${category}`}              >
                 <span className="text-sm">{category}</span>
                 <span className="text-xs text-gray-500">({count})</span>
               </button>
@@ -228,6 +229,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                       ? "bg-primary/10 text-primary font-medium"
                       : "text-foreground"
                   }`}
+                  aria-label={`Filter by price range: ${range}`}
                 >
                   <span className="text-sm">{range}</span>
                   <span className="text-xs text-gray-500">({count})</span>
@@ -260,6 +262,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-foreground"
               }`}
+              aria-label={`Filter by ${rating} stars and up`}
             >
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
@@ -328,6 +331,8 @@ function FilterSection({
       <button type="button"
         onClick={onToggle}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        aria-label={`${expanded ? "Collapse" : "Expand"} ${title} section`}
+        aria-expanded={expanded}
       >
         <h3 className="font-semibold text-gray-900">{title}</h3>
         {expanded ? (

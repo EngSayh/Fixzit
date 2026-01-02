@@ -74,11 +74,11 @@ export default function PropertiesUnitsWorkspace() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={auto("Open advanced filters", "header.filtersAria")} title={auto("Open advanced filters", "header.filtersAria")}>
             <Filter className="me-2 h-4 w-4" />
             {auto("Advanced filters", "header.filters")}
           </Button>
-          <Button>
+          <Button aria-label={auto("Create a new unit", "header.createAria")} title={auto("Create a new unit", "header.createAria")}>
             <Plus className="me-2 h-4 w-4" />
             {auto("Create new unit", "header.create")}
           </Button>
@@ -127,6 +127,8 @@ export default function PropertiesUnitsWorkspace() {
                 className="mt-2"
                 variant="outline"
                 onClick={() => refresh()}
+                aria-label={auto("Retry loading units", "list.retryAria")}
+                title={auto("Retry loading units", "list.retryAria")}
               >
                 {auto("Retry", "list.retry")}
               </Button>
@@ -160,7 +162,7 @@ export default function PropertiesUnitsWorkspace() {
                   <p className="text-sm text-muted-foreground">
                     {auto("Units", "list.units")}: {property.units?.length ?? 1}
                   </p>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" aria-label={`${auto("Open record", "list.open")} ${property.name}`} title={`${auto("Open record", "list.open")} ${property.name}`}>
                     {auto("Open record", "list.open")}
                   </Button>
                 </div>

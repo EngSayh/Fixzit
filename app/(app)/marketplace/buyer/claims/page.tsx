@@ -81,7 +81,11 @@ export default function BuyerClaimsPage() {
           </div>
         </div>
         {viewMode === "list" && (
-          <Button onClick={handleNewClaim}>
+          <Button
+            onClick={handleNewClaim}
+            aria-label={t("marketplace.claims.buyer.newClaim") || "تقديم مطالبة جديدة"}
+            title={t("marketplace.claims.buyer.newClaim") || "File a new claim"}
+          >
             <FileText className="w-4 h-4 me-2" />
             {t("marketplace.claims.buyer.newClaim") || "تقديم مطالبة جديدة"}
           </Button>
@@ -112,7 +116,11 @@ export default function BuyerClaimsPage() {
               <br />
               Please select the order you want to file a claim for
             </p>
-            <Button onClick={() => router.push("/marketplace/orders")}>
+            <Button
+              onClick={() => router.push("/marketplace/orders")}
+              aria-label="View my orders"
+              title="View my orders"
+            >
               عرض طلباتي (View My Orders)
             </Button>
           </div>

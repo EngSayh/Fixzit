@@ -189,7 +189,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
         <h2 className="text-2xl font-bold">
           سجل المعاملات (Transaction History)
         </h2>
-        <Button onClick={exportToCSV} variant="outline" size="sm">
+        <Button onClick={exportToCSV} variant="outline" size="sm" aria-label="Export transaction history to CSV file (تصدير)" title="Export CSV">
           <Download className="h-4 w-4 me-2" />
           تصدير (Export CSV)
         </Button>

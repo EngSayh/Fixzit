@@ -66,6 +66,43 @@
   ],
   "issues": [
     {
+      "key": "A11Y-LABEL-001",
+      "externalId": "A11Y-LABEL-001",
+      "ref": "A11Y-LABEL-001",
+      "extractedBy": "[AGENT-001-A]",
+      "title": "aria-label/visible-text mismatch on FM property buttons",
+      "issue": "13 buttons had aria-label attributes that differed from visible button text, causing inconsistent screen reader announcements",
+      "action": "Removed mismatched aria-labels so accessible name comes from visible text",
+      "location": "app/(fm)/fm/properties/",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:app/(fm)/fm/properties:multiple",
+      "evidenceSnippet": "aria-label='Add location pin to inspection' differs from visible text 'Add location pin'",
+      "status": "resolved",
+      "category": "Bugs",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "riskTags": ["a11y"],
+      "effort": "small",
+      "impact": 7,
+      "impactBasis": "A11Y compliance",
+      "firstSeen": "2026-01-01",
+      "lastSeen": "2026-01-01",
+      "mentions": 1,
+      "statusEvolved": [{"from": "open", "to": "resolved", "at": "2026-01-01T12:45:00+03:00"}],
+      "resolution": {
+        "resolvedAt": "2026-01-01T12:45:00+03:00",
+        "commit": "62b1b1426",
+        "description": "Removed aria-label attributes from 13 buttons across 5 files. Kept title prop for tooltips.",
+        "files": [
+          "app/(fm)/fm/properties/inspections/new/page.tsx",
+          "app/(fm)/fm/properties/new/page.tsx",
+          "app/(fm)/fm/properties/units/new/page.tsx",
+          "app/(fm)/fm/properties/units/page.tsx",
+          "components/souq/OtherOffersTab.tsx"
+        ]
+      }
+    },
+    {
       "key": "commit-pending-next-steps-doc-only",
       "externalId": null,
       "ref": "REF-001",

@@ -31,11 +31,11 @@ export default function Error({
         {error.message || t("error.unexpectedError", "An unexpected error occurred. Please try again.")}
       </p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label={t("common.tryAgainAria", "Retry the failed operation")}>
           <RefreshCw className="w-4 h-4 me-2" />
           {t("common.tryAgain", "Try Again")}
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label={t("common.goHomeAria", "Navigate to dashboard")}>
           <Link href="/dashboard">
             <Home className="w-4 h-4 me-2" />
             {t("common.goHome", "Go Home")}

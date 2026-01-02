@@ -189,6 +189,7 @@ export default function RateLimitingDashboard() {
             onClick={() => refreshMetrics()}
             disabled={loading}
             className="flex items-center gap-2"
+            aria-label={auto("Refresh rate limit metrics", "rateLimit.actions.refreshAria")}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {auto("Refresh", "rateLimit.actions.refresh")}
@@ -208,6 +209,7 @@ export default function RateLimitingDashboard() {
               <button type="button"
                 onClick={() => refreshMetrics()}
                 className="text-sm font-medium underline"
+                aria-label={auto("Retry loading rate limit metrics", "errors.retryAria")}
               >
                 {auto("Retry", "errors.retry")}
               </button>

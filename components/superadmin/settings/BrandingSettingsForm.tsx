@@ -6,7 +6,7 @@
  * @module components/superadmin/settings/BrandingSettingsForm
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BrandLogo } from "@/components/brand";
-import { Upload, Save, RotateCcw, AlertCircle, CheckCircle2 } from "@/components/ui/icons";
+import { Upload, RotateCcw, AlertCircle, CheckCircle2 } from "@/components/ui/icons";
+import { SaveButton } from "@/components/ui/action-button";
 import { logger } from "@/lib/logger";
 
 interface BrandingData {
@@ -29,7 +30,6 @@ interface BrandingData {
 export function BrandingSettingsForm() {
   const { t: _t } = useI18n();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
@@ -88,61 +88,56 @@ export function BrandingSettingsForm() {
     fetchBranding();
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleSave = useCallback(async () => {
     setError(null);
     setSuccess(null);
 
-    try {
-      // Validate hex color
-      if (!/^#[0-9A-Fa-f]{6}$/.test(formData.brandColor)) {
-        setError("Brand color must be a valid hex code (e.g., #25935F)");
-        setSaving(false);
-        return;
-      }
-
-      const response = await fetch("/api/superadmin/branding", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          logoUrl: formData.logoUrl,
-          brandName: formData.brandName,
-          brandColor: formData.brandColor,
-          faviconUrl: formData.faviconUrl,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save branding settings");
-      }
-
-      const result = await response.json();
-      const updatedData: BrandingData = {
-        logoUrl: result.data.logoUrl,
-        brandName: result.data.brandName,
-        brandColor: result.data.brandColor,
-        faviconUrl: result.data.faviconUrl,
-        updatedAt: result.data.updatedAt,
-        updatedBy: result.data.updatedBy,
-      };
-      
-      setFormData(updatedData);
-      setOriginalData(updatedData);
-      setLastAudit({ updatedAt: updatedData.updatedAt, updatedBy: updatedData.updatedBy });
-      setSuccess("Branding settings saved successfully!");
-      
-      // Force reload to show updated logo (cache bust)
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (err) {
-      logger.error("Failed to save branding", { error: err });
-      setError(err instanceof Error ? err.message : "Failed to save branding settings");
-    } finally {
-      setSaving(false);
+    // Validate hex color
+    if (!/^#[0-9A-Fa-f]{6}$/.test(formData.brandColor)) {
+      throw new Error("Brand color must be a valid hex code (e.g., #25935F)");
     }
-  };
+
+    const response = await fetch("/api/superadmin/branding", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        logoUrl: formData.logoUrl,
+        brandName: formData.brandName,
+        brandColor: formData.brandColor,
+        faviconUrl: formData.faviconUrl,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to save branding settings");
+    }
+
+    const result = await response.json();
+    const updatedData: BrandingData = {
+      logoUrl: result.data.logoUrl,
+      brandName: result.data.brandName,
+      brandColor: result.data.brandColor,
+      faviconUrl: result.data.faviconUrl,
+      updatedAt: result.data.updatedAt,
+      updatedBy: result.data.updatedBy,
+    };
+    
+    setFormData(updatedData);
+    setOriginalData(updatedData);
+    setLastAudit({ updatedAt: updatedData.updatedAt, updatedBy: updatedData.updatedBy });
+    setSuccess("Branding settings saved successfully!");
+    
+    // Force reload to show updated logo (cache bust)
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  }, [formData]);
+
+  const handleSaveError = useCallback((err: Error) => {
+    logger.error("Failed to save branding", { error: err });
+    setError(err.message || "Failed to save branding settings");
+  }, []);
 
   const handleReset = () => {
     setFormData(originalData);
@@ -335,25 +330,19 @@ export function BrandingSettingsForm() {
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleSave}
-              disabled={!isDirty || saving}
+            <SaveButton
+              onAction={handleSave}
+              onActionError={handleSaveError}
+              disabled={!isDirty}
+              label="Save Changes"
               className="bg-[var(--color-status-info)] hover:bg-[var(--color-status-info)]/90 text-white"
-            >
-              {saving ? (
-                <>Saving...</>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 me-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            />
             <Button
               onClick={handleReset}
-              disabled={!isDirty || saving}
+              disabled={!isDirty}
               variant="outline"
               className="border-slate-700 text-slate-200"
+              aria-label="Reset branding settings to saved values"
             >
               <RotateCcw className="w-4 h-4 me-2" />
               Reset

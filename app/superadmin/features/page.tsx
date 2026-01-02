@@ -114,7 +114,7 @@ export default function SuperadminFeaturesPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.features")}</h1>
           <p className="text-muted-foreground">Manage feature toggles system-wide</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchFlags} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchFlags} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh feature flags")} title={t("common.refresh", "Refresh feature flags")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>

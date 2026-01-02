@@ -142,10 +142,10 @@ export default function SuperadminReportsPage() {
           <p className="text-muted-foreground">Generate and view cross-tenant reports</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="border-input text-muted-foreground" aria-label={t("superadmin.reports.exportCsv", "Export all data as CSV")} title={t("superadmin.reports.exportCsv", "Export all data as CSV")}>
             <Download className="h-4 w-4 me-2" />Export CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchReports} disabled={loading} className="border-input text-muted-foreground">
+          <Button variant="outline" size="sm" onClick={fetchReports} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh reports")} title={t("common.refresh", "Refresh reports")}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -202,6 +202,8 @@ export default function SuperadminReportsPage() {
                       onClick={() => handleGenerate(report.id)}
                       disabled={generating === report.id}
                       className="border-input"
+                      aria-label={t("superadmin.reports.generate", `Generate ${report.name}`)}
+                      title={t("superadmin.reports.generate", `Generate ${report.name}`)}
                     >
                       {generating === report.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Generate"}
                     </Button>

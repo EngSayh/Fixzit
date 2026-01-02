@@ -61,7 +61,7 @@ export default function CompliancePage() {
                 )}
               </p>
             </div>
-            <Button asChild>
+            <Button asChild aria-label={auto("Open audit programs", "card.audits.openAria")}>
               <Link href="/fm/compliance/audits">
                 {auto("Open", "card.audits.open")}
               </Link>
@@ -95,7 +95,7 @@ export default function CompliancePage() {
                 )}
               </p>
             </div>
-            <Button asChild>
+            <Button asChild aria-label={auto("Browse policy library", "card.policies.openAria")}>
               <Link href="/fm/compliance/policies">
                 {auto("Browse", "card.policies.open")}
               </Link>

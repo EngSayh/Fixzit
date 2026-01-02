@@ -391,11 +391,11 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
       description="Adjust filters or list a new property to get started."
       action={
         activeFilters.length > 0 ? (
-          <Button variant="outline" onClick={() => resetState()}>
+          <Button variant="outline" onClick={() => resetState()} aria-label="Clear all filters to see all properties">
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Add property flow")}>
+          <Button onClick={() => toast.info("Add property flow")} aria-label="List a new property">
             <Plus className="w-4 h-4 me-2" />
             List Property
           </Button>
@@ -429,11 +429,11 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating}>
+          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={isValidating} aria-label="Refresh property list">
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label="List a new property">
             <Plus className="w-4 h-4 me-2" />
             List Property
           </Button>
@@ -548,8 +548,8 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         title="Filter Properties"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={handleResetFilters} aria-label="Reset all filters">Reset</Button>
+            <Button onClick={handleApplyFilters} aria-label="Apply selected filters">Apply Filters</Button>
           </div>
         }
       >

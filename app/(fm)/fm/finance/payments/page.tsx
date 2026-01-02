@@ -154,6 +154,7 @@ export default function PaymentsPage() {
           type="button"
           variant="secondary"
           onClick={() => setDebouncedQuery(searchQuery.trim())}
+          aria-label={auto("Search for payments", "search.buttonLabel")}
         >
           {auto("Search", "search.button")}
         </Button>
@@ -167,6 +168,7 @@ export default function PaymentsPage() {
             size="sm"
             className="mt-3"
             onClick={() => fetchPayments()}
+            aria-label={auto("Retry loading payments", "errors.retryLabel")}
           >
             {auto("Retry", "errors.retry")}
           </Button>
@@ -376,7 +378,7 @@ function RecordPaymentDialog({ orgId, onRecorded: _onRecorded }: { orgId: string
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>{auto("Record Payment", "trigger")}</Button>
+        <Button aria-label={auto("Record a new payment", "triggerLabel")}>{auto("Record Payment", "trigger")}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -454,6 +456,7 @@ function RecordPaymentDialog({ orgId, onRecorded: _onRecorded }: { orgId: string
             onClick={handleSubmit}
             disabled={!vendor.trim() || !amount || isSubmitting}
             className="w-full"
+            aria-label={auto("Submit payment record", "submitLabel")}
           >
             {isSubmitting
               ? auto("Recording...", "submit.loading")

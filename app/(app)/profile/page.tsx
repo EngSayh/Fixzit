@@ -309,7 +309,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center justify-between gap-3">
             <span>{loadError}</span>
-            <Button variant="outline" onClick={fetchProfileData} size="sm">
+            <Button variant="outline" onClick={fetchProfileData} size="sm" aria-label={t("profile.retry", "Retry loading profile data")} title={t("profile.retry", "Retry")}>
               {t("profile.retry", "Retry")}
             </Button>
           </div>
@@ -448,10 +448,10 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={handleCancelAccount}>
+                    <Button variant="outline" onClick={handleCancelAccount} aria-label={t("accessibility.cancelChanges", "Cancel changes")} title={t("accessibility.cancelChanges", "Cancel changes")}>
                       {t("profile.account.cancel")}
                     </Button>
-                    <Button onClick={handleSaveAccount} disabled={loading}>
+                    <Button onClick={handleSaveAccount} disabled={loading} aria-label={t("accessibility.saveAccount", "Save account settings")} title={t("accessibility.saveAccount", "Save account settings")}>
                       {t("profile.account.save")}
                     </Button>
                   </div>
@@ -592,7 +592,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <Button onClick={handleSaveNotifications}>
+                    <Button onClick={handleSaveNotifications} aria-label={t("accessibility.saveNotifications", "Save notification settings")} title={t("accessibility.saveNotifications", "Save notification settings")}>
                       {t("profile.notifications.save")}
                     </Button>
                   </div>
@@ -688,7 +688,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <Button onClick={handleSaveSecurity}>
+                    <Button onClick={handleSaveSecurity} aria-label={t("accessibility.saveSecurity", "Save security settings")} title={t("accessibility.saveSecurity", "Save security settings")}>
                       {t("profile.security.update")}
                     </Button>
                   </div>

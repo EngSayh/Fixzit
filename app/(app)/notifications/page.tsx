@@ -604,12 +604,14 @@ export default function NotificationsPage() {
             className="btn-secondary"
             onClick={markAllAsRead}
             disabled={unreadCount === 0}
+            aria-label={t("notifications.actions.markAllRead", "Mark all notifications as read")}
+            title={t("notifications.actions.markAllRead", "Mark All Read")}
           >
             <CheckCheck size={16} className="me-2" />
             {t("notifications.actions.markAllRead", "Mark All Read")} (
             {unreadCount})
           </button>
-          <button type="button" className="btn-primary" onClick={handleSettings}>
+          <button type="button" className="btn-primary" onClick={handleSettings} aria-label={t("notifications.actions.openSettings", "Open notification settings")} title={t("notifications.actions.openSettings", "Settings")}>
             <Filter size={16} className="me-2" />
             {t("notifications.actions.openSettings", "Settings")}
           </button>
@@ -737,6 +739,8 @@ export default function NotificationsPage() {
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
+            aria-label={t("notifications.tabs.all", "View all notifications")}
+            aria-selected={selectedTab === "all"}
           >
             {t("notifications.tabs.all", "All")} ({tabCounts.all})
           </button>
@@ -747,6 +751,8 @@ export default function NotificationsPage() {
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
+            aria-label={t("notifications.tabs.unread", "View unread notifications")}
+            aria-selected={selectedTab === "unread"}
           >
             {t("notifications.tabs.unread", "Unread")} ({tabCounts.unread})
           </button>
@@ -757,6 +763,8 @@ export default function NotificationsPage() {
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
+            aria-label={t("notifications.tabs.urgent", "View urgent notifications")}
+            aria-selected={selectedTab === "urgent"}
           >
             {t("notifications.tabs.urgent", "Urgent")} ({tabCounts.urgent})
             {tabCounts.urgent > 0 && (
@@ -895,6 +903,8 @@ export default function NotificationsPage() {
                 <button type="button"
                   onClick={handleSelectAll}
                   className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-2xl hover:bg-secondary/90 transition-colors"
+                  aria-label={t("notifications.bulk.selectAll", "Select all notifications")}
+                  title={t("notifications.bulk.selectAll", "Select All")}
                 >
                   {t("notifications.bulk.selectAll", "Select All")}
                 </button>
@@ -904,6 +914,8 @@ export default function NotificationsPage() {
                   <button type="button"
                     onClick={bulkMarkAsRead}
                     className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                    aria-label={t("notifications.bulk.markRead", "Mark selected as read")}
+                    title={t("notifications.bulk.markRead", "Mark as Read")}
                   >
                     {t("notifications.bulk.markRead", "Mark as Read")} (
                     {selectedNotifications.size})
@@ -911,6 +923,8 @@ export default function NotificationsPage() {
                   <button type="button"
                     onClick={markAsImportant}
                     className="px-3 py-1 text-sm bg-warning text-white rounded hover:bg-warning transition-colors"
+                    aria-label={t("notifications.bulk.markImportant", "Mark selected as important")}
+                    title={t("notifications.bulk.markImportant", "Mark Important")}
                   >
                     {t("notifications.bulk.markImportant", "Mark Important")} (
                     {selectedNotifications.size})
@@ -918,6 +932,8 @@ export default function NotificationsPage() {
                   <button type="button"
                     onClick={exportNotifications}
                     className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 transition-colors"
+                    aria-label={t("notifications.bulk.export", "Export selected notifications")}
+                    title={t("notifications.bulk.export", "Export")}
                   >
                     {t("notifications.bulk.export", "Export")} (
                     {selectedNotifications.size})
@@ -925,6 +941,8 @@ export default function NotificationsPage() {
                   <button type="button"
                     onClick={archiveNotifications}
                     className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success transition-colors"
+                    aria-label={t("notifications.bulk.archive", "Archive selected notifications")}
+                    title={t("notifications.bulk.archive", "Archive")}
                   >
                     {t("notifications.bulk.archive", "Archive")} (
                     {selectedNotifications.size})
@@ -932,6 +950,8 @@ export default function NotificationsPage() {
                   <button type="button"
                     onClick={deleteNotifications}
                     className="px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
+                    aria-label={t("notifications.bulk.delete", "Delete selected notifications")}
+                    title={t("notifications.bulk.delete", "Delete")}
                   >
                     {t("notifications.bulk.delete", "Delete")} (
                     {selectedNotifications.size})
@@ -951,6 +971,8 @@ export default function NotificationsPage() {
           <button type="button"
             onClick={handleEmailSettings}
             className="btn-ghost text-center hover:bg-primary/10 transition-colors"
+            aria-label={t("notifications.quickActions.email", "Configure email notification settings")}
+            title={t("notifications.quickActions.email", "Email Settings")}
           >
             <div className="text-2xl mb-2">📧</div>
             <div className="text-sm font-medium">
@@ -960,6 +982,8 @@ export default function NotificationsPage() {
           <button type="button"
             onClick={handlePushNotifications}
             className="btn-ghost text-center hover:bg-success/10 transition-colors"
+            aria-label={t("notifications.quickActions.push", "Configure push notification settings")}
+            title={t("notifications.quickActions.push", "Push Notifications")}
           >
             <div className="text-2xl mb-2">📱</div>
             <div className="text-sm font-medium">
@@ -969,6 +993,8 @@ export default function NotificationsPage() {
           <button type="button"
             onClick={handleMuteCategories}
             className="btn-ghost text-center hover:bg-accent/10 transition-colors"
+            aria-label={t("notifications.quickActions.mute", "Mute notification categories")}
+            title={t("notifications.quickActions.mute", "Mute Categories")}
           >
             <div className="text-2xl mb-2">🔕</div>
             <div className="text-sm font-medium">
@@ -978,6 +1004,8 @@ export default function NotificationsPage() {
           <button type="button"
             onClick={handleNotificationReport}
             className="btn-ghost text-center hover:bg-secondary/10 transition-colors"
+            aria-label={t("notifications.quickActions.report", "View notification report")}
+            title={t("notifications.quickActions.report", "Notification Report")}
           >
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
@@ -987,6 +1015,8 @@ export default function NotificationsPage() {
           <button type="button"
             onClick={handleSettings}
             className="btn-ghost text-center hover:bg-muted transition-colors"
+            aria-label={t("notifications.quickActions.settings", "Open notification settings")}
+            title={t("notifications.quickActions.settings", "Settings")}
           >
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
@@ -996,6 +1026,8 @@ export default function NotificationsPage() {
           <button type="button"
             onClick={handleClearAll}
             className="btn-ghost text-center hover:bg-destructive/10 transition-colors"
+            aria-label={t("notifications.quickActions.clearAll", "Clear all notifications")}
+            title={t("notifications.quickActions.clearAll", "Clear All")}
           >
             <div className="text-2xl mb-2">🗑️</div>
             <div className="text-sm font-medium">

@@ -753,6 +753,7 @@ export default function NewPaymentPage() {
             onClick={() => router.back()}
             className="px-4 py-2 text-muted-foreground hover:text-foreground"
             disabled={isSubmitting}
+            aria-label={t("Cancel")}
           >
             {t("Cancel")}
           </button>
@@ -980,6 +981,9 @@ export default function NewPaymentPage() {
                     setShowInvoiceAllocation(!showInvoiceAllocation)
                   }
                   className="px-4 py-2 text-sm bg-primary/10 text-primary rounded-2xl hover:bg-primary/20"
+                  aria-label={showInvoiceAllocation
+                    ? t("Hide Invoices")
+                    : t("Allocate to Invoices")}
                 >
                   {showInvoiceAllocation
                     ? t("Hide Invoices")
@@ -1012,6 +1016,7 @@ export default function NewPaymentPage() {
                           disabled={
                             allocations.filter((a) => a.selected).length === 0
                           }
+                          aria-label={t("Allocate Equally")}
                         >
                           {t("Allocate Equally")}
                         </button>
@@ -1022,6 +1027,7 @@ export default function NewPaymentPage() {
                           disabled={
                             allocations.filter((a) => a.selected).length === 0
                           }
+                          aria-label={t("By Due Date")}
                         >
                           {t("By Due Date")}
                         </button>
@@ -1029,6 +1035,7 @@ export default function NewPaymentPage() {
                           type="button"
                           onClick={clearAllocations}
                           className="px-3 py-1 text-sm bg-destructive/10 text-destructive rounded hover:bg-destructive/20"
+                          aria-label={t("Clear All")}
                         >
                           {t("Clear All")}
                         </button>
@@ -1174,6 +1181,7 @@ export default function NewPaymentPage() {
               onClick={() => router.back()}
               className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
               disabled={isSubmitting}
+              aria-label={t("Cancel")}
             >
               {t("Cancel")}
             </button>
@@ -1181,6 +1189,7 @@ export default function NewPaymentPage() {
               type="submit"
               className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting || Object.keys(errors).length > 0}
+              aria-label={isSubmitting ? t("Creating...") : t("Create Payment")}
             >
               {isSubmitting ? t("Creating...") : t("Create Payment")}
             </button>

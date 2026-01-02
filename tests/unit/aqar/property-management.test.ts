@@ -210,7 +210,7 @@ describe('Property Management (Aqar)', () => {
         tenantId: 't1',
         unitId: 'u1',
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2025-12-31'),
+        endDate: new Date('2027-12-31'), // Future date to ensure test stays valid
         monthlyRent: 500,
         currency: 'OMR',
         securityDeposit: 1000,

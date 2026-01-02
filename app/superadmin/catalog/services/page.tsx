@@ -331,11 +331,11 @@ export default function FMServicesCatalogPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchServices} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={fetchServices} disabled={loading} aria-label={t("common.refresh", "Refresh services catalog")} title={t("common.refresh", "Refresh services catalog")}>
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             {t("common.refresh", "Refresh")}
           </Button>
-          <Button size="sm">
+          <Button size="sm" aria-label={t("superadmin.services.add", "Add a new FM service")} title={t("superadmin.services.add", "Add a new FM service")}>
             <Plus className="h-4 w-4 me-2" />
             {t("superadmin.services.add", "Add Service")}
           </Button>
@@ -535,6 +535,8 @@ export default function FMServicesCatalogPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => viewDetails(service)}
+                          aria-label={t("superadmin.services.viewDetails", `View ${service.name} details`)}
+                          title={t("superadmin.services.viewDetails", "View service details")}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -542,6 +544,8 @@ export default function FMServicesCatalogPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
+                          aria-label={t("common.edit", `Edit ${service.name}`)}
+                          title={t("common.edit", "Edit service")}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -630,10 +634,10 @@ export default function FMServicesCatalogPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)} aria-label={t("common.close", "Close service details")} title={t("common.close", "Close service details")}>
               {t("common.close", "Close")}
             </Button>
-            <Button>
+            <Button aria-label={t("common.edit", "Edit this service")} title={t("common.edit", "Edit this service")}>
               <Edit className="h-4 w-4 me-2" />
               {t("common.edit", "Edit")}
             </Button>

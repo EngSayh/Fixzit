@@ -137,7 +137,7 @@ export default function ListingDetailPage({
             fill
             className="object-cover"
           />
-          <button type="button" className="absolute top-4 end-4 bg-white/90 rounded-full px-4 py-1 text-sm text-foreground flex items-center gap-2">
+          <button type="button" className="absolute top-4 end-4 bg-white/90 rounded-full px-4 py-1 text-sm text-foreground flex items-center gap-2" aria-label={t("common.share", "Share listing")} title={t("common.share", "Share")}>
             <Share2 className="w-4 h-4" />
             {t("common.share", "Share")}
           </button>

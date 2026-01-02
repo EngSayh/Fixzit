@@ -361,6 +361,8 @@ export default function CatalogView({
                   setMinPrice("");
                   setMaxPrice("");
                 }}
+                aria-label={resetFiltersLabel}
+                title={resetFiltersLabel}
               >
                 {resetFiltersLabel}
               </Button>
@@ -368,6 +370,8 @@ export default function CatalogView({
                 <Button
                   onClick={() => setShowLoginPrompt(true)}
                   className="bg-primary hover:bg-primary-dark"
+                  aria-label={inviteVendorLabel}
+                  title={inviteVendorLabel}
                 >
                   {inviteVendorLabel}
                 </Button>
@@ -455,6 +459,8 @@ export default function CatalogView({
                   <Button
                     className="flex-1 bg-primary hover:bg-primary-dark"
                     onClick={() => handleAddToCart(product)}
+                    aria-label={`${addToCartLabel}: ${product.title}`}
+                    title={`${addToCartLabel}: ${product.title}`}
                   >
                     <ShoppingCart className="w-4 h-4 me-2" />
                     {addToCartLabel}
@@ -463,6 +469,8 @@ export default function CatalogView({
                     variant="outline"
                     className="flex-1"
                     onClick={() => setShowLoginPrompt(true)}
+                    aria-label={`${requestQuoteLabel}: ${product.title}`}
+                    title={`${requestQuoteLabel}: ${product.title}`}
                   >
                     {requestQuoteLabel}
                   </Button>

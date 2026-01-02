@@ -265,7 +265,7 @@ export default function SuperadminLoginPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading} aria-label={loading ? t("auth.authenticating", "Authenticating...") : t("auth.signIn", "Sign in to superadmin")} title={t("auth.signIn", "Sign in to superadmin")}>
               {loading ? (
                 "Authenticating..."
               ) : (

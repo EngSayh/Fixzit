@@ -12,17 +12,15 @@ import localRules from "./eslint-local-rules/index.js";
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
-  // Global ignores (replaces .eslintignore)
+  // Global ignores - must be standalone object with ONLY ignores key
   {
-    linterOptions: {
-      reportUnusedDisableDirectives: false,
-    },
     ignores: [
       // Build outputs
       ".next/**",
       "**/.next/**",
       "node_modules/**",
       "_artifacts/**",
+      ".artifacts/**",
       "coverage/**",
       "playwright-report/**",
       "e2e-test-results/**",
@@ -61,6 +59,13 @@ export default [
       "test-powershell-heredoc.ts",
       "webpack-entry.js",
     ],
+  },
+
+  // Linter options - separate from ignores for flat config
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: false,
+    },
   },
 
   {

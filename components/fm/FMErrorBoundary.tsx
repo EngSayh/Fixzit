@@ -103,11 +103,12 @@ export class FMErrorBoundary extends Component<Props, State> {
                 variant="outline"
                 onClick={this.handleReset}
                 className="gap-2"
+                aria-label="Try again to recover from error"
               >
                 <RefreshCw className="h-4 w-4" />
                 Try Again
               </Button>
-              <Button onClick={this.handleReload} className="gap-2">
+              <Button onClick={this.handleReload} className="gap-2" aria-label="Reload the entire page">
                 Reload Page
               </Button>
             </div>

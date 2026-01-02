@@ -138,7 +138,7 @@ export default function SettingsPage() {
                   </Label>
                   <Input id="department" defaultValue="IT" />
                 </div>
-                <Button>{t("settings.profile.save", "Save Changes")}</Button>
+                <Button aria-label={t("settings.profile.saveLabel", "Save profile changes")}>{t("settings.profile.save", "Save Changes")}</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch />
                 </div>
-                <Button>
+                <Button aria-label={t("settings.security.updatePasswordLabel", "Update your password")}>
                   {t("settings.security.updatePassword", "Update Password")}
                 </Button>
               </CardContent>
@@ -218,7 +218,7 @@ export default function SettingsPage() {
                     />
                   </div>
                 ))}
-                <Button>
+                <Button aria-label={t("settings.notifications.saveLabel", "Save notification preferences")}>
                   {t("settings.notifications.save", "Save Preferences")}
                 </Button>
               </CardContent>
@@ -319,7 +319,7 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button>
+                <Button aria-label={t("settings.preferences.saveLabel", "Save app preferences")}>
                   {t("settings.preferences.save", "Save Preferences")}
                 </Button>
               </CardContent>

@@ -136,7 +136,7 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary">
+            <Button className="bg-primary hover:bg-primary" aria-label={auto("Create a new project", "actions.newAria")}>
               <Plus className="w-4 h-4 me-2" />
               {auto("New Project", "actions.new")}
             </Button>
@@ -279,6 +279,7 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
                 <Button
                   onClick={() => setCreateOpen(true)}
                   className="bg-primary hover:bg-primary"
+                  aria-label={auto("Create your first project", "actions.createAria")}
                 >
                   <Plus className="w-4 h-4 me-2" />
                   {auto("Create Project", "actions.create")}
@@ -472,6 +473,8 @@ function ProjectCard({
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/fm/projects/${project.id}`)}
+              aria-label={`View project ${project.name}`}
+              title={`View ${project.name} details`}
             >
               <Eye className="w-4 h-4" />
             </Button>
@@ -479,6 +482,8 @@ function ProjectCard({
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/fm/projects/${project.id}/edit`)}
+              aria-label={`Edit project ${project.name}`}
+              title={`Edit ${project.name}`}
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -487,6 +492,8 @@ function ProjectCard({
               size="sm"
               className="text-destructive hover:text-destructive/90"
               onClick={handleDelete}
+              aria-label={`Delete project ${project.name}`}
+              title={`Delete ${project.name} permanently`}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -704,7 +711,7 @@ function CreateProjectForm({
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-primary hover:bg-primary">
+        <Button type="submit" className="bg-primary hover:bg-primary" aria-label={auto("Submit the project form", "submitAria")}>
           {auto("Create Project", "submit")}
         </Button>
       </div>

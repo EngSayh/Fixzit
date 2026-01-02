@@ -617,6 +617,7 @@ export function WorkOrdersView({
                   size="sm"
                   onClick={handleManualSync}
                   disabled={manualSyncing}
+                  aria-label={t("workOrders.offline.syncNow.ariaLabel", "Sync offline work orders now")}
                 >
                   {manualSyncing
                     ? t("workOrders.offline.syncing", "Syncing...")
@@ -712,6 +713,7 @@ export function WorkOrdersView({
                 <Button
                   variant="outline"
                   onClick={() => setFilterDrawerOpen(true)}
+                  aria-label={t("workOrders.list.filters.open.ariaLabel", "Open filter options")}
                 >
                   <Filter className="me-2 h-4 w-4" />
                   {filtersLabel}
@@ -723,6 +725,7 @@ export function WorkOrdersView({
                   variant="outline"
                   onClick={() => mutate()}
                   disabled={isValidating}
+                  aria-label={t("workOrders.list.filters.refresh.ariaLabel", "Refresh work orders list")}
                 >
                   <RefreshCcw
                     className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
@@ -765,6 +768,7 @@ export function WorkOrdersView({
                 setPage(1);
                 setFilterDrawerOpen(false);
               }}
+              aria-label={t("common.reset.ariaLabel", "Reset all filters")}
             >
               {t("common.reset", "Reset")}
             </Button>
@@ -773,6 +777,7 @@ export function WorkOrdersView({
                 setPage(1);
                 setFilterDrawerOpen(false);
               }}
+              aria-label={t("common.apply.ariaLabel", "Apply filters and close")}
             >
               {t("common.apply", "Apply")}
             </Button>
@@ -1070,7 +1075,7 @@ export function WorkOrdersView({
           title={emptyTitle}
           description={emptySubtitle}
           action={
-            <Button onClick={() => mutate()}>
+            <Button onClick={() => mutate()} aria-label={t("workOrders.list.retry", "Retry loading work orders")} title={retryLabel}>
               <RefreshCcw className="me-2 h-4 w-4" />
               {retryLabel}
             </Button>
@@ -1093,6 +1098,7 @@ export function WorkOrdersView({
             size="sm"
             disabled={page <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            aria-label={t("workOrders.list.pagination.previous.ariaLabel", "Go to previous page")}
           >
             {t("workOrders.list.pagination.previous", "Previous")}
           </Button>
@@ -1109,6 +1115,7 @@ export function WorkOrdersView({
             size="sm"
             disabled={page >= totalPages}
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            aria-label={t("workOrders.list.pagination.next.ariaLabel", "Go to next page")}
           >
             {t("workOrders.list.pagination.next", "Next")}
           </Button>
@@ -1222,7 +1229,7 @@ function WorkOrderCreateDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-success hover:bg-success-dark">
+        <Button className="bg-success hover:bg-success-dark" aria-label={t("workOrders.create.button.ariaLabel", "Create a new work order")} title={t("workOrders.create.button", "New Work Order")}>
           <Plus className="me-2 h-4 w-4" />
           {t("workOrders.create.button", "New Work Order")}
         </Button>
@@ -1322,10 +1329,11 @@ function WorkOrderCreateDialog({
                 setOpen(false);
               }}
               disabled={submitting}
+              aria-label={t("workOrders.create.form.cancelButton.ariaLabel", "Cancel and close work order form")}
             >
               {t("workOrders.create.form.cancelButton", "Cancel")}
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting} aria-label={t("workOrders.create.form.submitButton.ariaLabel", "Submit and create work order")}>
               {submitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {t("workOrders.create.form.submitButton", "Create")}
             </Button>

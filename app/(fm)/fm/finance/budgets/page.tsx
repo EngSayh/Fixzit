@@ -159,6 +159,7 @@ export default function BudgetsPage() {
           onClick={() => {
             /* no-op search button */
           }}
+          aria-label={auto("Search budgets", "search.buttonLabel")}
         >
           {auto("Search", "search.button")}
         </Button>
@@ -431,7 +432,7 @@ function CreateBudgetDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>{auto("Create Budget", "trigger")}</Button>
+        <Button aria-label={auto("Create a new budget", "triggerLabel")}>{auto("Create Budget", "trigger")}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -489,6 +490,7 @@ function CreateBudgetDialog({
               Number(amount) <= 0
             }
             className="w-full"
+            aria-label={auto("Create budget", "submitLabel")}
           >
             {auto("Create Budget", "submit")}
           </Button>
@@ -619,6 +621,7 @@ function EditBudgetDialog({
               onClick={onClose}
               disabled={submitting}
               className="flex-1"
+              aria-label={auto("Cancel editing budget", "cancelLabel")}
             >
               {auto("Cancel", "cancel")}
             </Button>
@@ -633,6 +636,7 @@ function EditBudgetDialog({
                 Number(amount) <= 0
               }
               className="flex-1"
+              aria-label={auto("Save budget changes", "submitLabel")}
             >
               {auto("Save Changes", "submit")}
             </Button>

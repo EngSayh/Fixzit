@@ -108,6 +108,8 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
         <button type="button"
           onClick={() => setShowForm(!showForm)}
           className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+          aria-label={showForm ? "Close RFQ form" : "Create a new Request for Quotation"}
+          aria-expanded={showForm}
         >
           {showForm
             ? auto("Close form", "actions.closeForm")
@@ -203,6 +205,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               onClick={createRFQ}
               disabled={submitting}
               className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
+              aria-label="Submit Request for Quotation"
             >
               {submitting
                 ? auto("Submitting…", "form.submitting")
@@ -211,6 +214,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             <button type="button"
               onClick={() => setShowForm(false)}
               className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+              aria-label="Cancel creating RFQ"
             >
               {auto("Cancel", "actions.cancel")}
             </button>

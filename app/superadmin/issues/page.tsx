@@ -171,6 +171,11 @@ export default function SuperadminIssuesPage() {
   // Selection state
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
 
+  // Action confirmation states
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [copiedTSV, setCopiedTSV] = useState(false);
+  const [exportedCSV, setExportedCSV] = useState(false);
+
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -267,21 +272,57 @@ export default function SuperadminIssuesPage() {
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
-    const rows = selectedData.map(issue => [
-      issue.issueId || issue.legacyId || issue._id.slice(-6),
-      issue.priority,
-      issue.title,
-      issue.status,
-      issue.category,
-      issue.module,
-      `${issue.mentionCount || 1}×`,
-      new Date(issue.updatedAt).toLocaleDateString(),
-    ]);
+    // Generate detailed fix instructions for each issue
+    const fixInstructions = selectedData.map((issue, idx) => {
+      const issueNum = idx + 1;
+      const location = issue.location?.filePath 
+        ? `\`${issue.location.filePath}${issue.location.lineStart ? `:${issue.location.lineStart}` : ""}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}\``
+        : "Location not specified";
+      
+      return `### ${issueNum}. ${issue.title}
 
-    const markdown = `| ${headers.join(" | ")} |\n| ${headers.map(() => "---").join(" | ")} |\n${rows.map(row => `| ${row.join(" | ")} |`).join("\n")}`;
+**ID:** ${issue.issueId || issue.legacyId || issue._id.slice(-6)}  
+**Priority:** ${issue.priority}  
+**Status:** ${issue.status}  
+**Category:** ${issue.category}  
+**Module:** ${issue.module}  
+**Location:** ${location}  
+**Seen:** ${issue.mentionCount || 1}×  
+**Updated:** ${new Date(issue.updatedAt).toLocaleDateString()}
+
+**Description:**  
+${issue.description || "No description provided."}
+
+**Fix Instructions:**
+1. Navigate to ${location}
+2. Review the ${issue.category} issue: "${issue.title}"
+3. Apply the necessary fix based on the category type
+4. Test the changes to ensure the issue is resolved
+5. Update the issue status to "resolved" after verification
+
+---`;
+    }).join("\n\n");
+
+    const markdown = `# Fix Instructions for Selected Issues
+
+**Total Issues:** ${selectedData.length}  
+**Generated:** ${new Date().toLocaleString()}  
+**Agent Token:** [AGENT-001-A]
+
+---
+
+${fixInstructions}
+
+## Summary Table
+
+| ID | Priority | Title | Status | Category | Module | Location |
+| --- | --- | --- | --- | --- | --- | --- |
+${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.slice(-6)} | ${issue.priority} | ${issue.title} | ${issue.status} | ${issue.category} | ${issue.module} | ${issue.location?.filePath || "N/A"} |`).join("\n")}
+`;
     navigator.clipboard.writeText(markdown);
-    toast({ title: "Copied to clipboard", description: `${selectedData.length} issues copied as Markdown table` });
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
+    toast({ title: "✓ Copied to clipboard", description: `${selectedData.length} issues copied with fix instructions` });
   };
 
   const handleCopyTSV = () => {
@@ -291,7 +332,7 @@ export default function SuperadminIssuesPage() {
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
+    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Location", "Line", "Seen", "Updated", "Description"];
     const rows = selectedData.map(issue => [
       issue.issueId || issue.legacyId || issue._id.slice(-6),
       issue.priority,
@@ -299,13 +340,18 @@ export default function SuperadminIssuesPage() {
       issue.status,
       issue.category,
       issue.module,
+      issue.location?.filePath || "",
+      issue.location?.lineStart ? `${issue.location.lineStart}${issue.location.lineEnd ? `-${issue.location.lineEnd}` : ""}` : "",
       `${issue.mentionCount || 1}×`,
       new Date(issue.updatedAt).toLocaleDateString(),
+      (issue.description || "").replace(/\t/g, " ").replace(/\n/g, " "),
     ]);
 
     const tsv = `${headers.join("\t")}\n${rows.map(row => row.join("\t")).join("\n")}`;
     navigator.clipboard.writeText(tsv);
-    toast({ title: "Copied to clipboard", description: `${selectedData.length} issues copied as TSV (paste into Excel/Sheets)` });
+    setCopiedTSV(true);
+    setTimeout(() => setCopiedTSV(false), 2000);
+    toast({ title: "✓ Copied to clipboard", description: `${selectedData.length} issues copied as TSV (paste into Excel/Sheets)` });
   };
 
   const handleExportCSV = () => {
@@ -316,7 +362,7 @@ export default function SuperadminIssuesPage() {
       return;
     }
 
-    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "Seen", "Updated"];
+    const headers = ["ID", "Priority", "Title", "Status", "Category", "Module", "FilePath", "LineStart", "LineEnd", "Description", "Seen", "Updated"];
     const rows = selectedData.map(issue => [
       issue.issueId || issue.legacyId || issue._id.slice(-6),
       issue.priority,
@@ -324,6 +370,10 @@ export default function SuperadminIssuesPage() {
       issue.status,
       issue.category,
       issue.module,
+      issue.location?.filePath || "",
+      issue.location?.lineStart || "",
+      issue.location?.lineEnd || "",
+      (issue.description || "").replace(/"/g, '""'),
       issue.mentionCount || 1,
       new Date(issue.updatedAt).toISOString(),
     ]);
@@ -337,7 +387,9 @@ export default function SuperadminIssuesPage() {
     a.click();
     URL.revokeObjectURL(url);
 
-    toast({ title: "Export complete", description: `${selectedData.length} issues exported to CSV` });
+    setExportedCSV(true);
+    setTimeout(() => setExportedCSV(false), 2000);
+    toast({ title: "✓ Export complete", description: `${selectedData.length} issues exported to CSV` });
   };
 
   const clearFilters = () => {
@@ -602,17 +654,17 @@ export default function SuperadminIssuesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} aria-label={t("superadmin.issues.refresh", "Refresh issues list")} title={t("superadmin.issues.refresh", "Refresh issues list")}>
             <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
             {t("superadmin.issues.refresh")}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} aria-label={t("superadmin.issues.export", "Export issues to JSON")} title={t("superadmin.issues.export", "Export issues to JSON")}>
             <Download className="h-4 w-4 me-2" />
             {t("superadmin.issues.export")}
           </Button>
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" aria-label={t("superadmin.issues.import", "Import issues")} title={t("superadmin.issues.import", "Import issues")}>
                 <Upload className="h-4 w-4 me-2" />
                 {t("superadmin.issues.import")}
               </Button>
@@ -636,17 +688,17 @@ export default function SuperadminIssuesPage() {
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
+                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing} aria-label={t("superadmin.issues.importDryRun", "Test import without saving")} title={t("superadmin.issues.importDryRun", "Test import without saving")}>
                     {t("superadmin.issues.importDryRun")}
                   </Button>
-                  <Button onClick={() => handleImport(false)} disabled={importing}>
+                  <Button onClick={() => handleImport(false)} disabled={importing} aria-label={t("superadmin.issues.import", "Import issues now")} title={t("superadmin.issues.import", "Import issues now")}>
                     {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
                   </Button>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
-          <Button size="sm">
+          <Button size="sm" aria-label={t("superadmin.issues.add", "Add new issue")} title={t("superadmin.issues.add", "Add new issue")}>
             <Plus className="h-4 w-4 me-2" />
             {t("superadmin.issues.add")}
           </Button>
@@ -829,6 +881,9 @@ export default function SuperadminIssuesPage() {
               size="sm"
               onClick={() => setStatusFilter("all")}
               className={statusFilter === "all" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showAll", "Show all issues")}
+              title={t("superadmin.issues.filters.showAll", "Show all issues")}
+              aria-pressed={statusFilter === "all"}
             >
               All
             </Button>
@@ -837,6 +892,9 @@ export default function SuperadminIssuesPage() {
               size="sm"
               onClick={() => setStatusFilter("open")}
               className={statusFilter === "open" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showOpen", "Show open issues")}
+              title={t("superadmin.issues.filters.showOpen", "Show open issues")}
+              aria-pressed={statusFilter === "open"}
             >
               Open
             </Button>
@@ -845,6 +903,9 @@ export default function SuperadminIssuesPage() {
               size="sm"
               onClick={() => setStatusFilter("closed")}
               className={statusFilter === "closed" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showClosed", "Show closed issues")}
+              title={t("superadmin.issues.filters.showClosed", "Show closed issues")}
+              aria-pressed={statusFilter === "closed"}
             >
               Closed
             </Button>
@@ -853,6 +914,9 @@ export default function SuperadminIssuesPage() {
               size="sm"
               onClick={() => setStatusFilter("blocked")}
               className={statusFilter === "blocked" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
+              title={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
+              aria-pressed={statusFilter === "blocked"}
             >
               Blocked
             </Button>
@@ -861,6 +925,9 @@ export default function SuperadminIssuesPage() {
               size="sm"
               onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
               className={viewMode === "stale" ? "" : "text-muted-foreground border-input"}
+              aria-label={t("superadmin.issues.filters.showStale", "Show stale issues")}
+              title={t("superadmin.issues.filters.showStale", "Show stale issues")}
+              aria-pressed={viewMode === "stale"}
             >
               <Clock className="h-4 w-4 me-1" />
               Stale
@@ -870,6 +937,8 @@ export default function SuperadminIssuesPage() {
               size="sm"
               onClick={clearFilters}
               className="text-muted-foreground hover:text-foreground ms-auto"
+              aria-label={t("superadmin.issues.filters.clear", "Clear all filters")}
+              title={t("superadmin.issues.filters.clear", "Clear all filters")}
             >
               Clear filters
             </Button>
@@ -932,6 +1001,9 @@ export default function SuperadminIssuesPage() {
               variant={viewMode === "quickWins" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("quickWins")}
+              aria-label={t("superadmin.issues.views.quickWins", "Show quick win issues")}
+              title={t("superadmin.issues.views.quickWins", "Show quick win issues")}
+              aria-pressed={viewMode === "quickWins"}
             >
               <Zap className="h-4 w-4 me-1" />
               {t("superadmin.issues.views.quickWins")}
@@ -953,32 +1025,63 @@ export default function SuperadminIssuesPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleCopyMarkdown}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  className={copiedMarkdown ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.copyFixInstructions", "Copy fix instructions to clipboard")}
+                  title={t("superadmin.issues.copyFixInstructions", "Copy fix instructions to clipboard")}
                 >
-                  Copy Markdown
+                  {copiedMarkdown ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    "Copy Fix Instructions"
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleCopyTSV}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  className={copiedTSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.copyTSV", "Copy as TSV for spreadsheets")}
+                  title={t("superadmin.issues.copyTSV", "Copy as TSV for spreadsheets")}
                 >
-                  Copy TSV
+                  {copiedTSV ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    "Copy TSV"
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleExportCSV}
-                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                  className={exportedCSV ? "text-green-400 border-green-500 bg-green-900/30" : "text-blue-300 border-blue-600 hover:bg-blue-800"}
+                  aria-label={t("superadmin.issues.exportCSV", "Export selected issues to CSV")}
+                  title={t("superadmin.issues.exportCSV", "Export selected issues to CSV")}
                 >
-                  <Download className="h-4 w-4 me-1" />
-                  Export CSV
+                  {exportedCSV ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 me-1" />
+                      Exported!
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 me-1" />
+                      Export CSV
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedIssues(new Set())}
                   className="text-muted-foreground hover:text-foreground"
+                  aria-label={t("superadmin.issues.clearSelection", "Clear issue selection")}
+                  title={t("superadmin.issues.clearSelection", "Clear issue selection")}
                 >
                   Clear selection
                 </Button>
@@ -1022,6 +1125,8 @@ export default function SuperadminIssuesPage() {
                   size="sm" 
                   onClick={() => { setConnectionError(null); handleRefresh(); }}
                   className="me-2"
+                  aria-label={t("superadmin.issues.connection.retry", "Retry database connection")}
+                  title={t("superadmin.issues.connection.retry", "Retry database connection")}
                 >
                   <RefreshCw className="h-4 w-4 me-2" />
                   {t("superadmin.issues.connection.retry")}
@@ -1160,6 +1265,8 @@ export default function SuperadminIssuesPage() {
             size="sm"
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
+            aria-label={t("pagination.previous", "Go to previous page")}
+            title={t("pagination.previous", "Go to previous page")}
           >
             {t("superadmin.issues.pagination.previous")}
           </Button>
@@ -1171,6 +1278,8 @@ export default function SuperadminIssuesPage() {
             size="sm"
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
+            aria-label={t("pagination.next", "Go to next page")}
+            title={t("pagination.next", "Go to next page")}
           >
             {t("superadmin.issues.pagination.next")}
           </Button>
@@ -1284,10 +1393,10 @@ export default function SuperadminIssuesPage() {
             )}
 
             <div className="pt-4 border-t flex gap-2">
-              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1">
+              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1" aria-label={t("superadmin.issues.viewFullDetails", "View full issue details")} title={t("superadmin.issues.viewFullDetails", "View full issue details")}>
                 View Full Details
               </Button>
-              <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+              <Button variant="outline" onClick={() => setDrawerOpen(false)} aria-label={t("common.close", "Close issue details")} title={t("common.close", "Close issue details")}>
                 Close
               </Button>
             </div>

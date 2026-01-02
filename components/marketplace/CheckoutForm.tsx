@@ -158,6 +158,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
         type="submit"
         disabled={loading}
         className="w-full rounded-full bg-warning px-6 py-3 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
+        aria-label="Submit order for approval"
       >
         {loading
           ? auto("Submitting…", "actions.submitting")

@@ -28,11 +28,11 @@ export default function Error({
         {error.message || "An unexpected error occurred in the help center. Please try again."}
       </p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label="Retry loading help center" title="Retry loading help center">
           <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label="Go to home page" title="Go to home page">
           <Link href="/">
             <Home className="w-4 h-4 me-2" />
             Go Home

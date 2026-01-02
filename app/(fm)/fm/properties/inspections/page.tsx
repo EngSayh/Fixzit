@@ -149,11 +149,11 @@ export default function PropertyInspectionWorkspace() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refresh()}>
+          <Button variant="outline" onClick={() => refresh()} aria-label={auto("Import inspection plan from file", "header.import.ariaLabel")} title={auto("Import inspection plan", "header.import")}>
             <ClipboardList className="me-2 h-4 w-4" />
             {auto("Import inspection plan", "header.import")}
           </Button>
-          <Button onClick={handleReserveSlot}>
+          <Button onClick={handleReserveSlot} aria-label={auto("Reserve a new inspection slot", "header.reserve.ariaLabel")} title={auto("Reserve inspection slot", "header.reserve")}>
             <Home className="me-2 h-4 w-4" />
             {auto("Reserve inspection slot", "header.reserve")}
           </Button>
@@ -197,6 +197,8 @@ export default function PropertyInspectionWorkspace() {
                 className="mt-2"
                 variant="outline"
                 onClick={() => refresh()}
+                aria-label={auto("Retry loading inspections", "queue.retry.ariaLabel")}
+                title={auto("Retry loading inspections", "queue.retry")}
               >
                 {auto("Retry", "queue.retry")}
               </Button>
@@ -226,7 +228,7 @@ export default function PropertyInspectionWorkspace() {
                 >
                   {item.severity}
                 </Badge>
-                <Button size="sm" variant="outline">
+                                <Button size="sm" variant="outline" aria-label={auto("Open inspection worksheet", "queue.open.ariaLabel")} title={auto("Open worksheet", "queue.open")}>
                   {auto("Open worksheet", "queue.open")}
                 </Button>
               </div>

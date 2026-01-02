@@ -28,11 +28,11 @@ export default function Error({
         {error.message || "An error occurred during signup. Please try again."}
       </p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label="Retry signup" title="Retry signup">
           <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label="Back to login" title="Back to login">
           <Link href="/login">
             <Home className="w-4 h-4 me-2" />
             Back to Login

@@ -131,6 +131,7 @@ export default function DemoCredentialsSection({
                   type="button"
                   onClick={() => quickLogin(cred)}
                   className={`w-full p-3 rounded-2xl border transition-colors hover:shadow-md ${cred.color}`}
+                  aria-label={`Quick login as ${cred.role}`}
                 >
                   <div
                     className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
@@ -175,6 +176,7 @@ export default function DemoCredentialsSection({
                   type="button"
                   onClick={() => quickLogin(cred)}
                   className={`w-full p-3 rounded-2xl border transition-colors hover:shadow-md ${cred.color}`}
+                  aria-label={`Quick login as ${cred.role}`}
                 >
                   <div
                     className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}

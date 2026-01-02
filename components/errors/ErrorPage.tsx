@@ -68,12 +68,12 @@ export function ErrorPage({
       <h2 className="text-xl font-semibold mb-2">{title}</h2>
       <p className="text-muted-foreground mb-6 max-w-md">{errorDescription}</p>
       <div className="flex gap-3">
-        <Button onClick={reset} variant="default">
+        <Button onClick={reset} variant="default" aria-label={`Retry loading ${moduleName}`} title={`Retry loading ${moduleName}`}>
           {/* RTL-safe: use me-2 (margin-end) instead of mr-2 */}
           <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" aria-label="Go to home page" title="Go to home page">
           <Link href={homeHref}>
             {/* RTL-safe: use me-2 (margin-end) instead of mr-2 */}
             <Home className="w-4 h-4 me-2" />

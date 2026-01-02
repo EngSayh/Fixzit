@@ -55,6 +55,7 @@ export function ViewModeToggle({
           "shrink-0",
           value === "table" && "shadow-sm"
         )}
+        aria-label="Switch to table view"
         title="Table view"
       >
         <LayoutList className={iconSizes[size]} />
@@ -69,6 +70,7 @@ export function ViewModeToggle({
           "shrink-0",
           value === "cards" && "shadow-sm"
         )}
+        aria-label="Switch to card view"
         title="Card view"
       >
         <LayoutGrid className={iconSizes[size]} />

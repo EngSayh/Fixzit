@@ -345,6 +345,7 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
           className="bg-success hover:bg-success/90" 
           disabled={isSubmitting}
           aria-busy={isSubmitting}
+          aria-label={t("fm.properties.createProperty.ariaLabel", "Submit form to create property")}
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">

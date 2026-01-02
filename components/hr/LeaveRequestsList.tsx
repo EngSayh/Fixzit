@@ -317,7 +317,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
             {t("hr.leave.description", "Manage employee leave requests and approvals")}
           </p>
         </div>
-        <Button size="sm">
+        <Button size="sm" aria-label={t("hr.leave.newRequest", "Create new leave request")} title={t("hr.leave.newRequest", "Create new leave request")}>
           <Plus className="h-4 w-4 me-2" />
           {t("hr.leave.newRequest", "New Request")}
         </Button>
@@ -371,6 +371,8 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
               variant="outline"
               size="sm"
               onClick={() => setFilterDrawerOpen(true)}
+              aria-label="Open filters drawer"
+              title="Open filters drawer"
             >
               {activeFilters.length > 0 ? `Filters (${activeFilters.length})` : "Filters"}
             </Button>
@@ -382,6 +384,8 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
             size="icon"
             onClick={() => mutate()}
             disabled={isValidating}
+            aria-label="Refresh leave requests"
+            title="Refresh leave requests"
           >
             <RefreshCcw className={isValidating ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
           </Button>
@@ -412,7 +416,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
           title={t("hr.leave.error.title", "Failed to load leave requests")}
           description={String(error)}
           action={
-            <Button onClick={() => mutate()}>
+            <Button onClick={() => mutate()} aria-label={t("common.retry", "Retry loading")} title={t("common.retry", "Retry loading")}>
               {t("common.retry", "Retry")}
             </Button>
           }
@@ -426,7 +430,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
             : t("hr.leave.empty.default", "No leave requests have been submitted yet")
           }
           action={
-            <Button onClick={() => {}}>
+            <Button onClick={() => {}} aria-label={t("hr.leave.newRequest", "Create new leave request")} title={t("hr.leave.newRequest", "Create new leave request")}>
               {t("hr.leave.newRequest", "New Request")}
             </Button>
           }
@@ -457,6 +461,8 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
               size="sm"
               onClick={() => updateState({ page: (state.page || 1) - 1 })}
               disabled={!state.page || state.page <= 1}
+              aria-label={t("common.pagination.previous", "Go to previous page")}
+              title={t("common.pagination.previous", "Go to previous page")}
             >
               {t("common.pagination.previous", "Previous")}
             </Button>
@@ -471,6 +477,8 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
               size="sm"
               onClick={() => updateState({ page: (state.page || 1) + 1 })}
               disabled={!state.page || state.page >= totalPages}
+              aria-label={t("common.pagination.next", "Go to next page")}
+              title={t("common.pagination.next", "Go to next page")}
             >
               {t("common.pagination.next", "Next")}
             </Button>
@@ -509,9 +517,9 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
                 })}
               />
               <div className="mt-6 flex gap-2">
-                <Button onClick={handleApplyFilters}>Apply</Button>
-                <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
-                <Button variant="ghost" onClick={() => setFilterDrawerOpen(false)}>Cancel</Button>
+                <Button onClick={handleApplyFilters} aria-label={t("common.apply", "Apply filters")} title={t("common.apply", "Apply filters")}>Apply</Button>
+                <Button variant="outline" onClick={handleResetFilters} aria-label={t("common.reset", "Reset filters")} title={t("common.reset", "Reset filters")}>Reset</Button>
+                <Button variant="ghost" onClick={() => setFilterDrawerOpen(false)} aria-label={t("common.cancel", "Cancel")} title={t("common.cancel", "Cancel")}>Cancel</Button>
               </div>
             </div>
           </div>

@@ -81,7 +81,7 @@ export default function SuperadminSecurityPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.security")}</h1>
           <p className="text-muted-foreground">Security monitoring and rate limit configuration</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchMetrics} disabled={loading} className="border-input text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={fetchMetrics} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh security metrics")} title={t("common.refresh", "Refresh security metrics")}>
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -94,7 +94,7 @@ export default function SuperadminSecurityPage() {
             <div className="flex flex-col items-center justify-center">
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
               <p className="text-red-400">{error}</p>
-              <Button variant="outline" onClick={fetchMetrics} className="mt-4">Retry</Button>
+              <Button variant="outline" onClick={fetchMetrics} className="mt-4" aria-label={t("common.retry", "Retry loading security metrics")} title={t("common.retry", "Retry loading security metrics")}>Retry</Button>
             </div>
           </CardContent>
         </Card>

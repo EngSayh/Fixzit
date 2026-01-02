@@ -204,15 +204,19 @@ describe('WorkOrdersView', () => {
 
     renderWorkOrdersView();
     
+    // Wait for pagination controls to render
+    let prev: HTMLElement;
+    let next: HTMLElement;
     await waitFor(() => {
       expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
+      prev = screen.getByRole('button', { name: /previous/i });
+      next = screen.getByRole('button', { name: /next/i });
+      expect(prev).toBeInTheDocument();
+      expect(next).toBeInTheDocument();
     });
 
-    const prev = screen.getByRole('button', { name: /Previous/ });
-    const next = screen.getByRole('button', { name: /Next/ });
-
-    expect(prev).toBeDisabled();
-    expect(next).not.toBeDisabled();
+    expect(prev!).toBeDisabled();
+    expect(next!).not.toBeDisabled();
 
     // Mock the fetch for page 2
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

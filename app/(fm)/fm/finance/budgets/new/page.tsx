@@ -277,6 +277,7 @@ export default function NewBudgetPage() {
             onClick={handleSaveDraft}
             disabled={isSubmitting}
             className="btn-secondary"
+            aria-label={t("common.save", "Save Draft")}
           >
             {t("common.save", "Save Draft")}
           </button>
@@ -284,6 +285,7 @@ export default function NewBudgetPage() {
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="btn-primary"
+            aria-label={t("finance.budget.createBudget", "Create Budget")}
           >
             {t("finance.budget.createBudget", "Create Budget")}
           </button>
@@ -516,6 +518,7 @@ export default function NewBudgetPage() {
                       onClick={() => handleRemoveCategory(cat.id)}
                       disabled={categories.length === 1}
                       className="text-destructive hover:text-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={t("finance.budget.removeCategory", "Remove category")}
                     >
                       🗑️
                     </button>
@@ -526,6 +529,7 @@ export default function NewBudgetPage() {
               <button type="button"
                 onClick={handleAddCategory}
                 className="w-full py-2 border-2 border-dashed border-border rounded-2xl text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                aria-label={t("finance.budget.addCategory", "Add Category")}
               >
                 + {t("finance.budget.addCategory", "Add Category")}
               </button>
@@ -651,14 +655,14 @@ export default function NewBudgetPage() {
               {t("finance.budget.budgetTemplate", "Budget Template")}
             </h3>
             <div className="space-y-2">
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.budget.copyPrevious", "Copy from Previous Budget")}>
                 📋{" "}
                 {t("finance.budget.copyPrevious", "Copy from Previous Budget")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.budget.useTemplate", "Use Standard Template")}>
                 📊 {t("finance.budget.useTemplate", "Use Standard Template")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.budget.importExcel", "Import from Excel")}>
                 🔄 {t("finance.budget.importExcel", "Import from Excel")}
               </button>
             </div>
@@ -698,14 +702,14 @@ export default function NewBudgetPage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.budget.budgetVsActual", "Budget vs Actual Report")}>
                 📊{" "}
                 {t("finance.budget.budgetVsActual", "Budget vs Actual Report")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.expense.tracking", "Expense Tracking")}>
                 💰 {t("finance.expense.tracking", "Expense Tracking")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start" aria-label={t("finance.budget.templates", "Budget Templates")}>
                 📋 {t("finance.budget.templates", "Budget Templates")}
               </button>
             </div>

@@ -114,6 +114,7 @@ export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
             size="sm"
             onClick={handleExitPreview}
             className="ms-4"
+            aria-label="Exit tenant preview mode"
           >
             <X className="w-4 h-4 me-2" />
             Exit Preview
@@ -124,7 +125,7 @@ export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleStartPreview}>
+    <Button variant="outline" size="sm" onClick={handleStartPreview} aria-label="Start tenant preview mode">
       <Eye className="w-4 h-4 me-2" />
       Preview as Tenant
     </Button>
@@ -170,6 +171,7 @@ export function PreviewModeBanner() {
             sessionStorage.clear();
             window.location.href = "/superadmin";
           }}
+          aria-label="Exit tenant preview mode"
         >
           <X className="w-4 h-4 me-2" />
           Exit Preview

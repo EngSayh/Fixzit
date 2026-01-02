@@ -330,6 +330,7 @@ export default function OrdersPage() {
               variant="outline"
               size="sm"
               onClick={() => exportOrdersCsv(purchaseOrders, "purchase")}
+              aria-label={t("common.export", "Export")}
             >
               <Download className="h-4 w-4 me-2" />
               {t("common.export", "Export")}
@@ -342,7 +343,7 @@ export default function OrdersPage() {
                 <p className="text-muted-foreground mb-4">
                   No purchase orders found
                 </p>
-                <Button onClick={() => router.push("/marketplace")}>
+                <Button onClick={() => router.push("/marketplace")} aria-label="Create Order">
                   Create Order
                 </Button>
               </CardContent>
@@ -433,6 +434,7 @@ export default function OrdersPage() {
                               onClick={() =>
                                 router.push(`/marketplace/orders/${order.id}`)
                               }
+                              aria-label={t("common.view", "View")}
                             >
                               <Eye className="h-4 w-4 me-2" />
                               {t("common.view", "View")}
@@ -445,6 +447,7 @@ export default function OrdersPage() {
                                   `/marketplace/orders/${order.id}/edit`,
                                 )
                               }
+                              aria-label={t("common.edit", "Edit")}
                             >
                               <Edit className="h-4 w-4 me-2" />
                               {t("common.edit", "Edit")}
@@ -459,6 +462,7 @@ export default function OrdersPage() {
                                   order.orderNumber || order.id,
                                 )
                               }
+                              aria-label={t("common.delete", "Delete")}
                             >
                               <Trash2 className="h-4 w-4 me-2" />
                               {t("common.delete", "Delete")}
@@ -482,6 +486,7 @@ export default function OrdersPage() {
               variant="outline"
               size="sm"
               onClick={() => exportOrdersCsv(serviceOrders, "service")}
+              aria-label={t("common.export", "Export")}
             >
               <Download className="h-4 w-4 me-2" />
               {t("common.export", "Export")}
@@ -494,7 +499,7 @@ export default function OrdersPage() {
                 <p className="text-muted-foreground mb-4">
                   No service orders found
                 </p>
-                <Button onClick={() => router.push("/marketplace")}>
+                <Button onClick={() => router.push("/marketplace")} aria-label="Create Order">
                   Create Order
                 </Button>
               </CardContent>
@@ -565,6 +570,7 @@ export default function OrdersPage() {
                             onClick={() =>
                               router.push(`/marketplace/orders/${order.id}`)
                             }
+                            aria-label={t("common.view", "View")}
                           >
                             <Eye className="h-4 w-4 me-2" />
                             {t("common.view", "View")}
@@ -577,6 +583,7 @@ export default function OrdersPage() {
                                 `/marketplace/orders/${order.id}/edit`,
                               )
                             }
+                            aria-label={t("common.edit", "Edit")}
                           >
                             <Edit className="h-4 w-4 me-2" />
                             {t("common.edit", "Edit")}
@@ -591,6 +598,7 @@ export default function OrdersPage() {
                                 order.orderNumber || order.id,
                               )
                             }
+                            aria-label={t("common.delete", "Delete")}
                           >
                             <Trash2 className="h-4 w-4 me-2" />
                             {t("common.delete", "Delete")}

@@ -828,13 +828,15 @@ export default function CareersPage() {
                               <Button
                                 size="sm"
                                 className="bg-primary hover:bg-primary/90"
+                                aria-label="Schedule interview with candidate"
+                                title="Schedule Interview"
                               >
                                 Schedule Interview
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" aria-label="Advance candidate to next stage" title="Advance Stage">
                                 Advance Stage
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" aria-label="Share candidate with team" title="Share with Team">
                                 Share with Team
                               </Button>
                             </div>
