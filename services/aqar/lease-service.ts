@@ -1001,8 +1001,10 @@ export async function getRentOptimization(
 /**
  * Register lease with Ejar (Saudi housing ministry portal)
  * 
- * Note: This is a placeholder for actual Ejar API integration
- * Real implementation would require Ejar API credentials and endpoints
+ * Integrates with the comprehensive Ejar service to register contracts
+ * with the Saudi Ministry of Housing's Ejar platform.
+ * 
+ * @see services/compliance/ejar-service.ts for the core Ejar integration
  */
 export async function registerWithEjar(
   orgId: string,
@@ -1011,6 +1013,7 @@ export async function registerWithEjar(
   try {
     const db = await getDatabase();
     
+    // Fetch lease with full details
     const lease = await db.collection("leases").findOne({
       _id: new ObjectId(leaseId),
       orgId,
@@ -1025,32 +1028,166 @@ export async function registerWithEjar(
       return { success: false, error: "Lease already registered with Ejar" };
     }
     
-    // TODO: Implement actual Ejar API call
-    // For now, simulate successful registration
-    const contractNumber = `EJAR-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    // Fetch property details
+    const property = await db.collection("properties").findOne({
+      _id: new ObjectId(lease.propertyId),
+      orgId,
+    });
     
+    if (!property) {
+      return { success: false, error: "Property not found for lease" };
+    }
+    
+    // Fetch unit details if applicable
+    const unit = lease.unitId 
+      ? await db.collection("units").findOne({
+          _id: new ObjectId(lease.unitId),
+          propertyId: lease.propertyId,
+        })
+      : null;
+    
+    // Fetch tenant details
+    const tenant = await db.collection("tenants").findOne({
+      _id: new ObjectId(lease.tenantId),
+      orgId,
+    });
+    
+    if (!tenant) {
+      return { success: false, error: "Tenant not found for lease" };
+    }
+    
+    // Fetch landlord/owner details
+    const landlord = await db.collection("users").findOne({
+      orgId,
+      role: { $in: ["owner", "landlord", "admin"] },
+    });
+    
+    if (!landlord) {
+      return { success: false, error: "Landlord/owner not found for organization" };
+    }
+    
+    // Import and call the comprehensive Ejar service
+    const { registerContract, EjarPropertyType } = await import("@/services/compliance/ejar-service");
+    
+    // Map property type to Ejar enum
+    const ejarPropertyType = mapPropertyTypeToEjar(property.type, EjarPropertyType);
+    
+    // Build the Ejar registration request from fetched data
+    const result = await registerContract({
+      orgId,
+      leaseId,
+      property: {
+        propertyId: lease.propertyId,
+        unitId: lease.unitId,
+        type: ejarPropertyType,
+        address: {
+          streetAddress: property.address || "",
+          streetAddressAr: property.addressAr || property.address || "",
+          district: property.district || "",
+          districtAr: property.districtAr || property.district || "",
+          city: property.city || "",
+          cityAr: property.cityAr || property.city || "",
+          postalCode: property.postalCode,
+          buildingNumber: property.buildingNumber,
+          nationalAddress: property.nationalAddress,
+        },
+        area: unit?.area || property.area || 0,
+        bedrooms: unit?.bedrooms || property.bedrooms,
+        bathrooms: unit?.bathrooms || property.bathrooms,
+        amenities: property.amenities,
+        deedNumber: property.deedNumber,
+        buildingAge: property.yearBuilt 
+          ? new Date().getFullYear() - Number(property.yearBuilt) 
+          : undefined,
+      },
+      landlord: {
+        userId: landlord._id.toString(),
+        type: landlord.companyId ? "company" : "individual",
+        nationalId: landlord.nationalId,
+        iqamaNumber: landlord.iqamaNumber,
+        commercialRegistration: landlord.commercialRegistration,
+        unifiedNumber: landlord.unifiedNumber,
+        name: landlord.name || `${landlord.firstName || ""} ${landlord.lastName || ""}`.trim(),
+        nameAr: landlord.nameAr || landlord.name || "",
+        email: landlord.email || "",
+        phone: landlord.phone || "",
+        nationality: landlord.nationality,
+        verified: !!landlord.verifiedAt,
+        verifiedAt: landlord.verifiedAt,
+      },
+      tenant: {
+        userId: tenant._id.toString(),
+        type: tenant.companyId ? "company" : "individual",
+        nationalId: tenant.nationalId,
+        iqamaNumber: tenant.iqamaNumber,
+        commercialRegistration: tenant.commercialRegistration,
+        name: tenant.name || `${tenant.firstName || ""} ${tenant.lastName || ""}`.trim(),
+        nameAr: tenant.nameAr || tenant.name || "",
+        email: tenant.email || "",
+        phone: tenant.phone || "",
+        nationality: tenant.nationality,
+        verified: !!tenant.verifiedAt,
+        verifiedAt: tenant.verifiedAt,
+      },
+      terms: {
+        startDate: lease.startDate,
+        endDate: lease.endDate,
+        durationMonths: calculateMonthsDuration(lease.startDate, lease.endDate),
+        purpose: property.type?.toLowerCase().includes("commercial") ? "commercial" : "residential",
+        furnishingStatus: lease.furnishingStatus || "unfurnished",
+        allowSubletting: lease.allowsSubleasing || false,
+        autoRenew: lease.isAutoRenew || false,
+        renewalNoticeDays: lease.noticePeriodDays || 30,
+        specialConditions: Array.isArray(lease.specialConditions) 
+          ? lease.specialConditions.join("; ") 
+          : lease.specialConditions,
+      },
+      financial: {
+        annualRent: calculateAnnualRent(lease.rentAmount, lease.rentFrequency),
+        monthlyRent: calculateMonthlyRent(lease.rentAmount, lease.rentFrequency),
+        securityDeposit: lease.depositAmount || 0,
+        paymentFrequency: mapPaymentFrequency(lease.rentFrequency),
+        paymentMethod: mapPaymentMethod(lease.paymentMethod),
+        utilities: {
+          electricity: lease.utilitiesResponsibility?.electricity || "tenant",
+          water: lease.utilitiesResponsibility?.water || "tenant",
+          gas: lease.utilitiesResponsibility?.gas || "tenant",
+        },
+        maintenanceResponsibility: lease.maintenanceResponsibility || "landlord",
+        lateFee: lease.lateFee,
+        lateFeeType: lease.lateFeeType,
+        currency: "SAR",
+      },
+    });
+    
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+    
+    // Update the lease with Ejar registration info
     await db.collection("leases").updateOne(
       { _id: new ObjectId(leaseId), orgId },
       {
         $set: {
           ejarRegistration: {
-            contractNumber,
+            contractId: result.contractId,
+            contractNumber: result.ejarNumber,
             registeredAt: new Date(),
             expiresAt: lease.endDate,
-            status: "registered",
+            status: "pending_verification", // Ejar workflow starts with verification
           },
           updatedAt: new Date(),
         },
       }
     );
     
-    logger.info("Lease registered with Ejar", {
+    logger.info("Lease registered with Ejar service", {
       leaseId,
-      contractNumber,
+      contractId: result.contractId,
       orgId,
     });
     
-    return { success: true, contractNumber };
+    return { success: true, contractNumber: result.ejarNumber || result.contractId };
   } catch (error) {
     logger.error("Failed to register with Ejar", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -1058,6 +1195,79 @@ export async function registerWithEjar(
     });
     return { success: false, error: "Failed to register with Ejar" };
   }
+}
+
+/**
+ * Map internal property type to Ejar property type enum
+ */
+function mapPropertyTypeToEjar(
+  type: string | undefined, 
+  EjarPropertyType: typeof import("@/services/compliance/ejar-service").EjarPropertyType
+): import("@/services/compliance/ejar-service").EjarPropertyType {
+  const typeMap: Record<string, import("@/services/compliance/ejar-service").EjarPropertyType> = {
+    apartment: EjarPropertyType.RESIDENTIAL_APARTMENT,
+    villa: EjarPropertyType.RESIDENTIAL_VILLA,
+    duplex: EjarPropertyType.RESIDENTIAL_DUPLEX,
+    office: EjarPropertyType.COMMERCIAL_OFFICE,
+    shop: EjarPropertyType.COMMERCIAL_SHOP,
+    retail: EjarPropertyType.COMMERCIAL_SHOP,
+    warehouse: EjarPropertyType.COMMERCIAL_WAREHOUSE,
+    land: EjarPropertyType.LAND,
+    residential: EjarPropertyType.RESIDENTIAL_APARTMENT,
+    commercial: EjarPropertyType.COMMERCIAL_OFFICE,
+  };
+  return typeMap[(type || "").toLowerCase()] || EjarPropertyType.RESIDENTIAL_APARTMENT;
+}
+
+/**
+ * Calculate duration in months between two dates
+ */
+function calculateMonthsDuration(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
+}
+
+/**
+ * Calculate annual rent from amount and frequency
+ */
+function calculateAnnualRent(amount: number, frequency?: string): number {
+  const multipliers: Record<string, number> = {
+    monthly: 12, quarterly: 4, semi_annually: 2, annually: 1, yearly: 1,
+  };
+  return amount * (multipliers[(frequency || "monthly").toLowerCase()] || 12);
+}
+
+/**
+ * Calculate monthly rent from amount and frequency
+ */
+function calculateMonthlyRent(amount: number, frequency?: string): number {
+  const divisors: Record<string, number> = {
+    monthly: 1, quarterly: 3, semi_annually: 6, annually: 12, yearly: 12,
+  };
+  return amount / (divisors[(frequency || "monthly").toLowerCase()] || 1);
+}
+
+/**
+ * Map internal payment frequency to Ejar format
+ */
+function mapPaymentFrequency(frequency?: string): "monthly" | "quarterly" | "semi_annually" | "annually" {
+  const freqMap: Record<string, "monthly" | "quarterly" | "semi_annually" | "annually"> = {
+    monthly: "monthly", quarterly: "quarterly", semi_annually: "semi_annually",
+    semiannual: "semi_annually", annual: "annually", annually: "annually", yearly: "annually",
+  };
+  return freqMap[(frequency || "monthly").toLowerCase()] || "monthly";
+}
+
+/**
+ * Map internal payment method to Ejar format
+ */
+function mapPaymentMethod(method?: string): "bank_transfer" | "check" | "cash" | "online" {
+  const methodMap: Record<string, "bank_transfer" | "check" | "cash" | "online"> = {
+    bank_transfer: "bank_transfer", bank: "bank_transfer", transfer: "bank_transfer",
+    check: "check", cheque: "check", cash: "cash", online: "online", card: "online",
+  };
+  return methodMap[(method || "bank_transfer").toLowerCase()] || "bank_transfer";
 }
 
 // ============================================================================
