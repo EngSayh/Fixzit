@@ -14,6 +14,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { pingDatabase } from "@/lib/mongo";
+import { healthAggregator, HealthStatus } from "@/lib/monitoring/health-aggregator";
 import { createHash } from "crypto";
 import { ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/lib/db/collection-names";
@@ -208,6 +210,27 @@ export async function GET(req: NextRequest) {
       // Collections may not exist yet - use defaults
     }
     
+    // Get real health data from health aggregator and MongoDB ping
+    const mongoDbPing = await pingDatabase(2000);
+    const healthSummary = healthAggregator.getSummary();
+    
+    // Map component health to service status
+    const mapComponentToService = (componentName: string, serviceName: string): { 
+      name: string; 
+      status: string; 
+      latency_ms: number | null;
+    } => {
+      const component = healthSummary.components[componentName];
+      if (!component) {
+        return { name: serviceName, status: "unknown", latency_ms: null };
+      }
+      return {
+        name: serviceName,
+        status: component.status,
+        latency_ms: component.latencyMs ?? null,
+      };
+    };
+    
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
@@ -217,30 +240,24 @@ export async function GET(req: NextRequest) {
       operator_id: `sa_${createHash('sha256').update(session.username).digest('hex').slice(0, 12)}`,
       operator_username: session.username, // Only visible to current superadmin
       
-      // System Health - PLACEHOLDER DATA
-      // Integration required: Datadog/Prometheus/NewRelic API
-      // See: docs/operations/health-telemetry-integration.md (to be created)
-      // Acceptance criteria from SSOT:
-      //   - system_health fields backed by monitoring provider
-      //   - placeholder flags removed when real data available
-      //   - error_rate_percent computed from last 24h metrics
+      // System Health - REAL DATA from health aggregator and MongoDB ping
       system_health: {
-        data_source: "placeholder", // Change to "datadog"|"prometheus"|"newrelic" when integrated
-        integration_required: true,
-        integration_docs: "docs/operations/health-telemetry-integration.md",
-        status: "healthy", // Placeholder - would be computed from service checks
-        score: 98, // Placeholder - would be computed from uptime + latency + error rates
-        uptime_percent: 99.95, // Placeholder - from monitoring provider
-        error_rate_percent: 0, // Placeholder - computed from last 24h error count / total requests
-        last_updated: new Date().toISOString(),
+        status: healthSummary.overallStatus,
+        score: healthSummary.healthScore,
+        uptime_seconds: healthSummary.uptimeSeconds,
+        error_rate_percent: metrics24h.error_rate_percent,
+        last_updated: healthSummary.lastUpdated.toISOString(),
         services: [
-          { name: "API Gateway", status: "unknown", latency_ms: null, data_source: "placeholder" },
-          { name: "MongoDB Atlas", status: "unknown", latency_ms: null, data_source: "placeholder" },
-          { name: "Redis Cache", status: "unknown", latency_ms: null, data_source: "placeholder" },
-          { name: "File Storage (S3)", status: "unknown", latency_ms: null, data_source: "placeholder" },
-          { name: "Payment Gateway (TAP)", status: "unknown", latency_ms: null, data_source: "placeholder" },
-          { name: "SMS Gateway (Taqnyat)", status: "unknown", latency_ms: null, data_source: "placeholder" },
-          { name: "ZATCA API", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "API Gateway", status: healthSummary.overallStatus, latency_ms: null },
+          { 
+            name: "MongoDB Atlas", 
+            status: mongoDbPing.ok ? HealthStatus.HEALTHY : HealthStatus.UNHEALTHY, 
+            latency_ms: mongoDbPing.latencyMs 
+          },
+          mapComponentToService("s3", "File Storage (S3)"),
+          mapComponentToService("payment_gateway", "Payment Gateway (TAP)"),
+          mapComponentToService("sms", "SMS Gateway (Taqnyat)"),
+          mapComponentToService("zatca", "ZATCA API"),
         ],
       },
       

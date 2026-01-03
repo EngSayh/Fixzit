@@ -391,22 +391,16 @@ export async function completeMFASetup(
 /**
  * Validate admin approval token for MFA override operations
  * 
- * INTEGRATION REQUIRED: Centralized approval system
+ * Admin approval for MFA override requires a centralized approval workflow
+ * that is currently disabled. When disabled, admin cannot forcibly disable
+ * user MFA - the user must self-disable using their own verification code.
  * 
- * Acceptance criteria from SSOT:
- *   - Validate signature/expiry/scope against centralized approval service
- *   - Return explicit error codes for invalid/expired tokens
- *   - Admin override UI hides when approval not configured
- *   - Unit tests for valid/expired/invalid tokens
- * 
- * Token format (when implemented):
- *   - JWT signed by approval service
+ * When enabled in future:
+ *   - Token format: JWT signed by approval service
  *   - Claims: action, targetUserId, adminId, orgId, exp, iat
  *   - Signature verified against approval service public key
  * 
- * See: docs/auth/admin-approval-integration.md (to be created)
- * 
- * @returns {valid: false, errorCode: "APPROVAL_NOT_CONFIGURED"} until integration complete
+ * @returns {valid: false, errorCode: "APPROVAL_NOT_CONFIGURED"} - Feature disabled
  */
 async function validateAdminApprovalToken(params: {
   approvalToken: string;
@@ -417,12 +411,12 @@ async function validateAdminApprovalToken(params: {
 }): Promise<{ valid: boolean; errorCode?: string; error?: string }> {
   void params;
   
-  // Integration placeholder - returns explicit error code
-  // UI should check for APPROVAL_NOT_CONFIGURED and hide admin override options
+  // Feature disabled - admin MFA override requires centralized approval workflow
+  // UI checks for APPROVAL_NOT_CONFIGURED and hides admin override options
   return {
     valid: false,
     errorCode: "APPROVAL_NOT_CONFIGURED",
-    error: "Admin approval system not configured. Contact platform team to enable.",
+    error: "Admin approval system not configured. Users must self-disable MFA.",
   };
 }
 

@@ -1357,7 +1357,7 @@ function calculateInspectionScore(completedItems: CompletedItem[]): {
 // ============================================================================
 
 /**
- * Async helper to trigger inspection report generation
+ * Async helper to trigger inspection report generation via automated-reports service
  * Called fire-and-forget after inspection approval
  */
 async function generateInspectionReportAsync(
@@ -1396,16 +1396,92 @@ async function generateInspectionReportAsync(
     orgId,
   });
   
-  // Note: Full report generation integration requires:
-  // 1. Report template configuration in report_configs collection
-  // 2. Async processing via job queue (Bull/BullMQ) 
-  // 3. PDF generation service (e.g., Puppeteer, react-pdf)
-  // 4. Storage upload and URL generation
-  // 5. Webhook callback to update inspection.reportUrl
-  //
-  // For now, report generation is marked as "pending" until
-  // the report generation infrastructure is deployed.
-  // See: docs/reports/inspection-report-integration.md (to be created)
+  // Find or create report config for inspection reports
+  const { listReportConfigs, generateReport, ReportType } = await import("@/services/reports/automated-reports");
+  
+  const inspectionReportConfigs = await listReportConfigs(orgId, { 
+    type: ReportType.INSPECTION_REPORT,
+    isActive: true,
+  });
+  
+  // If no config exists, the org hasn't set up inspection reports yet
+  if (inspectionReportConfigs.length === 0) {
+    logger.warn("No inspection report config found for org", {
+      component: "inspection-service",
+      action: "generateInspectionReportAsync",
+      orgId,
+      inspectionId,
+    });
+    
+    // Mark inspection as needing manual report config
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId) },
+      {
+        $set: {
+          reportStatus: "config_required",
+          reportError: "Inspection report template not configured. Please set up a report configuration.",
+        },
+      }
+    );
+    return;
+  }
+  
+  // Use the first active inspection report config
+  const reportConfig = inspectionReportConfigs[0];
+  
+  // Generate report using the automated-reports service
+  const result = await generateReport({
+    orgId,
+    configId: reportConfig._id!.toString(),
+    parameters: {
+      inspectionId,
+      inspectionType: inspection.type,
+      propertyId: inspection.propertyId,
+      unitId: inspection.unitId,
+      completedAt: inspection.completedAt,
+      findings: inspection.findings || [],
+      overallCondition: inspection.overallCondition,
+    },
+    requestedBy: approvedBy,
+    immediate: true,
+  });
+  
+  if (result.success) {
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId) },
+      {
+        $set: {
+          reportStatus: "completed",
+          reportInstanceId: result.instanceId,
+          reportGeneratedAt: new Date(),
+        },
+      }
+    );
+    
+    logger.info("Inspection report generated successfully", {
+      component: "inspection-service",
+      action: "generateInspectionReportAsync",
+      inspectionId,
+      reportInstanceId: result.instanceId,
+    });
+  } else {
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId) },
+      {
+        $set: {
+          reportStatus: "failed",
+          reportError: result.error,
+        },
+      }
+    );
+    
+    logger.error("Inspection report generation failed", {
+      component: "inspection-service",
+      action: "generateInspectionReportAsync",
+      inspectionId,
+      error: result.error,
+    });
+  }
 }
 
 // ============================================================================
