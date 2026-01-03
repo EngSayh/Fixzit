@@ -501,11 +501,51 @@ export async function scheduleInspection(
     
     const result = await db.collection(INSPECTIONS_COLLECTION).insertOne(inspection);
     
-    // TODO: Send notification to tenant if requested
+    // FIXED [AGENT-0008]: Send notification to tenant if requested
     if (request.notifyTenant) {
-      logger.info("TODO: Send tenant inspection notification", {
-        component: "inspection-service",
-      });
+      try {
+        const { sendNotification, NotificationCategory, NotificationChannel } = await import("@/services/admin/notification-engine");
+        
+        // Get tenant user ID from property or lease
+        const property = await db.collection("properties").findOne({ _id: new ObjectId(request.propertyId) });
+        const tenantUserId = property?.currentTenantId || property?.tenantId;
+        
+        if (tenantUserId) {
+          await sendNotification({
+            orgId: request.orgId,
+            userId: String(tenantUserId),
+            category: NotificationCategory.WORK_ORDER, // Using work_order for inspections
+            channels: [NotificationChannel.IN_APP, NotificationChannel.SMS],
+            subject: "Inspection Scheduled",
+            subjectAr: "تم جدولة الفحص",
+            body: `An inspection has been scheduled for your property on ${request.scheduledDate.toLocaleDateString()}`,
+            bodyAr: `تم جدولة فحص لعقارك في ${request.scheduledDate.toLocaleDateString("ar-SA")}`,
+            variables: {
+              inspectionType: request.type,
+              scheduledDate: request.scheduledDate.toISOString(),
+              propertyId: request.propertyId,
+              inspectorName: request.inspectorName,
+            },
+          });
+          
+          logger.info("Tenant inspection notification sent", {
+            component: "inspection-service",
+            inspectionId: result.insertedId.toString(),
+            tenantUserId: String(tenantUserId),
+          });
+        } else {
+          logger.warn("No tenant found for property, skipping notification", {
+            component: "inspection-service",
+            propertyId: request.propertyId,
+          });
+        }
+      } catch (notifyError) {
+        // Don't fail the inspection scheduling if notification fails
+        logger.error("Failed to send tenant notification", {
+          component: "inspection-service",
+          error: notifyError instanceof Error ? notifyError.message : "Unknown error",
+        });
+      }
     }
     
     logger.info("Inspection scheduled", {
@@ -750,8 +790,67 @@ export async function approveInspection(
       return { success: false, error: "Inspection not found or not pending review" };
     }
     
-    // Generate report URL (placeholder)
-    // TODO: Integrate with report generation service
+    // FIXED [AGENT-0008]: Integrate with report generation service
+    try {
+      const { generateReport, ReportFormat } = await import("@/services/reports/automated-reports");
+      
+      // Get the inspection data for the report
+      const inspection = await db.collection(INSPECTIONS_COLLECTION).findOne({
+        _id: new ObjectId(inspectionId),
+        orgId,
+      });
+      
+      if (inspection) {
+        // Generate inspection report
+        const reportResult = await generateReport({
+          orgId,
+          configId: "inspection-report", // Standard inspection report config
+          requestedBy: approvedBy,
+          parameters: {
+            inspectionId,
+            inspectionType: inspection.inspectionType,
+            propertyId: inspection.propertyId,
+            completedAt: inspection.completedAt,
+            score: inspection.score,
+            findings: inspection.findings,
+          },
+          formats: [ReportFormat.PDF],
+          immediate: true,
+        });
+        
+        if (reportResult.success && reportResult.instanceId) {
+          // Update inspection with report reference
+          await db.collection(INSPECTIONS_COLLECTION).updateOne(
+            { _id: new ObjectId(inspectionId) },
+            {
+              $set: {
+                reportInstanceId: reportResult.instanceId,
+                updatedAt: new Date(),
+              },
+            }
+          );
+          
+          logger.info("Inspection report generated", {
+            component: "inspection-service",
+            inspectionId,
+            reportInstanceId: reportResult.instanceId,
+          });
+        } else {
+          logger.warn("Report generation failed, inspection still approved", {
+            component: "inspection-service",
+            inspectionId,
+            error: reportResult.error,
+          });
+        }
+      }
+    } catch (reportError) {
+      // Don't fail the approval if report generation fails
+      logger.error("Failed to generate inspection report", {
+        component: "inspection-service",
+        inspectionId,
+        error: reportError instanceof Error ? reportError.message : "Unknown error",
+      });
+    }
     
     return { success: true };
   } catch (_error) {

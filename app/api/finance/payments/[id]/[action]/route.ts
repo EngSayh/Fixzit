@@ -192,9 +192,110 @@ export async function POST(
           });
         }
 
-        // Placeholder for cancel/refund actions (if needed later)
+        // FIXED [AGENT-0008]: Implement cancel action
+        if (action === "cancel") {
+          // Check if payment can be cancelled
+          if (["CANCELLED", "CLEARED", "RECONCILED", "REFUNDED"].includes(payment.status)) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Cannot cancel payment with status: ${payment.status}`,
+              },
+              { status: 400 },
+            );
+          }
+
+          const body = await parseBodyOrNull(req) as { reason?: string } | null;
+          const reason = body?.reason || "Cancelled by user";
+
+          payment.status = "CANCELLED";
+          payment.updatedBy = new Types.ObjectId(user.userId);
+          payment.notes = `${payment.notes || ""}\nCancelled: ${reason} (${new Date().toISOString().split("T")[0]})`;
+          await payment.save();
+
+          logger.info("Payment cancelled", {
+            paymentId: _params.id,
+            userId: user.userId,
+            orgId: user.orgId,
+            reason,
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: payment,
+            message: "Payment cancelled successfully",
+          });
+        }
+
+        // FIXED [AGENT-0008]: Implement refund action
+        if (action === "refund") {
+          // Check if payment can be refunded
+          if (!["COMPLETED", "CLEARED", "RECONCILED"].includes(payment.status)) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Cannot refund payment with status: ${payment.status}. Payment must be completed first.`,
+              },
+              { status: 400 },
+            );
+          }
+
+          const body = await parseBodyOrNull(req) as { reason?: string; amount?: number } | null;
+          if (!body) {
+            return NextResponse.json(
+              { error: "Invalid JSON body - refund requires reason" },
+              { status: 400 },
+            );
+          }
+
+          const refundReason = body.reason || "Refund requested";
+          const refundAmount = body.amount || payment.amount;
+
+          // Validate refund amount
+          if (typeof refundAmount !== "number" || refundAmount <= 0 || refundAmount > (payment.amount ?? 0)) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Invalid refund amount. Must be between 0 and ${payment.amount}`,
+              },
+              { status: 400 },
+            );
+          }
+
+          payment.status = "REFUNDED"; // Only full refunds for now; PARTIALLY_REFUNDED not in enum
+          payment.updatedBy = new Types.ObjectId(user.userId);
+          payment.notes = `${payment.notes || ""}\nRefunded: ${refundAmount} SAR - ${refundReason} (${new Date().toISOString().split("T")[0]})`;
+          
+          // Add refund metadata if the model supports it
+          if ("refundDetails" in payment) {
+            (payment as { refundDetails?: object }).refundDetails = {
+              amount: refundAmount,
+              reason: refundReason,
+              refundedAt: new Date(),
+              refundedBy: new Types.ObjectId(user.userId),
+            };
+          }
+          
+          await payment.save();
+
+          logger.info("Payment refunded", {
+            paymentId: _params.id,
+            userId: user.userId,
+            orgId: user.orgId,
+            refundAmount,
+            refundReason,
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: payment,
+            message: `Refund of ${refundAmount} SAR processed`,
+          });
+        }
+
+        // Fallback for unknown actions
         return NextResponse.json(
-          { success: false, error: "Action not implemented" },
+          { success: false, error: `Unknown action: ${action}` },
           { status: 400 },
         );
       },

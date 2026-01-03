@@ -78,6 +78,25 @@ const MoveInOutInspectionSchema = new Schema(
     moveInDate: Date,
     moveOutDate: Date,
 
+    // FIXED [AGENT-0008]: Added vendor assignments for inspection-related work
+    vendorAssignments: [
+      {
+        vendorId: { type: Schema.Types.ObjectId, ref: "ServiceProvider", index: true },
+        vendorName: String,
+        trade: { type: String, required: true }, // HVAC, Electrical, Plumbing, etc.
+        scheduledDate: Date,
+        completedDate: Date,
+        status: {
+          type: String,
+          enum: ["scheduled", "in-progress", "completed", "cancelled"],
+          default: "scheduled",
+        },
+        notes: String,
+        assignedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        assignedAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // Overall Assessment
     overallCondition: { type: String, enum: ItemCondition },
     overallNotes: String,

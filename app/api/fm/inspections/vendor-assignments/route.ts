@@ -12,6 +12,8 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
 
 const VENDOR_ASSIGNMENTS_API_ENABLED =
   process.env.VENDOR_ASSIGNMENTS_API_ENABLED === "true";
@@ -109,14 +111,79 @@ export async function GET(request: NextRequest) {
     }
 
     if (mode === "pending-real") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Vendor assignments data source not implemented yet",
-          note: "Leave VENDOR_ASSIGNMENTS_API_ENABLED=false or enable VENDOR_ASSIGNMENTS_API_MOCKS=true until FMInspection-backed assignments are available.",
-        },
-        { status: 501 },
-      );
+      // FIXED [AGENT-0008]: Query real vendor assignments from MoveInOutInspection collection
+      const db = await getDatabase();
+      const org_id = session.user.orgId;
+      
+      if (!org_id || !ObjectId.isValid(org_id)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid organization context" },
+          { status: 400 }
+        );
+      }
+      
+      // Query inspections with vendor assignments
+      const filter: Record<string, unknown> = {
+        orgId: new ObjectId(org_id),
+        "vendorAssignments.0": { $exists: true },
+      };
+      
+      if (propertyId && ObjectId.isValid(propertyId)) {
+        filter.propertyId = new ObjectId(propertyId);
+      }
+      
+      if (status && status !== "all") {
+        filter["vendorAssignments.status"] = status;
+      }
+      
+      const inspections = await db
+        .collection("moveinoutinspections")
+        .find(filter)
+        .limit(limit)
+        .toArray();
+      
+      // Flatten vendor assignments from all inspections
+      const realAssignments: VendorAssignment[] = [];
+      for (const insp of inspections) {
+        const assignments = (insp.vendorAssignments || []) as Array<{
+          vendorId?: ObjectId;
+          vendorName?: string;
+          trade: string;
+          scheduledDate?: Date;
+          status?: string;
+        }>;
+        for (const va of assignments) {
+          if (!status || status === "all" || va.status === status) {
+            realAssignments.push({
+              inspectionId: insp.inspectionNumber || String(insp._id),
+              propertyId: String(insp.propertyId),
+              vendorId: va.vendorId ? String(va.vendorId) : "unknown",
+              vendorName: va.vendorName || "Unknown Vendor",
+              trade: va.trade,
+              scheduledDate: va.scheduledDate,
+              status: (va.status || "scheduled") as VendorAssignment["status"],
+            });
+          }
+        }
+      }
+      
+      // Calculate statistics from real data
+      const realStats = {
+        total: realAssignments.length,
+        scheduled: realAssignments.filter((a) => a.status === "scheduled").length,
+        inProgress: realAssignments.filter((a) => a.status === "in-progress").length,
+        completed: realAssignments.filter((a) => a.status === "completed").length,
+        uniqueVendors: new Set(realAssignments.map((a) => a.vendorId)).size,
+        uniqueTrades: new Set(realAssignments.map((a) => a.trade)).size,
+      };
+      
+      return NextResponse.json({
+        success: true,
+        source: "database",
+        assignments: realAssignments.slice(0, limit),
+        stats: realStats,
+        note: "Real data from MoveInOutInspection.vendorAssignments",
+      });
     }
 
     // Real FMInspection integration not wired yet; allow mock payloads only when flags permit.
@@ -253,13 +320,104 @@ export async function POST(request: NextRequest) {
     }
 
     if (mode === "pending-real") {
+      // FIXED [AGENT-0008]: Persist vendor assignment to MoveInOutInspection
+      const db = await getDatabase();
+      const org_id = session.user.orgId;
+      
+      if (!org_id || !ObjectId.isValid(org_id)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid organization context" },
+          { status: 400 }
+        );
+      }
+      
+      // Find the inspection
+      const inspFilter: Record<string, unknown> = {
+        orgId: new ObjectId(org_id),
+      };
+      
+      // Match by inspectionNumber or _id
+      if (ObjectId.isValid(inspectionId!)) {
+        inspFilter._id = new ObjectId(inspectionId!);
+      } else {
+        inspFilter.inspectionNumber = inspectionId;
+      }
+      
+      const inspection = await db
+        .collection("moveinoutinspections")
+        .findOne(inspFilter);
+      
+      if (!inspection) {
+        return NextResponse.json(
+          { success: false, error: `Inspection not found: ${inspectionId}` },
+          { status: 404 }
+        );
+      }
+      
+      // Lookup vendor name from ServiceProvider collection
+      let vendorName = `Vendor ${vendorId}`;
+      if (ObjectId.isValid(vendorId!)) {
+        const vendor = await db
+          .collection("serviceproviders")
+          .findOne({ _id: new ObjectId(vendorId!) });
+        if (vendor) {
+          vendorName = vendor.companyName || vendor.name || vendorName;
+        }
+      }
+      
+      // Create assignment object
+      const newAssignment = {
+        vendorId: ObjectId.isValid(vendorId!) ? new ObjectId(vendorId!) : null,
+        vendorName,
+        trade,
+        scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
+        status: "scheduled",
+        assignedBy: new ObjectId(session.user.id),
+        assignedAt: new Date(),
+      };
+      
+      // Push to vendorAssignments array using raw command to avoid typing issues
+      const result = await db.command({
+        update: "moveinoutinspections",
+        updates: [
+          {
+            q: { _id: inspection._id },
+            u: { $push: { vendorAssignments: newAssignment } },
+          },
+        ],
+      });
+      
+      if (!result.ok || result.nModified === 0) {
+        return NextResponse.json(
+          { success: false, error: "Failed to add vendor assignment" },
+          { status: 500 }
+        );
+      }
+      
+      logger.info("Vendor assignment created (real)", {
+        inspectionId,
+        vendorId,
+        trade,
+        createdBy: session.user.id,
+      });
+      
       return NextResponse.json(
         {
-          success: false,
-          error: "Vendor assignments persistence not implemented yet",
-          note: "Disable VENDOR_ASSIGNMENTS_API_ENABLED or enable VENDOR_ASSIGNMENTS_API_MOCKS=true to use mock assignments until FMInspection-backed storage is available.",
+          success: true,
+          source: "database",
+          assignment: {
+            inspectionId: inspection.inspectionNumber || String(inspection._id),
+            propertyId: String(inspection.propertyId),
+            vendorId: vendorId!,
+            vendorName,
+            trade,
+            scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
+            status: "scheduled",
+          },
+          message: "Vendor assigned successfully",
+          note: "Persisted to MoveInOutInspection.vendorAssignments",
         },
-        { status: 501 },
+        { status: 201 }
       );
     }
 

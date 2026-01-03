@@ -395,14 +395,88 @@ async function validateAdminApprovalToken(params: {
   targetUserId: string;
   action: "disable_mfa";
 }): Promise<{ valid: boolean; errorCode?: string; error?: string }> {
-  void params;
-  // TODO: Integrate with centralized approval system to validate signature/expiry/scope.
-  // Return explicit error code so UI can detect and hide/disable admin override flows
-  return {
-    valid: false,
-    errorCode: "APPROVAL_NOT_CONFIGURED",
-    error: "Admin approval system not configured",
-  };
+  // FIXED [AGENT-0008]: Implement JWT-based approval token validation
+  const { approvalToken, orgId, adminId, targetUserId, action } = params;
+  
+  try {
+    // Dynamically import jose for JWT verification
+    const { jwtVerify } = await import("jose");
+    const secret = new TextEncoder().encode(
+      process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || ""
+    );
+    
+    if (!secret.length) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_SECRET_MISSING",
+        error: "Server secret not configured for approval tokens",
+      };
+    }
+    
+    const { payload } = await jwtVerify(approvalToken, secret, {
+      issuer: "fixzit:admin-approval",
+      audience: "fixzit:mfa-management",
+    });
+    
+    // Validate token claims match the request
+    if (payload.adminId !== adminId) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_ADMIN_MISMATCH",
+        error: "Approval token was issued to a different admin",
+      };
+    }
+    
+    if (payload.orgId !== orgId) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_ORG_MISMATCH",
+        error: "Approval token is for a different organization",
+      };
+    }
+    
+    if (payload.targetUserId !== targetUserId) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_USER_MISMATCH",
+        error: "Approval token is for a different user",
+      };
+    }
+    
+    if (payload.action !== action) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_ACTION_MISMATCH",
+        error: `Approval token is for action '${payload.action}', not '${action}'`,
+      };
+    }
+    
+    return { valid: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    if (errorMessage.includes("expired")) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_TOKEN_EXPIRED",
+        error: "Approval token has expired",
+      };
+    }
+    
+    if (errorMessage.includes("signature")) {
+      return {
+        valid: false,
+        errorCode: "APPROVAL_TOKEN_INVALID",
+        error: "Approval token signature is invalid",
+      };
+    }
+    
+    return {
+      valid: false,
+      errorCode: "APPROVAL_VALIDATION_ERROR",
+      error: `Approval token validation failed: ${errorMessage}`,
+    };
+  }
 }
 
 /**

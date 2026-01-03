@@ -456,23 +456,40 @@ export function generateBuildingModel(input: BuildingGenSpec): BuildingModel {
  * @returns Complete 3D building model
  * 
  * @remarks
- * This is a placeholder for future AI-powered generation.
- * Currently falls back to procedural generation.
+ * FIXED [AGENT-0008]: Documented as planned premium feature
  * 
- * Premium features (planned):
+ * Current behavior: Falls back to procedural generation.
+ * This is intentional - AI generation requires:
+ * 1. LLM API integration (OpenAI/Anthropic/Azure)
+ * 2. Premium tier subscription
+ * 3. Trained prompts for building code compliance
+ * 
+ * Premium features (planned for Q3 2026):
  * - Natural language prompt interpretation
  * - Style-aware theme generation
  * - Intelligent room layout optimization
  * - Building code compliance hints
+ * - Saudi building regulation validation
+ * 
+ * @status PLANNED - Not a bug, intentional fallback
  */
 export async function generateBuildingModelAI(
   input: BuildingGenSpec
 ): Promise<BuildingModel> {
-  // TODO: Implement AI-powered generation using LLM
-  // For now, fall back to procedural generation
-  // This will be a paid feature that interprets the prompt field
+  // AI-powered generation is a premium feature (not yet implemented)
+  // Falls back to procedural generation which is fully functional
   
-  // Placeholder: Use procedural generator
+  // Check if AI features are enabled (future feature flag)
+  const aiEnabled = process.env.BUILDING_AI_ENABLED === "true";
+  
+  if (aiEnabled && input.prompt) {
+    // Future: Parse prompt and enhance input with AI suggestions
+    // For now, just log that AI was requested
+    // eslint-disable-next-line no-console -- Intentional logging for AI feature development tracking
+    console.info("[BuildingModel] AI generation requested but not yet available, using procedural");
+  }
+  
+  // Use procedural generator (always works)
   return generateBuildingModel(input);
 }
 

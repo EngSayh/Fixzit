@@ -219,6 +219,9 @@ export interface VendorMetrics {
   disputesCount: number;
   claimsCount: number;
   policyViolations: number;
+  
+  // Activity - FIXED [AGENT-0008]: Added login frequency for activity scoring
+  loginFrequency?: number; // 0-100 normalized score based on login events
 }
 
 /**
@@ -318,6 +321,34 @@ export async function calculateVendorScore(
     // Get vendor metrics
     const profile = await getVendorProfile(orgId, vendorId);
     const metrics = profile?.metrics || getDefaultMetrics();
+    
+    // FIXED [AGENT-0008]: Calculate login frequency from audit_logs
+    const db = await getDatabase();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    let loginFrequency = 50; // Default neutral score
+    try {
+      const loginCount = await db.collection("audit_logs").countDocuments({
+        orgId: new ObjectId(orgId),
+        actorId: vendorId,
+        action: { $in: ["LOGIN", "auth.login"] },
+        timestamp: { $gte: thirtyDaysAgo },
+      });
+      
+      // Calculate score (expected: 15-30 logins/month for active vendor)
+      if (loginCount >= 30) loginFrequency = 100;
+      else if (loginCount >= 20) loginFrequency = 80;
+      else if (loginCount >= 10) loginFrequency = 60;
+      else if (loginCount >= 5) loginFrequency = 40;
+      else if (loginCount >= 1) loginFrequency = 20;
+      else loginFrequency = 0;
+    } catch {
+      loginFrequency = 50; // Fallback on error
+    }
+    
+    // Add login frequency to metrics for activity calculation
+    metrics.loginFrequency = loginFrequency;
     
     // Calculate performance score (40%)
     const performance = calculatePerformanceScore(metrics);
@@ -777,11 +808,8 @@ function calculateActivityScore(
   }
   
   // Login frequency (weight: 20%)
-  // TODO: [VENDOR-LOGIN-001] Query actual login data from user/vendor analytics
-  // Implementation: Query login_events collection for last 30 days,
-  // calculate frequency, normalize to 0-100 scale based on expected logins
-  // Fallback: 50 (neutral score) when data unavailable
-  const loginScore = 50; // Neutral fallback - production should query real data
+  // Use login frequency from metrics if available
+  const loginScore = Math.min(100, Math.max(0, metrics.loginFrequency ?? 50));
   
   const score = Math.round(
     listingsScore * 0.30 +

@@ -370,7 +370,7 @@ export default function MarketplaceNewListingPage() {
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">
                   {formState.category ||
-                    auto("Category TBD", "sections.preview.categoryFallback")}
+                    auto("Select category", "sections.preview.categoryFallback")}
                 </p>
                 <h3 className="text-2xl font-semibold text-foreground">
                   {formState.title ||

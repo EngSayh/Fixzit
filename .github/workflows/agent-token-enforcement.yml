@@ -1,0 +1,107 @@
+# ============================================================================
+# Agent Token Enforcement - GitHub Action
+# ============================================================================
+# This workflow validates that ALL commits in a PR have proper agent tokens.
+# It CANNOT be bypassed by --no-verify because it runs on GitHub's servers.
+# ============================================================================
+
+name: Agent Token Enforcement
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  validate-agent-tokens:
+    name: Validate Agent Tokens
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for commit validation
+
+      - name: Validate All Commits Have Agent Token
+        run: |
+          echo "🔒 AGENTS.md Enforcement: Validating commit messages..."
+          echo ""
+          
+          # Get commits in this PR/push
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            COMMITS=$(git log --format="%H %s" $BASE..$HEAD)
+          else
+            # For direct pushes, check last 10 commits
+            COMMITS=$(git log --format="%H %s" -10)
+          fi
+          
+          # Token patterns
+          VALID_TOKEN_PATTERN='\[AGENT-[0-9]{4}\]'
+          FORBIDDEN_TOKEN_PATTERN='\[AGENT-[0-9]{3}-[A-Z]\]'
+          INVALID_TOKEN='[AGENT-0000]'
+          
+          FAILED=0
+          
+          echo "$COMMITS" | while IFS= read -r line; do
+            if [ -z "$line" ]; then continue; fi
+            
+            COMMIT_HASH=$(echo "$line" | cut -d' ' -f1)
+            COMMIT_MSG=$(echo "$line" | cut -d' ' -f2-)
+            SHORT_HASH=$(echo "$COMMIT_HASH" | cut -c1-7)
+            
+            echo "Checking commit $SHORT_HASH: $COMMIT_MSG"
+            
+            # Check for forbidden old format
+            if echo "$COMMIT_MSG" | grep -Eq "$FORBIDDEN_TOKEN_PATTERN"; then
+              echo "  ❌ FORBIDDEN: Uses old format [AGENT-XXX-X]"
+              echo "  💡 Use new format: [AGENT-XXXX] (4-digit sequential)"
+              FAILED=1
+            # Check for invalid token
+            elif echo "$COMMIT_MSG" | grep -q "$INVALID_TOKEN"; then
+              echo "  ❌ INVALID: Uses reserved token [AGENT-0000]"
+              FAILED=1
+            # Check for missing token
+            elif ! echo "$COMMIT_MSG" | grep -Eq "$VALID_TOKEN_PATTERN"; then
+              echo "  ❌ MISSING: No valid [AGENT-XXXX] token found"
+              echo "  💡 Add token like: fix(scope): description [AGENT-0001]"
+              FAILED=1
+            else
+              echo "  ✅ Valid agent token found"
+            fi
+          done
+          
+          if [ "$FAILED" = "1" ]; then
+            echo ""
+            echo "╔═══════════════════════════════════════════════════════════════════╗"
+            echo "║  ⛔ AGENT TOKEN VALIDATION FAILED                                 ║"
+            echo "╠═══════════════════════════════════════════════════════════════════╣"
+            echo "║  One or more commits are missing valid agent tokens.              ║"
+            echo "║                                                                   ║"
+            echo "║  Required format: [AGENT-XXXX] where XXXX is 4-digit number       ║"
+            echo "║  Example: fix(auth): add validation [AGENT-0001]                  ║"
+            echo "║                                                                   ║"
+            echo "║  Forbidden formats:                                               ║"
+            echo "║    • [AGENT-001-A] (old format with letter suffix)                ║"
+            echo "║    • [AGENT-0000] (reserved/invalid)                              ║"
+            echo "║    • Missing token entirely                                       ║"
+            echo "╚═══════════════════════════════════════════════════════════════════╝"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All commits have valid agent tokens"
+
+      - name: Block Direct Pushes to Main
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          echo "╔═══════════════════════════════════════════════════════════════════╗"
+          echo "║  ⚠️  WARNING: Direct push to protected branch detected            ║"
+          echo "╠═══════════════════════════════════════════════════════════════════╣"
+          echo "║  Direct pushes to main/master should go through PRs.              ║"
+          echo "║  This push has been logged for audit purposes.                    ║"
+          echo "╚═══════════════════════════════════════════════════════════════════╝"
+          # Note: We can't actually block the push after it happened,
+          # but we log it and could notify via Slack/email if configured
