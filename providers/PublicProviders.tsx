@@ -6,6 +6,7 @@
 import React from "react";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ColorThemeProvider } from "@/providers/ThemeProvider";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
@@ -19,13 +20,15 @@ import type { Locale } from "@/i18n/config";
  * Essential provider tree for public pages (homepage, about, privacy, terms)
  *
  * Provider hierarchy (outer → inner):
- * ErrorBoundary → SessionProvider → I18nProvider → ThemeProvider →
- * ResponsiveProvider → CurrencyProvider → FormStateProvider → TopBarProvider → children
+ * ErrorBoundary → SessionProvider → I18nProvider → ThemeProvider (light/dark) →
+ * ColorThemeProvider (color palette) → ResponsiveProvider → CurrencyProvider → 
+ * FormStateProvider → TopBarProvider → children
  *
  * All these providers are required because TopBar and ClientLayout use:
  * - useSession() - authentication state
  * - useTranslation() - i18n context
- * - useTheme() - theme switching
+ * - useTheme() - theme switching (light/dark mode)
+ * - useColorTheme() - color palette (SuperAdmin controlled)
  * - useResponsive() - responsive layout
  * - useCurrency() - currency formatting
  * - useFormState() - unsaved changes tracking
@@ -46,16 +49,18 @@ export default function PublicProviders({
       <SessionProvider>
         <I18nProvider initialLocale={initialLocale}>
           <ThemeProvider>
-            <ResponsiveProvider>
-              <CurrencyProvider>
-                <FormStateProvider>
-                  {/* Provide translations for public pages (TopBar and other global UI) */}
-                  <TranslationProvider initialLanguage={initialLocale}>
-                    <TopBarProvider>{children}</TopBarProvider>
-                  </TranslationProvider>
-                </FormStateProvider>
-              </CurrencyProvider>
-            </ResponsiveProvider>
+            <ColorThemeProvider>
+              <ResponsiveProvider>
+                <CurrencyProvider>
+                  <FormStateProvider>
+                    {/* Provide translations for public pages (TopBar and other global UI) */}
+                    <TranslationProvider initialLanguage={initialLocale}>
+                      <TopBarProvider>{children}</TopBarProvider>
+                    </TranslationProvider>
+                  </FormStateProvider>
+                </CurrencyProvider>
+              </ResponsiveProvider>
+            </ColorThemeProvider>
           </ThemeProvider>
         </I18nProvider>
       </SessionProvider>

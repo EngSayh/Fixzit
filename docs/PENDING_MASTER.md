@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-03T06:00:00+03:00
+  Last-Sync: 2026-01-03T09:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,60 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-03 09:00 (Asia/Riyadh) — TODO/Placeholder Triage v2 [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Fresh scan results - 155 markers triaged by production impact
+
+#### 📊 Summary Counts
+
+| Category | Prod | Tests | Tools | Total |
+|----------|------|-------|-------|-------|
+| TODO markers | 20 | 7 | 22 | 49 |
+| "Not implemented" | 15 | 9 | 40 | 64 |
+| Placeholders (TBD/WIP) | 6 | — | 30 | 42 |
+| **TOTAL** | **41** | **16** | **92** | **155** |
+
+#### 🔴 P0 — Production Critical (8 items)
+
+| Issue | File | Lines | Impact |
+|-------|------|-------|--------|
+| API 501 returns | `route.ts` | 78, 315, 379 | User-facing "Not Implemented" error |
+| Action stubs | `route.ts` | 115, 197, 259 | User operations fail |
+| Payout live mode | `payout-processor.ts` | 599, 611 | Financial operations blocked |
+
+**Status:** Logged to SSOT, requires immediate sprint action
+
+#### 🟠 P1 — High Priority (17 items)
+
+| Category | File | Lines | Issue |
+|----------|------|-------|-------|
+| Subscriptions | `page.tsx` | 816, 820 | Incomplete subscription flow |
+| Auth/MFA | `mfaService.ts` | 399 | MFA gap |
+| FM Inspections | `inspection-service.ts` | 504, 754 | Workflow incomplete |
+| Aqar Leases | `lease-service.ts` | 1028 | Lease service gap |
+| BI Dashboard | `bi-dashboard.ts` | 533, 570, 1638 | Analytics TODOs |
+| Building AI | `buildingModel.ts` | 471 | AI model incomplete |
+| Observability | `route.ts` | 60, 133, 221 | Monitoring gaps |
+| Model Mismatch | `ClaimsOrder.ts` | 16 | Data model issue |
+
+#### 🟡 P2 — Medium Priority (11 items)
+
+| Category | File | Lines | Issue |
+|----------|------|-------|-------|
+| Souq Intelligence | `vendor-intelligence.ts` | 780, 817-864 | Vendor intelligence stubs (9) |
+| UI/PII | `page.tsx`, `Employee.ts` | 313, 891, 38 | PII handling incomplete |
+
+#### 🟢 P3 — Low Priority / Backlog (119 items)
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| Test TODOs | 7 | Test file placeholders |
+| Tool/Script | 82 | Tooling defaults, script guidance |
+| Docs/Report | 30 | Metadata strings, report tokens |
 
 ---
 

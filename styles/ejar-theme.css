@@ -184,8 +184,31 @@
      LEGACY ALIASES (For backward compatibility - DO NOT USE IN NEW CODE)
      ═══════════════════════════════════════════════════════════════════════════════ */
   
-  /* Old Fixzit colors → Map to Ejar */
+  /* Old Fixzit green → Map to Ejar primary */
+  --color-fz-green-50: var(--ejar-primary-50);
+  --color-fz-green-100: var(--ejar-primary-100);
+  --color-fz-green-200: var(--ejar-primary-200);
+  --color-fz-green-300: var(--ejar-primary-300);
+  --color-fz-green-400: var(--ejar-primary-400);
   --color-fz-green-500: var(--ejar-primary-500);
+  --color-fz-green-600: var(--ejar-primary-600);
+  --color-fz-green-700: var(--ejar-primary-700);
+  --color-fz-green-800: var(--ejar-primary-800);
+  --color-fz-green-900: var(--ejar-primary-900);
+  
+  /* Old Fixzit brown → Map to Ejar neutral */
+  --color-fz-brown-50: var(--ejar-neutral-50);
+  --color-fz-brown-100: var(--ejar-neutral-100);
+  --color-fz-brown-200: var(--ejar-neutral-200);
+  --color-fz-brown-300: var(--ejar-neutral-300);
+  --color-fz-brown-400: var(--ejar-neutral-400);
+  --color-fz-brown-500: var(--ejar-neutral-700);
+  --color-fz-brown-600: var(--ejar-neutral-800);
+  --color-fz-brown-700: var(--ejar-neutral-900);
+  --color-fz-brown-800: var(--ejar-neutral-950);
+  --color-fz-brown-900: var(--ejar-neutral-950);
+  
+  /* Old platform colors → Map to Ejar */
   --color-platform-fm-blue: var(--ejar-primary-500);
   --color-ejar-green: var(--ejar-primary-500);
   --color-ejar-green-hover: var(--ejar-primary-600);
@@ -195,6 +218,13 @@
   --color-brand-primary-active: var(--ejar-primary-700);
   --color-brand-primary-surface: var(--ejar-primary-50);
   --color-brand-secondary: var(--ejar-gold);
+  
+  /* Legacy color aliases */
+  --color-primary: var(--ejar-primary-500);
+  --color-primary-hover: var(--ejar-primary-600);
+  --color-primary-subtle: var(--ejar-primary-50);
+  --color-text-heading: var(--ejar-neutral-700);
+  --color-bg-tertiary: var(--ejar-primary-50);
 
   /* ═══════════════════════════════════════════════════════════════════════════════
      TYPOGRAPHY
