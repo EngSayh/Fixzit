@@ -1,14 +1,38 @@
-﻿# Fixzit Copilot Instructions (Aligned to AGENTS.md v6.0)
+﻿# Fixzit Copilot Instructions (Aligned to AGENTS.md v7.0)
 
-## ⚠️ MANDATORY FIRST STEP - READ BEFORE ANY TASK
+## 🚨 HARD GATE - NO EXCEPTIONS
 
-**You MUST read `docs/AGENTS.md` before starting ANY task.** This is non-negotiable.
+# ⛔ YOU MUST READ docs/AGENTS.md BEFORE ANY WORK
+
+**This is NON-NEGOTIABLE. Failure to read AGENTS.md = ALL work rejected by user.**
+
+### FIRST ACTION IN EVERY SESSION:
 
 ```
-READ: docs/AGENTS.md (full file, ~500 lines)
+Execute: read_file tool on docs/AGENTS.md, lines 1-1000
+Then state: "AGENTS.md read. Agent Token: [AGENT-001-A]"
 ```
 
-If you cannot confirm you have read AGENTS.md, STOP and inform the user.
+### If You Skip This Step:
+- ❌ User WILL reject all your work
+- ❌ All commits will be reverted
+- ❌ You will waste the user's time and money
+
+---
+
+## 🔒 MANDATORY ENFORCEMENT CHECKLIST
+
+Before ANY code change, file edit, or terminal command:
+
+| # | Action | Command | Required |
+|---|--------|---------|----------|
+| 1 | **Read AGENTS.md** | `read_file: docs/AGENTS.md, lines 1-1000` | ✅ MANDATORY |
+| 2 | **State Agent Token** | "Agent Token: [AGENT-001-A]" | ✅ MANDATORY |
+| 3 | **Git Preflight** | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` | ✅ MANDATORY |
+| 4 | **Verify not behind** | If behind > 0, STOP and pull | ✅ MANDATORY |
+| 5 | **Run verification** | `pnpm typecheck && pnpm lint` | ✅ MANDATORY |
+
+**SKIP ANY STEP = USER REJECTS ALL WORK**
 
 ---
 

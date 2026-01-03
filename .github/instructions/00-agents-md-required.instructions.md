@@ -4,23 +4,41 @@ description: Enforces reading docs/AGENTS.md before any task. This is the FIRST 
 applyTo: "**/*"
 ---
 
-# ⛔ STOP - READ AGENTS.md FIRST
+# ⛔ HARD GATE - NO WORK UNTIL AGENTS.md IS READ
 
-Before proceeding with ANY task, you MUST:
+## 🚨 MANDATORY ENFORCEMENT PROTOCOL
 
-1. **Read `docs/AGENTS.md`** - The complete file (~500 lines)
-2. **Confirm understanding** of:
-   - Agent Token protocol (e.g., `[AGENT-001-A]`)
-   - SSOT claim workflow
-   - Pre-claim validation (`git fetch`, not behind origin/main)
-   - CI gate requirements
-   - Commit message format
+**DO NOT proceed with ANY task, fix, or response until you have:**
 
-## If You Haven't Read AGENTS.md
+1. **Called `read_file` on `docs/AGENTS.md` lines 1-1000** in THIS session
+2. **Confirmed reading** by stating: "AGENTS.md read. Agent Token: [AGENT-XXX-X]"
+
+### If You Have NOT Read AGENTS.md This Session:
 
 ```
-Use read_file tool: docs/AGENTS.md, lines 1-600
+STOP. Execute this FIRST:
+read_file: docs/AGENTS.md, lines 1-1000
 ```
+
+**Failure to read AGENTS.md = AUTO-FAIL. User will reject all work.**
+
+---
+
+## 🔒 ENFORCEMENT CHECKLIST (Every Session)
+
+Before ANY code change, file edit, or terminal command:
+
+| Step | Action | Required |
+|------|--------|----------|
+| 1 | Read `docs/AGENTS.md` lines 1-1000 | ✅ MANDATORY |
+| 2 | State Agent Token: `[AGENT-001-A]` | ✅ MANDATORY |
+| 3 | Run `git fetch origin` | ✅ MANDATORY |
+| 4 | Verify not behind origin/main | ✅ MANDATORY |
+| 5 | Run `pnpm typecheck && pnpm lint` | ✅ MANDATORY |
+
+**If ANY step is skipped → User WILL reject ALL work**
+
+---
 
 ## Key Protocols from AGENTS.md
 
