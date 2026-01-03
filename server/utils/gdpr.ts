@@ -177,6 +177,7 @@ export async function anonymizeUserData(
 
   try {
     // Validate user exists
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Full Mongoose document needed to modify and save
     const user = await User.findById(userId);
     if (!user) {
       throw new Error(`User not found: ${userId}`);
@@ -326,6 +327,7 @@ function sanitizePersonalInfo(user: Record<string, unknown>): Record<string, unk
  */
 async function collectActivityLogs(userId: string, orgId?: string): Promise<unknown[]> {
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- GDPR: User-scoped data export (userId filter is sufficient)
     const logs = await AuditLogModel.find({
       userId,
       ...(orgId && { orgId }),

@@ -69,7 +69,7 @@ export async function GET() {
   try {
     await connectMongo();
     
-    // PLATFORM_WIDE: Platform settings are global (not tenant-scoped)
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM_WIDE: Theme settings are global (not tenant-scoped)
     const settings = await PlatformSettings.findOne({}).lean();
     
     if (!settings?.theme) {
@@ -151,7 +151,7 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    // PLATFORM_WIDE: Platform settings are global (SuperAdmin only)
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM_WIDE: Theme settings are global (SuperAdmin only)
     const updatedSettings = await PlatformSettings.findOneAndUpdate(
       {},
       { 
@@ -211,7 +211,7 @@ export async function POST(_request: NextRequest) {
     
     await connectMongo();
     
-    // PLATFORM_WIDE: Platform settings are global (SuperAdmin only)
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM_WIDE: Theme settings are global (SuperAdmin only)
     await PlatformSettings.findOneAndUpdate(
       {},
       { 
