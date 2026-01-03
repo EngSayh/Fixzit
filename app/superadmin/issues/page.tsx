@@ -987,7 +987,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")}>
-              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
+              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
                 {statusOptions.find(o => o.value === statusFilter)?.label || t("superadmin.issues.filters.status")}
               </SelectTrigger>
               <SelectContent>
@@ -1000,7 +1000,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             </Select>
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")}>
-              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
+              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
                 {priorityOptions.find(o => o.value === priorityFilter)?.label || t("superadmin.issues.filters.priority")}
               </SelectTrigger>
               <SelectContent>
@@ -1013,7 +1013,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             </Select>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")}>
-              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
+              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
                 {categoryOptions.find(o => o.value === categoryFilter)?.label || t("superadmin.issues.filters.category")}
               </SelectTrigger>
               <SelectContent>

@@ -153,7 +153,8 @@ const PlatformSettingsSchema = new Schema(
 PlatformSettingsSchema.plugin(tenantIsolationPlugin, {
   excludeModels: ["PlatformSettings"],
 });
-PlatformSettingsSchema.plugin(auditPlugin);
+// Platform-wide settings can be created without a user (e.g., seeding, migrations)
+PlatformSettingsSchema.plugin(auditPlugin, { createdByOptional: true });
 
 // Ensure only one settings document per tenant (singleton pattern)
 // Global settings have no orgId, tenant-specific have orgId

@@ -504,7 +504,7 @@ export default function SuperadminPermissionsPage() {
               ...MODULES.map(m => ({ value: m.id, label: m.name })),
             ],
             onChange: setSelectedModule,
-            width: "w-[180px]",
+            width: "w-[140px]",
           },
         ]}
         onClear={() => {
