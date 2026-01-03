@@ -181,6 +181,19 @@
   --input-placeholder: var(--ejar-neutral-500);
 
   /* ═══════════════════════════════════════════════════════════════════════════════
+     CHART COLORS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --color-chart-primary: #8884d8;
+  --color-chart-blue: #0088FE;
+  --color-chart-teal: #00C49F;
+  --color-chart-yellow: #FFBB28;
+  --color-chart-orange: #FF8042;
+  --color-chart-purple: #8884D8;
+  --color-chart-green: var(--ejar-primary-500);
+  --color-chart-red: var(--ejar-error);
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
      LEGACY ALIASES (For backward compatibility - DO NOT USE IN NEW CODE)
      ═══════════════════════════════════════════════════════════════════════════════ */
   
