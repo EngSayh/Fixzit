@@ -1054,18 +1054,19 @@ export async function registerWithEjar(
             _id: new ObjectId(lease.landlordId),
             orgId,
           })
-        : db.collection("properties").findOne({
-            _id: new ObjectId(lease.propertyId),
-            orgId,
-          }).then(async (prop) => {
+        : (async () => {
+            const prop = await db.collection("properties").findOne({
+              _id: new ObjectId(lease.propertyId),
+              orgId,
+            });
             if (prop?.ownerId) {
               return db.collection("users").findOne({
-                _id: new ObjectId(prop.ownerId),
+                _id: new ObjectId(prop.ownerId as string),
                 orgId,
               });
             }
             return null;
-          }),
+          })(),
     ]);
     
     if (!property) {
