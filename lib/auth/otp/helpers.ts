@@ -8,7 +8,7 @@ import { z } from "zod";
 import type { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import {
-  redisRateLimitStore,
+  otpRateLimitStore,
   MAX_SENDS_PER_WINDOW,
   RATE_LIMIT_WINDOW_MS,
 } from "@/lib/otp-store";
@@ -41,7 +41,7 @@ export async function checkRateLimit(identifier: string): Promise<{
   allowed: boolean;
   remaining: number;
 }> {
-  return redisRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
+  return otpRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
 }
 
 /**

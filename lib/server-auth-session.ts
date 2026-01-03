@@ -12,7 +12,7 @@ import {
  * @description Server-side authentication session helper for Server Components and API routes.
  *
  * Provides session retrieval with RBAC fields (STRICT v4.1) and tenant isolation.
- * Separated from client hooks to avoid bundling server dependencies (ioredis) into client builds.
+ * Separated from client hooks to avoid bundling server-only dependencies into client builds.
  *
  * @features
  * - Server-only session access (auth() from @/auth)

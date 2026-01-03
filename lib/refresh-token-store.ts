@@ -1,16 +1,14 @@
 import { logger } from "@/lib/logger";
-import { getRedisClient, safeRedisOp } from "@/lib/redis";
 
 /**
  * @module lib/refresh-token-store
- * @description Distributed refresh token replay protection with Redis/memory fallback.
+ * @description Refresh token replay protection with in-memory storage.
  *
  * Stores refresh token JTIs with TTL to detect reuse across instances.
  * Falls back to in-memory storage when Redis unavailable (development only).
  *
  * @features
- * - Redis-backed JTI storage (shared across instances)
- * - In-memory fallback (development/single-instance)
+ * - In-memory JTI storage (single-instance)
  * - TTL-based expiration (matches token lifetime)
  * - Replay attack detection (JTI validation)
  * - Production-critical warnings (Redis unavailable alerts)
@@ -34,7 +32,7 @@ import { getRedisClient, safeRedisOp } from "@/lib/redis";
  * ```
  *
  * @security
- * Critical for preventing refresh token replay attacks in distributed deployments.
+ * Critical for preventing refresh token replay attacks in single-instance deployments.
  */
 const memoryStore = new Map<string, number>();
 let warnedMemoryFallback = false;
@@ -46,7 +44,7 @@ function key(userId: string, jti: string): string {
 function warnMemory(): void {
   if (warnedMemoryFallback || process.env.NODE_ENV !== "production") return;
   logger.error(
-    "[auth/refresh] CRITICAL: Redis unavailable; using in-memory refresh store. Replay protection NOT shared across instances.",
+    "[auth/refresh] CRITICAL: In-memory refresh store enabled. Replay protection NOT shared across instances.",
     { severity: "ops_critical", feature: "auth_refresh_replay" },
   );
   warnedMemoryFallback = true;
@@ -60,15 +58,6 @@ export async function persistRefreshJti(
   jti: string,
   ttlSeconds: number,
 ): Promise<void> {
-  const client = getRedisClient();
-  if (client) {
-    await safeRedisOp(
-      async (c) => c.setex(key(userId, jti), ttlSeconds, "1"),
-      undefined,
-    );
-    return;
-  }
-
   warnMemory();
   memoryStore.set(key(userId, jti), Date.now() + ttlSeconds * 1000);
 }
@@ -80,15 +69,6 @@ export async function validateRefreshJti(
   userId: string,
   jti: string,
 ): Promise<boolean> {
-  const client = getRedisClient();
-  if (client) {
-    const exists = await safeRedisOp(
-      async (c) => c.exists(key(userId, jti)),
-      0,
-    );
-    return exists === 1;
-  }
-
   warnMemory();
   const expiresAt = memoryStore.get(key(userId, jti));
   if (!expiresAt) return false;
@@ -106,12 +86,6 @@ export async function revokeRefreshJti(
   userId: string,
   jti: string,
 ): Promise<void> {
-  const client = getRedisClient();
-  if (client) {
-    await safeRedisOp(async (c) => c.del(key(userId, jti)), 0);
-    return;
-  }
-
   warnMemory();
   memoryStore.delete(key(userId, jti));
 }

@@ -267,7 +267,7 @@ export default function RateLimitingDashboard() {
           <CardContent className="flex items-center gap-2">
             <Badge variant={metrics?.distributed.enabled ? "default" : "secondary"}>
               {metrics?.distributed.enabled
-                ? auto("Redis active", "rateLimit.summary.redisActive")
+                ? auto("Cache active", "rateLimit.summary.redisActive")
                 : auto("In-memory", "rateLimit.summary.redisInactive")}
             </Badge>
             <span className="text-sm text-muted-foreground">
@@ -363,7 +363,7 @@ export default function RateLimitingDashboard() {
           <CardHeader className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
             <CardTitle className="text-warning">
-              {auto("Recent Redis warning", "rateLimit.redis.warning")}
+              {auto("Recent cache warning", "rateLimit.redis.warning")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-warning-foreground">

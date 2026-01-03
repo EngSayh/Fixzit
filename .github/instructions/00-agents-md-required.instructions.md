@@ -105,20 +105,31 @@ Steps:
 | Rule | Requirement |
 |------|-------------|
 | **Create New** | ALWAYS create a NEW terminal for your work |
+| **Name Terminal** | Name with agent token: `[AGENT-XXXX]` |
 | **Never Reuse** | NEVER use existing/shared terminals |
 | **Kill Orphans** | ALWAYS kill orphaned terminals at task completion |
-| **Preserve Dev Server** | NEVER kill the `Dev: Start Server` terminal |
+| **Preserve Dev Server** | NEVER kill the `Fixzit Local` terminal |
 | **Limit 3** | MAX 3 concurrent terminals per session |
+
+### 📛 Terminal Naming Convention (MANDATORY)
+
+| Terminal Type | Name Pattern | Example |
+|---------------|--------------|---------|
+| **Dev Server** | `Fixzit Local` | `Fixzit Local` |
+| **Agent Work** | `[AGENT-XXXX]` | `[AGENT-0008]` |
+| **Agent + Task** | `[AGENT-XXXX] Task` | `[AGENT-0008] TypeCheck` |
 
 ### 🔒 Dev Server Protection (NON-NEGOTIABLE)
 
 **The dev server on localhost:3000 MUST be running at ALL times.**
+**Terminal name: `Fixzit Local`**
 
 | Requirement | Details |
 |-------------|---------|
 | **Auto-Start** | Dev server starts automatically when workspace opens |
 | **Single Instance** | Only ONE dev server terminal allowed |
-| **NEVER Kill** | Agents MUST NEVER kill the dev server terminal |
+| **Terminal Name** | MUST be named `Fixzit Local` |
+| **NEVER Kill** | Agents MUST NEVER kill the `Fixzit Local` terminal |
 | **Verify at Start** | Check port 3000 is alive before any work |
 
 **At session start, verify dev server:**
@@ -129,7 +140,7 @@ Steps:
 
 ### At Task End (MANDATORY):
 ```powershell
-# Windows: Kill orphans BUT PROTECT dev server on port 3000
+# Windows: Kill orphans BUT PROTECT "Fixzit Local" dev server on port 3000
 $devPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess
 Get-Process powershell | Where-Object { $_.Id -ne $PID -and $_.Id -ne $devPID } | Stop-Process -Force
 ```

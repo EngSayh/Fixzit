@@ -69,8 +69,7 @@
  * - `{keyPrefix}:{identifier}` (e.g., `/api/login:192.168.1.1`)
  *
  * @performance
- * - Redis-backed: O(1) rate limit checks (atomic INCR + EXPIRE)
- * - In-memory fallback: When Redis unavailable (Map-based, non-distributed)
+ * - In-memory: O(1) rate limit checks (Map-based, non-distributed)
  * - IP reputation: <1ms lookup (in-memory cache)
  * - Monitoring: Fire-and-forget (non-blocking)
  *

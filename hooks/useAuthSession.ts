@@ -39,5 +39,5 @@ export function useAuthSession(): AuthSession | null {
 }
 
 // NOTE: getServerAuthSession has been moved to lib/server-auth-session.ts
-// to prevent ioredis from being bundled into client components.
+// to prevent server-only dependencies from being bundled into client components.
 // Import it from @/hooks/useAuthSession.server for Server Components and API routes.

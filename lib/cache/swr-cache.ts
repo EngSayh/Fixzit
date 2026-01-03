@@ -2,7 +2,7 @@
  * @fileoverview SWR (Stale-While-Revalidate) Cache Service
  * @module lib/cache/swr-cache
  *
- * Provides stale-while-revalidate caching semantics on top of Redis/in-memory store.
+ * Provides stale-while-revalidate caching semantics on top of in-memory store.
  * Serves stale data immediately while revalidating in the background.
  *
  * @features
@@ -21,7 +21,7 @@
  * ```
  */
 
-import { getRedisClient, CacheTTL } from "@/lib/redis";
+import { getCacheClient, CacheTTL } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 
 /**
@@ -171,7 +171,7 @@ export class SwrCache {
     const maxAge = options?.maxAge ?? this.config.maxAge;
 
     try {
-      const client = getRedisClient();
+      const client = getCacheClient();
       const cachedStr = await client.get(fullKey);
 
       if (cachedStr) {
@@ -277,7 +277,7 @@ export class SwrCache {
         maxAge,
       };
 
-      const client = getRedisClient();
+      const client = getCacheClient();
       await client.setex(fullKey, maxAge, JSON.stringify(entry));
       this.log("SET", { key, staleTime, maxAge });
 
@@ -319,7 +319,7 @@ export class SwrCache {
   async invalidate(key: string): Promise<void> {
     const fullKey = this.buildKey(key);
     try {
-      const client = getRedisClient();
+      const client = getCacheClient();
       await client.del(fullKey);
       this.log("INVALIDATE", { key });
     } catch (error) {
@@ -332,7 +332,7 @@ export class SwrCache {
    */
   async invalidateAll(): Promise<void> {
     try {
-      const client = getRedisClient();
+      const client = getCacheClient();
       const pattern = `${this.config.prefix}:*`;
       const keys: string[] = [];
 

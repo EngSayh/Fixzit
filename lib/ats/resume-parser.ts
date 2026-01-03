@@ -101,7 +101,6 @@ function extractSkills(text: string): string[] {
     "mongodb",
     "postgresql",
     "mysql",
-    "redis",
     "elasticsearch",
     "graphql",
     "rest api",

@@ -2,14 +2,12 @@
  * SMS Queue Service
  *
  * Queue-based SMS delivery with retry, SLA tracking, and provider failover.
- * Integrates with BullMQ for reliable background processing.
+ * Uses an in-memory queue for background processing.
  *
  * @module lib/queues/sms-queue
  */
 
-import { Queue, Worker, Job } from "bullmq";
-import type Redis from "ioredis";
-import { getRedisClient } from "@/lib/redis";
+import { Queue, Worker, Job } from "@/lib/queue";
 import { logger } from "@/lib/logger";
 import { SMSMessage, TSMSType, TSMSPriority, TSMSProvider, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
@@ -40,6 +38,7 @@ export interface ISMSJobData {
 // Queue instance (singleton)
 let smsQueue: Queue<ISMSJobData> | null = null;
 let smsWorker: Worker<ISMSJobData> | null = null;
+const orgRateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 /**
  * Decrypt provider auth token if stored encrypted; swallow failures to avoid crashing queue.
@@ -136,7 +135,7 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
 }
 
 /**
- * Remove pending BullMQ jobs for a given SMS messageId to prevent duplicate or cancelled sends.
+ * Remove pending jobs for a given SMS messageId to prevent duplicate or cancelled sends.
  */
 export async function removePendingSMSJobs(messageId: string): Promise<number> {
   const queue = getSMSQueue();
@@ -157,28 +156,27 @@ export async function removePendingSMSJobs(messageId: string): Promise<number> {
 }
 
 /**
- * Simple per-org rate limiter using Redis counters to avoid noisy-neighbor issues.
+ * Simple per-org rate limiter using in-memory counters to avoid noisy-neighbor issues.
  * @internal Reserved for future per-org rate limiting enhancement
  */
 export async function checkOrgRateLimit(orgId?: string): Promise<{ ok: true } | { ok: false; ttlMs: number }> {
   // 🔒 Enforce orgId presence to avoid unscoped throttling bypass
   if (!orgId) return { ok: false, ttlMs: 0 };
 
-  const connection = getRedisClient();
-  if (!connection) return { ok: true };
-
   const settings = await SMSSettings.getEffectiveSettings(orgId);
   const maxPerMinute = settings?.globalRateLimitPerMinute ?? 30;
   const key = `sms:rate:${orgId}`;
-  const ttlMs = await connection.pttl(key);
-  const count = await connection.incr(key);
-  if (ttlMs < 0) {
-    await connection.pexpire(key, 60_000);
+  const now = Date.now();
+  const existing = orgRateLimitStore.get(key);
+  if (!existing || now > existing.resetAt) {
+    orgRateLimitStore.set(key, { count: 1, resetAt: now + 60_000 });
+    return { ok: true };
   }
 
-  if (count > maxPerMinute) {
-    const remaining = ttlMs > 0 ? ttlMs : 60_000;
-    return { ok: false, ttlMs: remaining };
+  const nextCount = existing.count + 1;
+  orgRateLimitStore.set(key, { count: nextCount, resetAt: existing.resetAt });
+  if (nextCount > maxPerMinute) {
+    return { ok: false, ttlMs: Math.max(0, existing.resetAt - now) };
   }
 
   return { ok: true };
@@ -190,14 +188,7 @@ export async function checkOrgRateLimit(orgId?: string): Promise<{ ok: true } | 
 export function getSMSQueue(): Queue<ISMSJobData> | null {
   if (smsQueue) return smsQueue;
 
-  const connection = getRedisClient();
-  if (!connection) {
-    logger.warn("[SMS Queue] Redis not configured, queue disabled");
-    return null;
-  }
-
   smsQueue = new Queue<ISMSJobData>(SMS_QUEUE_NAME, {
-    connection: connection as Redis,
     defaultJobOptions: {
       attempts: 5,
       backoff: {
@@ -336,7 +327,7 @@ export async function queueSMS(options: {
       delay,
       priority: priorityValue,
       jobId: `sms-${smsMessage._id.toString()}`,
-      // Align BullMQ retries with SLA-configured maxRetries
+      // Align queue retries with SLA-configured maxRetries
       attempts: smsMessage.maxRetries,
     }
   );
@@ -626,7 +617,7 @@ async function processSMSJob(messageId: string): Promise<void> {
       maxRetries: message.maxRetries,
     });
 
-    throw error; // Let BullMQ handle retry
+    throw error; // Let the queue handle retry
   }
 }
 
@@ -635,12 +626,6 @@ async function processSMSJob(messageId: string): Promise<void> {
  */
 export function startSMSWorker(): Worker<ISMSJobData> | null {
   if (smsWorker) return smsWorker;
-
-  const connection = getRedisClient();
-  if (!connection) {
-    logger.warn("[SMS Worker] Redis not configured, worker disabled");
-    return null;
-  }
 
   // Worker throughput limit: configurable via env, default 120/min to accommodate multiple orgs
   // Per-org limits are enforced separately via checkOrgRateLimit (default 60/org/min)
@@ -663,7 +648,6 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
       await processSMSJob(job.data.messageId);
     },
     {
-      connection: connection as Redis,
       concurrency: 5,
       limiter: {
         max: workerMaxPerMinute,

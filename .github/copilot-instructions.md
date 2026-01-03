@@ -125,25 +125,40 @@ Core rules (non-negotiable):
 **These rules are NON-NEGOTIABLE for all Copilot agents:**
 
 1. **ALWAYS create a NEW terminal** — Never reuse existing terminals
-2. **NEVER use shared terminals** — Other agents/extensions may own them
-3. **KILL orphaned terminals on task completion** — Default behavior, not optional
-4. **PRESERVE the Dev Server terminal** — Never kill `Dev: Start Server`
-5. **MAX 3 terminals per agent session** — Prevent resource exhaustion
+2. **NAME terminals with agent token** — Use pattern `[AGENT-XXXX]`
+3. **NEVER use shared terminals** — Other agents/extensions may own them
+4. **KILL orphaned terminals on task completion** — Default behavior, not optional
+5. **PRESERVE the "Fixzit Local" terminal** — Never kill the dev server
+6. **MAX 3 terminals per agent session** — Prevent resource exhaustion
+
+### 📛 Terminal Naming Convention (MANDATORY)
+
+| Terminal Type | Name Pattern | Example |
+|--------------|--------------|---------|
+| **Dev Server** | `Fixzit Local` | `Fixzit Local` |
+| **Agent Work** | `[AGENT-XXXX]` | `[AGENT-0008]` |
+| **Agent + Task** | `[AGENT-XXXX] Task` | `[AGENT-0008] TypeCheck` |
+
+**Why naming matters:**
+- ✅ Terminals appear in VS Code dropdown for easy tracking
+- ✅ Quick identification of agent ownership
+- ✅ Easy cleanup by token pattern
 
 ### 🔒 Dev Server Protection (CRITICAL)
 
 **The dev server on localhost:3000 MUST ALWAYS be running.**
+**Terminal name: `Fixzit Local`**
 
 - **Auto-starts** when VS Code opens the workspace
 - **Single instance only** — no duplicates
-- **NEVER kill** the dev server terminal
+- **NEVER kill** the `Fixzit Local` terminal
 - **Verify at session start**: `Test-NetConnection localhost -Port 3000`
 
 **If dev server is down:** Run VS Code task `Dev: Restart Server`
 
 ### Terminal Cleanup (Run at task end):
 ```powershell
-# Windows: Kill orphaned PowerShell terminals (keeps current AND dev server)
+# Windows: Kill orphaned PowerShell terminals (keeps current AND "Fixzit Local")
 $devPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess
 Get-Process powershell | Where-Object { $_.Id -ne $PID -and $_.Id -ne $devPID } | Stop-Process -Force
 ```

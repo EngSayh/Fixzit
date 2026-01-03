@@ -175,7 +175,7 @@ export async function getSessionOrNull(
  *
  * Infrastructure errors include:
  * - Database connection failures
- * - Redis/cache failures
+ * - Cache/store failures
  * - Network timeouts
  * - Internal server errors from auth service
  *

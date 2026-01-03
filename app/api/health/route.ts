@@ -1,6 +1,6 @@
 /**
  * @fileoverview Main Health Check Endpoint
- * @description Returns overall server health status including database and Redis connectivity. Used for monitoring and E2E test readiness checks.
+ * @description Returns overall server health status including database connectivity. Used for monitoring and E2E test readiness checks.
  * @route GET /api/health - Primary health check endpoint
  * @access Public (detailed diagnostics require X-Health-Token)
  * @module health
@@ -42,10 +42,6 @@ export async function GET(request: NextRequest) {
       logger.error("[Health Check] Database error", { error: pingResult.error, latency: dbLatency });
     }
 
-    // Redis has been removed; report as not configured
-    const redisStatus = "not_configured" as const;
-    const redisLatency = 0;
-
     const isHealthy = dbStatus === "connected";
     
     const health = {
@@ -53,9 +49,8 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 9) || process.env.GIT_COMMIT_SHA?.slice(0, 9) || "unknown",
-      // Always include basic DB and Redis status for monitoring (not sensitive)
+      // Always include basic DB status for monitoring (not sensitive)
       database: dbStatus,
-      redis: redisStatus,
       // Authorized callers get detailed diagnostics
       ...(isAuthorized && {
         diagnostics: {
@@ -63,7 +58,6 @@ export async function GET(request: NextRequest) {
             status: dbStatus,
             latencyMs: dbLatency,
           },
-          redis: { status: redisStatus, latencyMs: redisLatency },
           memory: {
             usedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
             totalMB: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
@@ -93,7 +87,6 @@ export async function GET(request: NextRequest) {
         status: "unhealthy",
         timestamp: new Date().toISOString(),
         database: "error",
-        redis: "error",
         error: process.env.NODE_ENV === "development" 
           ? (error instanceof Error ? error.message : "Unknown error")
           : "Internal error",

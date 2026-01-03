@@ -272,7 +272,6 @@ export const typeDefs = /* GraphQL */ `
   type HealthCheck {
     status: String!
     mongodb: String!
-    redis: String
     timestamp: DateTime!
   }
 
@@ -608,13 +607,11 @@ export const resolvers = {
     health: async (): Promise<{
       status: string;
       mongodb: string;
-      redis: string | null;
       timestamp: string;
     }> => {
       return {
         status: "ok",
         mongodb: "connected",
-        redis: process.env.REDIS_URL ? "connected" : null,
         timestamp: new Date().toISOString(),
       };
     },
