@@ -530,22 +530,20 @@ export async function getFinanceKPIs(
     });
     
     // BI-KPI-001: Real cash flow calculation (inflows - outflows)
-    // TODO: [BI-DATA-001] Schema mismatch flagged in PR #642 review:
-    // - Current: uses `org_id`, `date`, `status: "completed"`, `type: "income/expense"`
-    // - Actual Payment model: `orgId`, `paymentDate`, PaymentStatus enum, `paymentType: RECEIVED/MADE`
-    // - Collection: should use COLLECTIONS.PAYMENTS (finance_payments) not "payments"
-    // This requires data model review before fix. Currently returns 0 safely.
+    // FIXED [BI-DATA-001]: Schema aligned with finance/Payment.ts
+    // - Uses `orgId` (ObjectId), `paymentDate`, `status: ["POSTED", "CLEARED"]`, `paymentType: "RECEIVED"/"MADE"`
+    // - Collection: "finance_payments"
     const createCashFlowPipeline = (range: DateRange) => [
       {
         $match: {
-          org_id: orgId,
-          date: { $gte: range.start, $lte: range.end },
-          status: "completed",
+          orgId: new ObjectId(orgId),
+          paymentDate: { $gte: range.start, $lte: range.end },
+          status: { $in: ["POSTED", "CLEARED"] },
         },
       },
       {
         $group: {
-          _id: "$type",
+          _id: "$paymentType",
           total: { $sum: "$amount" },
         },
       },
@@ -554,31 +552,29 @@ export async function getFinanceKPIs(
     const prevCashFlowPipeline = createCashFlowPipeline(previousRange);
     
     const [cashFlowResult, prevCashFlowResult] = await Promise.all([
-      db.collection("payments").aggregate(cashFlowPipeline).toArray(),
-      db.collection("payments").aggregate(prevCashFlowPipeline).toArray(),
+      db.collection("finance_payments").aggregate(cashFlowPipeline).toArray(),
+      db.collection("finance_payments").aggregate(prevCashFlowPipeline).toArray(),
     ]);
     
-    const inflows = cashFlowResult.find(r => r._id === "income")?.total || 0;
-    const outflows = cashFlowResult.find(r => r._id === "expense")?.total || 0;
+    const inflows = cashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
+    const outflows = cashFlowResult.find(r => r._id === "MADE")?.total || 0;
     const cashFlowValue = inflows - outflows;
     
-    const prevInflows = prevCashFlowResult.find(r => r._id === "income")?.total || 0;
-    const prevOutflows = prevCashFlowResult.find(r => r._id === "expense")?.total || 0;
+    const prevInflows = prevCashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
+    const prevOutflows = prevCashFlowResult.find(r => r._id === "MADE")?.total || 0;
     const prevCashFlowValue = prevInflows - prevOutflows;
     
     // BI-KPI-002: Real expense ratio calculation
-    // TODO: [BI-DATA-002] Schema mismatch flagged in PR #642 review:
-    // - No generic "transactions" collection exists
-    // - FM uses: fm_financial_transactions
-    // - Souq uses: souq_transactions
-    // This requires data model review before fix. Currently returns 0 safely.
+    // FIXED [BI-DATA-002]: Schema aligned with FMFinancialTransaction.ts
+    // - Uses `orgId` (ObjectId), `transactionDate`, `type: "EXPENSE"`, `status: ["POSTED", "PAID"]`
+    // - Collection: "fm_financial_transactions"
     const createExpensePipeline = (range: DateRange) => [
       {
         $match: {
-          org_id: orgId,
-          date: { $gte: range.start, $lte: range.end },
-          type: "expense",
-          status: "completed",
+          orgId: new ObjectId(orgId),
+          transactionDate: { $gte: range.start, $lte: range.end },
+          type: "EXPENSE",
+          status: { $in: ["POSTED", "PAID"] },
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -587,8 +583,8 @@ export async function getFinanceKPIs(
     const prevExpensePipeline = createExpensePipeline(previousRange);
     
     const [expenseResult, prevExpenseResult] = await Promise.all([
-      db.collection("transactions").aggregate(expensePipeline).toArray(),
-      db.collection("transactions").aggregate(prevExpensePipeline).toArray(),
+      db.collection("fm_financial_transactions").aggregate(expensePipeline).toArray(),
+      db.collection("fm_financial_transactions").aggregate(prevExpensePipeline).toArray(),
     ]);
     
     const totalExpenses = expenseResult[0]?.total || 0;
@@ -1629,29 +1625,28 @@ async function getMetricValue(
  * BI-KPI-003: Calculate First Time Fix Rate
  * (Work orders completed on first visit / Total completed work orders) * 100
  *
- * NOTE: This implementation assumes that a `status` of `"completed"`
- * always represents a successfully resolved work order (i.e. excludes
- * cancelled or closed-without-resolution states). If the data model
- * distinguishes these via a separate resolution field, the queries
- * below should be updated to also filter on that field.
- * 
- * TODO: [BI-DATA-003] PR #642 review flagged:
- * - Fields `resolution_attempts` and `visit_count` may not exist in WorkOrder schema
- * - Should verify field existence in server/models/WorkOrder.ts before relying on them
- * - Currently uses defensive $exists:false fallback
+ * FIXED [BI-DATA-003]: Schema aligned with server/models/WorkOrder.ts
+ * - Uses `orgId` (ObjectId via tenant plugin, queried as org_id in aggregation)
+ * - Uses `status: ["COMPLETED", "VERIFIED", "CLOSED"]` (WorkOrderStatus enum)
+ * - Uses `work.actualEndTime` for completion date (not completedAt)
+ * - First-time fix detection:
+ *   - `assignment.reassignmentHistory` array length = 0 (no reassignments)
+ *   - `statusHistory` array length ≤ 3 (direct path to completion)
+ * - Collection: "workorders"
  */
 async function calculateFirstTimeFixRate(
   db: Awaited<ReturnType<typeof getDatabase>>,
   orgId: string,
   dateRange: DateRange
 ): Promise<number> {
-  // Use single aggregation with $facet for efficiency (PR review suggestion)
+  // Use $facet aggregation for efficiency
+  // First-time fix = no reassignments AND no workflow backtracking
   const pipeline = [
     {
       $match: {
         org_id: orgId,
-        status: "completed",
-        completedAt: { $gte: dateRange.start, $lte: dateRange.end },
+        status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] },
+        "work.actualEndTime": { $gte: dateRange.start, $lte: dateRange.end },
       },
     },
     {
@@ -1660,18 +1655,20 @@ async function calculateFirstTimeFixRate(
         firstVisitResolved: [
           {
             $match: {
-              // Use $and to require BOTH conditions (PR review fix)
               $and: [
+                // No reassignments (first assignment resolved it)
                 {
                   $or: [
-                    { resolution_attempts: 1 },
-                    { resolution_attempts: { $exists: false } },
+                    { "assignment.reassignmentHistory": { $size: 0 } },
+                    { "assignment.reassignmentHistory": { $exists: false } },
                   ],
                 },
+                // No workflow backtracking (simple progress to completion)
+                // Heuristic: statusHistory with ≤3 entries means direct path
                 {
                   $or: [
-                    { visit_count: 1 },
-                    { visit_count: { $exists: false } },
+                    { $expr: { $lte: [{ $size: { $ifNull: ["$statusHistory", []] } }, 3] } },
+                    { statusHistory: { $exists: false } },
                   ],
                 },
               ],
@@ -1683,7 +1680,7 @@ async function calculateFirstTimeFixRate(
     },
   ];
 
-  const result = await db.collection("work_orders").aggregate(pipeline).toArray();
+  const result = await db.collection("workorders").aggregate(pipeline).toArray();
   const totalCompleted = result[0]?.totalCompleted[0]?.count || 0;
 
   if (totalCompleted === 0) {
