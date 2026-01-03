@@ -10,23 +10,28 @@
  * @route GET /api/security/enterprise
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
+    
+    // Check for superadmin session as fallback (for /superadmin/* pages)
+    const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
+    const isSuperadmin = !!superadminSession;
     
     // Demo mode requires explicit environment flag AND non-production environment
     // Note: Using ENABLE_DEMO_MODE for consistency with other routes (also accepts ENABLE_SECURITY_DEMO for backwards compatibility)
     const isNonProduction = process.env.NODE_ENV !== "production";
     const hasDemoFlag = process.env.ENABLE_DEMO_MODE === "true" || process.env.ENABLE_SECURITY_DEMO === "true";
     const isDemoEnabled = hasDemoFlag && isNonProduction;
-    const isDemo = isDemoEnabled && !session?.user;
+    const isDemo = isDemoEnabled && !session?.user && !isSuperadmin;
     
     // Require authentication unless demo mode is explicitly enabled (non-production only)
-    if (!session?.user && !isDemo) {
+    if (!session?.user && !isSuperadmin && !isDemo) {
       const reason = hasDemoFlag && !isNonProduction 
         ? "demo_disabled_in_production" 
         : (hasDemoFlag ? "demo_enabled_but_no_session" : "demo_disabled");
@@ -37,8 +42,8 @@ export async function GET() {
       );
     }
     
-    // Skip authorization only in explicit demo mode
-    if (!isDemo) {
+    // Skip authorization only in explicit demo mode (superadmin is always authorized)
+    if (!isDemo && !isSuperadmin) {
       // Authorization: require super-admin privileges OR explicit security:read permission
       const user = session?.user as { role?: string; roles?: string[]; isSuperAdmin?: boolean } | undefined;
       if (!user) {
@@ -47,10 +52,10 @@ export async function GET() {
           { status: 403 }
         );
       }
-      const isSuperAdmin = user.isSuperAdmin === true || user.role === "SUPER_ADMIN";
+      const isSuperAdminFromSession = user.isSuperAdmin === true || user.role === "SUPER_ADMIN";
       const roles = (user.roles ?? []).map(r => r.toLowerCase());
       const hasSecurityPermission = roles.includes("security:read");
-      const isAuthorized = isSuperAdmin || hasSecurityPermission;
+      const isAuthorized = isSuperAdminFromSession || hasSecurityPermission;
       if (!isAuthorized) {
         logger.warn("[security/enterprise] Unauthorized access attempt", { userId: (session?.user as { id?: string })?.id });
         return NextResponse.json(
@@ -60,10 +65,12 @@ export async function GET() {
       }
     }
     
-    // Validate orgId when not in demo mode
-    const userOrgId = (session?.user as { orgId?: string })?.orgId;
+    // Resolve orgId from session (NextAuth) or superadmin session
+    const userOrgId = isSuperadmin 
+      ? superadminSession.orgId 
+      : (session?.user as { orgId?: string })?.orgId;
     if (!isDemo && !userOrgId) {
-      logger.warn("[security/enterprise] Missing orgId for authenticated user", { userId: (session?.user as { id?: string })?.id });
+      logger.warn("[security/enterprise] Missing orgId for authenticated user", { userId: (session?.user as { id?: string })?.id, isSuperadmin });
       return NextResponse.json(
         { error: { code: "FIXZIT-ORG-001", message: "Organization context required - orgId missing" } },
         { status: 400 }

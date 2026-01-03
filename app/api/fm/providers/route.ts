@@ -11,7 +11,7 @@
  * @route POST /api/fm/providers
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
@@ -19,8 +19,9 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/lib/db/collection-names";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Rate limiting - 60 requests per minute for GET
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -34,17 +35,23 @@ export async function GET(request: Request) {
 
     const session = await auth();
     
+    // Check for superadmin session as fallback (for /superadmin/* pages)
+    const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
+    const isSuperadmin = !!superadminSession;
+    
     // Allow demo mode only when not authenticated AND demo mode is explicitly enabled
-    const isDemo = !session?.user && process.env.ENABLE_DEMO_MODE === "true";
+    const isDemo = !session?.user && !isSuperadmin && process.env.ENABLE_DEMO_MODE === "true";
     
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const city = searchParams.get("city")?.trim() || null;
     
-    // Resolve org_id before constructing payload
+    // Resolve org_id before constructing payload (support NextAuth, superadmin, or demo)
     let org_id: string;
     if (isDemo) {
       org_id = "demo";
+    } else if (isSuperadmin) {
+      org_id = superadminSession.orgId;
     } else {
       const sessionOrgId = (session?.user as { orgId?: string })?.orgId;
       if (!sessionOrgId) {
@@ -236,11 +243,12 @@ export async function GET(request: Request) {
     }
     
     logger.info("Provider network accessed", {
-      user_id: session?.user?.id ?? "demo",
+      user_id: isSuperadmin ? `superadmin:${superadminSession.username}` : (session?.user?.id ?? "demo"),
       total_providers: providerNetwork.statistics.total_providers,
       active_bids: providerNetwork.active_bids.total,
       filters: { category, city },
       cityFilterApplied: !!city,
+      isSuperadmin,
     });
     
     return NextResponse.json(providerNetwork);
@@ -253,7 +261,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Rate limiting - stricter for POST (bid submissions): 10 requests per minute
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";

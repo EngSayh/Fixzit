@@ -9,13 +9,18 @@
  * @route GET /api/ai/analytics
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
+    
+    // Check for superadmin session as fallback (for /superadmin/* pages)
+    const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
+    const isSuperadmin = !!superadminSession;
     
     // Demo mode requires ENABLE_DEMO_MODE env flag - strictly disallowed in production
     let demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
@@ -23,17 +28,20 @@ export async function GET() {
       logger.error('[AI Analytics] ENABLE_DEMO_MODE is true in production - forcing to false for security');
       demoEnabled = false;
     }
-    const isDemo = demoEnabled && !session?.user;
+    const isDemo = demoEnabled && !session?.user && !isSuperadmin;
     
     // Require authentication if demo mode is disabled
-    if (!session?.user && !isDemo) {
+    if (!session?.user && !isSuperadmin && !isDemo) {
       return NextResponse.json(
         { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
         { status: 401 }
       );
     }
     
-    const sessionOrgId = (session?.user as { orgId?: string })?.orgId;
+    // Resolve orgId from session (NextAuth) or superadmin session
+    const sessionOrgId = isSuperadmin 
+      ? superadminSession.orgId 
+      : (session?.user as { orgId?: string })?.orgId;
     if (!sessionOrgId || typeof sessionOrgId !== "string" || sessionOrgId.trim() === "") {
       if (!isDemo) {
         return NextResponse.json(
@@ -48,6 +56,7 @@ export async function GET() {
       logger.warn("[AI Analytics] Demo org fallback used", {
         demoEnabled,
         hasSessionUser: !!session?.user,
+        isSuperadmin,
       });
     }
     
