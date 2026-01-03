@@ -115,8 +115,7 @@ export async function POST(
 
     await connectMongo();
     
-    // NO_LEAN - Need to access issue.comments subdocument for push operation
-    const issue = await Issue.findById(id);
+    const issue = await Issue.findById(id); // NO_LEAN - Need document for subdocument push
     
     if (!issue) {
       return NextResponse.json({ error: "Issue not found" }, { status: 404 });
