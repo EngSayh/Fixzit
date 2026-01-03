@@ -467,6 +467,11 @@ export async function getFinanceKPIs(
   revenuePerUnit: KPIResult;
   vatCollected: KPIResult;
 }> {
+  // Validate orgId before ObjectId conversion to prevent server crashes
+  if (!orgId || !ObjectId.isValid(orgId)) {
+    throw new Error("Invalid organization ID: orgId must be a valid 24-character hex string");
+  }
+
   try {
     const db = await getDatabase();
     const dateRange = getDateRange(timeRange);
@@ -582,7 +587,7 @@ export async function getFinanceKPIs(
           status: { $in: ["POSTED", "PAID"] },
         },
       },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
+      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }, // Decimal128 to number
     ];
     const expensePipeline = createExpensePipeline(dateRange);
     const prevExpensePipeline = createExpensePipeline(previousRange);
