@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
 
     // Check for duplicate key
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide templates
-    const existing = await EmailTemplate.findOne({ key: validation.data.key });
+    const existing = await EmailTemplate.findOne({ key: validation.data.key }).lean();
     if (existing) {
       return NextResponse.json(
         { error: `Template with key '${validation.data.key}' already exists` },

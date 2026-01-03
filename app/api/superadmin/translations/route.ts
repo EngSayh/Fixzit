@@ -153,6 +153,7 @@ const DEFAULT_TRANSLATIONS = [
 
 async function seedDefaultTranslations(): Promise<void> {
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide translation seeding
     const existingCount = await Translation.countDocuments({ isSystem: true });
     if (existingCount > 0) return;
 
@@ -302,6 +303,7 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Check for duplicate
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Existence check only; SUPER_ADMIN: Platform-wide
     const existing = await Translation.findOne({
       key: validation.data.key,
       namespace: validation.data.namespace,
@@ -313,6 +315,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide translation
     const translation = await Translation.create({
       ...validation.data,
       isSystem: false,

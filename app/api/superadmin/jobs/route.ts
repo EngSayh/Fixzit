@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Get recent executions (last 24 hours)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide task executions
     const recentExecutions = await TaskExecution.find({
       startedAt: { $gte: twentyFourHoursAgo },
     })

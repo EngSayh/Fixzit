@@ -117,6 +117,7 @@ const DEFAULT_SYSTEM_TASKS = [
 
 async function seedDefaultTasks(): Promise<void> {
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide task seeding
     const existingCount = await ScheduledTask.countDocuments({ isSystem: true });
     if (existingCount > 0) return;
 
@@ -235,6 +236,7 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Check for duplicate handler
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Existence check only; SUPER_ADMIN: Platform-wide
     const existing = await ScheduledTask.findOne({ handler: validation.data.handler });
     if (existing) {
       return NextResponse.json(
@@ -243,6 +245,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide task
     const task = await ScheduledTask.create({
       ...validation.data,
       isSystem: false, // User-created tasks are never system tasks

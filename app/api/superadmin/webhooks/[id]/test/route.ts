@@ -55,7 +55,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
-    const webhook = await Webhook.findById(id);
+    const webhook = await Webhook.findById(id).lean();
     if (!webhook) {
       return NextResponse.json(
         { error: "Webhook not found" },
@@ -141,6 +141,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const responseTime = Date.now() - startTime;
 
     // Log the delivery
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide webhook delivery log
     await WebhookDelivery.create({
       webhookId: id,
       event: "test.ping",
