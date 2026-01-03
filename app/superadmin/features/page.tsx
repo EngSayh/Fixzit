@@ -43,7 +43,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 const STATUS_COLORS: Record<string, string> = {
   ENABLED: "bg-green-500/20 text-green-400 border-green-500/30",
-  DISABLED: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  DISABLED: "bg-muted text-muted-foreground border-border",
   BETA: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   DEPRECATED: "bg-red-500/20 text-red-400 border-red-500/30",
 };
@@ -148,7 +148,7 @@ export default function SuperadminFeaturesPage() {
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gray-500/20"><XCircle className="h-5 w-5 text-gray-400" /></div>
+              <div className="p-2 rounded-lg bg-muted"><XCircle className="h-5 w-5 text-muted-foreground" /></div>
               <div><p className="text-2xl font-bold text-foreground">{flags.length - enabledCount}</p><p className="text-sm text-muted-foreground">Disabled</p></div>
             </div>
           </CardContent>

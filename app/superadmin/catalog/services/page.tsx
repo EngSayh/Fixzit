@@ -93,7 +93,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   SECURITY: "bg-red-500/20 text-red-500",
   LANDSCAPING: "bg-emerald-500/20 text-emerald-500",
   PEST_CONTROL: "bg-orange-500/20 text-orange-500",
-  GENERAL: "bg-gray-500/20 text-gray-500",
+  GENERAL: "bg-muted text-muted-foreground",
 };
 
 const PRICING_LABELS: Record<string, string> = {

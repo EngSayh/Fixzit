@@ -65,7 +65,7 @@ function getStatusIcon(status: PhaseStatusOrDeferred) {
     case "deferred":
       return <AlertCircle className="h-5 w-5 text-yellow-600" />;
     default:
-      return <Circle className="h-5 w-5 text-gray-400" />;
+      return <Circle className="h-5 w-5 text-muted-foreground" />;
   }
 }
 

@@ -182,7 +182,7 @@ export default function SuperadminSupportPage() {
     ADMIN: "bg-orange-500/20 text-orange-400",
     MANAGER: "bg-blue-500/20 text-blue-400",
     USER: "bg-green-500/20 text-green-400",
-    GUEST: "bg-gray-500/20 text-gray-400",
+    GUEST: "bg-muted text-muted-foreground",
   };
 
   return (

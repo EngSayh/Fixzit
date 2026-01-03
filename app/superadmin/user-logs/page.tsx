@@ -800,7 +800,7 @@ export default function SuperadminUserLogsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={session.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                            <Badge className={session.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>
                               {session.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}
                             </Badge>
                           </TableCell>
@@ -874,7 +874,7 @@ export default function SuperadminUserLogsPage() {
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.user", "User")}</p><p className="text-foreground">{selectedSession.userName}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.email", "Email")}</p><p className="text-foreground">{selectedSession.userEmail}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.tenant", "Tenant")}</p><p className="text-foreground">{selectedSession.tenantName}</p></div>
-                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.status", "Status")}</p><Badge className={selectedSession.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>{selectedSession.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.status", "Status")}</p><Badge className={selectedSession.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>{selectedSession.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}</Badge></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.device", "Device")}</p><p className="text-foreground capitalize">{selectedSession.device}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.browser", "Browser")}</p><p className="text-foreground">{selectedSession.browser}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.os", "OS")}</p><p className="text-foreground">{selectedSession.os}</p></div>

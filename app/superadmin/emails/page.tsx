@@ -259,7 +259,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   billing: "bg-green-500/10 text-green-500",
   notifications: "bg-purple-500/10 text-purple-500",
   marketing: "bg-orange-500/10 text-orange-500",
-  system: "bg-gray-500/10 text-gray-500",
+  system: "bg-muted text-muted-foreground",
 };
 
 // ============================================================================

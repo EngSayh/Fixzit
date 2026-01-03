@@ -118,7 +118,7 @@ const STATUS_COLORS: Record<string, string> = {
   triaged: "bg-blue-500 text-white",
   in_progress: "bg-yellow-500 text-black",
   released: "bg-green-500 text-white",
-  closed: "bg-gray-500 text-white",
+  closed: "bg-muted text-muted-foreground",
 };
 
 const TYPE_ICONS: Record<string, typeof MessageSquare> = {
@@ -611,12 +611,12 @@ export default function CustomerRequestsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={SEVERITY_COLORS[request.severity] || "bg-gray-500"}>
+                        <Badge className={SEVERITY_COLORS[request.severity] || "bg-muted text-muted-foreground"}>
                           {request.severity}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={STATUS_COLORS[request.status] || "bg-gray-500"}>
+                        <Badge className={STATUS_COLORS[request.status] || "bg-muted text-muted-foreground"}>
                           {request.status.replace("_", " ")}
                         </Badge>
                       </TableCell>

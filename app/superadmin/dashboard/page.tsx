@@ -105,7 +105,7 @@ function StatusBadge({ status }: { status: "healthy" | "degraded" | "down" | "wa
     down: { color: "bg-red-500", labelKey: "superadmin.dashboard.status.down" },
     warning: { color: "bg-yellow-500", labelKey: "superadmin.dashboard.status.warning" },
     error: { color: "bg-red-500", labelKey: "superadmin.dashboard.status.error" },
-    unknown: { color: "bg-gray-500", labelKey: "superadmin.dashboard.status.unknown" },
+    unknown: { color: "bg-muted", labelKey: "superadmin.dashboard.status.unknown" },
   };
   
   const { color, labelKey } = config[status];
@@ -166,7 +166,7 @@ function ServiceHealthRow({ service, loading }: { service: ServiceHealth; loadin
     healthy: <CheckCircle2 className="h-4 w-4 text-green-500" />,
     degraded: <AlertTriangle className="h-4 w-4 text-yellow-500" />,
     down: <XCircle className="h-4 w-4 text-red-500" />,
-    unknown: <Clock className="h-4 w-4 text-gray-500" />,
+    unknown: <Clock className="h-4 w-4 text-muted-foreground" />,
   };
   
   if (loading) {
@@ -228,7 +228,7 @@ function ModuleRow({ module, loading }: { module: ModuleStatus; loading: boolean
   return (
     <div className="flex items-center justify-between py-2 border-b last:border-0">
       <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${module.enabled ? "bg-green-500" : "bg-gray-400"}`} />
+        <span className={`w-2 h-2 rounded-full ${module.enabled ? "bg-green-500" : "bg-muted"}`} />
         <span className="font-medium">{module.name}</span>
         <Badge variant="secondary" className="text-xs">{module.version}</Badge>
       </div>

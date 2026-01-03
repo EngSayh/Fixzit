@@ -653,7 +653,7 @@ export default function SuperadminPermissionsPage() {
                   <TableCell className="text-foreground">{Object.keys(role.permissions).length}</TableCell>
                   <TableCell className="text-foreground">{role.userCount}</TableCell>
                   <TableCell>
-                    <Badge className={role.isSystem ? "bg-blue-500/20 text-blue-400" : "bg-gray-500/20 text-gray-400"}>
+                    <Badge className={role.isSystem ? "bg-blue-500/20 text-blue-400" : "bg-muted text-muted-foreground"}>
                       {role.isSystem ? "System" : "Custom"}
                     </Badge>
                   </TableCell>
