@@ -791,14 +791,15 @@ export default function SuperadminSubscriptionsPage() {
 
       {/* View Subscription Dialog */}
       <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-lg">
+        <DialogContent className="bg-card border-border text-foreground max-w-2xl">
           <DialogHeader>
             <DialogTitle>Subscription Details</DialogTitle>
             <DialogDescription className="text-muted-foreground">{selectedSubscription?.tenantName}</DialogDescription>
           </DialogHeader>
           {selectedSubscription && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* Main Info Grid */}
+              <div className="grid grid-cols-3 gap-4">
                 <div><p className="text-sm text-muted-foreground">Plan</p><p className="text-foreground font-medium">{selectedSubscription.tierName}</p></div>
                 <div><p className="text-sm text-muted-foreground">Billing Cycle</p><p className="text-foreground capitalize">{selectedSubscription.billingCycle}</p></div>
                 <div><p className="text-sm text-muted-foreground">Amount</p><p className="text-foreground">{formatCurrency(selectedSubscription.amount, selectedSubscription.currency)}</p></div>
@@ -806,19 +807,152 @@ export default function SuperadminSubscriptionsPage() {
                 <div><p className="text-sm text-muted-foreground">Start Date</p><p className="text-foreground">{formatDate(selectedSubscription.startDate)}</p></div>
                 <div><p className="text-sm text-muted-foreground">Auto Renew</p><p className="text-foreground">{selectedSubscription.autoRenew ? "Yes" : "No"}</p></div>
                 {selectedSubscription.trialEndsAt && (
-                  <div className="col-span-2"><p className="text-sm text-muted-foreground">Trial Ends</p><p className="text-foreground">{formatDate(selectedSubscription.trialEndsAt)}</p></div>
+                  <div><p className="text-sm text-muted-foreground">Trial Ends</p><p className="text-foreground">{formatDate(selectedSubscription.trialEndsAt)}</p></div>
+                )}
+                {selectedSubscription.endDate && (
+                  <div><p className="text-sm text-muted-foreground">Next Billing</p><p className="text-foreground">{formatDate(selectedSubscription.endDate)}</p></div>
                 )}
                 {selectedSubscription.paymentMethod && (
-                  <div className="col-span-2"><p className="text-sm text-muted-foreground">Payment Method</p><p className="text-foreground capitalize">{selectedSubscription.paymentMethod.replace("_", " ")}</p></div>
+                  <div><p className="text-sm text-muted-foreground">Payment Method</p><p className="text-foreground capitalize">{selectedSubscription.paymentMethod.replace("_", " ")}</p></div>
                 )}
               </div>
-              <div className="flex gap-2 pt-4">
-                {/* TODO: FIXZIT-SUB-001 - Implement plan change modal/flow */}
-                <Button variant="outline" className="flex-1" disabled title="Plan change flow not yet implemented">
-                  Change Plan
+              
+              {/* Quick Actions */}
+              <div className="border-t border-border pt-4">
+                <p className="text-sm font-medium text-foreground mb-3">Quick Actions</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Change Status */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Change Status</Label>
+                    <Select 
+                      value={selectedSubscription.status}
+                      onValueChange={async (newStatus) => {
+                        try {
+                          const res = await fetch(`/api/superadmin/subscriptions/${selectedSubscription._id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ status: newStatus.toUpperCase() }),
+                          });
+                          if (res.ok) {
+                            toast.success(`Status changed to ${newStatus}`);
+                            fetchSubscriptions();
+                            setSelectedSubscription({ ...selectedSubscription, status: newStatus as TenantSubscription["status"] });
+                          } else {
+                            const err = await res.json().catch(() => ({}));
+                            toast.error(err.error || "Failed to update status");
+                          }
+                        } catch {
+                          toast.error("Failed to update subscription status");
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-muted border-input">
+                        <span className="capitalize">{selectedSubscription.status.replace("_", " ")}</span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="trial">Trial</SelectItem>
+                        <SelectItem value="past_due">Past Due</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Change Billing Cycle */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Billing Cycle</Label>
+                    <Select
+                      value={selectedSubscription.billingCycle}
+                      onValueChange={async (cycle) => {
+                        try {
+                          const res = await fetch(`/api/superadmin/subscriptions/${selectedSubscription._id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ billingCycle: cycle.toUpperCase() }),
+                          });
+                          if (res.ok) {
+                            toast.success(`Billing cycle changed to ${cycle}`);
+                            fetchSubscriptions();
+                            setSelectedSubscription({ ...selectedSubscription, billingCycle: cycle as "monthly" | "annual" });
+                          } else {
+                            toast.error("Failed to update billing cycle");
+                          }
+                        } catch {
+                          toast.error("Failed to update billing cycle");
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-muted border-input">
+                        <span className="capitalize">{selectedSubscription.billingCycle}</span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="annual">Annual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Management Actions */}
+              <div className="flex gap-2 pt-2 border-t border-border">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={async () => {
+                    // Extend subscription by 30 days
+                    const newEnd = new Date(selectedSubscription.endDate || Date.now());
+                    newEnd.setDate(newEnd.getDate() + 30);
+                    try {
+                      const res = await fetch(`/api/superadmin/subscriptions/${selectedSubscription._id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ 
+                          currentPeriodEnd: newEnd.toISOString(),
+                          nextBillingDate: newEnd.toISOString(),
+                        }),
+                      });
+                      if (res.ok) {
+                        toast.success("Subscription extended by 30 days");
+                        fetchSubscriptions();
+                      } else {
+                        toast.error("Failed to extend subscription");
+                      }
+                    } catch {
+                      toast.error("Failed to extend subscription");
+                    }
+                  }}
+                >
+                  <Clock className="h-4 w-4 me-2" />
+                  Extend 30 Days
                 </Button>
-                {/* TODO: FIXZIT-SUB-002 - Implement subscription cancellation flow */}
-                <Button variant="outline" className="flex-1" disabled title="Cancellation flow not yet implemented">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 text-red-400 hover:text-red-300"
+                  disabled={selectedSubscription.status === "cancelled"}
+                  onClick={async () => {
+                    if (!window.confirm(`Cancel subscription for ${selectedSubscription.tenantName}? This will mark the subscription as cancelled.`)) return;
+                    try {
+                      const res = await fetch(`/api/superadmin/subscriptions/${selectedSubscription._id}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                      });
+                      if (res.ok) {
+                        toast.success("Subscription cancelled");
+                        setSubscriptionDialogOpen(false);
+                        fetchSubscriptions();
+                      } else {
+                        toast.error("Failed to cancel subscription");
+                      }
+                    } catch {
+                      toast.error("Failed to cancel subscription");
+                    }
+                  }}
+                >
+                  <X className="h-4 w-4 me-2" />
                   Cancel Subscription
                 </Button>
               </div>
