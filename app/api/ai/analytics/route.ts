@@ -24,8 +24,37 @@ export async function GET(request: NextRequest) {
     const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
     const isSuperadmin = !!superadminSession;
     
-    // Require authentication
-    if (!session?.user && !isSuperadmin) {
+    // Demo mode check - allow unauthenticated access with demo data
+    const isDemoMode = process.env.ENABLE_DEMO_MODE === "true";
+    const isAuthenticated = !!session?.user || isSuperadmin;
+    
+    // Handle demo mode for unauthenticated users
+    if (!isAuthenticated) {
+      if (isDemoMode) {
+        // Return demo analytics data
+        return NextResponse.json({
+          is_demo: true,
+          orgId: "demo",
+          timestamp: new Date().toISOString(),
+          summary: {
+            totalAssets: 150,
+            criticalAssets: 3,
+            anomaliesDetected: 7,
+            churnRisk: 12,
+          },
+          assetHealth: {
+            total: 150,
+            excellent: 75,
+            good: 50,
+            fair: 15,
+            poor: 7,
+            critical: 3,
+          },
+          criticalAssets: [],
+          anomalies: [],
+          churnPredictions: [],
+        });
+      }
       return NextResponse.json(
         { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
         { status: 401 }
@@ -159,6 +188,7 @@ export async function GET(request: NextRequest) {
     
     // AI Analytics from real data
     const analytics = {
+      is_demo: false,
       orgId,
       generated_at: now.toISOString(),
       
