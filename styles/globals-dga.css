@@ -3,108 +3,101 @@
  * Based on Ejar.sa (Saudi Government Platforms Code)
  * RTL-First Arabic Support for Next.js 14
  * 
+ * ⚠️  COLORS ARE IMPORTED FROM ejar-theme.css (SSOT)
+ * ⚠️  DO NOT DEFINE NEW COLORS IN THIS FILE
+ * 
  * @author Sultan Al Hassni
- * @version 1.0.0
+ * @version 2.0.0
  */
+
+/* Import Ejar Theme - Single Source of Truth for colors */
+@import "./ejar-theme.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ============================================
-   CSS CUSTOM PROPERTIES (DESIGN TOKENS)
+   LEGACY COLOR ALIASES
+   These map old variables to new Ejar theme tokens
    ============================================ */
 
 :root {
-  /* ------------------------------------------
-     COLOR TOKENS
-     ------------------------------------------ */
-  
-  /* Primary Brand (Ejar Green) */
-  --color-primary-50: #E8F7EE;
-  --color-primary-100: #C7EAD8;
-  --color-primary-200: #8FD4B1;
-  --color-primary-300: #5FBD8E;
-  --color-primary-400: #3BA874;
-  --color-primary-500: #25935F;
-  --color-primary-600: #188352;
-  --color-primary-700: #166A45;
-  --color-primary-800: #0F5535;
-  --color-primary-900: #0A3D26;
-  --color-primary-950: #052918;
-  --color-primary: var(--color-primary-500);
-  --color-primary-hover: var(--color-primary-600);
-  --color-primary-active: var(--color-primary-700);
+  /* Primary - Maps to Ejar Green */
+  --color-primary-50: var(--ejar-primary-50);
+  --color-primary-100: var(--ejar-primary-100);
+  --color-primary-200: var(--ejar-primary-200);
+  --color-primary-300: var(--ejar-primary-300);
+  --color-primary-400: var(--ejar-primary-400);
+  --color-primary-500: var(--ejar-primary-500);
+  --color-primary-600: var(--ejar-primary-600);
+  --color-primary-700: var(--ejar-primary-700);
+  --color-primary-800: var(--ejar-primary-800);
+  --color-primary-900: var(--ejar-primary-900);
+  --color-primary-950: var(--ejar-primary-950);
+  --color-primary-hover: var(--ejar-primary-600);
+  --color-primary-active: var(--ejar-primary-700);
 
   /* Secondary (Lavender) */
-  --color-secondary-50: #F5F0F8;
-  --color-secondary-100: #EBE1F1;
-  --color-secondary-200: #D7C3E3;
-  --color-secondary-300: #C3A5D5;
-  --color-secondary-400: #A177BE;
-  --color-secondary-500: #80519F;
-  --color-secondary-600: #6A4385;
-  --color-secondary-700: #54356B;
-  --color-secondary-800: #3E2751;
-  --color-secondary-900: #281937;
-  --color-secondary: var(--color-secondary-500);
+  --color-secondary-500: var(--ejar-lavender);
+  --color-secondary: var(--ejar-lavender);
 
-  /* Neutral/Gray */
-  --color-neutral-50: #F9FAFB;
-  --color-neutral-100: #F3F4F6;
-  --color-neutral-200: #E5E7EB;
-  --color-neutral-300: #CFD4DB;
-  --color-neutral-400: #A8AEB8;
-  --color-neutral-500: #8A919C;
-  --color-neutral-600: #6C737F;
-  --color-neutral-700: #434B5A;
-  --color-neutral-800: #2D3340;
-  --color-neutral-900: #1A1F2B;
-  --color-neutral-950: #0D121C;
+  /* Neutral/Gray - from SSOT */
+  --color-neutral-50: var(--ejar-neutral-50);
+  --color-neutral-100: var(--ejar-neutral-100);
+  --color-neutral-200: var(--ejar-neutral-200);
+  --color-neutral-300: var(--ejar-neutral-300);
+  --color-neutral-400: var(--ejar-neutral-400);
+  --color-neutral-500: var(--ejar-neutral-500);
+  --color-neutral-600: var(--ejar-neutral-600);
+  --color-neutral-700: var(--ejar-neutral-700);
+  --color-neutral-800: var(--ejar-neutral-800);
+  --color-neutral-900: var(--ejar-neutral-900);
+  --color-neutral-950: var(--ejar-neutral-950);
 
-  /* Success */
-  --color-success-50: #ECFDF5;
-  --color-success-100: #D4F4E5;
-  --color-success-500: #17B26A;
-  --color-success-700: #0F8A51;
-  --color-success: var(--color-success-500);
+  /* Success - from SSOT */
+  --color-success-50: var(--ejar-success-50);
+  --color-success-100: var(--ejar-success-100);
+  --color-success-500: var(--ejar-success-500);
+  --color-success-700: var(--ejar-success-700);
+  --color-success: var(--ejar-success-500);
 
-  /* Error */
-  --color-error-50: #FEF3F2;
-  --color-error-100: #FEEAE9;
-  --color-error-500: #F04438;
-  --color-error-700: #B42318;
-  --color-error: var(--color-error-500);
+  /* Error - from SSOT */
+  --color-error-50: var(--ejar-error-50);
+  --color-error-100: var(--ejar-error-100);
+  --color-error-500: var(--ejar-error-500);
+  --color-error-700: var(--ejar-error-700);
+  --color-error: var(--ejar-error-500);
 
-  /* Warning */
-  --color-warning-50: #FFFAEB;
-  --color-warning-100: #FEF3E7;
-  --color-warning-500: #F79009;
-  --color-warning-700: #B54708;
-  --color-warning: var(--color-warning-500);
+  /* Warning - from SSOT */
+  --color-warning-50: var(--ejar-warning-50);
+  --color-warning-100: var(--ejar-warning-100);
+  --color-warning-500: var(--ejar-warning-500);
+  --color-warning-700: var(--ejar-warning-700);
+  --color-warning: var(--ejar-warning-500);
 
-  /* Info */
-  --color-info-50: #EFF8FF;
-  --color-info-100: #E7F3FF;
-  --color-info-500: #2E90FA;
-  --color-info-700: #175CD3;
-  --color-info: var(--color-info-500);
+  /* Info - from SSOT */
+  --color-info-50: var(--ejar-info-50);
+  --color-info-100: var(--ejar-info-100);
+  --color-info-500: var(--ejar-info-500);
+  --color-info-700: var(--ejar-info-700);
+  --color-info: var(--ejar-info-500);
 
-  /* Gold Accent */
-  --color-gold: #F5BD02;
+  /* Gold Accent - from SSOT */
+  --color-gold: var(--ejar-gold);
 
-  /* Saudi National */
-  --color-saudi-green: #006C35;
+  /* Saudi National - from SSOT */
+  --color-saudi-green: var(--ejar-saudi-green);
 
   /* ------------------------------------------
-     SEMANTIC COLOR TOKENS
+     SEMANTIC COLOR TOKENS (from SSOT)
      ------------------------------------------ */
   
   /* Backgrounds */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: var(--color-neutral-50);
-  --color-bg-tertiary: var(--color-neutral-100);
-  --color-bg-inverse: var(--color-neutral-950);
+  --color-bg-primary: var(--page-bg);
+  --color-bg-secondary: var(--ejar-neutral-50);
+  --color-bg-tertiary: var(--ejar-neutral-100);
+  --color-bg-inverse: var(--ejar-neutral-950);
   --color-bg-brand: var(--color-primary-500);
   --color-bg-brand-subtle: var(--color-primary-50);
 
@@ -282,37 +275,37 @@
   --z-index-toast: 1080;
 
   /* ------------------------------------------
-     LEGACY COMPATIBILITY TOKENS
+     LEGACY COMPATIBILITY TOKENS (from SSOT)
      ------------------------------------------ */
   
   /* Brand mappings (backwards compatibility) */
-  --color-brand-primary: #25935F;
-  --color-brand-primary-hover: #188352;
-  --color-brand-primary-active: #166A45;
-  --color-brand-primary-surface: #E8F7EE;
-  --color-brand-secondary: #F5BD02;
-  --color-lavender: #80519F;
+  --color-brand-primary: var(--ejar-primary-500);
+  --color-brand-primary-hover: var(--ejar-primary-600);
+  --color-brand-primary-active: var(--ejar-primary-700);
+  --color-brand-primary-surface: var(--ejar-primary-50);
+  --color-brand-secondary: var(--ejar-gold);
+  --color-lavender: var(--ejar-lavender);
 
   /* Semantic status colors */
-  --color-success-bg: #D4F4E5;
-  --color-warning-bg: #FEF3E7;
-  --color-danger: #F04438;
-  --color-danger-bg: #FEEAE9;
-  --color-info-bg: #E7F3FF;
+  --color-success-bg: var(--ejar-success-100);
+  --color-warning-bg: var(--ejar-warning-100);
+  --color-danger: var(--ejar-error-500);
+  --color-danger-bg: var(--ejar-error-100);
+  --color-info-bg: var(--ejar-info-100);
 
-  /* Sidebar colors */
-  --color-sidebar-bg: #0D121C;
-  --color-sidebar-text: #FFFFFF;
-  --color-sidebar-active: #25935F;
+  /* Sidebar colors - from SSOT */
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-active: var(--sidebar-active);
 
-  /* Chart colors */
-  --color-chart-blue: #2E90FA;
-  --color-chart-teal: #17B26A;
-  --color-chart-yellow: #F79009;
+  /* Chart colors - from SSOT */
+  --color-chart-blue: var(--ejar-info-500);
+  --color-chart-teal: var(--ejar-success-500);
+  --color-chart-yellow: var(--ejar-warning-500);
   --color-chart-orange: #FF8042;
-  --color-chart-purple: #80519F;
-  --color-chart-primary: #25935F;
-  --color-sparkline-blue: #2E90FA;
+  --color-chart-purple: var(--ejar-lavender);
+  --color-chart-primary: var(--ejar-primary-500);
+  --color-sparkline-blue: var(--ejar-info-500);
 
   /* shadcn/ui compatibility */
   --background: 0 0% 100%;
@@ -780,26 +773,48 @@
   }
 
   /* ─────────────────────────────────────────
-     FIXZIT SHELL COMPONENTS
+     FIXZIT SHELL COMPONENTS (using SSOT tokens)
      ───────────────────────────────────────── */
   
   .fxz-topbar {
-    @apply bg-white border-b border-neutral-200 shadow-sm;
+    background-color: var(--topbar-bg);
+    color: var(--topbar-text);
+    border-bottom: 1px solid var(--topbar-border);
+    box-shadow: var(--shadow-topbar);
     height: var(--height-header);
   }
 
+  /* Ensure all TopBar content inherits white text */
+  .fxz-topbar a,
+  .fxz-topbar button,
+  .fxz-topbar span {
+    color: var(--topbar-text);
+  }
+
+  .fxz-topbar a:hover,
+  .fxz-topbar button:hover {
+    background-color: var(--topbar-hover);
+  }
+
   .fxz-sidebar {
-    @apply bg-neutral-950 text-white;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
     width: var(--width-sidebar);
   }
 
   .fxz-sidebar-item {
     @apply flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200;
-    @apply text-neutral-300 hover:text-white hover:bg-neutral-800;
+    color: var(--sidebar-muted);
+  }
+  
+  .fxz-sidebar-item:hover {
+    color: var(--sidebar-text);
+    background-color: var(--sidebar-hover);
   }
 
   .fxz-sidebar-item-active {
-    @apply text-white bg-primary-600;
+    color: var(--sidebar-text);
+    background-color: var(--sidebar-active);
   }
 
   .fxz-sidebar-badge {

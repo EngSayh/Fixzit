@@ -57,17 +57,21 @@ TopBar text is hard to read due to color contrast issues.
 Missing explicit text color in `.fxz-topbar` CSS class, especially in dark mode.
 
 ### Solution
-The `.fxz-topbar` class in `app/globals.css` should include:
+The `.fxz-topbar` class in `app/globals.css` should use the Ejar.sa design:
+- **Green background (#25935F)** with **white text**
+- NOT white background with dark text
+
 ```css
 .fxz-topbar {
-  background: #ffffff;
-  color: var(--color-text-primary, #0D121C);
-  /* ... */
+  background: var(--color-brand-primary, #25935F);
+  color: #ffffff;
+  border-bottom: 1px solid var(--color-primary-600, #188352);
 }
 
+/* Dark mode - same green, consistent with Ejar */
 .dark .fxz-topbar {
-  background: hsl(var(--card));
-  color: hsl(var(--card-foreground));
+  background: var(--color-brand-primary, #25935F);
+  color: #ffffff;
 }
 ```
 

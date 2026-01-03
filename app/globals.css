@@ -1,11 +1,15 @@
 /* ============================================
-   DESIGN SYSTEM IMPORTS (SSOT)
-   Must be imported BEFORE @tailwind directives
+   DESIGN SYSTEM IMPORTS
    ============================================ */
 
-/* Core Design Tokens - Single Source of Truth */
-@import "../styles/tokens.css";
-@import "../styles/design-tokens.css";
+/* 
+ * ⚠️  EJAR THEME IS THE SINGLE SOURCE OF TRUTH
+ * ⚠️  DO NOT DEFINE COLORS IN THIS FILE
+ * ⚠️  ALL COLORS COME FROM ejar-theme.css
+ */
+
+/* Ejar Theme - SSOT for all design tokens */
+@import "../styles/ejar-theme.css";
 
 /* Animation System */
 @import "../styles/animations.css";
@@ -18,33 +22,8 @@
 
 /* ============================================
    EJAR.SA DESIGN SYSTEM (DGA STANDARD)
-   Saudi Platforms Code Compliant
+   All colors imported from ejar-theme.css
    ============================================ */
-
-/* DGA Standard Root Variables */
-:root {
-  /* Core Brand */
-  --color-primary: #25935F;
-  --color-primary-hover: #188352;
-  
-  /* Text (High Contrast) */
-  --color-text-main: #0D121C;
-  --color-text-primary: #0D121C;
-  --color-text-secondary: #6C737F;
-  --color-text-disabled: #8A919C;
-  
-  /* Font Fallbacks (loaded via next/font in layout.tsx) */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  
-  /* Backgrounds */
-  --color-bg-page: #F9FAFB;
-  --color-bg-card: #FFFFFF;
-  
-  /* Borders */
-  --color-border: #E5E7EB;
-  --color-border-input: #CFD4DB;
-}
 
 /* DGA Standard Scrollbar Style */
 ::-webkit-scrollbar {
@@ -385,80 +364,89 @@
 
 @layer components {
   /* ─────────────────────────────────────────
-     TOP BAR - Frosted Glass Header (Ejar.sa Design)
+     TOP BAR - Uses Ejar Theme Tokens
+     See: styles/ejar-theme.css for color definitions
      ───────────────────────────────────────── */
   .fxz-topbar {
-    background: #ffffff;
-    color: var(--color-text-primary, #0D121C);
-    border-bottom: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-elevated);
+    background-color: var(--topbar-bg);
+    color: var(--topbar-text);
+    border-bottom: 1px solid var(--topbar-border);
+    box-shadow: var(--shadow-sm);
   }
 
-  /* Dark mode TopBar - proper contrast */
+  /* Dark mode TopBar - stays green per Ejar design */
   .dark .fxz-topbar {
-    background: hsl(var(--card));
-    color: hsl(var(--card-foreground));
+    background-color: var(--topbar-bg);
+    color: var(--topbar-text);
+  }
+
+  /* TopBar text and icons inherit white */
+  .fxz-topbar,
+  .fxz-topbar a,
+  .fxz-topbar button,
+  .fxz-topbar span,
+  .fxz-topbar svg {
+    color: var(--topbar-text);
+    fill: currentColor;
+  }
+
+  /* TopBar hover states */
+  .fxz-topbar a:hover,
+  .fxz-topbar button:hover {
+    background-color: var(--topbar-hover);
   }
 
   .fxz-topbar-logo {
     background: transparent;
-    color: var(--color-brand-primary);
+    color: var(--topbar-text);
     border-radius: var(--radius-md);
-    box-shadow: none;
   }
 
   .fxz-topbar-pill {
-    background-color: var(--color-brand-primary-surface);
-    color: var(--color-brand-primary);
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--topbar-text);
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-subtle);
-    font-family: var(--font-family-base);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     font-size: var(--font-size-sm);
-    letter-spacing: 0;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color var(--transition-fast);
   }
 
   .fxz-topbar-pill:hover {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
   }
 
   /* ─────────────────────────────────────────
-     BUTTONS - Modern with Depth
+     BUTTONS - Uses Ejar Theme Tokens
      ───────────────────────────────────────── */
   .fxz-btn-primary {
-    background: var(--color-brand-primary);
-    color: hsl(var(--primary-foreground));
-    border-radius: 6px;
+    background-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-radius: var(--radius-md);
     border: none;
-    box-shadow: none;
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
     min-height: 40px;
-    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    transition: background-color var(--transition-fast);
   }
 
   .fxz-btn-primary:hover {
-    background: var(--color-brand-primary-hover);
-    box-shadow: var(--shadow-sm);
+    background-color: var(--btn-primary-hover);
   }
 
   .fxz-btn-primary:active {
-    background: var(--color-brand-primary-active);
-    transform: translateY(1px);
+    background-color: var(--btn-primary-active);
   }
 
   .fxz-btn-outline {
-    background-color: transparent;
-    color: var(--color-text-primary);
-    border-radius: 6px;
-    border: 1px solid var(--color-border-subtle);
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    background-color: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--btn-secondary-border);
+    transition: background-color var(--transition-fast);
   }
 
   .fxz-btn-outline:hover {
-    background-color: var(--color-brand-primary-surface);
-    border-color: var(--color-brand-primary);
-    color: var(--color-brand-primary);
+    background-color: var(--btn-secondary-hover);
   }
 
   /* ─────────────────────────────────────────

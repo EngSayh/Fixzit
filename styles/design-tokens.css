@@ -1,103 +1,81 @@
 /**
- * Fixzit Design Tokens
- * Single source of truth for spacing, colors, typography, shadows, animations
+ * Fixzit Design Tokens - LEGACY FILE
  * 
- * Usage: Import in layout.tsx or globals.css
- * Apply via Tailwind classes or direct CSS custom properties
+ * ⚠️  DEPRECATED: This file redirects to ejar-theme.css (SSOT)
+ * ⚠️  DO NOT ADD NEW TOKENS HERE - Use styles/ejar-theme.css instead
+ * 
+ * This file is kept for backwards compatibility only.
+ * All tokens now reference the single source of truth: ejar-theme.css
  */
 
+/* Import the SSOT theme file */
+@import "./ejar-theme.css";
+
 :root {
-  /* ===== SPACING SCALE ===== */
-  --space-xs: 0.25rem; /* 4px */
-  --space-sm: 0.5rem;  /* 8px */
-  --space-md: 0.75rem; /* 12px */
-  --space-lg: 1rem;    /* 16px */
-  --space-xl: 1.5rem;  /* 24px */
-  --space-2xl: 2rem;   /* 32px */
-  --space-3xl: 3rem;   /* 48px */
-  --space-4xl: 4rem;   /* 64px */
+  /* ===== SPACING SCALE (from SSOT) ===== */
+  --space-xs: var(--space-1);
+  --space-sm: var(--space-2);
+  --space-md: var(--space-3);
+  --space-lg: var(--space-4);
+  --space-xl: var(--space-6);
+  --space-2xl: var(--space-8);
+  --space-3xl: var(--space-12);
+  --space-4xl: var(--space-16);
   
   /* ===== TABLE DENSITY ===== */
-  --table-row-padding-compact: 0.5rem;     /* py-2 = 8px vertical */
-  --table-row-padding-comfortable: 0.875rem; /* py-3.5 = 14px vertical */
-  --table-cell-gap: 1rem;                  /* px-4 = 16px horizontal */
+  --table-row-padding-compact: 0.5rem;
+  --table-row-padding-comfortable: 0.875rem;
+  --table-cell-gap: 1rem;
   
-  /* ===== BORDER RADIUS ===== */
-  --radius-sm: 0.25rem;  /* 4px - buttons, chips */
-  --radius-md: 0.5rem;   /* 8px - cards, inputs */
-  --radius-lg: 1rem;     /* 16px - modals, drawers */
-  --radius-full: 9999px; /* rounded-full - avatars */
+  /* ===== BORDER RADIUS (from SSOT) ===== */
+  /* Already defined in ejar-theme.css */
   
-  /* ===== SHADOWS ===== */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-card: var(--shadow-md);
-  --shadow-elevated: var(--shadow-lg);
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  /* ===== SHADOWS (from SSOT) ===== */
+  /* Already defined in ejar-theme.css */
   
-  /* ===== TRANSITIONS ===== */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* ===== TRANSITIONS (from SSOT) ===== */
+  /* Already defined in ejar-theme.css */
   
   /* ===== TOUCH TARGETS (Apple Guidelines) ===== */
-  --hit-target-min: 2.75rem; /* 44px minimum */
-  --hit-target-comfortable: 3rem; /* 48px comfortable */
+  --hit-target-min: 2.75rem;
+  --hit-target-comfortable: 3rem;
   
-  /* ===== TYPOGRAPHY SCALE ===== */
-  --font-size-xs: 0.75rem;   /* 12px */
-  --font-size-sm: 0.875rem;  /* 14px */
-  --font-size-base: 1rem;    /* 16px */
-  --font-size-lg: 1.125rem;  /* 18px */
-  --font-size-xl: 1.25rem;   /* 20px */
-  --font-size-2xl: 1.5rem;   /* 24px */
-  --font-size-3xl: 1.875rem; /* 30px */
-  --font-size-4xl: 2.25rem;  /* 36px */
+  /* ===== TYPOGRAPHY SCALE (from SSOT) ===== */
+  /* Font sizes already defined in ejar-theme.css */
   
-  --line-height-tight: 1.25;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.75;
+  /* ===== Z-INDEX LAYERS (from SSOT) ===== */
+  /* Already defined in ejar-theme.css */
   
-  /* ===== Z-INDEX LAYERS ===== */
-  --z-dropdown: 1000;
-  --z-sticky: 1020;
-  --z-fixed: 1030;
-  --z-modal-backdrop: 1040;
-  --z-modal: 1050;
-  --z-popover: 1060;
-  --z-tooltip: 1070;
+  /* ===== BRAND COLORS - REDIRECTED TO EJAR THEME ===== */
+  /* IMPORTANT: The old blue (#0061A8) is WRONG - Ejar uses green (#25935F) */
+  --color-primary: var(--ejar-primary-500);
+  --color-primary-hover: var(--ejar-primary-600);
+  --color-primary-light: var(--ejar-primary-50);
   
-  /* ===== BRAND COLORS (Fixzit) ===== */
-  --color-primary: #0061A8;      /* Blue */
-  --color-primary-hover: #004d86;
-  --color-primary-light: #e6f1f9;
+  --color-secondary: var(--ejar-success-500);
+  --color-secondary-hover: var(--ejar-success-700);
+  --color-secondary-light: var(--ejar-success-50);
   
-  --color-secondary: #00A859;    /* Green */
-  --color-secondary-hover: #008647;
-  --color-secondary-light: #e6f7f0;
-  
-  --color-accent: #FFB400;       /* Yellow */
+  --color-accent: var(--ejar-gold);
   --color-accent-hover: #cc9000;
   --color-accent-light: #fff8e6;
   
-  /* ===== SEMANTIC COLORS ===== */
-  --color-success: var(--color-secondary);
-  --color-warning: var(--color-accent);
-  --color-error: #dc2626;        /* red-600 */
-  --color-info: var(--color-primary);
+  /* ===== SEMANTIC COLORS (from SSOT) ===== */
+  --color-success: var(--ejar-success-500);
+  --color-warning: var(--ejar-warning-500);
+  --color-error: var(--ejar-error-500);
+  --color-info: var(--ejar-info-500);
   
-  /* ===== NEUTRAL GRAYS ===== */
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
+  /* ===== NEUTRAL GRAYS (from SSOT) ===== */
+  --color-gray-50: var(--ejar-neutral-50);
+  --color-gray-100: var(--ejar-neutral-100);
+  --color-gray-200: var(--ejar-neutral-200);
+  --color-gray-300: var(--ejar-neutral-300);
+  --color-gray-400: var(--ejar-neutral-400);
+  --color-gray-500: var(--ejar-neutral-500);
+  --color-gray-600: var(--ejar-neutral-600);
+  --color-gray-700: var(--ejar-neutral-700);
+  --color-gray-800: var(--ejar-neutral-800);
   --color-gray-900: #111827;
 }
 

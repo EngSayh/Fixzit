@@ -1,0 +1,363 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * EJAR.SA DESIGN SYSTEM - SINGLE SOURCE OF TRUTH
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * Based on: https://www.ejar.sa (Official Saudi Rental Platform)
+ * Compliant with: Saudi Platforms Code / DGA Standards
+ * 
+ * ⚠️  THIS IS THE ONLY AUTHORITATIVE THEME FILE
+ * ⚠️  ALL OTHER CSS FILES MUST IMPORT FROM HERE
+ * ⚠️  DO NOT DEFINE COLORS ELSEWHERE
+ * 
+ * Visual Reference (from Ejar.sa screenshot):
+ * - Header: Green background (#25935F) with white text
+ * - CTA Buttons: Green (#25935F) with white text
+ * - Footer: Dark (#0D121C) with white text
+ * - Body: Light gray (#F9FAFB) background
+ * - Cards: White (#FFFFFF) background
+ * 
+ * @version 3.0.0
+ * @date 2026-01-03
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   EJAR COLOR PALETTE (Extracted from ejar.sa)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─────────────────────────────────────────
+     PRIMARY GREEN (Header, Buttons, Links)
+     The main brand color - Ejar Green
+     ───────────────────────────────────────── */
+  --ejar-primary-50: #E8F7EE;
+  --ejar-primary-100: #C7EAD8;
+  --ejar-primary-200: #8FD4B1;
+  --ejar-primary-300: #5FBD8E;
+  --ejar-primary-400: #3BA874;
+  --ejar-primary-500: #25935F;   /* ← MAIN PRIMARY COLOR */
+  --ejar-primary-600: #188352;   /* ← HOVER STATE */
+  --ejar-primary-700: #166A45;   /* ← ACTIVE/PRESSED STATE */
+  --ejar-primary-800: #0F5535;
+  --ejar-primary-900: #0A3D26;
+  --ejar-primary-950: #052918;
+
+  /* ─────────────────────────────────────────
+     SECONDARY GOLD (Accents, Highlights)
+     Used for special emphasis and warnings
+     ───────────────────────────────────────── */
+  --ejar-gold: #F5BD02;
+  --ejar-gold-hover: #D4A302;
+  --ejar-gold-light: #FFFAEB;
+
+  /* ─────────────────────────────────────────
+     NEUTRAL SCALE (Text, Backgrounds, Borders)
+     ───────────────────────────────────────── */
+  --ejar-neutral-50: #F9FAFB;    /* Page background */
+  --ejar-neutral-100: #F3F4F6;   /* Subtle backgrounds */
+  --ejar-neutral-200: #E5E7EB;   /* Borders, dividers */
+  --ejar-neutral-300: #CFD4DB;   /* Input borders */
+  --ejar-neutral-400: #A8AEB8;   /* Disabled text */
+  --ejar-neutral-500: #8A919C;   /* Placeholder text */
+  --ejar-neutral-600: #6C737F;   /* Secondary text */
+  --ejar-neutral-700: #434B5A;   /* Body text */
+  --ejar-neutral-800: #2D3340;   /* Headings */
+  --ejar-neutral-900: #1A1F2B;   /* Dark backgrounds */
+  --ejar-neutral-950: #0D121C;   /* Sidebar, Footer */
+
+  /* ─────────────────────────────────────────
+     SEMANTIC COLORS (Status indicators)
+     ───────────────────────────────────────── */
+  --ejar-success: #17B26A;
+  --ejar-success-light: #ECFDF5;
+  --ejar-success-dark: #0F8A51;
+
+  --ejar-warning: #F79009;
+  --ejar-warning-light: #FFFAEB;
+  --ejar-warning-dark: #B54708;
+
+  --ejar-error: #F04438;
+  --ejar-error-light: #FEF3F2;
+  --ejar-error-dark: #B42318;
+
+  --ejar-info: #2E90FA;
+  --ejar-info-light: #EFF8FF;
+  --ejar-info-dark: #175CD3;
+
+  /* ─────────────────────────────────────────
+     ADDITIONAL BRAND COLORS
+     ───────────────────────────────────────── */
+  --ejar-lavender: #80519F;
+  --ejar-saudi-green: #006C35;   /* Saudi national green */
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     SEMANTIC MAPPINGS (Use these in components)
+     ═══════════════════════════════════════════════════════════════════════════════ */
+
+  /* Primary (Green) */
+  --color-primary: var(--ejar-primary-500);
+  --color-primary-hover: var(--ejar-primary-600);
+  --color-primary-active: var(--ejar-primary-700);
+  --color-primary-light: var(--ejar-primary-50);
+  --color-primary-surface: var(--ejar-primary-50);
+
+  /* Secondary (Gold) */
+  --color-secondary: var(--ejar-gold);
+  --color-secondary-hover: var(--ejar-gold-hover);
+  --color-secondary-light: var(--ejar-gold-light);
+
+  /* Text Colors */
+  --color-text-primary: var(--ejar-neutral-800);
+  --color-text-secondary: var(--ejar-neutral-600);
+  --color-text-tertiary: var(--ejar-neutral-500);
+  --color-text-disabled: var(--ejar-neutral-400);
+  --color-text-inverse: #FFFFFF;
+  --color-text-on-primary: #FFFFFF;
+
+  /* Background Colors */
+  --color-bg-page: var(--ejar-neutral-50);
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-sidebar: var(--ejar-neutral-950);
+  --color-bg-header: var(--ejar-primary-500);
+  --color-bg-footer: var(--ejar-neutral-950);
+
+  /* Border Colors */
+  --color-border-primary: var(--ejar-neutral-200);
+  --color-border-secondary: var(--ejar-neutral-300);
+  --color-border-input: var(--ejar-neutral-300);
+  --color-border-focus: var(--ejar-primary-500);
+
+  /* Status Colors (aliased for convenience) */
+  --color-success: var(--ejar-success);
+  --color-warning: var(--ejar-warning);
+  --color-error: var(--ejar-error);
+  --color-info: var(--ejar-info);
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     COMPONENT-SPECIFIC TOKENS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+
+  /* TopBar / Header */
+  --topbar-bg: var(--ejar-primary-500);
+  --topbar-text: #FFFFFF;
+  --topbar-border: var(--ejar-primary-600);
+  --topbar-hover: rgba(255, 255, 255, 0.1);
+
+  /* Sidebar */
+  --sidebar-bg: var(--ejar-neutral-950);
+  --sidebar-text: #FFFFFF;
+  --sidebar-text-muted: var(--ejar-neutral-400);
+  --sidebar-hover: var(--ejar-neutral-900);
+  --sidebar-active: var(--ejar-primary-600);
+  --sidebar-border: var(--ejar-neutral-800);
+
+  /* Footer */
+  --footer-bg: var(--ejar-neutral-950);
+  --footer-text: #FFFFFF;
+  --footer-text-muted: var(--ejar-neutral-400);
+
+  /* Cards */
+  --card-bg: #FFFFFF;
+  --card-border: var(--ejar-neutral-200);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  /* Buttons */
+  --btn-primary-bg: var(--ejar-primary-500);
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: var(--ejar-primary-600);
+  --btn-primary-active: var(--ejar-primary-700);
+
+  --btn-secondary-bg: transparent;
+  --btn-secondary-text: var(--ejar-primary-500);
+  --btn-secondary-border: var(--ejar-primary-500);
+  --btn-secondary-hover: var(--ejar-primary-50);
+
+  /* Inputs */
+  --input-bg: #FFFFFF;
+  --input-border: var(--ejar-neutral-300);
+  --input-border-focus: var(--ejar-primary-500);
+  --input-text: var(--ejar-neutral-800);
+  --input-placeholder: var(--ejar-neutral-500);
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     LEGACY ALIASES (For backward compatibility - DO NOT USE IN NEW CODE)
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  /* Old Fixzit colors → Map to Ejar */
+  --color-fz-green-500: var(--ejar-primary-500);
+  --color-platform-fm-blue: var(--ejar-primary-500);
+  --color-ejar-green: var(--ejar-primary-500);
+  --color-ejar-green-hover: var(--ejar-primary-600);
+  --color-ejar-green-active: var(--ejar-primary-700);
+  --color-brand-primary: var(--ejar-primary-500);
+  --color-brand-primary-hover: var(--ejar-primary-600);
+  --color-brand-primary-active: var(--ejar-primary-700);
+  --color-brand-primary-surface: var(--ejar-primary-50);
+  --color-brand-secondary: var(--ejar-gold);
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     TYPOGRAPHY
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --font-family-base: var(--font-ibm-plex-arabic, "IBM Plex Sans Arabic"), system-ui, sans-serif;
+  --font-family-heading: var(--font-alexandria, "Alexandria"), var(--font-family-base);
+  
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-md: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 2rem;     /* 32px */
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     SPACING (8px Grid)
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --spacing-1: 0.25rem;  /* 4px */
+  --spacing-2: 0.5rem;   /* 8px */
+  --spacing-3: 0.75rem;  /* 12px */
+  --spacing-4: 1rem;     /* 16px */
+  --spacing-5: 1.25rem;  /* 20px */
+  --spacing-6: 1.5rem;   /* 24px */
+  --spacing-8: 2rem;     /* 32px */
+  --spacing-10: 2.5rem;  /* 40px */
+  --spacing-12: 3rem;    /* 48px */
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     BORDER RADIUS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --radius-sm: 0.25rem;  /* 4px */
+  --radius-md: 0.5rem;   /* 8px */
+  --radius-lg: 0.75rem;  /* 12px */
+  --radius-xl: 1rem;     /* 16px */
+  --radius-full: 9999px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     SHADOWS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-card: var(--shadow-sm);
+  --shadow-elevated: var(--shadow-md);
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     Z-INDEX LAYERS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     TRANSITIONS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dark,
+[data-theme="dark"] {
+  --color-text-primary: var(--ejar-neutral-100);
+  --color-text-secondary: var(--ejar-neutral-300);
+  --color-text-tertiary: var(--ejar-neutral-400);
+
+  --color-bg-page: var(--ejar-neutral-900);
+  --color-bg-card: var(--ejar-neutral-800);
+  --color-bg-elevated: var(--ejar-neutral-800);
+
+  --color-border-primary: var(--ejar-neutral-700);
+  --color-border-secondary: var(--ejar-neutral-600);
+
+  --card-bg: var(--ejar-neutral-800);
+  --card-border: var(--ejar-neutral-700);
+
+  --input-bg: var(--ejar-neutral-800);
+  --input-border: var(--ejar-neutral-600);
+  --input-text: var(--ejar-neutral-100);
+
+  /* TopBar stays green in dark mode (per Ejar design) */
+  --topbar-bg: var(--ejar-primary-500);
+  --topbar-text: #FFFFFF;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   COMPONENT CLASSES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* TopBar - Green header with white text */
+.ejar-topbar {
+  background-color: var(--topbar-bg);
+  color: var(--topbar-text);
+  border-bottom: 1px solid var(--topbar-border);
+}
+
+.ejar-topbar * {
+  color: inherit;
+}
+
+.ejar-topbar a:hover,
+.ejar-topbar button:hover {
+  background-color: var(--topbar-hover);
+}
+
+/* Sidebar - Dark with white text */
+.ejar-sidebar {
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+}
+
+/* Footer - Dark with white text */
+.ejar-footer {
+  background-color: var(--footer-bg);
+  color: var(--footer-text);
+}
+
+/* Primary Button */
+.ejar-btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3) var(--spacing-6);
+  font-weight: var(--font-weight-semibold);
+  transition: background-color var(--transition-fast);
+}
+
+.ejar-btn-primary:hover {
+  background-color: var(--btn-primary-hover);
+}
+
+.ejar-btn-primary:active {
+  background-color: var(--btn-primary-active);
+}
+
+/* Card */
+.ejar-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+}

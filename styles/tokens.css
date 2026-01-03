@@ -1,63 +1,71 @@
 /**
- * Fixzit Design System - SSOT Tokens
- * Version: 2.0.0
+ * Fixzit Design System - LEGACY TOKENS
  * 
- * This file is the Single Source of Truth for all design tokens.
- * Import in app/globals.css before @tailwind directives.
+ * ⚠️  DEPRECATED: This file redirects to ejar-theme.css (SSOT)
+ * ⚠️  DO NOT ADD NEW TOKENS HERE - Use styles/ejar-theme.css instead
  * 
- * Color Palette preserved from Fixzit branding:
- * - Primary Green: #2d5f4d (Fixzit original)
- * - Primary Brown: #5c4033 (headings)
- * - Secondary Brown: #8b6f47
- * - Logic Blue: #4a90e2
- * - Platform Colors: FM Blue #0061A8, Green #00A859, Yellow #FFB400
+ * This file is kept for backwards compatibility only.
+ * All design tokens now come from the single source of truth: ejar-theme.css
+ * 
+ * Ejar.sa Theme Colors:
+ * - Primary Green: #25935F (Ejar brand)
+ * - Primary Hover: #188352
+ * - Primary Active: #166A45
+ * - Gold/Secondary: #F5BD02
+ * - Neutral Dark: #0D121C (sidebar/footer)
  * 
  * @author Sultan Al Hassni
+ * @version 3.0.0 - Redirected to SSOT
  */
 
+/* Import the SSOT theme file */
+@import "./ejar-theme.css";
+
 /* ============================================
-   ROOT TOKENS (Light Mode Default)
+   LEGACY TOKEN REDIRECTS
+   These map old variable names to SSOT tokens
    ============================================ */
 
 :root {
   /* ----------------------------------------
-     BRAND COLORS (Fixzit Palette)
+     OLD FIXZIT COLORS → EJAR GREEN
+     The old green (#2d5f4d) is replaced with Ejar green (#25935F)
      ---------------------------------------- */
   
-  /* Primary Green (Fixzit Original) */
-  --color-fz-green-50: #e8f4f1;
-  --color-fz-green-100: #c5e4dc;
-  --color-fz-green-200: #9fd3c5;
-  --color-fz-green-300: #78c1ad;
-  --color-fz-green-400: #5ab49b;
-  --color-fz-green-500: #2d5f4d; /* Primary */
-  --color-fz-green-600: #275344;
-  --color-fz-green-700: #1f4437;
-  --color-fz-green-800: #17352a;
-  --color-fz-green-900: #0f261d;
+  /* Primary Green - Redirected to Ejar */
+  --color-fz-green-50: var(--ejar-primary-50);
+  --color-fz-green-100: var(--ejar-primary-100);
+  --color-fz-green-200: var(--ejar-primary-200);
+  --color-fz-green-300: var(--ejar-primary-300);
+  --color-fz-green-400: var(--ejar-primary-400);
+  --color-fz-green-500: var(--ejar-primary-500);
+  --color-fz-green-600: var(--ejar-primary-600);
+  --color-fz-green-700: var(--ejar-primary-700);
+  --color-fz-green-800: var(--ejar-primary-800);
+  --color-fz-green-900: var(--ejar-primary-900);
 
-  /* Primary Brown (Headings) */
-  --color-fz-brown-50: #f7f3f0;
-  --color-fz-brown-100: #e8ddd4;
-  --color-fz-brown-200: #d4c4b5;
-  --color-fz-brown-300: #bfa996;
-  --color-fz-brown-400: #a48d76;
-  --color-fz-brown-500: #5c4033; /* Primary Brown */
-  --color-fz-brown-600: #4d352b;
-  --color-fz-brown-700: #3d2a22;
-  --color-fz-brown-800: #2d1f19;
-  --color-fz-brown-900: #1e1410;
+  /* Primary Brown - Redirected to Neutral Dark */
+  --color-fz-brown-50: var(--ejar-neutral-50);
+  --color-fz-brown-100: var(--ejar-neutral-100);
+  --color-fz-brown-200: var(--ejar-neutral-200);
+  --color-fz-brown-300: var(--ejar-neutral-300);
+  --color-fz-brown-400: var(--ejar-neutral-400);
+  --color-fz-brown-500: var(--ejar-neutral-700);
+  --color-fz-brown-600: var(--ejar-neutral-800);
+  --color-fz-brown-700: var(--ejar-neutral-900);
+  --color-fz-brown-800: var(--ejar-neutral-950);
+  --color-fz-brown-900: var(--ejar-neutral-950);
 
-  /* Secondary Brown */
-  --color-fz-secondary-brown: #8b6f47;
+  /* Secondary Brown - Redirected to Lavender */
+  --color-fz-secondary-brown: var(--ejar-lavender);
 
-  /* Logic Blue */
-  --color-fz-logic: #4a90e2;
+  /* Logic Blue - Redirected to Info */
+  --color-fz-logic: var(--ejar-info-500);
 
-  /* Platform Colors (Multi-tenant) */
-  --color-platform-fm-blue: #0061A8;
-  --color-platform-fm-blue-dark: #023047;
-  --color-platform-green: #00A859;
+  /* Platform Colors - Redirected to Ejar Theme */
+  --color-platform-fm-blue: var(--ejar-info-500);
+  --color-platform-fm-blue-dark: var(--ejar-neutral-950);
+  --color-platform-green: var(--ejar-success-500);
   --color-platform-yellow: #FFB400;
   --color-platform-orange: #F6851F;
 
