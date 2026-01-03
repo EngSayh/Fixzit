@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-03T14:00:00+03:00
+  Last-Sync: 2026-01-03T15:30:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,59 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-03 15:30 (Asia/Riyadh) — CI Fix + Lint Cleanup [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Fixed failing CI test, cleaned up lint warnings, pushed fixes to main
+
+#### ✅ BUG-TEST-SENDGRID-001: Fixed
+
+**Problem:** Flaky test `tests/api/webhooks/sendgrid.route.test.ts > returns 429 when rate limit is exceeded` failing in CI (sharded test run) but passing locally.
+
+**Root Cause:** Mock isolation issue - `enforceRateLimit.mockReturnValue()` was not properly resetting between sharded test runs.
+
+**Solution:**
+| File | Change |
+|------|--------|
+| `tests/api/webhooks/sendgrid.route.test.ts` | Use `mockReset()` + `mockReturnValueOnce()` for proper isolation |
+
+**Commit:** `ded6adc5c` pushed to origin/main
+
+#### ✅ LINT-WARNINGS-001: Fixed
+
+**Problem:** 5 ESLint warnings for platform-wide queries missing tenant scope and require-lean.
+
+**Solution:**
+| File | Change |
+|------|--------|
+| `app/api/superadmin/theme/route.ts` | Added 3 `eslint-disable` for PLATFORM_WIDE PlatformSettings queries |
+| `server/utils/gdpr.ts` | Added `eslint-disable` for GDPR user-scoped audit log query + NO_LEAN for User.findById |
+
+**Commit:** `ac446b51d` pushed to origin/main
+
+#### 📊 CI Status (Pre-Push vs Post-Push)
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Lint Warnings | 5 | 0 |
+| Typecheck Errors | 0 | 0 |
+| SendGrid Test | ❌ Flaky in CI | ✅ Fixed |
+
+#### 📊 Open PRs Status
+
+| PR | Branch | Status | CI | Blocker |
+|----|--------|--------|-----|---------|
+| #650 | `fix/superadmin-vercel-diag` | ✅ MERGEABLE | ❌ Failing | Test + i18n |
+| #647 | `fix/bi-data-schema-mismatch` | ✅ MERGEABLE | ❌ Failing | Test + i18n |
+| #641 | `feat/p2-subscription-flows` | ❌ CLOSED | N/A | 30+ merge conflicts |
+| #640 | `feat/p1-compliance-fixes-sprint1` | ✅ MERGEABLE | ❌ Failing | Test + i18n |
+
+**CI Blocker Analysis:** All 3 PRs fail due to:
+1. **Test failure:** `sendgrid.route.test.ts` rate limit mock (FIXED in this session)
+2. **i18n gate:** `scan:i18n` exits with code 1 due to 377 missing translation keys (pre-existing infrastructure issue)
 
 ---
 
