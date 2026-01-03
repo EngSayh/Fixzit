@@ -1,9 +1,13 @@
 import { Queue, Worker, Job } from "@/lib/queue";
 import { SearchIndexerService } from "@/services/souq/search-indexer-service";
 import { logger } from "@/lib/logger";
+import * as cron from "node-cron";
 
 const DEFAULT_SEARCH_ORG_ID =
   process.env.DEFAULT_ORG_ID || process.env.PUBLIC_ORG_ID;
+
+// Track if scheduler has been initialized to prevent duplicates
+let schedulerInitialized = false;
 
 const resolveOrgId = (orgId?: string): string => {
   const effectiveOrgId = orgId || DEFAULT_SEARCH_ORG_ID;
@@ -57,6 +61,7 @@ type SearchIndexJobData =
 /**
  * Schedule daily full reindex
  * Runs at 2:00 AM Saudi time (UTC+3)
+ * Uses node-cron since lib/queue.ts doesn't support repeat scheduling
  */
 export async function scheduleFullReindex() {
   const defaultOrgId = DEFAULT_SEARCH_ORG_ID;
@@ -66,23 +71,37 @@ export async function scheduleFullReindex() {
     );
     return;
   }
-  await searchIndexQueue.add(
-    "full_reindex",
-    {
-      type: "full_reindex",
-      target: "all",
-      orgId: defaultOrgId,
-    } as FullReindexJob,
-    {
-      repeat: {
-        pattern: "0 2 * * *", // 2 AM daily
-        tz: "Asia/Riyadh",
-      },
-      jobId: "full_reindex_daily",
-    },
-  );
+  
+  // Prevent duplicate schedulers
+  if (schedulerInitialized) {
+    logger.debug("[SearchIndex] Scheduler already initialized, skipping");
+    return;
+  }
+  schedulerInitialized = true;
+  
+  // Schedule using node-cron (2:00 AM daily in Asia/Riyadh timezone)
+  // Note: node-cron uses system timezone, so we schedule for 2:00 AM
+  // In production, ensure server timezone is set to Asia/Riyadh or adjust accordingly
+  cron.schedule("0 2 * * *", async () => {
+    logger.info("[SearchIndex] Running scheduled daily full reindex");
+    try {
+      await searchIndexQueue.add(
+        "full_reindex",
+        {
+          type: "full_reindex",
+          target: "all",
+          orgId: defaultOrgId,
+        } as FullReindexJob,
+        {
+          jobId: `full_reindex_daily_${Date.now()}`,
+        },
+      );
+    } catch (error) {
+      logger.error("[SearchIndex] Failed to queue scheduled reindex", { error });
+    }
+  });
 
-  logger.info("[SearchIndex] Scheduled daily full reindex at 2:00 AM");
+  logger.info("[SearchIndex] Scheduled daily full reindex at 2:00 AM (Asia/Riyadh) using node-cron");
 }
 
 /**

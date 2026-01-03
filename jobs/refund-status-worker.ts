@@ -6,7 +6,7 @@ import { QUEUE_NAMES } from '@/lib/queues/setup';
 type RefundStatusJob = { refundId: string; orgId: string };
 
 
-function buildWorker(): Worker<RefundStatusJob> | null {
+function buildWorker(): Worker<RefundStatusJob> {
   return new Worker<RefundStatusJob>(
     QUEUE_NAMES.REFUNDS,
     async (job: Job<RefundStatusJob>) => {
@@ -25,18 +25,12 @@ function buildWorker(): Worker<RefundStatusJob> | null {
   );
 }
 
-export function startRefundStatusWorker(): Worker<RefundStatusJob> | null {
+export function startRefundStatusWorker(): Worker<RefundStatusJob> {
   return buildWorker();
 }
 
 if (require.main === module) {
-  const worker = startRefundStatusWorker();
-  if (worker) {
-    logger.info('[RefundStatusWorker] Worker started', { queue: QUEUE_NAMES.REFUNDS });
-  } else {
-    // eslint-disable-next-line no-console
-    console.error('refund-status:worker_not_started', { reason: 'worker initialization failed' });
-    process.exit(1);
-  }
+  const _worker = startRefundStatusWorker();
+  logger.info('[RefundStatusWorker] Worker started', { queue: QUEUE_NAMES.REFUNDS });
 }
 

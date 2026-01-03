@@ -105,23 +105,23 @@ export const otpRateLimitStore = {
     rateLimitStore.set(identifier, data);
   },
 
-  async increment(identifier: string, limit: number, windowMs: number): Promise<{ allowed: boolean; remaining: number }> {
+  async increment(identifier: string, limit: number, windowMs: number): Promise<{ allowed: boolean; remaining: number; count: number }> {
     warnSingleInstance();
     const now = Date.now();
     const existing = rateLimitStore.get(identifier);
 
     if (!existing || now > existing.resetAt) {
       rateLimitStore.set(identifier, { count: 1, resetAt: now + windowMs });
-      return { allowed: true, remaining: Math.max(0, limit - 1) };
+      return { allowed: true, remaining: Math.max(0, limit - 1), count: 1 };
     }
 
     if (existing.count >= limit) {
-      return { allowed: false, remaining: 0 };
+      return { allowed: false, remaining: 0, count: existing.count + 1 };
     }
 
     const nextCount = existing.count + 1;
     rateLimitStore.set(identifier, { count: nextCount, resetAt: existing.resetAt });
-    return { allowed: true, remaining: Math.max(0, limit - nextCount) };
+    return { allowed: true, remaining: Math.max(0, limit - nextCount), count: nextCount };
   },
 };
 
