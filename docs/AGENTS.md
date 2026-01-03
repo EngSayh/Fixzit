@@ -1241,9 +1241,21 @@ $host.UI.RawUI.WindowTitle = "[AGENT-XXXX]"
 |------|-------------|
 | **Dedicated Terminal** | Each agent session MUST create and use a NEW terminal instance |
 | **No Terminal Reuse** | NEVER reuse an existing terminal that may be owned by another agent/extension |
+| **No Cross-Agent Terminal Use** | NEVER use a terminal created by another agent — results may be corrupted/interleaved |
 | **Naming Required** | Name terminals with agent token: `[AGENT-XXXX]` or `[AGENT-XXXX] Task Name` |
 | **Orphan Cleanup** | Kill all orphaned terminals created by this agent upon task completion |
 | **Max Terminals** | Limit to 3 concurrent terminals per agent session |
+
+**⚠️ CRITICAL: Terminal Non-Sharing Rule**
+
+Agents MUST NOT use terminals created by other agents because:
+- Terminal output may be interleaved with another agent's commands
+- Environment variables may differ between agent sessions
+- Working directory may have been changed by another agent
+- Command history and context will be corrupted
+- CI/CD checks may fail due to mixed output
+
+**Detection:** If a terminal name contains a different agent token (e.g., `[AGENT-0005]` when you are `[AGENT-0008]`), **DO NOT USE IT**. Create a new terminal instead.
 
 #### 5.8.3 Terminal Lifecycle
 

@@ -1,17 +1,11 @@
-import { Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { Worker, Job } from '@/lib/queue';
 import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
 import { SouqRMA } from '@/server/models/souq/RMA';
 
 type FinanceReviewJob = { rmaId: string; orgId: string };
 
-// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
-const redisUrl =
   process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const connection = redisUrl
-  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
-  : null;
 
 const QUEUE_NAME = process.env.REFUNDS_QUEUE_NAME || 'souq:refunds';
 
@@ -38,11 +32,6 @@ async function ensureMongo() {
 }
 
 function buildWorker(): Worker<FinanceReviewJob> | null {
-  if (!connection) {
-    logger.warn('[RefundsWorker] Redis not configured; worker disabled');
-    return null;
-  }
-
   return new Worker<FinanceReviewJob>(
     QUEUE_NAME,
     async (job: Job<FinanceReviewJob>) => {
@@ -82,8 +71,7 @@ function buildWorker(): Worker<FinanceReviewJob> | null {
         orgId,
         jobId: job.id,
       });
-    },
-    { connection },
+    }
   );
 }
 
@@ -98,8 +86,9 @@ if (require.main === module) {
   } else {
     // eslint-disable-next-line no-console
     logger.error('refunds_review:worker_not_started', {
-      reason: 'Redis connection missing',
+      reason: 'worker initialization failed',
     });
     process.exit(1);
   }
 }
+

@@ -827,13 +827,14 @@ async function checkActivitySpike(
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     // Get 24h activity count (orders + listings)
+    // [PR Review Fix] Use Souq-specific collections for marketplace fraud detection
     const [recentOrders, recentListings] = await Promise.all([
-      db.collection(COLLECTIONS.ORDERS).countDocuments({
+      db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({
         orgId,
         vendorId,
         createdAt: { $gte: oneDayAgo },
       }),
-      db.collection(COLLECTIONS.PRODUCTS).countDocuments({
+      db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({
         orgId,
         vendorId,
         createdAt: { $gte: oneDayAgo },
@@ -843,12 +844,12 @@ async function checkActivitySpike(
     
     // Get 7-day baseline (average per day)
     const [weekOrders, weekListings] = await Promise.all([
-      db.collection(COLLECTIONS.ORDERS).countDocuments({
+      db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({
         orgId,
         vendorId,
         createdAt: { $gte: sevenDaysAgo, $lt: oneDayAgo },
       }),
-      db.collection(COLLECTIONS.PRODUCTS).countDocuments({
+      db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({
         orgId,
         vendorId,
         createdAt: { $gte: sevenDaysAgo, $lt: oneDayAgo },
@@ -891,8 +892,8 @@ async function checkDuplicateListings(
   try {
     const db = await getDatabase();
     
-    // Fetch active listings for this vendor
-    const listings = await db.collection(COLLECTIONS.PRODUCTS)
+    // [PR Review Fix] Use SOUQ_LISTINGS for marketplace duplicate detection
+    const listings = await db.collection(COLLECTIONS.SOUQ_LISTINGS)
       .find({ orgId, vendorId, status: "active" })
       .project({ _id: 1, title: 1, name: 1 })
       .limit(100)
@@ -979,8 +980,8 @@ async function checkPriceManipulation(
     const db = await getDatabase();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    // Find products with price history changes in last 24h
-    const products = await db.collection(COLLECTIONS.PRODUCTS)
+    // [PR Review Fix] Use SOUQ_LISTINGS for marketplace price manipulation detection
+    const products = await db.collection(COLLECTIONS.SOUQ_LISTINGS)
       .find({
         orgId,
         vendorId,
@@ -1047,8 +1048,8 @@ async function checkFakeReviews(
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    // Check review velocity (>5 in 1 hour is suspicious)
-    const recentReviewCount = await db.collection(COLLECTIONS.REVIEWS).countDocuments({
+    // [PR Review Fix] Use SOUQ_REVIEWS for marketplace review fraud detection
+    const recentReviewCount = await db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
       orgId,
       vendorId,
       createdAt: { $gte: oneHourAgo },
@@ -1068,7 +1069,8 @@ async function checkFakeReviews(
     }
     
     // Check for duplicate reviewers in last 24h
-    const reviews = await db.collection(COLLECTIONS.REVIEWS)
+    // [PR Review Fix] Use SOUQ_REVIEWS for marketplace review patterns
+    const reviews = await db.collection(COLLECTIONS.SOUQ_REVIEWS)
       .find({ orgId, vendorId, createdAt: { $gte: oneDayAgo } })
       .project({ userId: 1, rating: 1 })
       .toArray();

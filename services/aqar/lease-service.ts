@@ -1192,10 +1192,12 @@ export async function registerWithEjar(
         $set: {
           ejarRegistration: {
             contractId: result.contractId,
-            contractNumber: result.ejarNumber,
+            // [PR Review Fix] Use contractId as fallback if ejarNumber not yet assigned
+            contractNumber: result.ejarNumber || result.contractId,
             registeredAt: new Date(),
             expiresAt: lease.endDate,
-            status: "pending_verification", // Ejar workflow starts with verification
+            // [PR Review Fix] Use "pending" - valid enum value per LeaseDocument type
+            status: "pending",
           },
           updatedAt: new Date(),
         },
@@ -1251,8 +1253,13 @@ function calculateMonthsDuration(startDate: Date, endDate: Date): number {
 
 /**
  * Calculate annual rent from amount and frequency
+ * [PR Review Fix] Added guard for undefined/NaN values
  */
 function calculateAnnualRent(amount: number, frequency?: string): number {
+  // Guard against undefined/null/NaN - return 0 instead of NaN
+  if (amount === undefined || amount === null || Number.isNaN(amount)) {
+    return 0;
+  }
   const multipliers: Record<string, number> = {
     monthly: 12, quarterly: 4, semi_annually: 2, annually: 1, yearly: 1,
   };
@@ -1261,8 +1268,13 @@ function calculateAnnualRent(amount: number, frequency?: string): number {
 
 /**
  * Calculate monthly rent from amount and frequency
+ * [PR Review Fix] Added guard for undefined/NaN values
  */
 function calculateMonthlyRent(amount: number, frequency?: string): number {
+  // Guard against undefined/null/NaN - return 0 instead of NaN
+  if (amount === undefined || amount === null || Number.isNaN(amount)) {
+    return 0;
+  }
   const divisors: Record<string, number> = {
     monthly: 1, quarterly: 3, semi_annually: 6, annually: 12, yearly: 12,
   };

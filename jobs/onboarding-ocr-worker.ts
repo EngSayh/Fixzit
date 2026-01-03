@@ -1,5 +1,4 @@
-import { Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { Worker, Job } from '@/lib/queue';
 import { connectMongo } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
@@ -7,20 +6,10 @@ import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
 
 type OcrJob = { docId: string; onboardingCaseId: string };
 
-// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
-const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const connection = redisUrl
-  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
-  : null;
 
 const QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
 
 function buildWorker(): Worker<OcrJob> | null {
-  if (!connection) {
-    logger.warn('[OnboardingOCR] Redis not configured; worker disabled');
-    return null;
-  }
-
   return new Worker<OcrJob>(
     QUEUE_NAME,
     async (job: Job<OcrJob>) => {
@@ -45,8 +34,7 @@ function buildWorker(): Worker<OcrJob> | null {
       });
 
       logger.info('[OnboardingOCR] Processed document', { jobId: job.id, docId: doc._id.toString() });
-    },
-    { connection },
+    }
   );
 }
 
@@ -61,8 +49,9 @@ if (require.main === module) {
   } else {
     // eslint-disable-next-line no-console
     logger.error('onboarding_ocr:worker_not_started', {
-      reason: 'Redis connection missing',
+      reason: 'worker initialization failed',
     });
     process.exit(1);
   }
 }
+

@@ -127,9 +127,23 @@ Core rules (non-negotiable):
 1. **ALWAYS create a NEW terminal** — Never reuse existing terminals
 2. **NAME terminals with agent token** — Use pattern `[AGENT-XXXX]`
 3. **NEVER use shared terminals** — Other agents/extensions may own them
-4. **KILL orphaned terminals on task completion** — Default behavior, not optional
-5. **PRESERVE the "Fixzit Local" terminal** — Never kill the dev server
-6. **MAX 3 terminals per agent session** — Prevent resource exhaustion
+4. **NEVER use another agent's terminal** — Terminals with different agent tokens are OFF-LIMITS
+5. **KILL orphaned terminals on task completion** — Default behavior, not optional
+6. **PRESERVE the "Fixzit Local" terminal** — Never kill the dev server
+7. **MAX 3 terminals per agent session** — Prevent resource exhaustion
+
+### ⚠️ Terminal Non-Sharing Rule (CRITICAL)
+
+**If you see a terminal named `[AGENT-0005]` and you are `[AGENT-0008]`, DO NOT USE IT.**
+
+Using another agent's terminal causes:
+- ❌ Interleaved/corrupted output
+- ❌ Wrong environment variables
+- ❌ Changed working directory
+- ❌ Mixed command history
+- ❌ Failed CI checks due to mixed output
+
+**Always create a NEW terminal with YOUR agent token.**
 
 ### 📛 Terminal Naming Convention (MANDATORY)
 
@@ -143,6 +157,7 @@ Core rules (non-negotiable):
 - ✅ Terminals appear in VS Code dropdown for easy tracking
 - ✅ Quick identification of agent ownership
 - ✅ Easy cleanup by token pattern
+- ✅ Prevents cross-agent terminal confusion
 
 ### 🔒 Dev Server Protection (CRITICAL)
 
