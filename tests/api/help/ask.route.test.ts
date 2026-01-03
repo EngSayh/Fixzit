@@ -263,8 +263,8 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      // Help should be available to non-authenticated users
-      expect([200, 201, 401]).toContain(response.status);
+      // Help should be available to non-authenticated users (public endpoint)
+      expect([200, 201]).toContain(response.status);
     });
   });
 });

@@ -36,6 +36,11 @@ type ExportJobPayload = {
   orgId: string;
   userId: string;
   entityType: string;
+  /**
+   * Export format - currently only "csv" is fully implemented.
+   * "xlsx" is accepted for API compatibility but outputs CSV format.
+   * TODO: Implement proper XLSX export using exceljs/sheetjs when needed.
+   */
   format: "csv" | "xlsx";
   filters?: Record<string, unknown>;
   search?: string;

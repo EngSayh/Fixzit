@@ -7,7 +7,13 @@ const saveMock = vi.fn();
 const originalEnv = { ...process.env };
 
 afterAll(() => {
-  process.env = originalEnv;
+  // Restore original env values (proper method that preserves object reference)
+  Object.keys(process.env).forEach(key => {
+    if (!(key in originalEnv)) {
+      delete process.env[key];
+    }
+  });
+  Object.assign(process.env, originalEnv);
 });
 
 vi.mock("@/lib/storage/s3-config", () => ({
