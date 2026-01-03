@@ -1028,42 +1028,56 @@ export async function registerWithEjar(
       return { success: false, error: "Lease already registered with Ejar" };
     }
     
-    // Fetch property details
-    const property = await db.collection("properties").findOne({
-      _id: new ObjectId(lease.propertyId),
-      orgId,
-    });
+    // Parallelize database fetches for better performance [PR Review Fix]
+    const [property, unit, tenant, landlord] = await Promise.all([
+      // Fetch property details
+      db.collection("properties").findOne({
+        _id: new ObjectId(lease.propertyId),
+        orgId,
+      }),
+      // Fetch unit details if applicable
+      lease.unitId 
+        ? db.collection("units").findOne({
+            _id: new ObjectId(lease.unitId),
+            propertyId: lease.propertyId,
+          })
+        : Promise.resolve(null),
+      // Fetch tenant details
+      db.collection("tenants").findOne({
+        _id: new ObjectId(lease.tenantId),
+        orgId,
+      }),
+      // Fetch landlord/owner - use lease.landlordId if available (deterministic) [PR Review Fix]
+      // Otherwise fall back to property owner, not an arbitrary admin
+      lease.landlordId
+        ? db.collection("users").findOne({
+            _id: new ObjectId(lease.landlordId),
+            orgId,
+          })
+        : db.collection("properties").findOne({
+            _id: new ObjectId(lease.propertyId),
+            orgId,
+          }).then(async (prop) => {
+            if (prop?.ownerId) {
+              return db.collection("users").findOne({
+                _id: new ObjectId(prop.ownerId),
+                orgId,
+              });
+            }
+            return null;
+          }),
+    ]);
     
     if (!property) {
       return { success: false, error: "Property not found for lease" };
     }
     
-    // Fetch unit details if applicable
-    const unit = lease.unitId 
-      ? await db.collection("units").findOne({
-          _id: new ObjectId(lease.unitId),
-          propertyId: lease.propertyId,
-        })
-      : null;
-    
-    // Fetch tenant details
-    const tenant = await db.collection("tenants").findOne({
-      _id: new ObjectId(lease.tenantId),
-      orgId,
-    });
-    
     if (!tenant) {
       return { success: false, error: "Tenant not found for lease" };
     }
     
-    // Fetch landlord/owner details
-    const landlord = await db.collection("users").findOne({
-      orgId,
-      role: { $in: ["owner", "landlord", "admin"] },
-    });
-    
     if (!landlord) {
-      return { success: false, error: "Landlord/owner not found for organization" };
+      return { success: false, error: "Landlord/owner not found - ensure lease.landlordId or property.ownerId is set" };
     }
     
     // Import and call the comprehensive Ejar service
@@ -1096,7 +1110,8 @@ export async function registerWithEjar(
         bathrooms: unit?.bathrooms || property.bathrooms,
         amenities: property.amenities,
         deedNumber: property.deedNumber,
-        buildingAge: property.yearBuilt 
+        // Fix: Handle empty string yearBuilt edge case [PR Review Fix]
+        buildingAge: property.yearBuilt && String(property.yearBuilt).trim() !== ""
           ? new Date().getFullYear() - Number(property.yearBuilt) 
           : undefined,
       },
@@ -1137,7 +1152,8 @@ export async function registerWithEjar(
         furnishingStatus: lease.furnishingStatus || "unfurnished",
         allowSubletting: lease.allowsSubleasing || false,
         autoRenew: lease.isAutoRenew || false,
-        renewalNoticeDays: lease.noticePeriodDays || 30,
+        // Fix: Use correct field from lease.terms or fallback [PR Review Fix]
+        renewalNoticeDays: lease.terms?.noticePeriod || lease.renewalNotice || 30,
         specialConditions: Array.isArray(lease.specialConditions) 
           ? lease.specialConditions.join("; ") 
           : lease.specialConditions,
