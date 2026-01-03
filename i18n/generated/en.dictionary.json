@@ -14593,7 +14593,7 @@
   "hr.ats.jobs.location.hybrid": "Hybrid",
   "hr.ats.jobs.location.onsite": "Onsite",
   "hr.ats.jobs.location.remote": "Remote",
-  "hr.ats.jobs.location.unspecified": "TBD",
+  "hr.ats.jobs.location.unspecified": "Location not specified",
   "hr.ats.jobs.location.unspecifiedMode": "Unspecified",
   "hr.ats.jobs.new.fields.city": "City",
   "hr.ats.jobs.new.fields.country": "Country",

@@ -110,7 +110,7 @@ export default function PropertyInspectionWorkspace() {
       type: property.type ?? "Preventive",
       eta: property.createdAt
         ? new Date(property.createdAt).toLocaleDateString()
-        : auto("TBD", "queue.tbd"),
+        : auto("Not scheduled", "queue.notScheduled"),
       severity: index % 3 === 0 ? "high" : index % 3 === 1 ? "medium" : "low",
     }));
   }, [auto, properties]);

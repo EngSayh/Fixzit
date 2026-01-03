@@ -192,9 +192,64 @@ export async function POST(
           });
         }
 
-        // Placeholder for cancel/refund actions (if needed later)
+        // Cancel action - requires proper workflow implementation
+        if (action === "cancel") {
+          // Check if payment is in a cancellable state
+          if (!["PENDING", "SUBMITTED"].includes(payment.status)) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: "Payment cannot be cancelled in current status",
+                details: { currentStatus: payment.status, cancellableStatuses: ["PENDING", "SUBMITTED"] }
+              },
+              { status: 400 },
+            );
+          }
+          
+          payment.status = "CANCELLED";
+          payment.updatedBy = new Types.ObjectId(user.userId);
+          payment.notes = `${payment.notes || ""}\nCancelled by ${user.userId} at ${new Date().toISOString()}`;
+          await payment.save();
+
+          return NextResponse.json({
+            success: true,
+            data: payment,
+            message: "Payment cancelled successfully",
+          });
+        }
+
+        // Refund action - requires integration with payment gateway
+        if (action === "refund") {
+          // Feature flag check for refund capability
+          const refundsEnabled = process.env.ENABLE_PAYMENT_REFUNDS === "true";
+          if (!refundsEnabled) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: "Payment refunds are not enabled",
+                details: { 
+                  reason: "Contact administrator to enable ENABLE_PAYMENT_REFUNDS",
+                  statusCode: 501 
+                }
+              },
+              { status: 501 },
+            );
+          }
+          
+          // Refund implementation placeholder - requires payment gateway integration
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: "Refund integration pending payment gateway setup",
+              details: { action: "refund", paymentId: _params.id }
+            },
+            { status: 501 },
+          );
+        }
+
+        // Unknown action (should not reach here due to authorization checks)
         return NextResponse.json(
-          { success: false, error: "Action not implemented" },
+          { success: false, error: "Unknown action" },
           { status: 400 },
         );
       },

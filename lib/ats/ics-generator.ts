@@ -148,7 +148,7 @@ export function generateInterviewICS(interview: {
     summary,
     description,
     location:
-      interview.location || (interview.meetingUrl ? "Virtual Meeting" : "TBD"),
+      interview.location || (interview.meetingUrl ? "Virtual Meeting" : "Location to be confirmed"),
     startTime,
     endTime,
     attendees,

@@ -519,7 +519,7 @@ export async function scheduleInspection(
             : new Date(request.scheduledDate).toLocaleDateString("en-SA");
           const timeSlot = request.scheduledTimeSlot 
             ? `${request.scheduledTimeSlot.start} - ${request.scheduledTimeSlot.end}`
-            : "TBD";
+            : "Time to be confirmed";
             
           await sendNotification({
             orgId: request.orgId,

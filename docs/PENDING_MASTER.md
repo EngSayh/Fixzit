@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-03T20:00:00+03:00
+  Last-Sync: 2026-01-03T22:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,84 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-03 22:00 (Asia/Riyadh) — Deep Scan Remediation: TBD Placeholders + API Fixes [AGENT-0008]
+
+**Agent Token:** [AGENT-0008]  
+**Context:** Deep scan identified 6 runtime TODOs, 6 "not implemented", 5 placeholders. Addressed P1 items from scan report.
+
+#### ✅ PLACEHOLDER-001: Replace TBD Placeholders with User-Friendly Text
+
+**Problem:** User-visible "TBD" strings in 5 files
+- `services/fm/inspection-service.ts:522` - notification time slot
+- `lib/ats/ics-generator.ts:151` - calendar event location  
+- `app/(fm)/fm/properties/inspections/page.tsx:113` - inspection queue ETA
+- `app/(fm)/fm/marketplace/listings/new/page.tsx:373` - category fallback
+- `app/(fm)/fm/hr/recruitment/page.tsx:266` - job location fallback
+
+**Solution:**
+| File | Before | After |
+|------|--------|-------|
+| inspection-service.ts | "TBD" | "Time to be confirmed" |
+| ics-generator.ts | "TBD" | "Location to be confirmed" |
+| inspections/page.tsx | "TBD" | "Not scheduled" |
+| listings/new/page.tsx | "Category TBD" | "Select category" |
+| recruitment/page.tsx | "TBD" | "Not specified" |
+
+**KPI:** 0 "TBD" strings in UI/ICS renders
+
+---
+
+#### ✅ FM-COMMENTS-001: Implement Issue Comments API
+
+**Problem:** `app/(fm)/admin/issues/[id]/page.tsx:313` shows "Comments API not implemented yet"
+
+**Solution:** Created new API route `app/api/issues/[id]/comments/route.ts`
+- GET: Fetch comments for an issue
+- POST: Add comment to an issue
+- Proper auth checks (superadmin, admin, developer roles)
+- Rate limiting (30 requests/minute)
+- Content validation (max 5000 chars)
+- Supports internal comments flag
+
+---
+
+#### ✅ PAYMENT-ACTIONS-001: Implement Cancel/Refund Payment Actions
+
+**Problem:** `app/api/finance/payments/[id]/[action]/route.ts:197` returned generic "Action not implemented"
+
+**Solution:**
+| Action | Implementation |
+|--------|----------------|
+| `cancel` | Cancels payments in PENDING/SUBMITTED status, logs to audit trail |
+| `refund` | Gated by `ENABLE_PAYMENT_REFUNDS` env var, returns 501 until payment gateway integration |
+
+**KPI:** 0 "Action not implemented" responses for known actions
+
+---
+
+#### ℹ️ SADAD-SPAN-001: Already Properly Implemented
+
+**Analysis:** `payout-processor.ts:599,611` already has proper feature flag handling
+- `INTEGRATION_DISABLED` when ENABLE_SADAD_PAYOUTS=false
+- `INTEGRATION_NOT_CONFIGURED` when credentials missing
+- `INTEGRATION_NOT_AVAILABLE` when live mode requested
+
+**Status:** No code change needed - requires banking API credentials (external dependency)
+
+---
+
+### Remaining Deep Scan Items (Deferred)
+
+| ID | File | Type | ETA | Notes |
+|----|------|------|-----|-------|
+| P0 | vendor-assignments/route.ts:115,259 | not implemented | 2 weeks | Vendor data source design needed |
+| P1 | god-mode/route.ts:221 | TODO | 2 weeks | Datadog/Prometheus integration |
+| P1 | notifications/stream/route.ts:133 | TODO | 2 weeks | Redis pub/sub for multi-instance |
+| P2 | mfaService.ts:399 | TODO | 1 sprint | Centralized approval system |
+| P2 | buildingModel.ts:471 | TODO | 2 sprints | AI generation (premium feature) |
 
 ---
 
