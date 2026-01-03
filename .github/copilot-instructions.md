@@ -1,45 +1,53 @@
 ﻿# Fixzit Copilot Instructions (Aligned to AGENTS.md v7.0)
 
-## 🚨 HARD GATE - NO EXCEPTIONS
+## ⛔ STOP - READ THIS FIRST - HARD GATE
 
-# ⛔ YOU MUST READ docs/AGENTS.md BEFORE ANY WORK
-
-**This is NON-NEGOTIABLE. Failure to read AGENTS.md = ALL work rejected by user.**
-
-### FIRST ACTION IN EVERY SESSION:
+# 🚨 YOUR FIRST MESSAGE MUST BE:
 
 ```
-1. Execute: read_file tool on docs/AGENTS.md, lines 1-1000
-2. Query SSOT for next session number (db.agent_sessions)
-3. State: "AGENTS.md read. Agent Token: [AGENT-XXXX]" (where XXXX is YOUR unique number)
+AGENTS.md read. Agent Token: [AGENT-XXXX]
+
+Session Details:
+- Token obtained from: SSOT db.agent_sessions  
+- Current session number: XXXX
+- Branch: [current branch]
+- Behind origin/main: 0
 ```
 
-⚠️ **CRITICAL: `[AGENT-001-A]` is FORBIDDEN** — this was the old format that caused duplicate tokens.
-
-### If You Skip This Step:
-- ❌ User WILL reject all your work
-- ❌ All commits will be reverted
-- ❌ You will waste the user's time and money
+**If your first response does NOT include this → USER WILL IMMEDIATELY REJECT ALL WORK**
 
 ---
 
-## 🔒 MANDATORY ENFORCEMENT CHECKLIST
+## ⛔ TECHNICAL ENFORCEMENT (GIT HOOKS WILL BLOCK YOU)
 
-Before ANY code change, file edit, or terminal command:
+The following git hooks WILL REJECT your commits/pushes:
 
-| # | Action | Command | Required |
-|---|--------|---------|----------|
-| 1 | **Read AGENTS.md** | `read_file: docs/AGENTS.md, lines 1-1000` | ✅ MANDATORY |
-| 2 | **Get UNIQUE Token from SSOT** | Query `db.agent_sessions` for next number | ✅ MANDATORY |
-| 3 | **State UNIQUE Agent Token** | "Agent Token: [AGENT-XXXX]" (sequential) | ✅ MANDATORY |
-| 4 | **Git Preflight** | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` | ✅ MANDATORY |
-| 5 | **Verify not behind** | If behind > 0, STOP and pull | ✅ MANDATORY |
-| 6 | **Run LOCAL CI** | `pnpm typecheck && pnpm lint && pnpm vitest run && pnpm build` | ✅ MANDATORY |
-| 7 | **LOG TO SSOT** | Log every issue to MongoDB Issue Tracker BEFORE fixing | ✅ MANDATORY |
+### `.husky/commit-msg` — Blocks commits without:
+- ❌ Missing `[AGENT-XXXX]` token → **COMMIT REJECTED**
+- ❌ Old format `[AGENT-001-A]` → **COMMIT REJECTED**
+- ❌ Token `[AGENT-0000]` → **COMMIT REJECTED**
 
-**Token Format:** `[AGENT-0001]`, `[AGENT-0002]`, `[AGENT-0003]`, etc. (sequential from SSOT)
+### `.husky/pre-push` — Blocks pushes without:
+- ❌ Any commit missing Agent Token → **PUSH REJECTED**
+- ❌ Old format tokens detected → **PUSH REJECTED**
+- ❌ TypeScript errors → **PUSH REJECTED**
 
-**SKIP ANY STEP = USER REJECTS ALL WORK**
+**You CANNOT bypass these hooks. They are technical enforcement.**
+
+---
+
+## 🔒 MANDATORY FIRST ACTIONS (IN ORDER)
+
+| # | Action | You MUST Do This | If You Skip |
+|---|--------|------------------|-------------|
+| 1 | **Read AGENTS.md** | `read_file: docs/AGENTS.md, lines 1-500` | ❌ REJECTED |
+| 2 | **State Token** | "Agent Token: [AGENT-XXXX]" in FIRST response | ❌ REJECTED |
+| 3 | **Git Preflight** | `git fetch origin && git status` | ❌ REJECTED |
+| 4 | **Verify not behind** | If behind > 0, PULL first | ❌ REJECTED |
+| 5 | **Run LOCAL CI** | `pnpm typecheck && pnpm lint` | ❌ REJECTED |
+
+⚠️ **Token Format:** `[AGENT-0001]` through `[AGENT-9999]` (4-digit sequential)
+❌ **FORBIDDEN:** `[AGENT-001-A]`, `[AGENT-0000]`, any non-4-digit format
 
 ---
 

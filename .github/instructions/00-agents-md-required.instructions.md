@@ -4,80 +4,73 @@ description: Enforces reading docs/AGENTS.md before any task. This is the FIRST 
 applyTo: "**/*"
 ---
 
-# ⛔ HARD GATE - NO WORK UNTIL AGENTS.md IS READ
-
-## 🚨 MANDATORY ENFORCEMENT PROTOCOL
-
-**DO NOT proceed with ANY task, fix, or response until you have:**
-
-1. **Called `read_file` on `docs/AGENTS.md` lines 1-1000** in THIS session
-2. **Obtained UNIQUE session token from SSOT** (query `db.agent_sessions` for next number)
-3. **Confirmed reading** by stating: "AGENTS.md read. Agent Token: [AGENT-XXXX]" (where XXXX is YOUR unique session number)
-
-### If You Have NOT Read AGENTS.md This Session:
+# ⛔ STOP - YOUR FIRST RESPONSE MUST INCLUDE:
 
 ```
-STOP. Execute this FIRST:
-read_file: docs/AGENTS.md, lines 1-1000
+AGENTS.md read. Agent Token: [AGENT-XXXX]
 ```
 
-**Failure to read AGENTS.md = AUTO-FAIL. User will reject all work.**
+**If this is missing from your FIRST message → ALL WORK REJECTED**
 
 ---
 
-## 🔒 ENFORCEMENT CHECKLIST (Every Session)
+## 🚨 TECHNICAL ENFORCEMENT - GIT HOOKS WILL BLOCK YOU
+
+### Commits are BLOCKED if:
+- Missing `[AGENT-XXXX]` in commit message
+- Using forbidden format `[AGENT-001-A]`
+- Using invalid token `[AGENT-0000]`
+
+### Pushes are BLOCKED if:
+- Any commit missing Agent Token
+- TypeScript errors exist
+- Forbidden token format detected
+
+**These are git hooks in `.husky/` — you CANNOT bypass them.**
+
+---
+
+## 🔒 MANDATORY FIRST ACTIONS
 
 Before ANY code change, file edit, or terminal command:
 
-| Step | Action | Required |
-|------|--------|----------|
-| 1 | Read `docs/AGENTS.md` lines 1-1000 | ✅ MANDATORY |
-| 2 | **Query SSOT for next session number** | ✅ MANDATORY |
-| 3 | State UNIQUE Agent Token: `[AGENT-XXXX]` | ✅ MANDATORY |
-| 4 | Run `git fetch origin` | ✅ MANDATORY |
-| 5 | Verify not behind origin/main | ✅ MANDATORY |
-| 6 | Run `pnpm typecheck && pnpm lint` | ✅ MANDATORY |
-| 7 | **LOG ISSUE TO SSOT BEFORE ANY FIX** | ✅ MANDATORY |
-
-⚠️ **CRITICAL: Token `[AGENT-001-A]` is FORBIDDEN** — this was the old format.
-Each session MUST have a unique sequential number from SSOT.
-
-**If ANY step is skipped → User WILL reject ALL work**
+| Step | Action | If You Skip |
+|------|--------|-------------|
+| 1 | Read `docs/AGENTS.md` lines 1-500 | ❌ WORK REJECTED |
+| 2 | State Agent Token `[AGENT-XXXX]` in FIRST response | ❌ WORK REJECTED |
+| 3 | Run `git fetch origin` | ❌ WORK REJECTED |
+| 4 | Verify not behind origin/main | ❌ WORK REJECTED |
+| 5 | Run `pnpm typecheck && pnpm lint` | ❌ WORK REJECTED |
 
 ---
 
-## 📋 SSOT LOGGING PROTOCOL (MANDATORY)
+## ❌ FORBIDDEN TOKEN FORMATS
 
-**⚠️ BEFORE fixing ANY issue, you MUST log it to the MongoDB Issue Tracker (SSOT).**
+| Format | Status |
+|--------|--------|
+| `[AGENT-001-A]` | ❌ FORBIDDEN (old format) |
+| `[AGENT-0000]` | ❌ FORBIDDEN (reserved) |
+| `[AGENT-1]` | ❌ FORBIDDEN (not 4-digit) |
+| `AGENT-0001` | ❌ FORBIDDEN (missing brackets) |
+| `[AGENT-0001]` | ✅ CORRECT |
+| `[AGENT-0042]` | ✅ CORRECT |
 
-### Why This Matters:
-- User cannot track what was fixed without SSOT entries
-- Changes without SSOT logging are untraceable
-- Prevents "ghost fixes" that get lost or regress
+---
 
-### SSOT Logging Steps:
+## 📋 SSOT LOGGING PROTOCOL
 
-1. **Identify the issue** clearly (what, where, why)
-2. **Log to SSOT FIRST** before any code change:
-   ```bash
-   # Use the issue tracker API or direct MongoDB entry
-   # Example: POST /api/issues with issue details
-   ```
-3. **Include in log**:
-   - Issue title and description
-   - Affected files/components
-   - Root cause analysis
-   - Agent Token `[AGENT-XXXX]` (YOUR unique session number)
-   - Priority (P0/P1/P2/P3)
-   - Category (BUG/FEAT/REFACTOR/INFRA)
-4. **Get Issue ID** before starting fix
-5. **Reference Issue ID** in all commits: `[ISSUE-XXX]`
+**BEFORE fixing ANY issue, log it to MongoDB Issue Tracker FIRST.**
+
+Steps:
+1. Identify the issue (what, where, why)
+2. Log to SSOT BEFORE any code change
+3. Get Issue ID
+4. Reference Issue ID in commits: `[ISSUE-XXX]`
 
 ### Forbidden:
 - ❌ Fixing code without SSOT entry
 - ❌ "Silent fixes" with no tracking
-- ❌ Claiming "it was already logged" without verification
-- ❌ Logging after the fix is complete (log BEFORE)
+- ❌ Logging AFTER the fix is complete
 
 ---
 

@@ -1,0 +1,91 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# ============================================================================
+# AGENTS.md Enforcement: Commit Message Validation
+# ============================================================================
+# This hook BLOCKS commits that don't follow AGENTS.md requirements:
+# 1. Must include Agent Token [AGENT-XXXX]
+# 2. Must NOT use forbidden old format [AGENT-001-A]
+# 3. Must follow conventional commit format
+# ============================================================================
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+echo "🔒 AGENTS.md Enforcement: Validating commit message..."
+
+# ============================================================================
+# CHECK 1: Reject forbidden old token format [AGENT-XXX-X]
+# ============================================================================
+if echo "$COMMIT_MSG" | grep -qE '\[AGENT-[0-9]{3}-[A-Z]\]'; then
+  echo ""
+  echo "❌ FORBIDDEN: Old token format detected!"
+  echo ""
+  echo "   Found: [AGENT-XXX-X] format"
+  echo "   Required: [AGENT-XXXX] format (4-digit, no letter suffix)"
+  echo ""
+  echo "   Examples:"
+  echo "   ❌ [AGENT-001-A] - FORBIDDEN"
+  echo "   ✅ [AGENT-0001] - CORRECT"
+  echo ""
+  echo "   See docs/AGENTS.md Section 3.4 for token format requirements."
+  echo ""
+  exit 1
+fi
+
+# ============================================================================
+# CHECK 2: Require Agent Token [AGENT-XXXX] in commit message
+# ============================================================================
+if ! echo "$COMMIT_MSG" | grep -qE '\[AGENT-[0-9]{4}\]'; then
+  echo ""
+  echo "❌ MISSING: Agent Token not found in commit message!"
+  echo ""
+  echo "   Every commit MUST include: [AGENT-XXXX]"
+  echo "   Example: fix(api): resolve auth issue [AGENT-0042]"
+  echo ""
+  echo "   To get your token:"
+  echo "   1. Query SSOT: db.agent_sessions.find().sort({number:-1}).limit(1)"
+  echo "   2. Use next sequential number"
+  echo "   3. Register session in SSOT before committing"
+  echo ""
+  echo "   See docs/AGENTS.md Section 3.3 for token assignment."
+  echo ""
+  exit 1
+fi
+
+# ============================================================================
+# CHECK 3: Conventional commit format (type: description)
+# ============================================================================
+FIRST_LINE=$(echo "$COMMIT_MSG" | head -n 1)
+if ! echo "$FIRST_LINE" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+'; then
+  echo ""
+  echo "⚠️  WARNING: Non-conventional commit format detected"
+  echo ""
+  echo "   Expected: type(scope): description [AGENT-XXXX]"
+  echo "   Example:  fix(api): resolve auth issue [AGENT-0042]"
+  echo ""
+  echo "   Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+  echo ""
+  # Warning only, not blocking (for now)
+fi
+
+# ============================================================================
+# CHECK 4: Validate token is in proper format (4 digits)
+# ============================================================================
+TOKEN=$(echo "$COMMIT_MSG" | grep -oE '\[AGENT-[0-9]{4}\]' | head -1)
+if [ -n "$TOKEN" ]; then
+  TOKEN_NUM=$(echo "$TOKEN" | grep -oE '[0-9]{4}')
+  if [ "$TOKEN_NUM" = "0000" ]; then
+    echo ""
+    echo "❌ INVALID: Token [AGENT-0000] is reserved/invalid"
+    echo ""
+    echo "   Tokens start at [AGENT-0001]"
+    echo "   Query SSOT for next available number."
+    echo ""
+    exit 1
+  fi
+  echo "✅ Agent Token validated: $TOKEN"
+fi
+
+echo "✅ Commit message validation passed!"
