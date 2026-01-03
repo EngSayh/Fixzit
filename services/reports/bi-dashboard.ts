@@ -546,7 +546,7 @@ export async function getFinanceKPIs(
       {
         $group: {
           _id: "$paymentType",
-          total: { $sum: { $toDouble: "$amount" } }, // Decimal128 to number
+          total: { $sum: "$amount" },
         },
       },
     ];
