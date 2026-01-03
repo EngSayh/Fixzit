@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RotateCcw, AlertCircle, CheckCircle2, Palette } from "@/components/ui/icons";
 import { SaveButton } from "@/components/ui/action-button";
 import { useColorTheme, DEFAULT_THEME, ThemeColors } from "@/providers/ThemeProvider";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * Color input component with label and preview
@@ -53,7 +54,7 @@ function ColorField({
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="#000000"
+          placeholder={BRAND_COLORS.primary}
           className="flex-1 font-mono"
           pattern="^#[0-9A-Fa-f]{6}$"
         />

@@ -95,7 +95,7 @@ export function BrandingSettingsForm() {
 
     // Validate hex color
     if (!/^#[0-9A-Fa-f]{6}$/.test(formData.brandColor)) {
-      throw new Error("Brand color must be a valid hex code (e.g., #25935F)");
+      throw new Error(`Brand color must be a valid hex code (e.g., ${BRAND_COLORS.primary})`);
     }
 
     const response = await fetch("/api/superadmin/branding", {
