@@ -1698,12 +1698,12 @@ async function calculateFirstTimeFixRate(
  * BI-KPI-004: Calculate Training Hours per Employee
  * Returns average training hours for the given period.
  * 
- * TODO: [BI-DATA-004] PR #642 review flagged:
- * - Collection "training_records" may not exist
- * - Actual model: TrainingSession in trainingsessions collection
- * - Fields: orgId (not org_id), startDate/endDate (not completed_at), 
- *   participants.employeeId (not employee_id), durationHours (not duration_hours)
- * - Requires data model alignment before production use
+ * FIXED [BI-DATA-004]: Corrected schema alignment:
+ * - Collection: training_records → trainingsessions
+ * - Field: org_id → orgId (ObjectId)
+ * - Field: completed_at → endDate
+ * - Calculate duration from startDate/endDate (no durationHours field exists)
+ * - Count unique employees from participants array
  */
 async function calculateTrainingHours(
   db: Awaited<ReturnType<typeof getDatabase>>,
@@ -1713,25 +1713,63 @@ async function calculateTrainingHours(
   const pipeline = [
     {
       $match: {
-        org_id: orgId,
-        completed_at: { $gte: dateRange.start, $lte: dateRange.end },
+        orgId: new ObjectId(orgId),
+        endDate: { $gte: dateRange.start, $lte: dateRange.end },
+      },
+    },
+    {
+      $project: {
+        // Calculate duration in hours from startDate to endDate
+        durationHours: {
+          $divide: [
+            { $subtract: ["$endDate", "$startDate"] },
+            1000 * 60 * 60, // Convert ms to hours
+          ],
+        },
+        // Extract unique employee IDs from participants
+        participantIds: {
+          $map: {
+            input: { $ifNull: ["$participants", []] },
+            as: "p",
+            in: "$$p.employeeId",
+          },
+        },
       },
     },
     {
       $group: {
         _id: null,
-        totalHours: { $sum: "$duration_hours" },
-        employeeCount: { $addToSet: "$employee_id" },
+        totalHours: { $sum: "$durationHours" },
+        allParticipants: { $push: "$participantIds" },
+      },
+    },
+    {
+      $project: {
+        totalHours: 1,
+        // Flatten and deduplicate participant IDs
+        uniqueEmployees: {
+          $size: {
+            $setUnion: {
+              $reduce: {
+                input: "$allParticipants",
+                initialValue: [],
+                in: { $concatArrays: ["$$value", "$$this"] },
+              },
+            },
+          },
+        },
       },
     },
   ];
-  
-  const result = await db.collection("training_records")
-    .aggregate(pipeline).toArray();
-  
+
+  const result = await db
+    .collection("trainingsessions")
+    .aggregate(pipeline)
+    .toArray();
+
   const totalHours = result[0]?.totalHours || 0;
-  const employeeCount = result[0]?.employeeCount?.length || 0;
-  
+  const employeeCount = result[0]?.uniqueEmployees || 0;
+
   return employeeCount > 0 ? totalHours / employeeCount : 0;
 }
 

@@ -159,6 +159,7 @@ const DEFAULT_FM_SERVICES = [
 
 async function seedDefaultServices(): Promise<void> {
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide catalog services
     const existingCount = await FMService.countDocuments();
     if (existingCount > 0) return;
 
@@ -282,6 +283,7 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide catalog services
     const service = await FMService.create({
       ...validation.data,
       viewCount: 0,
