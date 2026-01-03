@@ -141,6 +141,7 @@ const DEFAULT_INTEGRATIONS = [
 
 async function seedDefaultIntegrations(): Promise<void> {
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide integration seeding
     const existingCount = await Integration.countDocuments({ isSystem: true });
     if (existingCount > 0) return;
 
@@ -261,6 +262,7 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Check for duplicate type+provider
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Existence check only; SUPER_ADMIN: Platform-wide
     const existing = await Integration.findOne({
       type: validation.data.type,
       provider: validation.data.provider,
@@ -272,6 +274,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide integration
     const integration = await Integration.create({
       ...validation.data,
       isSystem: false,
