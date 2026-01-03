@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-03T21:00:00+03:00
+  Last-Sync: 2026-01-04T14:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,70 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 14:00 (Asia/Riyadh) — BI Schema Fix + Scan Verification [AGENT-0006]
+
+**Agent Token:** [AGENT-0006]  
+**Context:** Fixed final BI schema mismatch + verified remaining scan items as FALSE POSITIVES
+
+---
+
+#### ✅ BI-DATA-003: First Time Fix Rate Schema Alignment
+
+**File:** `services/reports/bi-dashboard.ts` (line 1644)
+
+**Problem:** Function `calculateFirstTimeFixRate()` referenced non-existent WorkOrder schema fields:
+- `resolution_attempts` - NOT in schema
+- `visit_count` - NOT in schema
+
+**Solution:** Updated query to use actual WorkOrder.ts fields:
+- `assignment.reassignmentHistory` array length (0 = first assignment)
+- `statusHistory` array length (≤3 = direct path to completion)
+- Fixed collection name: `work_orders` → `workorders`
+- Fixed status filter: `"completed"` → `["COMPLETED", "VERIFIED", "CLOSED"]`
+
+**Result:** Query now aligns with actual schema. TypeCheck passes.
+
+---
+
+#### ✅ SCAN VERIFICATION: Runtime Placeholders (5 prod items)
+
+**Verification Result:** ALL 5 ITEMS ARE FALSE POSITIVES
+
+| File | Line | Finding | Verdict |
+|------|------|---------|---------|
+| `lib/ats/ics-generator.ts` | 151 | TBD placeholder | ✅ Already fixed by AGENT-0003 |
+| `app/(fm)/fm/hr/recruitment/page.tsx` | 266 | "TBD" | ✅ i18n fallback: `t("hr.ats.jobs.location.unspecified", "TBD")` |
+| `app/(fm)/fm/marketplace/listings/new/page.tsx` | 373 | "Category TBD" | ✅ i18n fallback |
+| `app/(fm)/fm/properties/inspections/page.tsx` | 113 | "TBD" | ✅ i18n fallback: `auto("TBD", "queue.tbd")` |
+| `app/api/files/resumes/[file]/route.ts` | 167 | "changeme" | ✅ Security code (weak password detection set) |
+
+---
+
+#### ✅ DEPRECATED MODEL: Employee.ts PII
+
+**File:** `server/models/Employee.ts` (line 38)
+
+**Finding:** Model is already marked as `@deprecated` with clear migration path:
+```typescript
+/** @deprecated Use Employee from hr.models.ts instead */
+```
+
+The PII encryption is handled in the canonical `hr.models.ts` model.
+
+**Action:** No fix needed - documentation is correct.
+
+---
+
+#### ✅ 501 STUBS VERIFICATION
+
+**Finding:** All 501 responses are CORRECT usage patterns:
+1. **S3 Not Configured** (`assertS3Configured()`) - Feature flag for missing cloud config
+2. **PDF/Excel exports** - Legitimate future feature stubs
+
+These are not bugs - they are proper HTTP 501 "Not Implemented" responses for optional features.
 
 ---
 

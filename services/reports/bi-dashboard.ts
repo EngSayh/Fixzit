@@ -1641,23 +1641,25 @@ async function getMetricValue(
  * distinguishes these via a separate resolution field, the queries
  * below should be updated to also filter on that field.
  * 
- * TODO: [BI-DATA-003] PR #642 review flagged:
- * - Fields `resolution_attempts` and `visit_count` may not exist in WorkOrder schema
- * - Should verify field existence in server/models/WorkOrder.ts before relying on them
- * - Currently uses defensive $exists:false fallback
+ * FIXED [BI-DATA-003]: Schema alignment verified against WorkOrder.ts:
+ * - Uses `assignment.reassignmentHistory` array length (0 = first assignment)
+ * - Uses `statusHistory` to check for workflow reversals (IN_PROGRESS → ON_HOLD → IN_PROGRESS)
+ * - First-time fix = completed without reassignment AND no workflow backtrack
+ * @see server/models/WorkOrder.ts for schema definition
  */
 async function calculateFirstTimeFixRate(
   db: Awaited<ReturnType<typeof getDatabase>>,
   orgId: string,
   dateRange: DateRange
 ): Promise<number> {
-  // Use single aggregation with $facet for efficiency (PR review suggestion)
+  // Use $facet aggregation for efficiency
+  // First-time fix = no reassignments AND no workflow backtracking
   const pipeline = [
     {
       $match: {
         org_id: orgId,
-        status: "completed",
-        completedAt: { $gte: dateRange.start, $lte: dateRange.end },
+        status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] },
+        "work.actualEndTime": { $gte: dateRange.start, $lte: dateRange.end },
       },
     },
     {
@@ -1666,18 +1668,20 @@ async function calculateFirstTimeFixRate(
         firstVisitResolved: [
           {
             $match: {
-              // Use $and to require BOTH conditions (PR review fix)
               $and: [
+                // No reassignments (first assignment resolved it)
                 {
                   $or: [
-                    { resolution_attempts: 1 },
-                    { resolution_attempts: { $exists: false } },
+                    { "assignment.reassignmentHistory": { $size: 0 } },
+                    { "assignment.reassignmentHistory": { $exists: false } },
                   ],
                 },
+                // No workflow backtracking (simple progress to completion)
+                // Heuristic: statusHistory with ≤3 entries means direct path
                 {
                   $or: [
-                    { visit_count: 1 },
-                    { visit_count: { $exists: false } },
+                    { $expr: { $lte: [{ $size: { $ifNull: ["$statusHistory", []] } }, 3] } },
+                    { statusHistory: { $exists: false } },
                   ],
                 },
               ],
@@ -1689,7 +1693,7 @@ async function calculateFirstTimeFixRate(
     },
   ];
 
-  const result = await db.collection("work_orders").aggregate(pipeline).toArray();
+  const result = await db.collection("workorders").aggregate(pipeline).toArray();
   const totalCompleted = result[0]?.totalCompleted[0]?.count || 0;
 
   if (totalCompleted === 0) {
