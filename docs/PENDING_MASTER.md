@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-03T15:30:00+03:00
+  Last-Sync: 2026-01-03T20:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,72 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-03 20:00 (Asia/Riyadh) — P1 Tasks: Local CI + PR Comment Resolution [AGENT-0001]
+
+**Agent Token:** [AGENT-0001]  
+**Context:** Local CI verification, fixed 5 failing tests, addressed PR review comments for PRs #650, #647, #640
+
+#### ✅ TEST-FIX-001: Fixed 5 Failing Server Tests
+
+**Problem:** 5 tests failing in server project:
+- `tests/api/ai/analytics.route.test.ts` (2 tests) - returning 500 instead of 401/200
+- `tests/unit/api/issues/issues-stats.route.test.ts` (3 tests) - returning 500 instead of 200
+
+**Root Cause Analysis:**
+| Test File | Root Cause |
+|-----------|------------|
+| `analytics.route.test.ts` | Missing mock for `@/lib/superadmin/auth` - route calls `getSuperadminSession()` but test didn't mock it |
+| `issues-stats.route.test.ts` | Missing mongoose mock + empty request object - route uses `mongoose.isValidObjectId()` and `new URL(request.url)` |
+
+**Solution:**
+| File | Change |
+|------|--------|
+| `tests/api/ai/analytics.route.test.ts` | Added `vi.mock("@/lib/superadmin/auth")` returning null session |
+| `tests/unit/api/issues/issues-stats.route.test.ts` | Added mongoose mock (isValidObjectId, Types.ObjectId) + added `url` property to request objects |
+
+**Commit:** `04458705e` pushed to main
+
+**Verification:** All 3265 tests now pass (436 test files)
+
+---
+
+#### ✅ PR-650-REVIEW: Security Fixes for Superadmin Diag Endpoint
+
+**PR:** #650 (`fix/superadmin-vercel-diag`)  
+**Status:** All review comments addressed
+
+| Comment | Issue | Fix Applied |
+|---------|-------|-------------|
+| Timing Attack | `diagKey !== expectedKey` vulnerable to timing attacks | Added `safeCompare()` using `crypto.timingSafeEqual()` |
+| Missing Audit Log | No logging of endpoint access attempts | Added `logger.info/warn` for all access (success + failure) |
+| Missing Try-Catch | No error handling wrapper | Wrapped entire handler in try-catch, returns 500 on error |
+| JSDoc Coverage | 0% docstring coverage | Added comprehensive JSDoc for GET handler with @security tag |
+
+**Commit:** `456af2aae` pushed to `fix/superadmin-vercel-diag`
+
+---
+
+#### ✅ PR-647-REVIEW: Input Validation Fixes for BI Dashboard
+
+**PR:** #647 (`fix/bi-data-schema-mismatch`)  
+**Status:** All review comments addressed
+
+| Comment | Issue | Fix Applied |
+|---------|-------|-------------|
+| Unvalidated orgId | `new ObjectId(orgId)` without validation | Added `ObjectId.isValid(orgId)` check before conversion |
+| Missing $toDouble | Expense pipeline inconsistent with cash flow pipeline | Added `$toDouble` to expense pipeline `$sum` operator |
+
+**Commit:** `5f79b6546` pushed to `fix/bi-data-schema-mismatch`
+
+---
+
+#### ℹ️ PR-640-REVIEW: No Action Required
+
+**PR:** #640 (`fix/p1-compliance-fixes`)  
+**Status:** All checks passed - no actionable review comments
 
 ---
 
