@@ -5,7 +5,8 @@ import { SouqRMA } from '@/server/models/souq/RMA';
 
 type FinanceReviewJob = { rmaId: string; orgId: string };
 
-  process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+// Redis URL for the worker is handled by the queue library
+const _redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
 
 const QUEUE_NAME = process.env.REFUNDS_QUEUE_NAME || 'souq:refunds';
 

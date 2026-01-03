@@ -32,6 +32,7 @@ import {
   CheckSquare,
   Square,
   MinusSquare,
+  KeyRound,
 } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { RBAC_MODULES, RBAC_ROLE_PERMISSIONS, type ModulePermissions } from "@/config/rbac.matrix";
+import { type UserRoleType } from "@/types/user";
 
 // Types
 interface UserData {
@@ -146,6 +149,7 @@ export default function SuperadminUsersPage() {
   // Dialog states
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [editStatusDialogOpen, setEditStatusDialogOpen] = useState(false);
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
@@ -677,6 +681,17 @@ export default function SuperadminUsersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
+                                setSelectedUser(user);
+                                setPermissionsDialogOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <KeyRound className="h-4 w-4 me-2" />
+                              View Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-input" />
+                            <DropdownMenuItem
+                              onClick={() => {
                                 setSingleNotificationUserId(user._id);
                                 setNotificationDialogOpen(true);
                               }}
@@ -981,6 +996,107 @@ export default function SuperadminUsersPage() {
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Trash2 className="h-4 w-4 me-2" />}
               Delete Users
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Permissions Dialog */}
+      <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              {t("superadmin.users.permissions.title", "Module Permissions")}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUser && t("superadmin.users.permissions.description", `Permissions for ${getUserName(selectedUser)} (${getUserRole(selectedUser)})`)}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (() => {
+            const role = (selectedUser.role || selectedUser.professional?.role || "STAFF") as UserRoleType;
+            const permissions = RBAC_ROLE_PERMISSIONS[role] || {};
+            
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                  <Shield className="h-5 w-5 text-blue-400" />
+                  <span className="font-medium">{t("superadmin.users.permissions.role", "Role")}: </span>
+                  <Badge variant="outline">{role}</Badge>
+                </div>
+                
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/50 border-b border-border">
+                        <th className="text-start px-4 py-2 font-medium text-muted-foreground">{t("superadmin.users.permissions.module", "Module")}</th>
+                        <th className="text-center px-2 py-2 font-medium text-muted-foreground">{t("superadmin.users.permissions.view", "View")}</th>
+                        <th className="text-center px-2 py-2 font-medium text-muted-foreground">{t("superadmin.users.permissions.create", "Create")}</th>
+                        <th className="text-center px-2 py-2 font-medium text-muted-foreground">{t("superadmin.users.permissions.edit", "Edit")}</th>
+                        <th className="text-center px-2 py-2 font-medium text-muted-foreground">{t("superadmin.users.permissions.delete", "Delete")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {RBAC_MODULES.map((module) => {
+                        const modulePerms: ModulePermissions = permissions[module.id] || { view: false, create: false, edit: false, delete: false };
+                        return (
+                          <tr key={module.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                            <td className="px-4 py-2">
+                              <div>
+                                <p className="font-medium">{module.label}</p>
+                                <p className="text-xs text-muted-foreground">{module.description}</p>
+                              </div>
+                            </td>
+                            <td className="text-center px-2 py-2">
+                              {modulePerms.view ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                              )}
+                            </td>
+                            <td className="text-center px-2 py-2">
+                              {modulePerms.create ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                              )}
+                            </td>
+                            <td className="text-center px-2 py-2">
+                              {modulePerms.edit ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                              )}
+                            </td>
+                            <td className="text-center px-2 py-2">
+                              {modulePerms.delete ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  {t("superadmin.users.permissions.note", "Permissions are determined by the user's role. Contact an administrator to change role assignments.")}
+                </p>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPermissionsDialogOpen(false)}
+              className="border-input"
+              aria-label={t("common.close", "Close permissions dialog")}
+              title={t("common.close", "Close permissions dialog")}
+            >
+              {t("common.close", "Close")}
             </Button>
           </DialogFooter>
         </DialogContent>

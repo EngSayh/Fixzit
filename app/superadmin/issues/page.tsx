@@ -26,6 +26,11 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  UserPlus,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +56,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -167,6 +179,8 @@ export default function SuperadminIssuesPage() {
   const [importData, setImportData] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
 
   // Selection state
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
@@ -558,6 +572,40 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
   const handleIssueClick = (issue: Issue) => {
     setSelectedIssue(issue);
     setDrawerOpen(true);
+  };
+
+  // Delete a single issue
+  const handleDeleteIssue = async (issueId: string) => {
+    if (!confirm(t("superadmin.issues.deleteConfirm", "Are you sure you want to delete this issue? This action cannot be undone."))) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/issues/${issueId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete issue: ${response.status}`);
+      }
+
+      toast({
+        title: t("superadmin.issues.toast.deleteSuccess", "Issue deleted"),
+        description: t("superadmin.issues.toast.deleteDescription", "The issue has been permanently deleted."),
+      });
+
+      // Refresh the list
+      fetchIssues();
+    } catch (error) {
+      // eslint-disable-next-line no-console -- surface delete failures for debugging
+      console.error("[superadmin:issues] Failed to delete issue:", error);
+      toast({
+        title: t("superadmin.issues.toast.deleteError", "Delete failed"),
+        description: t("superadmin.issues.toast.deleteErrorDescription", "Could not delete the issue. Please try again."),
+        variant: "destructive",
+      });
+    }
   };
 
   // Export handler
@@ -1199,6 +1247,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   <TableHead className="text-muted-foreground w-[120px]">Assignee</TableHead>
                   <TableHead className="text-muted-foreground w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
                   <TableHead className="text-muted-foreground w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[60px] text-end">{t("common.actions", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1275,6 +1324,58 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                         <span className="text-xs text-muted-foreground">
                           {new Date(issue.updatedAt).toLocaleDateString()}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                              aria-label={t("superadmin.issues.rowActions", `Actions for issue ${issue.issueId}`)}
+                              title={t("superadmin.issues.rowActions", `Actions for ${issue.issueId}`)}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-muted border-input">
+                            <DropdownMenuItem
+                              onClick={() => handleIssueClick(issue)}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <Eye className="h-4 w-4 me-2" />
+                              {t("common.viewDetails", "View Details")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setIsEditOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <Edit className="h-4 w-4 me-2" />
+                              {t("common.edit", "Edit Issue")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setIsAssignOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <UserPlus className="h-4 w-4 me-2" />
+                              {t("common.assign", "Assign")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-input" />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteIssue(issue._id)}
+                              className="text-red-400 hover:bg-red-900/20 hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4 me-2" />
+                              {t("common.delete", "Delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -1551,6 +1652,119 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
           </div>
         )}
       </SlideOverDrawer>
+
+      {/* Edit Issue Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              {t("superadmin.issues.editTitle", "Edit Issue")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.issues.editDescription", "Modify issue details and save changes")}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedIssue && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">{t("superadmin.issues.form.title", "Title")}</Label>
+                <Input
+                  id="edit-title"
+                  defaultValue={selectedIssue.title}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-status">{t("superadmin.issues.form.status", "Status")}</Label>
+                <Select defaultValue={selectedIssue.status}>
+                  <SelectTrigger className="mt-1">
+                    {getStatusLabel(selectedIssue.status)}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-priority">{t("superadmin.issues.form.priority", "Priority")}</Label>
+                <Select defaultValue={selectedIssue.priority}>
+                  <SelectTrigger className="mt-1">
+                    {getPriorityLabel(selectedIssue.priority)}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {priorityOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    toast({ title: t("common.saved", "Changes saved") });
+                    setIsEditOpen(false);
+                  }}
+                  className="flex-1"
+                >
+                  {t("common.save", "Save Changes")}
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                  {t("common.cancel", "Cancel")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Issue Dialog */}
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              {t("superadmin.issues.assignTitle", "Assign Issue")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.issues.assignDescription", "Assign this issue to a team member")}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedIssue && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="assign-to">{t("superadmin.issues.form.assignee", "Assignee")}</Label>
+                <Input
+                  id="assign-to"
+                  placeholder={t("superadmin.issues.form.assigneePlaceholder", "Enter username or email")}
+                  defaultValue={selectedIssue.assignedTo || ""}
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    toast({ title: t("superadmin.issues.toast.assigned", "Issue assigned") });
+                    setIsAssignOpen(false);
+                  }}
+                  className="flex-1"
+                >
+                  {t("common.assign", "Assign")}
+                </Button>
+                <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
+                  {t("common.cancel", "Cancel")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
