@@ -70,13 +70,19 @@ export async function GET(request: NextRequest) {
     
     const db = await getDatabase();
     
+    // Sanitize input to prevent ReDoS attacks
+    const sanitizeForRegex = (input: string): string => {
+      // Escape special regex characters and limit length
+      return input.slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    };
+    
     // Query vendors collection for provider data
     const vendorFilter: Record<string, unknown> = { orgId };
     if (category) {
-      vendorFilter.category = { $regex: new RegExp(category, "i") };
+      vendorFilter.category = { $regex: new RegExp(sanitizeForRegex(category), "i") };
     }
     if (city) {
-      vendorFilter["coverage"] = { $regex: new RegExp(city, "i") };
+      vendorFilter["coverage"] = { $regex: new RegExp(sanitizeForRegex(city), "i") };
     }
     
     // Get vendor statistics
@@ -120,7 +126,7 @@ export async function GET(request: NextRequest) {
       .toArray();
     
     // Get active bids from fm_bids collection
-    const activeBids = await db.collection("fm_bids").aggregate([
+    const activeBids = await db.collection(COLLECTIONS.FM_BIDS).aggregate([
       { $match: { orgId, status: { $in: ["submitted", "pending", "accepting_bids", "urgent"] } } },
       {
         $group: {
@@ -134,18 +140,18 @@ export async function GET(request: NextRequest) {
     ]).toArray();
     
     // Get total active bids count
-    const totalActiveBids = await db.collection("fm_bids").countDocuments({
+    const totalActiveBids = await db.collection(COLLECTIONS.FM_BIDS).countDocuments({
       orgId,
       status: { $in: ["submitted", "pending", "accepting_bids", "urgent"] }
     });
     
-    const pendingReviewBids = await db.collection("fm_bids").countDocuments({
+    const pendingReviewBids = await db.collection(COLLECTIONS.FM_BIDS).countDocuments({
       orgId,
       status: "pending"
     });
     
     // Get SLA violation count
-    const slaViolations = await db.collection("fm_sla_violations").countDocuments({
+    const slaViolations = await db.collection(COLLECTIONS.FM_SLA_VIOLATIONS).countDocuments({
       orgId,
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
     });

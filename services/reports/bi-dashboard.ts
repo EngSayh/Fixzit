@@ -17,6 +17,8 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { PaymentType, PaymentStatus } from "@/server/models/finance/Payment";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // ============================================================================
 // Error Logging Helper
@@ -479,59 +481,49 @@ export async function getFinanceKPIs(
       throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
     }
     const previousRange = getPreviousPeriodRange(timeRange);
+    const orgObjectId = new ObjectId(orgId);
     
-    // Total revenue
-    const revenuePipeline = [
+    // BI-DATA-003: Revenue calculation using RECEIVED payments
+    // This aligns with cash flow calculation for consistency
+    // Revenue = payments received from customers/tenants
+    const createRevenuePipeline = (range: DateRange) => [
       {
         $match: {
-          org_id: orgId,
-          date: { $gte: dateRange.start, $lte: dateRange.end },
-          type: "income",
-          status: "completed",
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ];
-    
-    const prevRevenuePipeline = [
-      {
-        $match: {
-          org_id: orgId,
-          date: { $gte: previousRange.start, $lte: previousRange.end },
-          type: "income",
-          status: "completed",
+          orgId: orgObjectId,
+          paymentDate: { $gte: range.start, $lte: range.end },
+          paymentType: PaymentType.RECEIVED,
+          status: PaymentStatus.CLEARED,
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ];
     
     const [revenueResult, prevRevenueResult] = await Promise.all([
-      db.collection("transactions").aggregate(revenuePipeline).toArray(),
-      db.collection("transactions").aggregate(prevRevenuePipeline).toArray(),
+      db.collection(COLLECTIONS.FINANCE_PAYMENTS).aggregate(createRevenuePipeline(dateRange)).toArray(),
+      db.collection(COLLECTIONS.FINANCE_PAYMENTS).aggregate(createRevenuePipeline(previousRange)).toArray(),
     ]);
     
     const totalRevenueValue = revenueResult[0]?.total || 0;
     const prevRevenueValue = prevRevenueResult[0]?.total || 0;
     
-    // Outstanding receivables
+    // Outstanding receivables (invoices pending payment)
     const receivablesPipeline = [
       {
         $match: {
-          org_id: orgId,
-          status: { $in: ["pending", "overdue"] },
-          type: "income",
+          orgId: orgObjectId,
+          status: { $in: ["pending", "overdue", "PENDING", "OVERDUE"] },
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ];
     
-    const receivablesResult = await db.collection("invoices")
+    const receivablesResult = await db.collection(COLLECTIONS.INVOICES)
       .aggregate(receivablesPipeline).toArray();
     
     // Unit count for per-unit calculation
-    const unitCount = await db.collection("units").countDocuments({
-      org_id: orgId,
-      status: "active",
+    const unitCount = await db.collection(COLLECTIONS.UNITS).countDocuments({
+      orgId: orgObjectId,
+      status: { $in: ["active", "ACTIVE"] },
     });
     
     // BI-KPI-001: Real cash flow calculation (inflows - outflows)
@@ -543,15 +535,15 @@ export async function getFinanceKPIs(
     const createCashFlowPipeline = (range: DateRange) => [
       {
         $match: {
-          orgId: new ObjectId(orgId),
+          orgId: orgObjectId,
           paymentDate: { $gte: range.start, $lte: range.end },
-          status: "CLEARED",
+          status: PaymentStatus.CLEARED,
         },
       },
       {
         $group: {
           _id: "$paymentType",
-          total: { $sum: { $toDouble: "$amount" } }, // Decimal128 to number
+          total: { $sum: "$amount" },
         },
       },
     ];
@@ -559,17 +551,17 @@ export async function getFinanceKPIs(
     const prevCashFlowPipeline = createCashFlowPipeline(previousRange);
     
     const [cashFlowResult, prevCashFlowResult] = await Promise.all([
-      db.collection("finance_payments").aggregate(cashFlowPipeline).toArray(),
-      db.collection("finance_payments").aggregate(prevCashFlowPipeline).toArray(),
+      db.collection(COLLECTIONS.FINANCE_PAYMENTS).aggregate(cashFlowPipeline).toArray(),
+      db.collection(COLLECTIONS.FINANCE_PAYMENTS).aggregate(prevCashFlowPipeline).toArray(),
     ]);
     
     // RECEIVED = inflows, MADE = outflows
-    const inflows = cashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
-    const outflows = cashFlowResult.find(r => r._id === "MADE")?.total || 0;
+    const inflows = cashFlowResult.find(r => r._id === PaymentType.RECEIVED)?.total || 0;
+    const outflows = cashFlowResult.find(r => r._id === PaymentType.MADE)?.total || 0;
     const cashFlowValue = inflows - outflows;
     
-    const prevInflows = prevCashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
-    const prevOutflows = prevCashFlowResult.find(r => r._id === "MADE")?.total || 0;
+    const prevInflows = prevCashFlowResult.find(r => r._id === PaymentType.RECEIVED)?.total || 0;
+    const prevOutflows = prevCashFlowResult.find(r => r._id === PaymentType.MADE)?.total || 0;
     const prevCashFlowValue = prevInflows - prevOutflows;
     
     // BI-KPI-002: Real expense ratio calculation
@@ -581,20 +573,20 @@ export async function getFinanceKPIs(
     const createExpensePipeline = (range: DateRange) => [
       {
         $match: {
-          orgId: new ObjectId(orgId),
+          orgId: orgObjectId,
           transactionDate: { $gte: range.start, $lte: range.end },
           type: "EXPENSE",
           status: { $in: ["POSTED", "PAID"] },
         },
       },
-      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }, // Decimal128 to number
+      { $group: { _id: null, total: { $sum: "$amount" } } },
     ];
     const expensePipeline = createExpensePipeline(dateRange);
     const prevExpensePipeline = createExpensePipeline(previousRange);
     
     const [expenseResult, prevExpenseResult] = await Promise.all([
-      db.collection("fm_financial_transactions").aggregate(expensePipeline).toArray(),
-      db.collection("fm_financial_transactions").aggregate(prevExpensePipeline).toArray(),
+      db.collection(COLLECTIONS.FM_FINANCIAL_TRANSACTIONS).aggregate(expensePipeline).toArray(),
+      db.collection(COLLECTIONS.FM_FINANCIAL_TRANSACTIONS).aggregate(prevExpensePipeline).toArray(),
     ]);
     
     const totalExpenses = expenseResult[0]?.total || 0;
