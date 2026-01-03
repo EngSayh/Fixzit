@@ -6,14 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { decryptProviderToken, buildProviderCandidates, checkOrgRateLimit } from "@/lib/queues/sms-queue";
-import { getRedisClient } from "@/lib/redis";
 import type { ISMSSettings } from "@/server/models/SMSSettings";
-
-// Mock bullmq to avoid resolution errors
-vi.mock("bullmq", () => ({
-  Queue: vi.fn(),
-  Worker: vi.fn(),
-}), { virtual: true });
 
 // Mock encryption to make decryptProviderToken deterministic
 vi.mock("@/lib/security/encryption", () => ({
@@ -21,11 +14,6 @@ vi.mock("@/lib/security/encryption", () => ({
     if (!value) return null;
     return value.startsWith("v1:") ? value.replace("v1:", "decrypted:") : value;
   }),
-}));
-
-// Mock Redis client for rate limiter tests
-vi.mock("@/lib/redis", () => ({
-  getRedisClient: vi.fn(() => null),
 }));
 
 vi.mock("@/server/models/SMSSettings", () => ({
@@ -95,11 +83,6 @@ describe("SMS Queue - Provider utilities", () => {
 });
 
 describe("SMS Queue - Rate limiter", () => {
-  beforeEach(() => {
-    // Reset to default null (Redis not configured)
-    (getRedisClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
-  });
-
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -109,28 +92,18 @@ describe("SMS Queue - Rate limiter", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("allows when Redis is not configured", async () => {
-    // Default mock returns null
+  it("allows when under limit", async () => {
     const result = await checkOrgRateLimit("org1");
     expect(result.ok).toBe(true);
   });
 
   it("enforces when count exceeds max", async () => {
-    const mockRedis = {
-      pttl: vi.fn().mockResolvedValue(5000),
-      incr: vi.fn().mockResolvedValue(31), // max is 30
-      pexpire: vi.fn().mockResolvedValue(undefined),
-    };
-    (getRedisClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRedis);
+    let lastResult: { ok: boolean; ttlMs?: number } | undefined;
+    for (let i = 0; i < 31; i += 1) {
+      lastResult = await checkOrgRateLimit("org2");
+    }
 
-    const result = await checkOrgRateLimit("org2");
-    
-    // Verify Redis was called
-    expect(mockRedis.pttl).toHaveBeenCalled();
-    expect(mockRedis.incr).toHaveBeenCalled();
-    
-    // Rate limit should be enforced (31 > 30)
-    expect(result.ok).toBe(false);
-    expect((result as { ok: false; ttlMs: number }).ttlMs).toBeGreaterThan(0);
+    expect(lastResult?.ok).toBe(false);
+    expect((lastResult as { ok: false; ttlMs: number }).ttlMs).toBeGreaterThan(0);
   });
 });

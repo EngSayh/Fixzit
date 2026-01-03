@@ -17,7 +17,7 @@ lib/
 ├── rbac.ts              # Role-based access control
 │
 ├── mongo.ts             # MongoDB connection & utilities
-├── redis.ts             # Redis client & caching
+├── cache.ts             # In-memory cache helpers
 ├── database.ts          # Database abstraction layer
 │
 ├── logger.ts            # Structured logging (Pino-based)
@@ -35,7 +35,7 @@ lib/
 ├── middleware/          # Reusable middleware
 ├── monitoring/          # Metrics & alerting
 ├── payments/            # Payment processing
-├── queues/              # BullMQ job queues
+├── queues/              # In-memory job queues
 ├── reports/             # Report generation
 ├── routes/              # Route utilities
 ├── schemas/             # Zod validation schemas
@@ -108,21 +108,18 @@ logger.error('Operation failed', { error, correlationId });
 
 ### Cache (`cache/`)
 
-Multi-tier caching with Redis:
+In-memory caching with TTL:
 
 ```typescript
-import { cache } from '@/lib/cache';
+import { getCached, CacheTTL } from '@/lib/cache';
 
-// Set with TTL
-await cache.set('key', value, { ttl: 3600 });
-
-// Get with fallback
-const data = await cache.getOrSet('key', fetchFunction);
+// Get with fallback + TTL
+const data = await getCached('key', CacheTTL.ONE_HOUR, fetchFunction);
 ```
 
 ### Queues (`queues/`)
 
-BullMQ-based job queues:
+In-memory job queues:
 
 ```typescript
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
@@ -245,7 +242,6 @@ Key environment variables used by lib modules:
 |----------|--------|-------------|
 | `JWT_SECRET` | auth.ts | JWT signing secret |
 | `MONGODB_URI` | mongo.ts | MongoDB connection string |
-| `REDIS_URL` | redis.ts | Redis connection URL |
 | `AWS_REGION` | secrets.ts | AWS region for Secrets Manager |
 | `LOG_LEVEL` | logger.ts | Logging level (debug/info/warn/error) |
 
@@ -326,3 +322,4 @@ try {
 - [CSRF Token Flow](../docs/archived/CSRF_TOKEN_FLOW.md)
 - [Security Guidelines](../docs/guides/SECURITY.md)
 - [Architecture Overview](../docs/architecture/ARCHITECTURE.md)
+

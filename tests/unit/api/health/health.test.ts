@@ -20,10 +20,6 @@ vi.mock("@/lib/mongo", () => ({
   }),
 }));
 
-vi.mock("@/lib/redis", () => ({
-  getRedisClient: vi.fn(() => null),
-}));
-
 vi.mock("@/lib/resilience", () => ({
   withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
     const controller = new AbortController();
@@ -77,7 +73,7 @@ describe("Health Endpoints", () => {
   });
 
   describe("GET /api/health/ready", () => {
-    it("returns 200 when MongoDB is healthy and Redis not configured", async () => {
+    it("returns 200 when MongoDB is healthy", async () => {
       vi.resetModules();
       
       vi.doMock("@/lib/mongo", () => ({
@@ -88,10 +84,6 @@ describe("Health Endpoints", () => {
           ok: true,
           latencyMs: 5,
         }),
-      }));
-
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => null),
       }));
 
       vi.doMock("@/lib/resilience", () => ({
@@ -117,7 +109,7 @@ describe("Health Endpoints", () => {
       expect(response.status).toBe(200);
       expect(json.ready).toBe(true);
       expect(json.checks.mongodb).toBe("ok");
-      expect(json.checks.redis).toBe("disabled");
+      expect(json.checks.sms).toBeDefined();
       expect(json.timestamp).toBeDefined();
     });
 
@@ -133,10 +125,6 @@ describe("Health Endpoints", () => {
           latencyMs: 3000,
           error: "Connection refused",
         }),
-      }));
-
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => null),
       }));
 
       vi.doMock("@/lib/resilience", () => ({
@@ -165,99 +153,5 @@ describe("Health Endpoints", () => {
       expect(json.timestamp).toBeDefined();
     });
 
-    it("returns 200 when Redis is configured but unavailable (Redis checks disabled)", async () => {
-      // NOTE: Redis is intentionally disabled in readiness checks - MongoDB is the only critical dependency
-      vi.resetModules();
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
-      
-      vi.doMock("@/lib/mongo", () => ({
-        db: Promise.resolve({
-          command: vi.fn().mockResolvedValue({ ok: 1 }),
-        }),
-        pingDatabase: vi.fn().mockResolvedValue({
-          ok: true,
-          latencyMs: 5,
-        }),
-      }));
-
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({
-          ping: vi.fn().mockRejectedValue(new Error("ECONNREFUSED")),
-        })),
-      }));
-
-      vi.doMock("@/lib/resilience", () => ({
-        withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
-          const controller = new AbortController();
-          return fn(controller.signal);
-        }),
-      }));
-
-      vi.doMock("@/lib/logger", () => ({
-        logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-      }));
-
-      vi.doMock("@/lib/middleware/rate-limit", () => ({
-        enforceRateLimit: vi.fn().mockReturnValue(null),
-        rateLimit: vi.fn().mockReturnValue(null),
-      }));
-
-      const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
-      const response = await getReadyFresh(createMockRequest());
-      const json = await response.json();
-
-      // Redis is disabled in readiness checks - MongoDB ok = ready
-      expect(response.status).toBe(200);
-      expect(json.ready).toBe(true);
-      expect(json.checks.mongodb).toBe("ok");
-      expect(json.checks.redis).toBe("disabled");
-    });
-
-    it("returns 200 when MongoDB is healthy (Redis checks disabled)", async () => {
-      // NOTE: Even with Redis configured, readiness only checks MongoDB
-      vi.resetModules();
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
-      
-      vi.doMock("@/lib/mongo", () => ({
-        db: Promise.resolve({
-          command: vi.fn().mockResolvedValue({ ok: 1 }),
-        }),
-        pingDatabase: vi.fn().mockResolvedValue({
-          ok: true,
-          latencyMs: 5,
-        }),
-      }));
-
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({
-          ping: vi.fn().mockResolvedValue("PONG"),
-        })),
-      }));
-
-      vi.doMock("@/lib/resilience", () => ({
-        withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
-          const controller = new AbortController();
-          return fn(controller.signal);
-        }),
-      }));
-
-      vi.doMock("@/lib/logger", () => ({
-        logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-      }));
-
-      vi.doMock("@/lib/middleware/rate-limit", () => ({
-        enforceRateLimit: vi.fn().mockReturnValue(null),
-        rateLimit: vi.fn().mockReturnValue(null),
-      }));
-
-      const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
-      const response = await getReadyFresh(createMockRequest());
-      const json = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(json.ready).toBe(true);
-      expect(json.checks.mongodb).toBe("ok");
-      expect(json.checks.redis).toBe("disabled"); // Redis is intentionally disabled
-    });
   });
 });

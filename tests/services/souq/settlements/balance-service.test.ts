@@ -163,7 +163,7 @@ vi.mock("@/lib/mongodb-unified", () => ({
   })),
 }));
 
-vi.mock("@/lib/redis", () => ({
+vi.mock("@/lib/cache", () => ({
   getCache: vi.fn(async () => null),
   setCache: vi.fn(async () => {}),
   invalidateCacheKey: vi.fn(async () => {}),
@@ -278,3 +278,4 @@ describe("SellerBalanceService.recordTransaction validation", () => {
     expect(balanceAfter.totalEarnings).toBe(60); // 100 - 40
   });
 });
+

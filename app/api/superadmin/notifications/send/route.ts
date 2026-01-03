@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
 
     // NOTE: Job queue integration tracked in INFRA-QUEUE-001
     // Current: Immediate delivery via SendGrid/Firebase
-    // Future: Async queue (BullMQ/Redis) for retry logic and rate limiting
+    // Future: Async queue for retry logic and rate limiting
     // When queue is configured, use:
     // try {
     //   await JobQueue.enqueue(\"notification:send\", { 

@@ -30,8 +30,8 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: () => mockRateLimitResponse,
 }));
 
-// Mock redis cache
-vi.mock("@/lib/redis", () => ({
+// Mock cache
+vi.mock("@/lib/cache", () => ({
   getCache: vi.fn().mockResolvedValue(null),
   setCache: vi.fn().mockResolvedValue(undefined),
   invalidateCache: vi.fn().mockResolvedValue(undefined),
@@ -271,3 +271,4 @@ describe("API /api/souq/catalog/products", () => {
     });
   });
 });
+

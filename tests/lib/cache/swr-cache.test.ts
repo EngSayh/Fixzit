@@ -9,16 +9,16 @@ import {
   resetSwrCacheMetrics,
 } from "@/lib/cache/swr-cache";
 
-// Mock Redis client
-const mockRedisClient = {
+// Mock cache client
+const mockCacheClient = {
   get: vi.fn(),
   setex: vi.fn(),
   del: vi.fn(),
   scanStream: vi.fn(),
 };
 
-vi.mock("@/lib/redis", () => ({
-  getRedisClient: () => mockRedisClient,
+vi.mock("@/lib/cache", () => ({
+  getCacheClient: () => mockCacheClient,
   CacheTTL: {
     FIVE_MINUTES: 300,
     FIFTEEN_MINUTES: 900,
@@ -58,8 +58,8 @@ describe("SwrCache", () => {
 
   describe("cache miss", () => {
     it("should fetch and cache on miss", async () => {
-      mockRedisClient.get.mockResolvedValue(null);
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(null);
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       const fetcher = vi.fn().mockResolvedValue({ id: 1, name: "Test" });
 
@@ -70,12 +70,12 @@ describe("SwrCache", () => {
       expect(result.stale).toBe(false);
       expect(result.revalidating).toBe(false);
       expect(fetcher).toHaveBeenCalledTimes(1);
-      expect(mockRedisClient.setex).toHaveBeenCalled();
+      expect(mockCacheClient.setex).toHaveBeenCalled();
     });
 
     it("should increment miss counter", async () => {
-      mockRedisClient.get.mockResolvedValue(null);
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(null);
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       await cache.get("item:1", async () => ({ id: 1 }));
 
@@ -94,7 +94,7 @@ describe("SwrCache", () => {
         maxAge: 300,
       };
 
-      mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
+      mockCacheClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
 
       const fetcher = vi.fn().mockResolvedValue({ id: 1, name: "Fresh" });
 
@@ -115,7 +115,7 @@ describe("SwrCache", () => {
         maxAge: 300,
       };
 
-      mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
+      mockCacheClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
 
       await cache.get("item:1", async () => ({ id: 1 }));
 
@@ -134,8 +134,8 @@ describe("SwrCache", () => {
         maxAge: 300,
       };
 
-      mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       const fetcher = vi.fn().mockResolvedValue({ id: 1, name: "Fresh" });
 
@@ -160,8 +160,8 @@ describe("SwrCache", () => {
         maxAge: 300,
       };
 
-      mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       await cache.get("item:1", async () => ({ id: 1 }));
 
@@ -179,8 +179,8 @@ describe("SwrCache", () => {
         maxAge: 300,
       };
 
-      mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(JSON.stringify(cachedEntry));
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       const fetcher = vi.fn().mockResolvedValue({ id: 1, name: "Fresh" });
 
@@ -194,11 +194,11 @@ describe("SwrCache", () => {
 
   describe("invalidation", () => {
     it("should invalidate a single key", async () => {
-      mockRedisClient.del.mockResolvedValue(1);
+      mockCacheClient.del.mockResolvedValue(1);
 
       await cache.invalidate("item:1");
 
-      expect(mockRedisClient.del).toHaveBeenCalledWith("swr:test:item:1");
+      expect(mockCacheClient.del).toHaveBeenCalledWith("swr:test:item:1");
     });
 
     it("should invalidate all keys in namespace", async () => {
@@ -208,13 +208,13 @@ describe("SwrCache", () => {
         },
       };
 
-      mockRedisClient.scanStream.mockReturnValue(mockStream);
-      mockRedisClient.del.mockResolvedValue(2);
+      mockCacheClient.scanStream.mockReturnValue(mockStream);
+      mockCacheClient.del.mockResolvedValue(2);
 
       await cache.invalidateAll();
 
-      expect(mockRedisClient.scanStream).toHaveBeenCalled();
-      expect(mockRedisClient.del).toHaveBeenCalledWith(
+      expect(mockCacheClient.scanStream).toHaveBeenCalled();
+      expect(mockCacheClient.del).toHaveBeenCalledWith(
         "swr:test:item:1",
         "swr:test:item:2"
       );
@@ -223,7 +223,7 @@ describe("SwrCache", () => {
 
   describe("error handling", () => {
     it("should fallback to direct fetch on cache error", async () => {
-      mockRedisClient.get.mockRejectedValue(new Error("Redis error"));
+      mockCacheClient.get.mockRejectedValue(new Error("Redis error"));
 
       const fetcher = vi.fn().mockResolvedValue({ id: 1, name: "Fallback" });
 
@@ -235,7 +235,7 @@ describe("SwrCache", () => {
     });
 
     it("should increment error counter on cache failure", async () => {
-      mockRedisClient.get.mockRejectedValue(new Error("Redis error"));
+      mockCacheClient.get.mockRejectedValue(new Error("Redis error"));
 
       await cache.get("item:1", async () => ({ id: 1 }));
 
@@ -246,8 +246,8 @@ describe("SwrCache", () => {
 
   describe("deduplication", () => {
     it("should deduplicate concurrent requests for same key", async () => {
-      mockRedisClient.get.mockResolvedValue(null);
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(null);
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       let callCount = 0;
       const fetcher = vi.fn().mockImplementation(async () => {
@@ -270,7 +270,7 @@ describe("SwrCache", () => {
 
   describe("metrics", () => {
     it("should track instance metrics correctly", async () => {
-      mockRedisClient.get
+      mockCacheClient.get
         .mockResolvedValueOnce(null) // miss
         .mockResolvedValueOnce(
           JSON.stringify({
@@ -281,7 +281,7 @@ describe("SwrCache", () => {
           })
         ); // hit
 
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       await cache.get("item:1", async () => ({ id: 1 }));
       await cache.get("item:2", async () => ({ id: 2 }));
@@ -295,8 +295,8 @@ describe("SwrCache", () => {
       const cache1 = new SwrCache("ns1");
       const cache2 = new SwrCache("ns2");
 
-      mockRedisClient.get.mockResolvedValue(null);
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(null);
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       await cache1.get("item:1", async () => ({ id: 1 }));
       await cache2.get("item:2", async () => ({ id: 2 }));
@@ -315,12 +315,12 @@ describe("SwrCache", () => {
 
   describe("custom options per request", () => {
     it("should allow overriding staleTime per request", async () => {
-      mockRedisClient.get.mockResolvedValue(null);
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(null);
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       await cache.get("item:1", async () => ({ id: 1 }), { staleTime: 30 });
 
-      expect(mockRedisClient.setex).toHaveBeenCalledWith(
+      expect(mockCacheClient.setex).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Number),
         expect.stringContaining('"staleTime":30')
@@ -328,12 +328,12 @@ describe("SwrCache", () => {
     });
 
     it("should allow overriding maxAge per request", async () => {
-      mockRedisClient.get.mockResolvedValue(null);
-      mockRedisClient.setex.mockResolvedValue("OK");
+      mockCacheClient.get.mockResolvedValue(null);
+      mockCacheClient.setex.mockResolvedValue("OK");
 
       await cache.get("item:1", async () => ({ id: 1 }), { maxAge: 600 });
 
-      expect(mockRedisClient.setex).toHaveBeenCalledWith(
+      expect(mockCacheClient.setex).toHaveBeenCalledWith(
         expect.any(String),
         600,
         expect.any(String)
@@ -341,3 +341,4 @@ describe("SwrCache", () => {
     });
   });
 });
+

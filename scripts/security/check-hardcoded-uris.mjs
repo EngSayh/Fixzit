@@ -22,7 +22,6 @@ const PATTERNS = [
   { regex: /postgres:\/\/[^:]+:[^@]+@/gi, name: 'PostgreSQL URI with credentials' },
   { regex: /mysql:\/\/[^:]+:[^@]+@/gi, name: 'MySQL URI with credentials' },
   { regex: /amqp:\/\/[^:]+:[^@]+@/gi, name: 'AMQP URI with credentials' },
-  { regex: /redis:\/\/[^:]+:[^@]+@/gi, name: 'Redis URI with credentials' },
   { regex: /smtps?:\/\/[^:]+:[^@]+@/gi, name: 'SMTP URI with credentials' },
   
   // AWS keys

@@ -267,8 +267,8 @@ export default function RateLimitingDashboard() {
           <CardContent className="flex items-center gap-2">
             <Badge variant={metrics?.distributed.enabled ? "default" : "secondary"}>
               {metrics?.distributed.enabled
-                ? auto("Cache active", "rateLimit.summary.redisActive")
-                : auto("In-memory", "rateLimit.summary.redisInactive")}
+                ? auto("Cache active", "rateLimit.summary.cacheActive")
+                : auto("In-memory", "rateLimit.summary.cacheInactive")}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {metrics?.distributed.status ?? "unknown"}
@@ -363,7 +363,7 @@ export default function RateLimitingDashboard() {
           <CardHeader className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
             <CardTitle className="text-warning">
-              {auto("Recent cache warning", "rateLimit.redis.warning")}
+              {auto("Recent cache warning", "rateLimit.cache.warning")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-warning-foreground">
@@ -372,7 +372,7 @@ export default function RateLimitingDashboard() {
               <p className="text-xs">
                 {auto(
                   "Last error at {{time}}",
-                  "rateLimit.redis.lastErrorAt",
+                  "rateLimit.cache.lastErrorAt",
                   { time: new Date(metrics.distributed.lastErrorAt).toLocaleString() },
                 )}
               </p>

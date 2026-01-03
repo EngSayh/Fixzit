@@ -38,19 +38,19 @@ vi.mock("@/lib/communication-logger", () => ({
 vi.mock("@/lib/otp-store", () => {
   const store = new Map<string, unknown>();
   return {
-    redisOtpStore: {
+    otpStore: {
       set: vi.fn(async (key: string, value: unknown) => store.set(key, value)),
       get: vi.fn(async (key: string) => store.get(key)),
       delete: vi.fn(async (key: string) => store.delete(key)),
       update: vi.fn(async (key: string, value: unknown) => store.set(key, value)),
     },
-    redisOtpSessionStore: {
+    otpSessionStore: {
       set: vi.fn(async () => undefined),
+      get: vi.fn(async () => undefined),
+      delete: vi.fn(async () => undefined),
     },
-    redisRateLimitStore: {
-      increment: vi.fn(async () => 1),
-      ttl: vi.fn(async () => 60_000),
-      reset: vi.fn(async () => undefined),
+    otpRateLimitStore: {
+      increment: vi.fn(async () => ({ allowed: true, remaining: 4 })),
     },
     OTP_EXPIRY_MS: 300_000,
     OTP_SESSION_EXPIRY_MS: 300_000,

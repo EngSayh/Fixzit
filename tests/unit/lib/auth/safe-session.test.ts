@@ -146,11 +146,11 @@ describe("Integration: Auth Infra Failure Scenarios", () => {
     }
   });
 
-  it("Redis timeout returns 503", async () => {
-    mockGetSessionUser.mockRejectedValue(new Error("connect ETIMEDOUT redis.example.com:6379"));
+  it("cache timeout returns 503", async () => {
+    mockGetSessionUser.mockRejectedValue(new Error("connect ETIMEDOUT cache.example.com:6379"));
 
     const req = new NextRequest("http://localhost/test");
-    const result = await getSessionOrError(req, { route: "test:redis" });
+    const result = await getSessionOrError(req, { route: "test:cache" });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {

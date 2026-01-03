@@ -176,9 +176,9 @@ describe("lib/auth/safe-session", () => {
         }
       });
 
-      it("returns 503 for Redis connection error", async () => {
-        const redisError = new Error("Redis connection refused");
-        mockGetSessionUser.mockRejectedValue(redisError);
+      it("returns 503 for cache connection error", async () => {
+        const cacheError = new Error("Cache connection refused");
+        mockGetSessionUser.mockRejectedValue(cacheError);
 
         const result = await getSessionOrError(createRequest());
 

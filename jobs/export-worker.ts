@@ -126,10 +126,6 @@ async function processExportJob(payload: ExportJobPayload) {
   await markJob(exportJob, { status: "processing" });
 
   try {
-    if (process.env.CI === "true" && !process.env.REDIS_URL && !process.env.REDIS_KEY) {
-      throw new Error("Redis not configured (REDIS_URL/REDIS_KEY required in CI)");
-    }
-
     const config = assertS3Configured(); // Throws when missing
 
     const safeFilters = sanitizeFilters(exportJob.filters as Record<string, unknown>);

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AttendanceService } from "@/server/services/hr/attendance.service";
 import { AttendanceRecord } from "@/server/models/hr.models";
 import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
-vi.mock("bullmq", () => ({}));
 
 describe("AttendanceService", () => {
   beforeEach(() => {

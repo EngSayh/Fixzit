@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { LeaveService } from "@/server/services/hr/leave.service";
 import { LeaveRequest, LeaveBalance } from "@/server/models/hr.models";
 import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
-vi.mock("bullmq", () => ({}));
 
 describe("LeaveService", () => {
   beforeEach(() => {

@@ -36,16 +36,6 @@ vi.mock("@/lib/mongodb-unified", () => ({
   }),
 }));
 
-// Mock Redis
-vi.mock("ioredis", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn().mockResolvedValue("OK"),
-    incr: vi.fn().mockResolvedValue(1),
-    expire: vi.fn().mockResolvedValue(1),
-  })),
-}));
-
 // Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
