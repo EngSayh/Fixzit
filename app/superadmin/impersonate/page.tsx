@@ -29,14 +29,14 @@ export default async function ImpersonatePage({ searchParams }: PageProps) {
   const nextUrl = searchParams.next || "/superadmin/issues";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <div className="bg-card rounded-lg shadow-lg p-8 border border-border">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
               Organization Impersonation
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted-foreground">
               Select an organization to access tenant modules (FM, Finance, HR, etc.)
             </p>
           </div>
@@ -68,8 +68,8 @@ export default async function ImpersonatePage({ searchParams }: PageProps) {
 
           <ImpersonationForm nextUrl={nextUrl} />
 
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          <div className="mt-6 pt-6 border-t border-border">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">
               Available After Impersonation:
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -83,7 +83,7 @@ export default async function ImpersonatePage({ searchParams }: PageProps) {
               ].map((module) => (
                 <div
                   key={module.name}
-                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
                 >
                   <span className="text-lg">{module.icon}</span>
                   <span>{module.name}</span>
@@ -95,12 +95,12 @@ export default async function ImpersonatePage({ searchParams }: PageProps) {
           <div className="mt-6 flex items-center justify-between text-sm">
             <Link
               href="/superadmin/issues"
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-primary hover:text-primary/80"
             >
               ← Back to Issues
             </Link>
-            <span className="text-gray-500 dark:text-gray-400">
-              Logged in as: <strong>{session.username}</strong>
+            <span className="text-muted-foreground">
+              Logged in as: <strong className="text-foreground">{session.username}</strong>
             </span>
           </div>
         </div>

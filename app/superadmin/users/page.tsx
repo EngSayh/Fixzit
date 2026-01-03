@@ -108,7 +108,7 @@ interface Pagination {
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: "bg-green-500/20 text-green-400 border-green-500/30",
   PENDING: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  INACTIVE: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  INACTIVE: "bg-muted text-muted-foreground border-input",
   SUSPENDED: "bg-red-500/20 text-red-400 border-red-500/30",
 };
 
@@ -510,8 +510,8 @@ export default function SuperadminUsersPage() {
                 className="w-full sm:w-48 bg-muted border-input text-foreground"
               >
                 <SelectItem value="all">All Organizations</SelectItem>
-                {organizations.map((org) => (
-                  <SelectItem key={org._id} value={org._id}>
+                {organizations.map((org, idx) => (
+                  <SelectItem key={org._id || `org-${idx}`} value={org._id || `org-${idx}`}>
                     {org.name}
                   </SelectItem>
                 ))}
@@ -1051,28 +1051,28 @@ export default function SuperadminUsersPage() {
                               {modulePerms.view ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                                <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                               )}
                             </td>
                             <td className="text-center px-2 py-2">
                               {modulePerms.create ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                                <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                               )}
                             </td>
                             <td className="text-center px-2 py-2">
                               {modulePerms.edit ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                                <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                               )}
                             </td>
                             <td className="text-center px-2 py-2">
                               {modulePerms.delete ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-gray-500 mx-auto" />
+                                <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                               )}
                             </td>
                           </tr>

@@ -143,8 +143,8 @@ const STATUS_COLORS: Record<string, string> = {
   in_review: "bg-purple-500 text-white",
   blocked: "bg-red-500 text-white",
   resolved: "bg-green-500 text-white",
-  closed: "bg-gray-500 text-white",
-  wont_fix: "bg-gray-400 text-white",
+  closed: "bg-muted text-muted-foreground",
+  wont_fix: "bg-muted/80 text-muted-foreground",
 };
 
 const CATEGORY_ICONS: Record<string, typeof Bug> = {
@@ -1274,7 +1274,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                         {issue.issueId || issue.legacyId || issue._id.slice(-6)}
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
-                        <Badge className={PRIORITY_COLORS[issue.priority] || "bg-gray-500"}>
+                        <Badge className={PRIORITY_COLORS[issue.priority] || "bg-muted text-muted-foreground"}>
                           {getPriorityLabel(issue.priority)}
                         </Badge>
                       </TableCell>
@@ -1562,7 +1562,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
         {selectedIssue && (
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <Badge className={PRIORITY_COLORS[selectedIssue.priority] || "bg-gray-500"}>
+              <Badge className={PRIORITY_COLORS[selectedIssue.priority] || "bg-muted text-muted-foreground"}>
                 {getPriorityLabel(selectedIssue.priority)}
               </Badge>
               <Badge variant="secondary" className={STATUS_COLORS[selectedIssue.status]}>
@@ -1571,24 +1571,24 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Description</h3>
-              <p className="text-gray-900 dark:text-gray-100">{selectedIssue.description}</p>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+              <p className="text-foreground">{selectedIssue.description}</p>
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Category</h3>
-              <p className="text-gray-900 dark:text-gray-100 capitalize">{getCategoryLabel(selectedIssue.category)}</p>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
+              <p className="text-foreground capitalize">{getCategoryLabel(selectedIssue.category)}</p>
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Module</h3>
-              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">{selectedIssue.module}</p>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Module</h3>
+              <p className="text-foreground font-mono text-sm">{selectedIssue.module}</p>
             </div>
 
             {selectedIssue.location?.filePath && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
-                <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
+                <p className="text-foreground font-mono text-sm">
                   {selectedIssue.location.filePath}
                   {selectedIssue.location.lineStart && `:${selectedIssue.location.lineStart}`}
                   {selectedIssue.location.lineEnd && `-${selectedIssue.location.lineEnd}`}
@@ -1598,30 +1598,30 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
 
             {selectedIssue.assignedTo && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Assigned To</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h3>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm text-white font-medium">
                     {selectedIssue.assignedTo.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-gray-900 dark:text-gray-100">{selectedIssue.assignedTo}</span>
+                  <span className="text-foreground">{selectedIssue.assignedTo}</span>
                 </div>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Mention Count</h3>
-                <p className="text-gray-900 dark:text-gray-100">{selectedIssue.mentionCount || 1}×</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Mention Count</h3>
+                <p className="text-foreground">{selectedIssue.mentionCount || 1}×</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Effort</h3>
-                <p className="text-gray-900 dark:text-gray-100 capitalize">{selectedIssue.effort}</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Effort</h3>
+                <p className="text-foreground capitalize">{selectedIssue.effort}</p>
               </div>
             </div>
 
             {selectedIssue.riskTags && selectedIssue.riskTags.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Risk Tags</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Risk Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedIssue.riskTags.map((tag, idx) => (
                     <Badge key={idx} variant="outline">{tag}</Badge>
@@ -1632,7 +1632,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
 
             {selectedIssue.labels && selectedIssue.labels.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Labels</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Labels</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedIssue.labels.map((label, idx) => (
                     <Badge key={idx} variant="secondary">{label}</Badge>
@@ -1641,7 +1641,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
             )}
 
-            <div className="pt-4 border-t flex gap-2">
+            <div className="pt-4 border-t border-border flex gap-2">
               <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1" aria-label={t("superadmin.issues.viewFullDetails", "View full issue details")} title={t("superadmin.issues.viewFullDetails", "View full issue details")}>
                 View Full Details
               </Button>
