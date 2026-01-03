@@ -30,9 +30,34 @@ Before ANY code change, file edit, or terminal command:
 | 2 | **State Agent Token** | "Agent Token: [AGENT-001-A]" | ✅ MANDATORY |
 | 3 | **Git Preflight** | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` | ✅ MANDATORY |
 | 4 | **Verify not behind** | If behind > 0, STOP and pull | ✅ MANDATORY |
-| 5 | **Run verification** | `pnpm typecheck && pnpm lint` | ✅ MANDATORY |
+| 5 | **Run LOCAL CI** | `pnpm typecheck && pnpm lint && pnpm vitest run && pnpm build` | ✅ MANDATORY |
 
 **SKIP ANY STEP = USER REJECTS ALL WORK**
+
+---
+
+## 🏠 LOCAL CI FIRST (PRIORITY OVER GITHUB CI)
+
+**NEVER rely on GitHub CI to catch errors. Run ALL checks locally FIRST.**
+
+```bash
+# MANDATORY Local CI Loop (run before ANY push)
+pnpm install
+pnpm typecheck        # 0 errors required
+pnpm lint             # 0 errors required  
+pnpm vitest run       # All tests must pass
+pnpm build            # Must complete successfully
+```
+
+| Priority | Check | Requirement |
+|----------|-------|-------------|
+| 1 | **Local TypeCheck** | Run `pnpm typecheck` - 0 errors |
+| 2 | **Local Lint** | Run `pnpm lint` - 0 errors |
+| 3 | **Local Tests** | Run `pnpm vitest run` - All pass |
+| 4 | **Local Build** | Run `pnpm build` - Success |
+| 5 | GitHub CI | Only after local passes |
+
+**If local CI fails → FIX BEFORE PUSH. Do NOT push and wait for GitHub CI.**
 
 ---
 
