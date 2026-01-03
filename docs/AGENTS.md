@@ -116,107 +116,152 @@ Owner Override (Session): If the System Design Document (SDD) is missing/unreada
 ---
 ## 3. Agent Token Protocol (MANDATORY)
 
-### 3.1 Agent Token Format
+### 3.1 Agent Token Format (UNIQUE PER SESSION)
 
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ⚠️ CRITICAL: EVERY AGENT SESSION MUST HAVE A UNIQUE TOKEN              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Multiple agents using the same token = UNTRACEABLE WORK = AUTO-FAIL    │
+│ Token reuse across sessions = FORBIDDEN                                │
+│ Default fallback tokens are for EMERGENCY ONLY                         │
+└─────────────────────────────────────────────────────────────────────────┘
 
-
-[AGENT-XXX-Y]
+**Token Format:**
+```
+[AGENT-XXXX]
 
 Where:
-XXX = Agent type (001-006)
-Y = Instance identifier (A, B, or C)
-
-
-### 3.2 Agent ID Assignment Table
-
-| Agent ID | Agent Type | Primary Domain | File Path Patterns |
-|----------|------------|----------------|-------------------|
-| AGENT-001-A/B/C | VS Code Copilot | Core/Auth/Middleware | `app/api/core/**`, `middleware/**`, `lib/auth/**`, `lib/session/**`, `lib/jwt/**`, `lib/errors/**`, `lib/logging/**`, `components/**` |
-| AGENT-002-A/B/C | Claude Code | Finance/Billing | `app/api/finance/**`, `app/api/billing/**`, `lib/payments/**`, `lib/invoices/**`, `lib/tax/**`, `lib/currency/**` |
-| AGENT-003-A/B/C | Codex | Souq/Marketplace | `app/api/souq/**`, `app/api/marketplace/**`, `lib/products/**`, `lib/orders/**`, `lib/cart/**`, `lib/shipping/**` |
-| AGENT-004-A/B/C | Cursor | Aqar/Real Estate | `app/api/aqar/**`, `app/api/properties/**`, `lib/listings/**`, `lib/bookings/**`, `lib/contracts/**` |
-| AGENT-005-A/B/C | Windsurf | HR/Payroll | `app/api/hr/**`, `app/api/payroll/**`, `lib/attendance/**`, `lib/leaves/**`, `lib/salaries/**` |
-| AGENT-006-A/B/C | Reserved | Tests/Scripts | `tests/**`, `__tests__/**`, `scripts/**`, `cypress/**`, `playwright/**`, `.github/workflows/**` |
-
-### 3.3 Auto-Generation of Agent Tokens
-
-Agent tokens are **auto-generated** based on file path context using the utility at `lib/agent-token.ts`.
-
-**Usage in code:**
-```typescript
-import { generateToken, createEventContext } from '@/lib/agent-token';
-
-// Generate token from file path
-const token = generateToken('app/api/finance/billing/route.ts'); 
-// Returns: '[AGENT-002-A]'
-
-// Create full event context for SSOT logging
-const ctx = createEventContext('app/api/souq/orders/route.ts');
-// Returns: { agentId: 'AGENT-003-A', agentToken: '[AGENT-003-A]', timestamp, sessionId }
+XXXX = Sequential session number from SSOT (0001, 0002, 0003, ...)
 ```
 
-**Environment overrides:**
-- `AGENT_TYPE` — Override agent type (e.g., `COPILOT`, `CLAUDE`, `CODEX`)
-- `AGENT_INSTANCE` — Override instance letter (`A`, `B`, or `C`)
+**Examples:**
+- `[AGENT-0001]` — First session ever
+- `[AGENT-0042]` — 42nd session
+- `[AGENT-0156]` — 156th session
 
-**Auto-generation rules:**
-1. File path is matched against Section 3.2 patterns
-2. First matching pattern determines agent type
-3. Instance defaults to `A` unless `AGENT_INSTANCE` env var is set
-4. Falls back to `AGENT-001-A` (VS Code Copilot) if no pattern matches
+### 3.2 Agent Type Prefixes (Optional Metadata)
 
-### 3.4 Required Agent Token Placements (NON-NEGOTIABLE)
+For internal tracking, agent type can be added as metadata in SSOT:
 
-Every action MUST be attributable to an Agent Token:
+| Agent Type Code | Agent Platform | Primary Domain |
+|-----------------|----------------|----------------|
+| `COPILOT` | VS Code Copilot | Core/Auth/UI |
+| `CLAUDE` | Claude Code | Finance/Billing |
+| `CODEX` | OpenAI Codex | Souq/Marketplace |
+| `CURSOR` | Cursor AI | Aqar/Real Estate |
+| `WINDSURF` | Windsurf | HR/Payroll |
+| `OTHER` | Other AI | Tests/Scripts |
 
-1. **Task Claim Announcement** — MUST start with Agent Token
-2. **Every Commit Message** — MUST include Agent Token
-3. **Every PENDING_MASTER Entry** — MUST include Agent Token in header
-4. **Every MongoDB Issue Event** — MUST include Agent Token in `by` field (auto-tracked via API)
-5. **Every PR Description** — MUST include Agent Token and Target Code Set
+### 3.3 Session Token Assignment (SSOT Auto-Increment) — MANDATORY
 
-**If Agent Token is missing in any of the above → AUTO-FAIL**
+**BEFORE any work, every agent MUST:**
 
-### 3.5 Commit Message Format
-
-
-
-<type>(<scope>): <description> [AGENT-XXX-Y] [ISSUE-KEY]
-
-Examples:
-fix(api): enforce org_id on orders [AGENT-003-A] [BUG-214]
-feat(auth): add RBAC middleware [AGENT-001-B] [CORE-045]
-test(finance): add invoice validation tests [AGENT-002-A] [FM-089]
-
-
-### 3.6 Session Token Assignment (SSOT Auto-Increment)
-
-**When starting a new session, agents MUST obtain their session token from SSOT:**
-
-1. Query MongoDB Issue Tracker for the last used agent session number:
+1. **Query SSOT for the next session number:**
    ```javascript
-   db.agent_sessions.find().sort({ sessionNumber: -1 }).limit(1)
+   // Get the highest session number
+   const lastSession = await db.agent_sessions.findOne(
+     {},
+     { sort: { sessionNumber: -1 } }
+   );
+   const nextNumber = (lastSession?.sessionNumber || 0) + 1;
    ```
 
-2. Assign session token as: `[AGENT-XXX-{lastNumber + 1}]`
-
-3. Register session in SSOT BEFORE any work:
+2. **Register the session in SSOT IMMEDIATELY:**
    ```javascript
-   db.agent_sessions.insertOne({
-     sessionNumber: <lastNumber + 1>,
-     agentToken: "[AGENT-XXX-Y]",
+   await db.agent_sessions.insertOne({
+     sessionNumber: nextNumber,
+     agentToken: `[AGENT-${String(nextNumber).padStart(4, '0')}]`,
+     agentType: "COPILOT", // or CLAUDE, CODEX, CURSOR, etc.
+     platform: "VS Code Copilot Chat",
      startedAt: new Date(),
      status: "active",
      tasksPlanned: [],
-     tasksCompleted: []
-   })
+     tasksCompleted: [],
+     filesModified: [],
+     commits: []
+   });
    ```
 
-**If SSOT query fails:** Use fallback `[AGENT-001-A]` and log error to session notes.
+3. **Announce the token at session start:**
+   ```
+   AGENTS.md read. Agent Token: [AGENT-0042]
+   ```
+
+### 3.4 Token Collision Prevention
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ❌ FORBIDDEN TOKEN BEHAVIORS — ANY VIOLATION = AUTO-FAIL               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ • Using [AGENT-001-A] or any hardcoded default                         │
+│ • Reusing a token from a previous session                              │
+│ • Using the same token as another concurrent agent                     │
+│ • Skipping SSOT registration before starting work                      │
+│ • Inventing a token number without SSOT query                          │
+│ • Using fallback tokens without documenting SSOT failure               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+**If SSOT is unavailable (emergency only):**
+1. Use format: `[AGENT-TEMP-{timestamp}]` e.g., `[AGENT-TEMP-20260103T1430]`
+2. Log the SSOT failure reason in your first commit message
+3. Create SSOT entry retroactively when connection is restored
+
+### 3.5 Required Agent Token Placements (NON-NEGOTIABLE)
+
+Every action MUST be attributable to your unique Agent Token:
+
+1. **Session Start Announcement** — MUST state: "Agent Token: [AGENT-XXXX]"
+2. **Every Commit Message** — MUST include `[AGENT-XXXX]`
+3. **Every PENDING_MASTER Entry** — MUST include `[AGENT-XXXX]` in header
+4. **Every MongoDB Issue Event** — MUST include `[AGENT-XXXX]` in `by` field
+5. **Every PR Description** — MUST include `[AGENT-XXXX]`
+6. **Session End Summary** — MUST include `[AGENT-XXXX]`
+
+**If Agent Token is missing in any of the above → AUTO-FAIL**
+
+### 3.6 Commit Message Format
+
+```
+<type>(<scope>): <description> [AGENT-XXXX] [ISSUE-KEY]
+
+Examples:
+fix(api): enforce org_id on orders [AGENT-0042] [BUG-214]
+feat(auth): add RBAC middleware [AGENT-0043] [CORE-045]
+test(finance): add invoice validation tests [AGENT-0044] [FM-089]
+```
 
 ### 3.7 Session Task Recording (MANDATORY)
 
 **Each agent MUST record ALL tasks worked on in MongoDB Issue Tracker.**
+
+At session end, update the session record:
+```javascript
+await db.agent_sessions.updateOne(
+  { agentToken: "[AGENT-XXXX]", status: "active" },
+  {
+    $set: {
+      status: "completed",
+      endedAt: new Date(),
+      summary: "<session summary>"
+    },
+    $push: {
+      tasksCompleted: {
+        $each: [
+          { issueKey: "BUG-XXX", action: "fixed", files: ["path/to/file.ts"] },
+          { issueKey: "FEAT-YYY", action: "implemented", files: [...] }
+        ]
+      },
+      commits: {
+        $each: ["abc1234", "def5678"]
+      }
+    }
+  }
+);
+```
+
+**Forbidden:**
+- ❌ Ending session without recording tasks to SSOT
+- ❌ Recording partial task information
+- ❌ Skipping task recording "because it was small"
 
 At session end, update the session record:
 ```javascript

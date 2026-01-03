@@ -9,9 +9,12 @@
 ### FIRST ACTION IN EVERY SESSION:
 
 ```
-Execute: read_file tool on docs/AGENTS.md, lines 1-1000
-Then state: "AGENTS.md read. Agent Token: [AGENT-001-A]"
+1. Execute: read_file tool on docs/AGENTS.md, lines 1-1000
+2. Query SSOT for next session number (db.agent_sessions)
+3. State: "AGENTS.md read. Agent Token: [AGENT-XXXX]" (where XXXX is YOUR unique number)
 ```
+
+⚠️ **CRITICAL: `[AGENT-001-A]` is FORBIDDEN** — this was the old format that caused duplicate tokens.
 
 ### If You Skip This Step:
 - ❌ User WILL reject all your work
@@ -27,11 +30,14 @@ Before ANY code change, file edit, or terminal command:
 | # | Action | Command | Required |
 |---|--------|---------|----------|
 | 1 | **Read AGENTS.md** | `read_file: docs/AGENTS.md, lines 1-1000` | ✅ MANDATORY |
-| 2 | **State Agent Token** | "Agent Token: [AGENT-001-A]" | ✅ MANDATORY |
-| 3 | **Git Preflight** | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` | ✅ MANDATORY |
-| 4 | **Verify not behind** | If behind > 0, STOP and pull | ✅ MANDATORY |
-| 5 | **Run LOCAL CI** | `pnpm typecheck && pnpm lint && pnpm vitest run && pnpm build` | ✅ MANDATORY |
-| 6 | **LOG TO SSOT** | Log every issue to MongoDB Issue Tracker BEFORE fixing | ✅ MANDATORY |
+| 2 | **Get UNIQUE Token from SSOT** | Query `db.agent_sessions` for next number | ✅ MANDATORY |
+| 3 | **State UNIQUE Agent Token** | "Agent Token: [AGENT-XXXX]" (sequential) | ✅ MANDATORY |
+| 4 | **Git Preflight** | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` | ✅ MANDATORY |
+| 5 | **Verify not behind** | If behind > 0, STOP and pull | ✅ MANDATORY |
+| 6 | **Run LOCAL CI** | `pnpm typecheck && pnpm lint && pnpm vitest run && pnpm build` | ✅ MANDATORY |
+| 7 | **LOG TO SSOT** | Log every issue to MongoDB Issue Tracker BEFORE fixing | ✅ MANDATORY |
+
+**Token Format:** `[AGENT-0001]`, `[AGENT-0002]`, `[AGENT-0003]`, etc. (sequential from SSOT)
 
 **SKIP ANY STEP = USER REJECTS ALL WORK**
 
@@ -54,7 +60,7 @@ Before ANY code change, file edit, or terminal command:
    - Issue title and description
    - Affected files/components
    - Root cause analysis
-   - Agent Token `[AGENT-XXX-X]`
+   - Agent Token `[AGENT-XXXX]` (YOUR unique sequential number)
    - Priority (P0/P1/P2/P3)
    - Category (BUG/FEAT/REFACTOR/INFRA)
 4. **Get Issue ID** before starting fix
@@ -65,6 +71,7 @@ Before ANY code change, file edit, or terminal command:
 - ❌ "Silent fixes" with no tracking
 - ❌ Claiming "it was already logged" without verification
 - ❌ Logging after the fix is complete (log BEFORE)
+- ❌ Using `[AGENT-001-A]` or any hardcoded default token
 
 ---
 

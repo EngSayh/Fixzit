@@ -11,7 +11,8 @@ applyTo: "**/*"
 **DO NOT proceed with ANY task, fix, or response until you have:**
 
 1. **Called `read_file` on `docs/AGENTS.md` lines 1-1000** in THIS session
-2. **Confirmed reading** by stating: "AGENTS.md read. Agent Token: [AGENT-XXX-X]"
+2. **Obtained UNIQUE session token from SSOT** (query `db.agent_sessions` for next number)
+3. **Confirmed reading** by stating: "AGENTS.md read. Agent Token: [AGENT-XXXX]" (where XXXX is YOUR unique session number)
 
 ### If You Have NOT Read AGENTS.md This Session:
 
@@ -31,11 +32,15 @@ Before ANY code change, file edit, or terminal command:
 | Step | Action | Required |
 |------|--------|----------|
 | 1 | Read `docs/AGENTS.md` lines 1-1000 | ✅ MANDATORY |
-| 2 | State Agent Token: `[AGENT-001-A]` | ✅ MANDATORY |
-| 3 | Run `git fetch origin` | ✅ MANDATORY |
-| 4 | Verify not behind origin/main | ✅ MANDATORY |
-| 5 | Run `pnpm typecheck && pnpm lint` | ✅ MANDATORY |
-| 6 | **LOG ISSUE TO SSOT BEFORE ANY FIX** | ✅ MANDATORY |
+| 2 | **Query SSOT for next session number** | ✅ MANDATORY |
+| 3 | State UNIQUE Agent Token: `[AGENT-XXXX]` | ✅ MANDATORY |
+| 4 | Run `git fetch origin` | ✅ MANDATORY |
+| 5 | Verify not behind origin/main | ✅ MANDATORY |
+| 6 | Run `pnpm typecheck && pnpm lint` | ✅ MANDATORY |
+| 7 | **LOG ISSUE TO SSOT BEFORE ANY FIX** | ✅ MANDATORY |
+
+⚠️ **CRITICAL: Token `[AGENT-001-A]` is FORBIDDEN** — this was the old format.
+Each session MUST have a unique sequential number from SSOT.
 
 **If ANY step is skipped → User WILL reject ALL work**
 
@@ -62,7 +67,7 @@ Before ANY code change, file edit, or terminal command:
    - Issue title and description
    - Affected files/components
    - Root cause analysis
-   - Agent Token `[AGENT-XXX-X]`
+   - Agent Token `[AGENT-XXXX]` (YOUR unique session number)
    - Priority (P0/P1/P2/P3)
    - Category (BUG/FEAT/REFACTOR/INFRA)
 4. **Get Issue ID** before starting fix
@@ -80,11 +85,14 @@ Before ANY code change, file edit, or terminal command:
 
 | Protocol | Requirement |
 |----------|-------------|
-| Agent Token | Include `[AGENT-XXX-X]` in all commits, claims, PRs |
+| Agent Token | **UNIQUE per session** `[AGENT-XXXX]` from SSOT auto-increment |
+| Token Format | `[AGENT-0001]`, `[AGENT-0002]`, etc. (sequential) |
 | Pre-claim | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` |
 | SSOT | MongoDB Issue Tracker is source of truth (not PENDING_MASTER.md) |
 | Verification | Run `pnpm typecheck && pnpm lint` before any claim |
 | Handoff | Include "Final Output" box for user |
+
+⚠️ **OLD FORMAT FORBIDDEN:** `[AGENT-001-A]`, `[AGENT-002-B]`, etc. are NO LONGER VALID.
 
 ## Non-Negotiable Rules
 
