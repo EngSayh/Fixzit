@@ -4,7 +4,7 @@
  * @status IMPLEMENTED - December 2025
  * @adr ADR-002-zatca-phase2.md
  * @regulatory Saudi ZATCA E-Invoicing Phase 2 (Integration Phase)
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  * 
  * Phase 2 Implementation:
  * 1. Real-time API integration with ZATCA Fatoora Portal ✅

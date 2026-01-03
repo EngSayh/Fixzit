@@ -9,7 +9,7 @@
  * - Template processing
  * 
  * @testcoverage TG-003: Service Layer Tests
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

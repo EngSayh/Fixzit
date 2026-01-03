@@ -9,7 +9,7 @@
  * - Provides spending insights and trends
  * - Supports multi-currency expense tracking
  * 
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @created 2025-12-29
  */
 

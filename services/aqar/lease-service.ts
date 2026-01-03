@@ -13,7 +13,7 @@
  * - Ejar (Saudi Arabia housing rental portal)
  * - ZATCA VAT regulations for rental income
  * 
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  * @created 2025-12-28
  */
 

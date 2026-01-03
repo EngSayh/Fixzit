@@ -2,7 +2,7 @@
  * @fileoverview ScheduledTask MongoDB Model
  * @description Manages scheduled/cron jobs for the platform
  * @module server/models/ScheduledTask
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";

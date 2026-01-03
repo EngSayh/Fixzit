@@ -10,7 +10,7 @@
  * - Customer satisfaction tracking
  * - Multi-channel intake (email, chat, form, phone)
  * 
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @created 2025-12-29
  */
 

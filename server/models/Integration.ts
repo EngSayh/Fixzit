@@ -2,7 +2,7 @@
  * @fileoverview Integration MongoDB Model
  * @description Manages third-party service integrations for the platform
  * @module server/models/Integration
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";

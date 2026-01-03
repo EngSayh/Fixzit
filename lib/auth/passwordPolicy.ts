@@ -17,7 +17,7 @@
  * - ISO 27001 password requirements
  * - ZATCA security requirements
  * 
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  * @created 2025-12-28
  */
 

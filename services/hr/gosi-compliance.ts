@@ -13,7 +13,7 @@
  * - GOSI Law 2021 amendments
  * - Saudi Labor Law compliance requirements
  * 
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @created 2025-12-29
  */
 

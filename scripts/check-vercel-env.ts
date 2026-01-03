@@ -2,7 +2,7 @@
  * Check which environment variables are available on Vercel production
  */
 
-const envVars = {
+const envVars: Record<string, boolean> = {
   // Core Authentication
   MONGODB_URI: !!process.env.MONGODB_URI,
   NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,

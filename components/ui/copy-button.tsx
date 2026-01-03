@@ -4,7 +4,7 @@
  * Reusable CopyButton component with visual confirmation feedback
  * 
  * @module components/ui/copy-button
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @issue UI-COPY-001 - Add visual confirmation for copy actions across codebase
  */
 

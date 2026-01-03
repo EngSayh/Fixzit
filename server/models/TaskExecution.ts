@@ -2,7 +2,7 @@
  * @fileoverview TaskExecution MongoDB Model
  * @description Tracks individual execution records of scheduled tasks
  * @module server/models/TaskExecution
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";

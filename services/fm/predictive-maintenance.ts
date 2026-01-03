@@ -9,7 +9,7 @@
  * - Generates automated work orders for predicted issues
  * - Integrates with IoT sensor data (future)
  * 
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @created 2025-12-29
  */
 

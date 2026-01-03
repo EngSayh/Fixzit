@@ -10,7 +10,7 @@
  * - Integrates with work order creation
  * - Tracks inspection history and trends
  * 
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @created 2025-12-29
  */
 

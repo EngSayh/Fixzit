@@ -4,7 +4,7 @@
  * Reusable ActionButton components with visual confirmation feedback
  *
  * @module components/ui/action-button
- * @status IMPLEMENTED [AGENT-001-A]
+ * @status IMPLEMENTED [AGENT-0001]
  * @issue UI-ACTION-001 - Add visual confirmation for all action buttons across codebase
  */
 

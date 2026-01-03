@@ -8,7 +8,7 @@
  * 
  * @module components/superadmin/settings/ThemeSettingsForm
  * @compliance Ejar.sa Design System (Saudi Platforms Code)
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  */
 
 import { useState, useEffect, useCallback } from "react";

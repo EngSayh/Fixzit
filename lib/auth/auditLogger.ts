@@ -19,7 +19,7 @@
  * - PDPL (Saudi Personal Data Protection Law)
  * - SOC 2 Type II logging standards
  * 
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  * @created 2025-12-28
  */
 

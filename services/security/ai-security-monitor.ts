@@ -18,7 +18,7 @@
  * - NIST Cybersecurity Framework
  * - ISO 27001 incident monitoring
  * 
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  * @created 2025-12-28
  */
 

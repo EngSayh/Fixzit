@@ -2,7 +2,7 @@
  * @fileoverview Translation MongoDB Model
  * @description Manages i18n translation keys and values
  * @module server/models/Translation
- * @agent [AGENT-001-A]
+ * @agent [AGENT-0001]
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";

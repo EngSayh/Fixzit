@@ -13,8 +13,8 @@
  * - server/models/WorkOrder.ts: Mongoose schema for persistence
  * - types/fm/work-order.ts: WOStatus, WOPriority enums
  *
- * @status IMPLEMENTED - TODO-003 resolved [AGENT-001-A]
- * @author [AGENT-001-A]
+ * @status IMPLEMENTED - TODO-003 resolved [AGENT-0001]
+ * @author [AGENT-0001]
  * @created 2025-12-25
  * @updated 2025-12-26 - Full implementation
  */

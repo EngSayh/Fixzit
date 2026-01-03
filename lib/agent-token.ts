@@ -5,7 +5,7 @@
  * This utility auto-generates tokens based on agent type and file context.
  * 
  * @module lib/agent-token
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  */
 
 // =============================================================================
@@ -168,7 +168,7 @@ export function getAgentTypeOverride(): AgentTypeCode | null {
  * @example
  * generateToken('app/api/finance/billing/route.ts') // '[AGENT-002-A]'
  * generateToken('tests/api/auth.test.ts')           // '[AGENT-006-A]'
- * generateToken('components/Button.tsx')            // '[AGENT-001-A]'
+ * generateToken('components/Button.tsx')            // '[AGENT-0001]'
  */
 export function generateToken(
   filePath: string,
@@ -209,7 +209,7 @@ export function formatToken(
 /**
  * Parse an existing token string
  * 
- * @param token - Token string like '[AGENT-001-A]'
+ * @param token - Token string like '[AGENT-0001]'
  * @returns Parsed components or null if invalid
  */
 export function parseToken(token: string): {
@@ -242,7 +242,7 @@ export function isValidToken(token: string): boolean {
 /**
  * Strip brackets from token for storage
  * 
- * @param token - Token with brackets like '[AGENT-001-A]'
+ * @param token - Token with brackets like '[AGENT-0001]'
  * @returns Token without brackets like 'AGENT-001-A'
  */
 export function stripBrackets(token: string): string {
@@ -253,7 +253,7 @@ export function stripBrackets(token: string): string {
  * Add brackets to raw token
  * 
  * @param rawToken - Token without brackets like 'AGENT-001-A'
- * @returns Token with brackets like '[AGENT-001-A]'
+ * @returns Token with brackets like '[AGENT-0001]'
  */
 export function addBrackets(rawToken: string): string {
   if (rawToken.startsWith('[')) return rawToken;
@@ -266,7 +266,7 @@ export function addBrackets(rawToken: string): string {
 
 export interface AgentEventContext {
   agentId: string;         // e.g., 'AGENT-001-A'
-  agentToken: string;      // e.g., '[AGENT-001-A]'
+  agentToken: string;      // e.g., '[AGENT-0001]'
   timestamp: Date;
   sessionId?: string;
 }
@@ -332,7 +332,7 @@ export function getAgentName(agentType: AgentTypeCode): string {
  * 
  * @example
  * formatCommitMessage('fix', 'api', 'handle JSON parse errors', 'app/api/issues/route.ts', 'BUG-214')
- * // 'fix(api): handle JSON parse errors [AGENT-001-A] [BUG-214]'
+ * // 'fix(api): handle JSON parse errors [AGENT-0001] [BUG-214]'
  */
 export function formatCommitMessage(
   type: string,

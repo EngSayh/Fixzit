@@ -13,7 +13,7 @@
  * - Saudi labor law for income verification
  * - Privacy regulations for data handling
  * 
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  * @created 2025-12-28
  */
 

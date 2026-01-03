@@ -16,7 +16,7 @@
  * - RFC 4226 (HOTP)
  * - NIST SP 800-63B guidelines
  * 
- * @author [AGENT-001-A]
+ * @author [AGENT-0001]
  * @created 2025-12-28
  */
 
