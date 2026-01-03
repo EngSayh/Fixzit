@@ -79,11 +79,14 @@ describe("API /api/webhooks/sendgrid", () => {
 
   describe("POST - Handle SendGrid Events", () => {
     it("returns 429 when rate limit is exceeded", async () => {
+      // Create a fresh Response for the rate limit
       const rateLimitResponse = new Response(
         JSON.stringify({ error: "Rate limit exceeded" }),
         { status: 429 }
       );
-      vi.mocked(enforceRateLimit).mockReturnValue(rateLimitResponse);
+      // Use mockReturnValueOnce for isolation in sharded test environments
+      vi.mocked(enforceRateLimit).mockReset();
+      vi.mocked(enforceRateLimit).mockReturnValueOnce(rateLimitResponse);
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/sendgrid", {
         method: "POST",
@@ -93,6 +96,8 @@ describe("API /api/webhooks/sendgrid", () => {
       const response = await POST(req);
 
       expect(response.status).toBe(429);
+      // Verify mock was called
+      expect(enforceRateLimit).toHaveBeenCalled();
     });
 
     it("returns 200 for valid webhook event", async () => {
