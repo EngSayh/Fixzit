@@ -125,7 +125,8 @@ const SubscriptionTierSchema = new Schema(
 );
 
 // Apply audit plugin for tracking changes
-SubscriptionTierSchema.plugin(auditPlugin);
+// SUPER_ADMIN: Platform-wide model, createdBy optional for system seeding
+SubscriptionTierSchema.plugin(auditPlugin, { createdByOptional: true });
 
 // Compound index for active tiers sorted by order
 SubscriptionTierSchema.index({ isActive: 1, sortOrder: 1 });

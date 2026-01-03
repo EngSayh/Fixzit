@@ -149,10 +149,14 @@ const PlatformSettingsSchema = new Schema(
 );
 
 // Apply plugins BEFORE indexes
-PlatformSettingsSchema.plugin(tenantIsolationPlugin);
+// SUPER_ADMIN: PlatformSettings can exist without orgId for global/platform-wide settings
+PlatformSettingsSchema.plugin(tenantIsolationPlugin, {
+  excludeModels: ["PlatformSettings"],
+});
 PlatformSettingsSchema.plugin(auditPlugin);
 
 // Ensure only one settings document per tenant (singleton pattern)
+// Global settings have no orgId, tenant-specific have orgId
 PlatformSettingsSchema.index(
   { orgId: 1 },
   { unique: true, partialFilterExpression: { orgId: { $exists: true } } },

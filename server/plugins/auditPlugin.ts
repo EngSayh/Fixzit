@@ -52,6 +52,8 @@ export interface AuditPluginOptions {
   excludeFields?: string[];
   enableChangeHistory?: boolean;
   maxHistoryVersions?: number;
+  /** For platform-wide models (no user context), set to true to make createdBy optional */
+  createdByOptional?: boolean;
 }
 
 // Plugin function
@@ -60,14 +62,16 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     excludeFields = ["__v", "updatedAt", "createdAt"],
     enableChangeHistory = true,
     maxHistoryVersions = 50,
+    createdByOptional = false,
   } = options;
 
   // ⚡ FIXED: Add audit fields to schema with ObjectId type (not String)
+  // For platform-wide models, createdBy can be optional (system seeding)
   schema.add({
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: !createdByOptional,
     },
     updatedBy: {
       type: Schema.Types.ObjectId,
