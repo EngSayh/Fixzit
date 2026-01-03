@@ -1057,7 +1057,7 @@ export async function registerWithEjar(
         : db.collection("properties").findOne({
             _id: new ObjectId(lease.propertyId),
             orgId,
-          }).then(async (prop) => {
+          }).then(async (prop: { ownerId?: string } | null) => {
             if (prop?.ownerId) {
               return db.collection("users").findOne({
                 _id: new ObjectId(prop.ownerId),
@@ -1078,6 +1078,32 @@ export async function registerWithEjar(
     
     if (!landlord) {
       return { success: false, error: "Landlord/owner not found - ensure lease.landlordId or property.ownerId is set" };
+    }
+    
+    // Validate required fields before calling Ejar service
+    const validationErrors: string[] = [];
+    
+    if (!property.address) {
+      validationErrors.push("property.address is required");
+    }
+    if (!tenant.nationalId && !tenant.iqamaNumber) {
+      validationErrors.push("tenant.nationalId or tenant.iqamaNumber is required");
+    }
+    if (!landlord.nationalId && !landlord.iqamaNumber) {
+      validationErrors.push("landlord.nationalId or landlord.iqamaNumber is required");
+    }
+    if (!lease.startDate || !lease.endDate) {
+      validationErrors.push("lease.startDate and lease.endDate are required");
+    }
+    if (!lease.rentAmount || lease.rentAmount <= 0) {
+      validationErrors.push("lease.rentAmount must be greater than 0");
+    }
+    
+    if (validationErrors.length > 0) {
+      return { 
+        success: false, 
+        error: `Missing required fields for Ejar registration: ${validationErrors.join(", ")}` 
+      };
     }
     
     // Import and call the comprehensive Ejar service
@@ -1203,7 +1229,9 @@ export async function registerWithEjar(
       orgId,
     });
     
-    return { success: true, contractNumber: result.ejarNumber || result.contractId };
+    // Note: registerContract returns contractId (internal ID), not ejarNumber
+    // ejarNumber is only assigned after submitToEjar is called
+    return { success: true, contractNumber: result.contractId };
   } catch (error) {
     logger.error("Failed to register with Ejar", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -1237,6 +1265,11 @@ function mapPropertyTypeToEjar(
 
 /**
  * Calculate duration in months between two dates
+ * 
+ * NOTE: This uses a simplified calendar-based calculation for internal use.
+ * The ejar-service has a more comprehensive calculateMonthsDifference function
+ * with partial month handling, but this simpler version is sufficient for
+ * duration calculation where we only need whole months.
  */
 function calculateMonthsDuration(startDate: Date, endDate: Date): number {
   const start = new Date(startDate);

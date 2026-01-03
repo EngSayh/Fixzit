@@ -857,8 +857,10 @@ async function checkActivitySpike(
     const weeklyActivity = weekOrders + weekListings;
     const dailyBaseline = weeklyActivity / 6; // 6 days in baseline period
     
-    // Flag if current > 3x baseline
+    // Flag if current > 3x baseline (with safety check for division)
     if (dailyBaseline > 0 && recentActivity > dailyBaseline * 3) {
+      // Safety check: ensure dailyBaseline is not effectively zero to avoid division issues
+      const safeBaseline = Math.max(dailyBaseline, 0.001);
       return {
         type: "activity_spike",
         severity: recentActivity > dailyBaseline * 5 ? "high" : "medium",
@@ -866,7 +868,7 @@ async function checkActivitySpike(
         evidence: {
           recentActivity,
           dailyBaseline,
-          multiplier: (recentActivity / dailyBaseline).toFixed(2),
+          multiplier: (recentActivity / safeBaseline).toFixed(2),
           recentOrders,
           recentListings,
         },
@@ -992,19 +994,48 @@ async function checkPriceManipulation(
     
     const manipulated: Array<{ productId: string; changePercent: number }> = [];
     
+    // Type guard for price history entries
+    const isPriceHistoryEntry = (
+      entry: unknown,
+    ): entry is { changedAt: Date | string | number; price: number } => {
+      return (
+        typeof entry === "object" &&
+        entry !== null &&
+        "changedAt" in entry &&
+        "price" in entry &&
+        typeof (entry as { price: unknown }).price === "number"
+      );
+    };
+    
+    // Normalize date to timestamp
+    const normalizeToTime = (value: unknown): number => {
+      if (value instanceof Date) {
+        return value.getTime();
+      }
+      if (typeof value === "string" || typeof value === "number") {
+        const time = new Date(value).getTime();
+        return Number.isNaN(time) ? 0 : time;
+      }
+      return 0;
+    };
+    
     for (const product of products) {
-      const history = product.priceHistory || [];
+      const history = Array.isArray(product.priceHistory) ? product.priceHistory : [];
       if (history.length < 2) continue;
       
-      // Sort by date descending
-      const sorted = [...history].sort((a: { changedAt: Date }, b: { changedAt: Date }) => 
-        new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime()
+      // Filter and validate entries
+      const validHistory = history.filter(isPriceHistoryEntry);
+      if (validHistory.length < 2) continue;
+      
+      // Sort by date descending using normalized timestamps
+      const sorted = [...validHistory].sort(
+        (a, b) => normalizeToTime(b.changedAt) - normalizeToTime(a.changedAt),
       );
       
-      const currentPrice = sorted[0]?.price || product.price;
+      const currentPrice = sorted[0]?.price ?? product.price;
       const previousPrice = sorted[1]?.price;
       
-      if (previousPrice && previousPrice > 0) {
+      if (typeof previousPrice === "number" && previousPrice > 0) {
         const changePercent = Math.abs((currentPrice - previousPrice) / previousPrice) * 100;
         if (changePercent > 50) {
           manipulated.push({
