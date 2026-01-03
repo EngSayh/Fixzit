@@ -31,8 +31,40 @@ Before ANY code change, file edit, or terminal command:
 | 3 | **Git Preflight** | `git fetch origin && git rev-list --left-right --count origin/main...HEAD` | ✅ MANDATORY |
 | 4 | **Verify not behind** | If behind > 0, STOP and pull | ✅ MANDATORY |
 | 5 | **Run LOCAL CI** | `pnpm typecheck && pnpm lint && pnpm vitest run && pnpm build` | ✅ MANDATORY |
+| 6 | **LOG TO SSOT** | Log every issue to MongoDB Issue Tracker BEFORE fixing | ✅ MANDATORY |
 
 **SKIP ANY STEP = USER REJECTS ALL WORK**
+
+---
+
+## 📋 SSOT LOGGING PROTOCOL (MANDATORY)
+
+**⚠️ BEFORE fixing ANY issue, you MUST log it to the MongoDB Issue Tracker (SSOT).**
+
+### Why This Matters:
+- User cannot track what was fixed without SSOT entries
+- Changes without SSOT logging are untraceable
+- Prevents "ghost fixes" that get lost or regress
+
+### SSOT Logging Steps:
+
+1. **Identify the issue** clearly (what, where, why)
+2. **Log to SSOT FIRST** before any code change
+3. **Include in log**:
+   - Issue title and description
+   - Affected files/components
+   - Root cause analysis
+   - Agent Token `[AGENT-XXX-X]`
+   - Priority (P0/P1/P2/P3)
+   - Category (BUG/FEAT/REFACTOR/INFRA)
+4. **Get Issue ID** before starting fix
+5. **Reference Issue ID** in all commits: `[ISSUE-XXX]`
+
+### Forbidden:
+- ❌ Fixing code without SSOT entry
+- ❌ "Silent fixes" with no tracking
+- ❌ Claiming "it was already logged" without verification
+- ❌ Logging after the fix is complete (log BEFORE)
 
 ---
 

@@ -385,12 +385,19 @@
 
 @layer components {
   /* ─────────────────────────────────────────
-     TOP BAR - Frosted Glass Header
+     TOP BAR - Frosted Glass Header (Ejar.sa Design)
      ───────────────────────────────────────── */
   .fxz-topbar {
     background: #ffffff;
+    color: var(--color-text-primary, #0D121C);
     border-bottom: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-elevated);
+  }
+
+  /* Dark mode TopBar - proper contrast */
+  .dark .fxz-topbar {
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
   }
 
   .fxz-topbar-logo {

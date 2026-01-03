@@ -116,8 +116,10 @@ RTL-first: avoid physical direction utilities where direction matters.
 
 Hooks in App Router components → ensure `'use client';` where required.
 
-Branding tokens:
-- Primary = Blue #0061A8, Secondary = Green #00A859, Accent = Yellow #FFB400.
+Branding tokens (Ejar.sa Design System):
+- Primary = Green #25935F, Primary Hover = #188352, Primary Active = #166A45
+- Secondary/Accent = Gold #F5BD02
+- Neutral-950 (Sidebar) = #0D121C
 - Do not introduce random hardcoded colors; prefer tokens and theme variables.
 
 ### B3) Backend / Security / Multi-tenancy / RBAC

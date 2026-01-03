@@ -410,16 +410,29 @@ class PostingService {
 
     // FIX 1: Start database transaction for atomicity when supported
     if (JournalModel.db && typeof JournalModel.db.startSession === "function") {
-      const session = await JournalModel.db.startSession();
+      let session: Awaited<ReturnType<typeof JournalModel.db.startSession>> | null = null;
       try {
+        session = await JournalModel.db.startSession();
         await session.startTransaction();
         const result = await executePosting(session);
         await session.commitTransaction();
         return result;
       } catch (error) {
-        await session.abortTransaction();
+        if (session) {
+          try {
+            await session.abortTransaction();
+          } catch {
+            // Ignore abort errors
+          }
+        }
         const message = (error as Error).message || "";
-        if (message.includes("Transaction numbers are only allowed")) {
+        // Handle cases where transactions/sessions are unavailable:
+        // - "Transaction numbers are only allowed" = standalone MongoDB
+        // - "buffering timed out" = MongoMemoryServer in tests
+        if (
+          message.includes("Transaction numbers are only allowed") ||
+          message.includes("buffering timed out")
+        ) {
           logger.warn(
             "[PostingService] Transactions unavailable on this MongoDB instance. Retrying without transactional session.",
           );
@@ -427,7 +440,13 @@ class PostingService {
         }
         throw error;
       } finally {
-        await session.endSession();
+        if (session) {
+          try {
+            await session.endSession();
+          } catch {
+            // Ignore session end errors
+          }
+        }
       }
     }
 
