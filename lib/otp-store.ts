@@ -42,9 +42,9 @@ export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 export const MAX_SENDS_PER_WINDOW = 5;
 export const OTP_SESSION_EXPIRY_MS = 5 * 60 * 1000;
 
-const otpStore = new Map<string, OTPData>();
+const otpDataStore = new Map<string, OTPData>();
 const rateLimitStore = new Map<string, RateLimitData>();
-const sessionStore = new Map<string, OTPLoginSession>();
+const otpSessionStoreMap = new Map<string, OTPLoginSession>();
 
 let warnedMemoryStore = false;
 
@@ -60,13 +60,13 @@ function isExpired(expiresAt: number): boolean {
   return Date.now() > expiresAt;
 }
 
-export const otpStoreAsync = {
+export const otpStore = {
   async get(identifier: string): Promise<OTPData | undefined> {
     warnSingleInstance();
-    const data = otpStore.get(identifier);
+    const data = otpDataStore.get(identifier);
     if (!data) return undefined;
     if (isExpired(data.expiresAt)) {
-      otpStore.delete(identifier);
+      otpDataStore.delete(identifier);
       return undefined;
     }
     return data;
@@ -74,17 +74,17 @@ export const otpStoreAsync = {
 
   async set(identifier: string, data: OTPData): Promise<void> {
     warnSingleInstance();
-    otpStore.set(identifier, data);
+    otpDataStore.set(identifier, data);
   },
 
   async delete(identifier: string): Promise<void> {
     warnSingleInstance();
-    otpStore.delete(identifier);
+    otpDataStore.delete(identifier);
   },
 
   async update(identifier: string, data: OTPData): Promise<void> {
     warnSingleInstance();
-    otpStore.set(identifier, data);
+    otpDataStore.set(identifier, data);
   },
 };
 
@@ -128,10 +128,10 @@ export const otpRateLimitStore = {
 export const otpSessionStore = {
   async get(token: string): Promise<OTPLoginSession | undefined> {
     warnSingleInstance();
-    const data = sessionStore.get(token);
+    const data = otpSessionStoreMap.get(token);
     if (!data) return undefined;
     if (isExpired(data.expiresAt)) {
-      sessionStore.delete(token);
+      otpSessionStoreMap.delete(token);
       return undefined;
     }
     return data;
@@ -139,12 +139,12 @@ export const otpSessionStore = {
 
   async set(token: string, data: OTPLoginSession): Promise<void> {
     warnSingleInstance();
-    sessionStore.set(token, data);
+    otpSessionStoreMap.set(token, data);
   },
 
   async delete(token: string): Promise<void> {
     warnSingleInstance();
-    sessionStore.delete(token);
+    otpSessionStoreMap.delete(token);
   },
 };
 
@@ -152,14 +152,14 @@ let cleanupTimer: NodeJS.Timeout | null = null;
 
 function cleanupExpiredEntries(): void {
   const now = Date.now();
-  for (const [key, data] of otpStore.entries()) {
-    if (data.expiresAt <= now) otpStore.delete(key);
+  for (const [key, data] of otpDataStore.entries()) {
+    if (data.expiresAt <= now) otpDataStore.delete(key);
   }
   for (const [key, data] of rateLimitStore.entries()) {
     if (data.resetAt <= now) rateLimitStore.delete(key);
   }
-  for (const [key, data] of sessionStore.entries()) {
-    if (data.expiresAt <= now) sessionStore.delete(key);
+  for (const [key, data] of otpSessionStoreMap.entries()) {
+    if (data.expiresAt <= now) otpSessionStoreMap.delete(key);
   }
 }
 
@@ -176,8 +176,3 @@ export function stopOtpStoreCleanup(): void {
   cleanupTimer = null;
   logger.info("[OTP Store] Cleanup interval stopped");
 }
-
-// Backward-compatible aliases (legacy names from Redis era)
-export const redisOtpStore = otpStoreAsync;
-export const redisRateLimitStore = otpRateLimitStore;
-export const redisOtpSessionStore = otpSessionStore;

@@ -41,7 +41,7 @@ export interface RatingDistribution {
 }
 
 class RatingAggregationService {
-  // In-memory cache (in production, use Redis)
+  // In-memory cache (replace with shared store in multi-instance)
   private cache = new Map<
     string,
     { data: RatingAggregate; timestamp: number }

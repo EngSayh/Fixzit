@@ -117,7 +117,7 @@ const PLAN_CONFIGS: Record<string, { modules: string[]; baseSeats: number; allow
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
+  // Rate limiting - SECURITY: Use rate limiting for multi-tenant protection
   const clientIp = getClientIP(req);
   const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300_000);
   if (!rl.allowed) {
@@ -434,7 +434,7 @@ export async function POST(req: NextRequest) {
  * Returns available upgrade options for the current subscription.
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
+  // Rate limiting - SECURITY: Use rate limiting for multi-tenant protection
   const clientIp = getClientIP(req);
   const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
   if (!rl.allowed) {

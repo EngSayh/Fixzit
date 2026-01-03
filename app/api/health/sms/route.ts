@@ -81,13 +81,6 @@ async function checkTaqnyatReachability(taqnyatConfigured: boolean) {
   }
 }
 
-async function checkRedisReachability(redisConfigured: boolean) {
-  if (!redisConfigured) {
-    return { reachable: false, latencyMs: null, error: "Redis not configured" };
-  }
-  return { reachable: false, latencyMs: null, error: "Redis removed" };
-}
-
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:sms" });
   if (rateLimitResponse) return rateLimitResponse;
@@ -111,8 +104,6 @@ export async function GET(request: NextRequest) {
       (process.env.SMS_DEV_MODE === "true" ||
         process.env.SMS_DEV_MODE === undefined);
 
-    const redisConfigured = false;
-
     // Check if demo auth is enabled (should be false in production)
     const demoAuthEnabled =
       !isProd &&
@@ -121,10 +112,6 @@ export async function GET(request: NextRequest) {
     // Optional deep checks (only when authorized to avoid unnecessary external calls)
     const taqnyatReachability = deepCheckRequested
       ? await checkTaqnyatReachability(taqnyatConfigured)
-      : { reachable: null, latencyMs: null, error: null };
-
-    const redisReachability = deepCheckRequested
-      ? await checkRedisReachability(redisConfigured)
       : { reachable: null, latencyMs: null, error: null };
 
     // In production, require Taqnyat to be configured; in non-prod allow dev mode fallback.
@@ -168,11 +155,8 @@ export async function GET(request: NextRequest) {
         senderConfigured: Boolean(process.env.TAQNYAT_SENDER_NAME),
       },
       otp: {
-        redisConfigured,
-        redisReachable: redisReachability.reachable,
-        redisLatencyMs: redisReachability.latencyMs,
-        redisError: redisReachability.error,
-        fallbackEnabled: !redisConfigured, // Will use in-memory if Redis unavailable
+        store: "memory",
+        sharedAcrossInstances: false,
       },
       auth: {
         demoAuthEnabled,

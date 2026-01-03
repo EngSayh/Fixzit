@@ -532,7 +532,7 @@ export class AutoRepricerService {
 
   /**
    * Background job: Reprice all sellers with auto-repricer enabled for a specific tenant
-   * Called every 15 minutes by BullMQ worker
+   * Called every 15 minutes by a background worker
    * @param orgId - 🔐 Required tenant context - if not provided, will process each tenant separately
    */
   static async repriceAllSellers(orgId?: string): Promise<{

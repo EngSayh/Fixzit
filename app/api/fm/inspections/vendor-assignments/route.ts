@@ -127,6 +127,7 @@ export async function GET(request: NextRequest) {
       assignments = inspectionsWithVendors
         .filter(insp => insp.assignedVendor)
         .map(insp => ({
+          _id: insp._id, // Add _id for consistency with DB assignments
           inspectionId: insp._id?.toString() || insp.inspectionId,
           propertyId: insp.propertyId,
           unitId: insp.unitId,
@@ -283,8 +284,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Check if vendor is already assigned to this inspection
+    // Use the resolved inspection identifier (canonical ID) for consistency
+    const resolvedInspectionId = inspection._id.toString();
     const existingAssignment = await db.collection(VENDOR_ASSIGNMENTS_COLLECTION).findOne({
-      inspectionId,
+      $or: [
+        { inspectionId: resolvedInspectionId },
+        { inspectionId: inspectionId }, // Also check original ID for backwards compat
+      ],
       orgId,
       status: { $ne: "cancelled" },
     });
@@ -303,11 +309,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Create the assignment record
+    // 3. Create the assignment record - use transaction for atomicity
     const now = new Date();
     const assignment: VendorAssignment = {
       orgId,
-      inspectionId,
+      inspectionId: resolvedInspectionId, // Use canonical ID
       propertyId,
       unitId,
       vendorId,
@@ -319,28 +325,58 @@ export async function POST(request: NextRequest) {
       createdBy: session.user.id || "system",
     };
 
-    const result = await db.collection(VENDOR_ASSIGNMENTS_COLLECTION).insertOne(assignment);
+    // Use session/transaction for atomicity (if available)
+    const client = db.client;
+    const dbSession = client.startSession();
+    let insertedId: ObjectId | undefined;
+    
+    try {
+      dbSession.startTransaction();
+      
+      const result = await db.collection(VENDOR_ASSIGNMENTS_COLLECTION).insertOne(
+        assignment,
+        { session: dbSession }
+      );
+      insertedId = result.insertedId;
 
-    // 4. Update the inspection with the assigned vendor
-    await db.collection(INSPECTIONS_COLLECTION).updateOne(
-      { _id: inspection._id },
-      {
-        $set: {
-          assignedVendor: {
-            vendorId,
-            vendorName: assignment.vendorName,
-            trade,
-            assignedAt: now,
+      // 4. Update the inspection with the assigned vendor
+      await db.collection(INSPECTIONS_COLLECTION).updateOne(
+        { _id: inspection._id },
+        {
+          $set: {
+            assignedVendor: {
+              vendorId,
+              vendorName: assignment.vendorName,
+              trade,
+              assignedAt: now,
+            },
+            status: "scheduled",
+            updatedAt: now,
           },
-          status: "scheduled",
-          updatedAt: now,
         },
-      },
-    );
+        { session: dbSession }
+      );
+
+      await dbSession.commitTransaction();
+    } catch (txError) {
+      await dbSession.abortTransaction();
+      // If transaction fails and we somehow created an orphan, try to clean up
+      if (insertedId) {
+        try {
+          await db.collection(VENDOR_ASSIGNMENTS_COLLECTION).deleteOne({ _id: insertedId });
+        } catch {
+          // Log but don't throw - orphan cleanup is best-effort
+          logger.warn("Failed to cleanup orphaned assignment", { insertedId: insertedId.toString() });
+        }
+      }
+      throw txError;
+    } finally {
+      await dbSession.endSession();
+    }
 
     logger.info("Vendor assignment created", {
-      assignmentId: result.insertedId.toString(),
-      inspectionId,
+      assignmentId: insertedId?.toString(),
+      inspectionId: resolvedInspectionId,
       vendorId,
       trade,
       orgId,
@@ -353,7 +389,7 @@ export async function POST(request: NextRequest) {
         source: "database",
         assignment: {
           ...assignment,
-          _id: result.insertedId,
+          _id: insertedId,
         },
         message: "Vendor assigned successfully",
       },

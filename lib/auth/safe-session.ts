@@ -201,7 +201,6 @@ function isAuthInfrastructureError(err: unknown): boolean {
     "network error",
     "socket hang up",
     "mongo",
-    "redis",
     "database",
     "db connection",
     "internal server error",
@@ -223,7 +222,6 @@ function isAuthInfrastructureError(err: unknown): boolean {
     "MongoNetworkError",
     "MongoServerError",
     "MongoTimeoutError",
-    "RedisError",
     "FetchError",
     "AbortError",
     "TypeError", // Often from network issues

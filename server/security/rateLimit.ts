@@ -1,5 +1,5 @@
 import { LRUCache } from "lru-cache";
-import { redactRateLimitKey } from "./rateLimitKey";
+import { redactRateLimitKey as _redactRateLimitKey } from "./rateLimitKey";
 import {
   applyReputationToLimit,
   recordReputationSignal,

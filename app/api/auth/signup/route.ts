@@ -107,7 +107,7 @@ const signupSchema = z
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIP(req);
-    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    // SECURITY: Use rate limiting to prevent cross-instance bypass
     const rl = await smartRateLimit(`auth-signup:${clientIp}`, 5, 900000);
     if (!rl.allowed) {
       return rateLimitError();

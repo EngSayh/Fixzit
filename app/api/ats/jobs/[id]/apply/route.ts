@@ -52,7 +52,7 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   const clientIp = getClientIP(req);
-  // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+  // SECURITY: Use rate limiting to prevent cross-instance bypass
   const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

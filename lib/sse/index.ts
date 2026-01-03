@@ -152,7 +152,7 @@ export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
 
 /**
  * Subscribe to tenant-scoped notifications
- * @todo Implement with Redis pub/sub for horizontal scaling
+ * @todo Replace with durable pub/sub for horizontal scaling
  */
 export function subscribeToNotifications(
   orgId: Types.ObjectId,
@@ -189,7 +189,7 @@ export function subscribeToNotifications(
 
 /**
  * Publish notification to all subscribers in an org
- * @todo Implement with Redis pub/sub for horizontal scaling
+ * @todo Replace with durable pub/sub for horizontal scaling
  */
 export async function publishNotification(
   orgId: Types.ObjectId,

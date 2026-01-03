@@ -85,10 +85,6 @@ export async function GET(request: NextRequest) {
     PUBLIC_BASE_URL: !!process.env.PUBLIC_BASE_URL,
     APP_URL: !!process.env.APP_URL,
 
-    // Redis
-    REDIS_URL: !!process.env.REDIS_URL,
-    REDIS_PASSWORD: !!process.env.REDIS_PASSWORD,
-
     // Feature Flags
     ATS_ENABLED: !!process.env.ATS_ENABLED,
     MARKETPLACE_ENABLED: !!process.env.MARKETPLACE_ENABLED,

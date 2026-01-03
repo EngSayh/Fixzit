@@ -1,6 +1,6 @@
 /**
  * @fileoverview Kubernetes Readiness Probe
- * @description Returns 200 when the application is ready to serve traffic by checking critical dependencies (MongoDB, Redis, SMS provider). Use for k8s readinessProbe configuration.
+ * @description Returns 200 when the application is ready to serve traffic by checking critical dependencies (MongoDB, SMS provider). Use for k8s readinessProbe configuration.
  * @route GET /api/health/ready - Kubernetes readiness probe endpoint
  * @access Public
  * @module health
@@ -32,13 +32,11 @@ interface ReadinessStatus {
   ready: boolean;
   checks: {
     mongodb: "ok" | "error" | "timeout";
-    redis: "ok" | "error" | "disabled" | "timeout";
     email: "ok" | "error" | "disabled" | "timeout";
     sms: "ok" | "not_configured" | "disabled";
   };
   latency: {
     mongodb?: number;
-    redis?: number;
     email?: number;
   };
   circuitBreakers?: {
@@ -46,7 +44,6 @@ interface ReadinessStatus {
     breakers: CircuitBreakerStat[];
   };
   timestamp: string;
-  requiresRedis?: boolean;
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -57,7 +54,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ready: false,
     checks: {
       mongodb: "error",
-      redis: "disabled",
       email: "disabled",
       sms: "disabled",
     },
@@ -94,7 +90,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       status.checks.sms = "not_configured";
     }
 
-    // Ready if MongoDB is OK; Redis is intentionally disabled
+    // Ready if MongoDB is OK
     status.ready = status.checks.mongodb === "ok";
 
     // Add circuit breaker states for observability
@@ -116,7 +112,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         ready: false,
-        checks: { mongodb: "error", redis: "error" },
+        checks: { mongodb: "error" },
         error: "Health check failed",
         timestamp: new Date().toISOString(),
       },

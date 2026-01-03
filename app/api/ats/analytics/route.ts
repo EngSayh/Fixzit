@@ -13,7 +13,7 @@ import { Application } from "@/server/models/Application";
 import { Job } from "@/server/models/Job";
 import { Interview } from "@/server/models/ats/Interview";
 import { atsRBAC } from "@/lib/ats/rbac";
-import { getCached, CacheTTL } from "@/lib/redis";
+import { getCached, CacheTTL } from "@/lib/cache";
 import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";

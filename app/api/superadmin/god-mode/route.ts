@@ -211,7 +211,15 @@ export async function GET(req: NextRequest) {
     }
     
     // Get real health data from health aggregator and MongoDB ping
-    const mongoDbPing = await pingDatabase(2000);
+    let mongoDbPing: { ok: boolean; latencyMs: number | null } = { ok: false, latencyMs: null };
+    try {
+      mongoDbPing = await pingDatabase(2000);
+    } catch (pingError) {
+      logger.warn("MongoDB ping failed in God Mode dashboard", {
+        error: pingError instanceof Error ? pingError.message : String(pingError),
+      });
+      // Continue with failed ping status - don't crash the dashboard
+    }
     const healthSummary = healthAggregator.getSummary();
     
     // Map component health to service status

@@ -1130,7 +1130,7 @@ function replaceVariables(text: string, variables: Record<string, unknown>): str
 }
 
 async function queueForDelivery(_notificationId: string): Promise<void> {
-  // In production, would push to a message queue (SQS, Redis, etc.)
+  // In production, would push to a message queue (SQS, etc.)
   // For now, notifications are processed by polling
 }
 

@@ -3,7 +3,6 @@ import crypto from "crypto";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
-import Redis from "ioredis";
 import { Filter, Document } from "mongodb";
 
 import { createSecureResponse } from "@/server/security/headers";
@@ -189,7 +188,7 @@ export async function POST(req: NextRequest) {
       return sessionResult.response; // 503 on infra error
     }
     const user = sessionResult.session;
-    // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
+    // Rate limit per IP (in-memory)
     await rateLimitAssert(req);
     const { data: body, error: parseError } = await parseBodySafe<AskRequest>(req, { logPrefix: "[help:ask]" });
     if (parseError) {
@@ -361,163 +360,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Distributed rate limiter using Redis for multi-instance deployments
-// Falls back to in-memory implementation if Redis is not available
+// In-memory rate limiter for help/ask requests (single-instance).
 const MAX_RATE_PER_MIN_ENV = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN);
 const MAX_RATE_PER_MIN =
   Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
     ? Math.floor(MAX_RATE_PER_MIN_ENV)
     : 30;
-
-// Initialize Redis client if connection URL is provided
-// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
-const redisConnectionUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
-let redis: Redis | null = null;
-let redisDisabled = false;
-
-function maskRedisUrl(url: string | undefined) {
-  if (!url) return undefined;
-  try {
-    const parsed = new URL(url);
-    if (parsed.password) parsed.password = "****";
-    if (parsed.username) parsed.username = "****";
-    return parsed.toString();
-  } catch {
-    return url.length > 12 ? `${url.slice(0, 6)}****${url.slice(-4)}` : "****";
-  }
-}
-
-function isFatalRedisError(error: Error) {
-  const code = (error as { code?: string }).code || "";
-  return (
-    code === "ENOTFOUND" ||
-    code === "EAI_AGAIN" ||
-    error.message.includes("ENOTFOUND") ||
-    error.message.includes("EAI_AGAIN")
-  );
-}
-
-function disableRedis(reason: string, error?: Error) {
-  if (redisDisabled) return;
-  redisDisabled = true;
-  if (redis) {
-    try {
-      redis.disconnect();
-    } catch (disconnectErr) {
-      logger.warn(
-        "Redis disconnect failed after fatal error",
-        {
-          error: disconnectErr instanceof Error
-            ? disconnectErr
-            : new Error(String(disconnectErr)),
-          route: "/api/help/ask",
-          context: "redis-disable",
-        },
-      );
-    } finally {
-      redis = null;
-    }
-  }
-  logger.warn("Redis disabled for help/ask, using in-memory rate limit only", {
-    route: "/api/help/ask",
-    context: "redis-disable",
-    reason,
-    error: error?.message,
-    redisUrl: maskRedisUrl(redisConnectionUrl),
-  });
-}
-
-if (redisConnectionUrl) {
-  try {
-    redis = new Redis(redisConnectionUrl, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times: number) => Math.min(times * 50, 2000),
-      connectTimeout: 5000,
-      commandTimeout: 5000,
-    });
-
-    // Handle connection events for monitoring
-    redis.on("error", (err) => {
-      const error = err instanceof Error ? err : new Error(String(err));
-      logger.error("Redis connection error", error, {
-        route: "/api/help/ask",
-        context: "redis-connection",
-        redisUrl: maskRedisUrl(redisConnectionUrl),
-        code: (error as { code?: string }).code,
-      });
-      if (isFatalRedisError(error)) {
-        disableRedis("fatal-dns-error", error);
-      }
-    });
-
-    redis.on("close", () => {
-      if (redisDisabled) return;
-      logger.warn(
-        "Redis connection closed, will attempt to reconnect automatically",
-      );
-      // Don't set redis = null - let it reconnect automatically
-    });
-
-    redis.on("reconnecting", () => {
-      if (redisDisabled) return;
-      logger.info("Redis reconnecting...");
-    });
-
-    redis.on("ready", () => {
-      if (redisDisabled) return;
-      logger.info("Redis connection restored");
-    });
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    logger.error("Failed to initialize Redis client", error, {
-      route: "/api/help/ask",
-      context: "redis-init",
-      redisUrl: maskRedisUrl(redisConnectionUrl),
-    });
-    if (isFatalRedisError(error)) {
-      disableRedis("init-fatal", error);
-    }
-  }
-}
-
-// Fallback in-memory store for development/testing
+// In-memory store for development/testing
 const rateMap = new Map<string, { count: number; ts: number }>();
 
 async function rateLimitAssert(req: NextRequest) {
   const ip = getClientIP(req);
   const key = `help:ask:${ip}`;
 
-  // Try Redis first if available
-  if (redis && !redisDisabled) {
-    try {
-      const multi = redis.multi();
-      multi.incr(key);
-      multi.expire(key, 60);
-      const results = await multi.exec();
-
-      if (
-        results &&
-        results[0] &&
-        typeof results[0][1] === "number" &&
-        results[0][1] > MAX_RATE_PER_MIN
-      ) {
-        throw new Error("Rate limited");
-      }
-      return;
-    } catch (_err: Error | unknown) {
-      if ((_err as Error).message === "Rate limited") throw _err;
-      if (_err instanceof Error && isFatalRedisError(_err)) {
-        disableRedis("fatal-dns-error", _err);
-      }
-      logger.error(
-        "Redis rate limit check failed, falling back to in-memory",
-        _err instanceof Error ? _err : new Error(String(_err)),
-        { route: "/api/help/ask", context: "rate-limit-redis" },
-      );
-    }
-  }
-
-  // Fallback to in-memory implementation
+  // In-memory implementation
   const now = Date.now();
   const rec = rateMap.get(key) || { count: 0, ts: now };
   if (now - rec.ts > 60_000) {

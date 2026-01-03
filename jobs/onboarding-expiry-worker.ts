@@ -1,5 +1,4 @@
-import { Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { Worker, Job } from '@/lib/queue';
 import { connectMongo } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { VerificationDocument, type VerificationDocumentDoc } from '@/server/models/onboarding/VerificationDocument';
@@ -23,11 +22,6 @@ const SYSTEM_ACTOR_ID = new Types.ObjectId('000000000000000000000000');
 // Batch size for bulk operations (prevents memory exhaustion)
 const BATCH_SIZE = 500;
 
-// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
-const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const connection = redisUrl
-  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
-  : null;
 
 const QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
 
@@ -115,11 +109,6 @@ async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Pro
 }
 
 function buildWorker(): Worker<ExpiryJob> | null {
-  if (!connection) {
-    logger.warn('[OnboardingExpiry] Redis not configured; worker disabled');
-    return null;
-  }
-
   return new Worker<ExpiryJob>(
     QUEUE_NAME,
     async (job: Job<ExpiryJob>) => {
@@ -155,11 +144,7 @@ function buildWorker(): Worker<ExpiryJob> | null {
         count,
         jobId: job.id,
       });
-    },
-    {
-      connection,
-      concurrency: 5, // Allow parallel processing of different org jobs
-    },
+    }
   );
 }
 
@@ -174,8 +159,11 @@ if (require.main === module) {
   } else {
     // eslint-disable-next-line no-console
     logger.error('onboarding_expiry:worker_not_started', {
-      reason: 'Redis connection missing',
+      reason: 'worker initialization failed',
     });
     process.exit(1);
   }
 }
+
+
+

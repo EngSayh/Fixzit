@@ -17,7 +17,7 @@
  * @throws {409} If status transition not allowed
  */
 import { NextRequest, NextResponse } from "next/server";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { z } from "zod";
 import { Payment } from "@/server/models/finance/Payment";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -26,6 +26,7 @@ import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
+import { nextNumber } from "@/server/lib/numbering";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
@@ -51,6 +52,31 @@ const BounceSchema = z.object({
   bounceDate: z.coerce.date(),
   bounceCharges: z.number().min(0).optional(),
 });
+
+// Zod schema for refund request body
+const RefundSchema = z.object({
+  amount: z.preprocess(
+    (val) => (typeof val === "string" ? parseFloat(val) : val),
+    z.number().nonnegative().optional()
+  ),
+  reason: z.string().optional(),
+});
+
+/**
+ * Format amount with currency for display
+ */
+function formatCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-SA", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    // Fallback if currency is invalid
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
 
 import type { RouteContext } from "@/lib/types/route-context";
 
@@ -220,10 +246,22 @@ export async function POST(
 
         // Refund action - creates a refund payment record
         if (action === "refund") {
-          // Validate refund request body
+          // Validate refund request body with Zod
           const body = await parseBodyOrNull(req);
-          const refundAmount = (body as Record<string, unknown>)?.amount as number ?? payment.amount;
-          const refundReason = (body as Record<string, unknown>)?.reason as string ?? "Customer refund request";
+          const parsed = RefundSchema.safeParse(body || {});
+          if (!parsed.success) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: "Validation failed",
+                issues: parsed.error.issues,
+              },
+              { status: 400 },
+            );
+          }
+          const refundAmount = parsed.data.amount ?? payment.amount;
+          const refundReason = parsed.data.reason ?? "Customer refund request";
+          const refundCurrency = payment.currency || "SAR";
           
           // Validate payment is in refundable state
           const refundableStatuses = ["CLEARED", "POSTED"];
@@ -267,111 +305,116 @@ export async function POST(
             );
           }
 
-          // Check for existing refunds on this payment
-          const existingRefunds = await Payment.find({
-            orgId: user.orgId,
-            originalPaymentId: payment._id,
-            isRefund: true,
-          }).lean();
-
-          const totalRefunded = existingRefunds.reduce((sum, r) => sum + (r.amount || 0), 0);
-          const remainingRefundable = payment.amount - totalRefunded;
-
-          if (refundAmount > remainingRefundable) {
-            return NextResponse.json(
-              { 
-                success: false, 
-                error: "Refund amount exceeds remaining refundable amount",
-                details: { 
-                  requested: refundAmount,
-                  totalRefunded,
-                  remainingRefundable,
-                }
-              },
-              { status: 400 },
-            );
-          }
-
-          // Generate refund payment number
-          const now = new Date();
-          const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-          const lastRefund = await Payment.findOne({
-            orgId: user.orgId,
-            paymentNumber: { $regex: `^REF-${yearMonth}-` },
-          })
-            .sort({ paymentNumber: -1 })
-            .lean();
+          // Use MongoDB transaction for atomic refund processing
+          const session = await mongoose.startSession();
+          session.startTransaction();
           
-          const nextSeq = lastRefund 
-            ? parseInt(lastRefund.paymentNumber.split("-").pop() || "0", 10) + 1 
-            : 1;
-          const refundNumber = `REF-${yearMonth}-${String(nextSeq).padStart(4, "0")}`;
+          try {
+            // Re-check existing refunds within transaction to prevent race conditions
+            const existingRefunds = await Payment.find({
+              orgId: user.orgId,
+              originalPaymentId: payment._id,
+              isRefund: true,
+            }).session(session).lean();
 
-          // Create refund payment record
-          const refundPayment = new Payment({
-            orgId: user.orgId,
-            paymentNumber: refundNumber,
-            paymentType: "MADE", // Refund is money going out
-            amount: refundAmount,
-            currency: payment.currency || "SAR",
-            paymentMethod: payment.paymentMethod,
-            paymentDate: now,
-            status: "POSTED",
-            partyType: payment.partyType,
-            partyId: payment.partyId,
-            partyName: payment.partyName,
-            isRefund: true,
-            originalPaymentId: payment._id,
-            refundReason,
-            notes: `Refund for payment ${payment.paymentNumber}: ${refundReason}`,
-            referenceNumber: payment.paymentNumber,
-            propertyId: payment.propertyId,
-            unitId: payment.unitId,
-            workOrderId: payment.workOrderId,
-            createdBy: new Types.ObjectId(user.userId),
-            allocations: [],
-            unallocatedAmount: refundAmount,
-            reconciliation: { isReconciled: false },
-          });
+            const totalRefunded = existingRefunds.reduce((sum, r) => sum + (r.amount || 0), 0);
+            const remainingRefundable = payment.amount - totalRefunded;
 
-          await refundPayment.save();
+            if (refundAmount > remainingRefundable) {
+              await session.abortTransaction();
+              return NextResponse.json(
+                { 
+                  success: false, 
+                  error: "Refund amount exceeds remaining refundable amount",
+                  details: { 
+                    requested: refundAmount,
+                    totalRefunded,
+                    remainingRefundable,
+                  }
+                },
+                { status: 400 },
+              );
+            }
 
-          // Update original payment status if fully refunded
-          const isFullyRefunded = totalRefunded + refundAmount >= payment.amount;
-          if (isFullyRefunded) {
-            payment.status = "REFUNDED";
-            payment.updatedBy = new Types.ObjectId(user.userId);
-            payment.notes = `${payment.notes || ""}\nFully refunded via ${refundNumber}`;
-            await payment.save();
-          }
+            // Generate refund payment number using atomic counter
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+            const refundNumber = await nextNumber(user.orgId, `REF-${yearMonth}`);
 
-          logger.info("Payment refund created", {
-            originalPaymentId: _params.id,
-            refundPaymentId: refundPayment._id.toString(),
-            refundNumber,
-            refundAmount,
-            totalRefunded: totalRefunded + refundAmount,
-            isFullyRefunded,
-            processedBy: user.userId,
-          });
+            // Create refund payment record within transaction
+            const refundPayment = new Payment({
+              orgId: user.orgId,
+              paymentNumber: refundNumber,
+              paymentType: "MADE", // Refund is money going out
+              amount: refundAmount,
+              currency: refundCurrency,
+              paymentMethod: payment.paymentMethod,
+              paymentDate: now,
+              status: "POSTED",
+              partyType: payment.partyType,
+              partyId: payment.partyId,
+              partyName: payment.partyName,
+              isRefund: true,
+              originalPaymentId: payment._id,
+              refundReason,
+              notes: `Refund for payment ${payment.paymentNumber}: ${refundReason}`,
+              referenceNumber: payment.paymentNumber,
+              propertyId: payment.propertyId,
+              unitId: payment.unitId,
+              workOrderId: payment.workOrderId,
+              createdBy: new Types.ObjectId(user.userId),
+              allocations: [],
+              unallocatedAmount: refundAmount,
+              reconciliation: { isReconciled: false },
+            });
 
-          return NextResponse.json({
-            success: true,
-            data: {
-              originalPayment: payment,
-              refundPayment,
-              summary: {
-                refundNumber,
-                refundAmount,
-                totalRefunded: totalRefunded + refundAmount,
-                remainingRefundable: payment.amount - totalRefunded - refundAmount,
-                isFullyRefunded,
+            await refundPayment.save({ session });
+
+            // Update original payment status if fully refunded
+            const isFullyRefunded = totalRefunded + refundAmount >= payment.amount;
+            if (isFullyRefunded) {
+              payment.status = "REFUNDED";
+              payment.updatedBy = new Types.ObjectId(user.userId);
+              payment.notes = `${payment.notes || ""}\nFully refunded via ${refundNumber}`;
+              await payment.save({ session });
+            }
+
+            // Commit transaction
+            await session.commitTransaction();
+
+            logger.info("Payment refund created", {
+              originalPaymentId: _params.id,
+              refundPaymentId: refundPayment._id.toString(),
+              refundNumber,
+              refundAmount,
+              totalRefunded: totalRefunded + refundAmount,
+              isFullyRefunded,
+              processedBy: user.userId,
+            });
+
+            return NextResponse.json({
+              success: true,
+              data: {
+                originalPayment: payment,
+                refundPayment,
+                summary: {
+                  refundNumber,
+                  refundAmount,
+                  totalRefunded: totalRefunded + refundAmount,
+                  remainingRefundable: payment.amount - totalRefunded - refundAmount,
+                  isFullyRefunded,
+                },
               },
-            },
-            message: isFullyRefunded 
-              ? "Payment fully refunded" 
-              : `Partial refund of ${refundAmount} SAR processed`,
-          });
+              message: isFullyRefunded 
+                ? "Payment fully refunded" 
+                : `Partial refund of ${formatCurrency(refundAmount, refundCurrency)} processed`,
+            });
+          } catch (txError) {
+            await session.abortTransaction();
+            throw txError;
+          } finally {
+            session.endSession();
+          }
         }
 
         // Unknown action (should not reach here due to authorization checks)

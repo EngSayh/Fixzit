@@ -31,28 +31,86 @@ export async function GET(request: NextRequest) {
     // Handle demo mode for unauthenticated users
     if (!isAuthenticated) {
       if (isDemoMode) {
-        // Return demo analytics data
+        // Return demo analytics data - structure matches real response
         return NextResponse.json({
           is_demo: true,
           orgId: "demo",
-          timestamp: new Date().toISOString(),
-          summary: {
-            totalAssets: 150,
-            criticalAssets: 3,
-            anomaliesDetected: 7,
-            churnRisk: 12,
+          generated_at: new Date().toISOString(),
+          
+          // Anomaly Detection (matches real structure)
+          anomalies: {
+            active_count: 3,
+            resolved_24h: 2,
+            items: [
+              {
+                id: "ANO-001",
+                type: "asset_health",
+                severity: "high",
+                description: "Demo: HVAC unit showing critical health score of 15%",
+                detected_at: new Date().toISOString(),
+                asset_id: "demo-asset-001",
+                score: 0.85,
+              },
+              {
+                id: "ANO-002",
+                type: "asset_health",
+                severity: "medium",
+                description: "Demo: Elevator motor requires attention",
+                detected_at: new Date().toISOString(),
+                asset_id: "demo-asset-002",
+                score: 0.55,
+              },
+            ],
           },
-          assetHealth: {
-            total: 150,
+          
+          // Churn Prediction (matches real structure)
+          churn: {
+            at_risk_tenants: 5,
+            healthy_tenants: 145,
+            predictions: [
+              {
+                tenant_name: "Demo Tenant A",
+                risk_level: "medium",
+                probability: 0.65,
+                primary_factor: "Low activity in last 30 days",
+                recommended_action: "Schedule customer success call",
+                predicted_churn_date: null,
+              },
+            ],
+          },
+          
+          // Asset Health (matches real structure)
+          asset_health: {
+            total_assets: 150,
             excellent: 75,
             good: 50,
             fair: 15,
             poor: 7,
             critical: 3,
+            critical_assets: [
+              {
+                asset_id: "demo-asset-001",
+                name: "Demo HVAC Unit",
+                health_score: 15,
+                rul_days: 5,
+                failure_probability_30d: 0.85,
+                recommended_action: "Immediate replacement required",
+                estimated_cost_preventive: 5000,
+                estimated_cost_reactive: 25000,
+              },
+            ],
           },
-          criticalAssets: [],
-          anomalies: [],
-          churnPredictions: [],
+          
+          // Summary Insights
+          insights: [
+            {
+              type: "cost_saving",
+              title: "Preventive Maintenance Opportunity",
+              description: "3 critical asset(s) need immediate attention",
+              priority: "high",
+              action_url: "/fm/assets?filter=critical",
+            },
+          ],
         });
       }
       return NextResponse.json(

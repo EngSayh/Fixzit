@@ -46,7 +46,7 @@
  * 
  * @relationships
  * - Referenced by feature check utilities
- * - Cached in Redis for performance
+ * - Cached in-memory for performance (single-instance)
  * 
  * @audit
  * - Flag status changes logged
@@ -418,7 +418,7 @@ FeatureFlagSchema.statics.recordUsage = async function (
   // Using $addToSet would require storing user IDs, which could grow large
   // For now, we increment uniqueUsers counter when userId is provided
   // Note: This is an approximation and may count same user multiple times
-  // For accurate tracking, consider using a separate collection or Redis set
+  // For accurate tracking, consider using a separate collection or shared store
   if (userId) {
     updateOps.$inc["usage.uniqueUsers"] = 1;
   }

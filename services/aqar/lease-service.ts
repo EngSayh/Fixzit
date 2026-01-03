@@ -95,7 +95,7 @@ export interface LeaseDocument {
     contractNumber: string;
     registeredAt: Date;
     expiresAt: Date;
-    status: "pending" | "registered" | "expired" | "cancelled";
+    status: "pending" | "pending_verification" | "registered" | "expired" | "cancelled";
   };
   
   // Tenant info snapshot (at lease signing)
@@ -1111,10 +1111,16 @@ export async function registerWithEjar(
         bathrooms: unit?.bathrooms || property.bathrooms,
         amenities: property.amenities,
         deedNumber: property.deedNumber,
-        // Fix: Handle empty string yearBuilt edge case [PR Review Fix]
-        buildingAge: property.yearBuilt && String(property.yearBuilt).trim() !== ""
-          ? new Date().getFullYear() - Number(property.yearBuilt) 
-          : undefined,
+        // Fix: Validate yearBuilt is numeric before computing age [PR Review Fix]
+        buildingAge: (() => {
+          if (!property.yearBuilt) return undefined;
+          const yearStr = String(property.yearBuilt).trim();
+          if (yearStr === "") return undefined;
+          const numericYear = parseInt(yearStr, 10);
+          if (!Number.isFinite(numericYear) || Number.isNaN(numericYear)) return undefined;
+          const age = new Date().getFullYear() - numericYear;
+          return age >= 0 ? age : undefined;
+        })(),
       },
       landlord: {
         userId: landlord._id.toString(),
@@ -1150,29 +1156,27 @@ export async function registerWithEjar(
         endDate: lease.endDate,
         durationMonths: calculateMonthsDuration(lease.startDate, lease.endDate),
         purpose: property.type?.toLowerCase().includes("commercial") ? "commercial" : "residential",
-        furnishingStatus: lease.furnishingStatus || "unfurnished",
-        allowSubletting: lease.allowsSubleasing || false,
-        autoRenew: lease.isAutoRenew || false,
-        // Fix: Use correct field from lease.terms or fallback [PR Review Fix]
-        renewalNoticeDays: lease.terms?.noticePeriod || lease.renewalNotice || 30,
-        specialConditions: Array.isArray(lease.specialConditions) 
-          ? lease.specialConditions.join("; ") 
-          : lease.specialConditions,
+        furnishingStatus: "unfurnished", // Not in LeaseDocument - use default
+        allowSubletting: false, // Not in LeaseDocument - use default
+        autoRenew: lease.autoRenew || false,
+        // Fix: Use correct field from lease.terms [PR Review Fix]
+        renewalNoticeDays: lease.terms?.noticePeriodDays || 30,
+        specialConditions: undefined, // Not in LeaseDocument
       },
       financial: {
-        annualRent: calculateAnnualRent(lease.rentAmount, lease.rentFrequency),
-        monthlyRent: calculateMonthlyRent(lease.rentAmount, lease.rentFrequency),
-        securityDeposit: lease.depositAmount || 0,
-        paymentFrequency: mapPaymentFrequency(lease.rentFrequency),
-        paymentMethod: mapPaymentMethod(lease.paymentMethod),
+        annualRent: calculateAnnualRent(lease.monthlyRent, lease.paymentFrequency),
+        monthlyRent: calculateMonthlyRent(lease.monthlyRent, lease.paymentFrequency),
+        securityDeposit: lease.securityDeposit || 0,
+        paymentFrequency: mapPaymentFrequency(lease.paymentFrequency),
+        paymentMethod: "bank_transfer", // Not in LeaseDocument - use default
         utilities: {
-          electricity: lease.utilitiesResponsibility?.electricity || "tenant",
-          water: lease.utilitiesResponsibility?.water || "tenant",
-          gas: lease.utilitiesResponsibility?.gas || "tenant",
+          electricity: "tenant", // Default - not directly in LeaseDocument
+          water: "tenant",
+          gas: "tenant",
         },
-        maintenanceResponsibility: lease.maintenanceResponsibility || "landlord",
-        lateFee: lease.lateFee,
-        lateFeeType: lease.lateFeeType,
+        maintenanceResponsibility: lease.terms?.maintenanceResponsibilities || "landlord",
+        lateFee: lease.lateFeePercentage,
+        lateFeeType: "percentage", // Derived from lateFeePercentage
         currency: "SAR",
       },
     });
@@ -1279,7 +1283,7 @@ function mapPaymentFrequency(frequency?: string): "monthly" | "quarterly" | "sem
 /**
  * Map internal payment method to Ejar format
  */
-function mapPaymentMethod(method?: string): "bank_transfer" | "check" | "cash" | "online" {
+function _mapPaymentMethod(method?: string): "bank_transfer" | "check" | "cash" | "online" {
   const methodMap: Record<string, "bank_transfer" | "check" | "cash" | "online"> = {
     bank_transfer: "bank_transfer", bank: "bank_transfer", transfer: "bank_transfer",
     check: "check", cheque: "check", cash: "cash", online: "online", card: "online",

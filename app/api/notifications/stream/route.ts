@@ -123,13 +123,13 @@ export async function GET(request: NextRequest) {
  * Broadcast notification to SSE stream
  * Called by other API routes to push notifications
  * 
- * @todo Connect to Redis pub/sub for multi-instance support
+ * @todo Connect to durable pub/sub for multi-instance support
  */
 export function broadcastNotification(
   _notification: NotificationPayload,
   _targetOrgId: string,
   _targetUserIds?: string[]
 ): void {
-  // TODO: Publish to Redis channel for horizontal scaling
+  // TODO: Publish to a shared pub/sub channel for horizontal scaling
   // This is a placeholder for the Q1 2026 implementation
 }

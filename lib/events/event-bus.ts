@@ -104,14 +104,36 @@ class EventBus {
   private changeStream: ChangeStream | null = null;
   private pollInterval: NodeJS.Timeout | null = null;
   private lastEventTime: Date = new Date();
+  private lastEventId: string | null = null; // Track last processed event ID for tie-breaking
   private initialized = false;
+  private initializingPromise: Promise<void> | null = null; // Guard for concurrent init
 
   /**
    * Initialize the event bus (connects to MongoDB change stream if available)
    */
   async initialize(): Promise<void> {
+    // If already initialized, return immediately
     if (this.initialized) return;
     
+    // If initialization is in progress, wait for it
+    if (this.initializingPromise) {
+      return this.initializingPromise;
+    }
+    
+    // Start initialization with promise guard
+    this.initializingPromise = this.doInitialize();
+    
+    try {
+      await this.initializingPromise;
+    } finally {
+      this.initializingPromise = null;
+    }
+  }
+  
+  /**
+   * Actual initialization logic
+   */
+  private async doInitialize(): Promise<void> {
     try {
       const db = await getDatabase();
       
@@ -187,19 +209,40 @@ class EventBus {
 
   /**
    * Poll MongoDB for new events
+   * Uses both timestamp and ID for tie-breaking to prevent missing events with same timestamp
    */
   private async pollEvents(): Promise<void> {
     try {
       const db = await getDatabase();
       
-      const events = await db.collection(EVENTS_COLLECTION).find({
-        createdAt: { $gt: this.lastEventTime },
+      // Build query with tie-breaking: events after lastEventTime, or same time but higher ID
+      const query: Record<string, unknown> = {
         processingInstance: { $ne: INSTANCE_ID },
-      }).sort({ createdAt: 1 }).limit(100).toArray() as StoredEvent[];
+      };
+      
+      if (this.lastEventId) {
+        // Use both timestamp and ID for deterministic ordering
+        query.$or = [
+          { createdAt: { $gt: this.lastEventTime } },
+          { 
+            createdAt: this.lastEventTime, 
+            _id: { $gt: new ObjectId(this.lastEventId) } 
+          },
+        ];
+      } else {
+        query.createdAt = { $gt: this.lastEventTime };
+      }
+      
+      const events = await db.collection(EVENTS_COLLECTION).find(query)
+        .sort({ createdAt: 1, _id: 1 }) // Deterministic sort with tie-breaking
+        .limit(100)
+        .toArray() as StoredEvent[];
       
       for (const event of events) {
         this.handleIncomingEvent(event);
+        // Update both timestamp and ID for tie-breaking
         this.lastEventTime = event.createdAt;
+        this.lastEventId = event._id?.toString() ?? null;
       }
     } catch (error) {
       logger.error("Event polling failed", {

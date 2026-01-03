@@ -76,7 +76,7 @@ const subscriptionSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting - SECURITY: In-memory limiter (Redis removed)
+  // Rate limiting - SECURITY: In-memory limiter
   const clientIp = getClientIP(req);
   const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
   if (!rl.allowed) {

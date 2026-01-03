@@ -199,6 +199,10 @@ export interface InspectionRecord {
   syncedFromOffline: boolean;
   offlineId?: string;
   lastSyncAt?: Date;
+  // Report generation fields
+  reportStatus?: "generating" | "ready" | "failed";
+  reportRequestedBy?: string;
+  reportRequestedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -506,24 +510,36 @@ export async function scheduleInspection(
     // Send notification to tenant if requested
     if (request.notifyTenant && request.unitId) {
       try {
-        // Lookup tenant from unit
-        const unitId = ObjectId.isValid(request.unitId) ? new ObjectId(request.unitId) : request.unitId;
-        const unit = await db.collection(COLLECTIONS.UNITS).findOne({
-          _id: unitId as unknown,
-          orgId: request.orgId
-        } as Record<string, unknown>);
-        
-        if (unit?.currentTenantId) {
-          const scheduledDate = request.scheduledDate instanceof Date 
-            ? request.scheduledDate.toLocaleDateString("en-SA")
-            : new Date(request.scheduledDate).toLocaleDateString("en-SA");
-          const timeSlot = request.scheduledTimeSlot 
-            ? `${request.scheduledTimeSlot.start} - ${request.scheduledTimeSlot.end}`
-            : "Time to be confirmed";
-            
-          await sendNotification({
+        // Lookup tenant from unit - normalize unitId to ObjectId
+        // MongoDB's _id field requires ObjectId, so validate and convert
+        if (!ObjectId.isValid(request.unitId)) {
+          logger.warn("Invalid unitId format for tenant lookup", {
+            component: "inspection-service",
+            unitId: request.unitId,
+          });
+        } else {
+          const unitObjectId = new ObjectId(request.unitId);
+          const unit = await db.collection(COLLECTIONS.UNITS).findOne({
+            _id: unitObjectId,
             orgId: request.orgId,
-            userId: unit.currentTenantId as string,
+          });
+        
+          if (unit?.currentTenantId) {
+            // Convert ObjectId to string for notification
+            const tenantIdStr = typeof unit.currentTenantId === "object" && unit.currentTenantId !== null
+              ? unit.currentTenantId.toString()
+              : String(unit.currentTenantId);
+            
+            const scheduledDate = request.scheduledDate instanceof Date 
+              ? request.scheduledDate.toLocaleDateString("en-SA")
+              : new Date(request.scheduledDate).toLocaleDateString("en-SA");
+            const timeSlot = request.scheduledTimeSlot 
+              ? `${request.scheduledTimeSlot.start} - ${request.scheduledTimeSlot.end}`
+              : "Time to be confirmed";
+            
+            await sendNotification({
+              orgId: request.orgId,
+              userId: tenantIdStr,
             category: NotificationCategory.WORK_ORDER,
             channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
             priority: NotificationPriority.NORMAL,
@@ -543,6 +559,7 @@ export async function scheduleInspection(
             action: "scheduleInspection",
             tenantId: unit.currentTenantId,
           });
+        }
         }
       } catch (notificationError) {
         // Log but don't fail the scheduling if notification fails

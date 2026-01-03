@@ -13,7 +13,7 @@
  */
 
 import { logger } from "@/lib/logger";
-import type { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collection-names";
 
@@ -626,9 +626,13 @@ export async function getProviderStatistics(orgId: string): Promise<ProviderStat
     
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     
+    // Convert string orgId to ObjectId for matching
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
     // Aggregate statistics
+    // Note: avgResponseTime uses service_areas.response_time_hours (converted to minutes)
     const stats = await collection.aggregate([
-      { $match: { org_id: orgId } },
+      { $match: { org_id: orgObjectId } },
       {
         $facet: {
           totals: [
@@ -639,7 +643,16 @@ export async function getProviderStatistics(orgId: string): Promise<ProviderStat
                 verified: { $sum: { $cond: [{ $eq: ["$verification_status", "verified"] }, 1, 0] } },
                 active: { $sum: { $cond: [{ $gte: ["$updated_at", thirtyDaysAgo] }, 1, 0] } },
                 avgRating: { $avg: "$average_rating" },
-                avgResponseTime: { $avg: "$response_time_minutes" },
+              }
+            }
+          ],
+          // Calculate avg response time from service_areas (hours -> minutes)
+          responseTime: [
+            { $unwind: { path: "$service_areas", preserveNullAndEmptyArrays: false } },
+            {
+              $group: {
+                _id: null,
+                avgResponseTimeHours: { $avg: "$service_areas.response_time_hours" },
               }
             }
           ],
@@ -659,8 +672,13 @@ export async function getProviderStatistics(orgId: string): Promise<ProviderStat
       }
     ]).toArray();
     
-    const result = stats[0] as { totals: Array<{ total?: number; verified?: number; active?: number; avgRating?: number; avgResponseTime?: number }>; byCategory: Array<{ _id: string; count: number; avgRating: number }> } | undefined;
+    const result = stats[0] as { 
+      totals: Array<{ total?: number; verified?: number; active?: number; avgRating?: number }>; 
+      responseTime: Array<{ avgResponseTimeHours?: number }>;
+      byCategory: Array<{ _id: string; count: number; avgRating: number }> 
+    } | undefined;
     const totals = result?.totals?.[0] || {};
+    const responseTimeHours = result?.responseTime?.[0]?.avgResponseTimeHours ?? 0;
     const categories = (result?.byCategory || []).map((c) => ({
       name: c._id || "Other",
       count: c.count,
@@ -672,7 +690,8 @@ export async function getProviderStatistics(orgId: string): Promise<ProviderStat
       verified_providers: totals.verified || 0,
       active_this_month: totals.active || 0,
       avg_rating: Math.round((totals.avgRating || 0) * 10) / 10,
-      avg_response_time_min: Math.round(totals.avgResponseTime || 0),
+      // Convert hours to minutes
+      avg_response_time_min: Math.round(responseTimeHours * 60),
       categories,
     };
   } catch (error) {
@@ -700,8 +719,11 @@ export async function getFeaturedProviders(
     const db = await getDatabase();
     const collection = db.collection(COLLECTIONS.FM_SERVICE_PROVIDERS);
     
+    // Convert string orgId to ObjectId for matching
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
     const providers = await collection.find({
-      org_id: orgId,
+      org_id: orgObjectId,
       status: "active",
       verification_status: "verified",
     })
@@ -733,7 +755,10 @@ export async function searchProviders(
     const db = await getDatabase();
     const collection = db.collection(COLLECTIONS.FM_SERVICE_PROVIDERS);
     
-    const query: Record<string, unknown> = { org_id: orgId, status: "active" };
+    // Convert string orgId to ObjectId for matching
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
+    const query: Record<string, unknown> = { org_id: orgObjectId, status: "active" };
     
     if (filters.category) {
       query["capabilities.category"] = filters.category.toLowerCase();

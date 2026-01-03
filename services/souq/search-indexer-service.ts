@@ -83,7 +83,7 @@ export class SearchIndexerService {
 
   /**
    * Full reindex of all products for a specific organization
-   * Run daily at 2 AM via BullMQ cron job
+   * Run daily at 2 AM via background scheduler
    * 🔐 STRICT v4.1: orgId is REQUIRED to prevent cross-tenant data exposure
    */
   static async fullReindexProducts(options: {

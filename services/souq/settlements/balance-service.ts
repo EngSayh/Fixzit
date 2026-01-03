@@ -1,7 +1,7 @@
 /**
  * Seller Balance Service
  *
- * Real-time balance tracking using Redis for fast queries.
+ * Real-time balance tracking using in-memory cache for fast queries.
  * Manages transaction history, reserve management, and withdrawal requests.
  *
  * Features:
@@ -14,7 +14,7 @@
 
 import { ClientSession, Db, ObjectId } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
-import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
+import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { buildOrgCandidates, findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 import { PAYOUT_CONFIG } from "@/services/souq/settlements/settlement-config";
@@ -123,7 +123,7 @@ export class SellerBalanceService {
   }
 
   /**
-   * Get seller balance (real-time from Redis or balance document)
+   * Get seller balance (real-time from cache or balance document)
    * 🔧 FIX: Now uses souq_seller_balances collection as primary source
    * for faster reads and consistency with atomic recordTransaction.
    * @param sellerId - The seller ID
@@ -765,7 +765,7 @@ export class SellerBalanceService {
       }
     }
 
-    // Invalidate Redis cache after successful transaction.
+    // Invalidate cache after successful transaction.
     // If caller provided a session, defer cache invalidation to caller post-commit.
     if (!callerSession && options?.invalidateCache !== false) {
       await this.invalidateBalanceCache(transaction.sellerId, transaction.orgId);
@@ -1334,7 +1334,7 @@ export class SellerBalanceService {
   }
 
   /**
-   * Invalidate Redis cache for seller balance
+   * Invalidate cache for seller balance
    * @param sellerId - The seller ID
    * @param orgId - Required for STRICT v4.1 tenant isolation
    */

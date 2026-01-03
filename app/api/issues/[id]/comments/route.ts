@@ -18,13 +18,23 @@ import { getSuperadminSession } from '@/lib/superadmin/auth';
 
 // Default org ID for API token access
 function resolveApiTokenOrgId(): string {
-  return (
-    process.env.SUPERADMIN_DEFAULT_ORG_ID?.trim() ||
-    process.env.SUPERADMIN_ORG_ID?.trim() ||
-    process.env.PUBLIC_ORG_ID?.trim() ||
-    process.env.DEFAULT_ORG_ID?.trim() ||
-    '68dc8955a1ba6ed80ff372dc'
-  );
+  const candidates = [
+    process.env.SUPERADMIN_DEFAULT_ORG_ID?.trim(),
+    process.env.SUPERADMIN_ORG_ID?.trim(),
+    process.env.PUBLIC_ORG_ID?.trim(),
+    process.env.DEFAULT_ORG_ID?.trim(),
+  ];
+  
+  const validOrgId = candidates.find(id => id && id.length > 0);
+  
+  if (!validOrgId) {
+    throw new Error(
+      "CONFIGURATION_ERROR: No valid org ID configured for API token access. " +
+      "Set one of: SUPERADMIN_DEFAULT_ORG_ID, SUPERADMIN_ORG_ID, PUBLIC_ORG_ID, or DEFAULT_ORG_ID"
+    );
+  }
+  
+  return validOrgId;
 }
 
 async function resolveIssueSession(request: NextRequest) {

@@ -48,6 +48,7 @@ export enum ApprovalStatus {
   REJECTED = "rejected",
   EXPIRED = "expired",
   CANCELLED = "cancelled",
+  EXECUTED = "executed",
 }
 
 /**
@@ -111,6 +112,22 @@ const COLLECTION_NAME = "approval_requests";
 // ============================================================================
 // Service Implementation
 // ============================================================================
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ */
+function timingSafeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  
+  // If lengths differ, perform a dummy comparison to prevent timing leaks
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA); // Dummy comparison
+    return false;
+  }
+  
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 /**
  * Generate a secure random request ID
@@ -353,13 +370,17 @@ export async function validateApprovalToken(params: {
       if (!request.approvalToken) continue;
       
       const storedToken = decryptField(request.approvalToken, "approval.token");
-      if (storedToken === params.token) {
+      // Skip if decryption failed (returns null)
+      if (!storedToken) continue;
+      
+      // Use timing-safe comparison to prevent timing attacks
+      if (timingSafeCompare(storedToken, params.token)) {
         // Token matches - mark as used
         await db.collection(COLLECTION_NAME).updateOne(
           { requestId: request.requestId },
           { 
             $set: { 
-              status: "executed" as ApprovalStatus,
+              status: ApprovalStatus.EXECUTED,
               executedAt: new Date(),
               executedBy: params.adminId,
             }
