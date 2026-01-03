@@ -274,6 +274,40 @@ const FRAUD_PATTERNS = {
   rapidAccountChanges: { weight: 0.15, severity: "medium" as const },
 };
 
+/**
+ * Fraud detection thresholds - extracted from magic numbers for maintainability
+ * @added [AGENT-0004] 2026-01-02 - Addresses PR #640 review comments
+ */
+const FRAUD_DETECTION_THRESHOLDS = {
+  activitySpike: {
+    baselineDays: 6,
+    thresholdMultiplier: 3,
+    minBaselineOrders: 2,
+    highSeverityMultiplier: 5,
+  },
+  duplicateListings: {
+    minListings: 2,
+    minTextLength: 10,
+    ngramSize: 3,
+    ngramCount: 10,
+    duplicateThreshold: 3,
+    highSeverityThreshold: 10,
+  },
+  priceManipulation: {
+    swingThreshold: 0.5, // 50% price change
+    minSwings: 3,
+    highSeveritySwings: 5,
+  },
+  fakeReviews: {
+    velocityWindowMinutes: 60,
+    velocityThreshold: 5,
+    minDuplicateReviewers: 1,
+    highSeverityDuplicates: 3,
+    historicalDays: 30,
+    velocityMultiplier: 5,
+  },
+};
+
 // ============================================================================
 // Core Functions
 // ============================================================================
@@ -819,6 +853,7 @@ function determineTier(score: number): VendorTier {
  * Threshold: > 3x normal activity triggers signal
  * 
  * @implemented [AGENT-001-A] 2026-01-02
+ * @updated [AGENT-0004] 2026-01-02 - Extract magic numbers to constants
  */
 async function checkActivitySpike(
   orgId: string,
@@ -844,14 +879,15 @@ async function checkActivitySpike(
       createdAt: { $gte: sevenDaysAgo, $lt: oneDayAgo },
     });
     
-    const dailyAverage = historicalOrders / 6; // 6 days of data
-    const spikeThreshold = dailyAverage * 3;
+    const { baselineDays, thresholdMultiplier, minBaselineOrders, highSeverityMultiplier } = FRAUD_DETECTION_THRESHOLDS.activitySpike;
+    const dailyAverage = historicalOrders / baselineDays;
+    const spikeThreshold = dailyAverage * thresholdMultiplier;
     
     // Require minimum baseline to avoid false positives on new vendors
-    if (dailyAverage >= 2 && recentOrders > spikeThreshold) {
+    if (dailyAverage >= minBaselineOrders && recentOrders > spikeThreshold) {
       return {
         type: "activity_spike",
-        severity: recentOrders > dailyAverage * 5 ? "high" : "medium",
+        severity: recentOrders > dailyAverage * highSeverityMultiplier ? "high" : "medium",
         description: `Order volume ${Math.round(recentOrders / dailyAverage)}x above normal (${recentOrders} vs avg ${Math.round(dailyAverage)})`,
         evidence: {
           recentOrders,
@@ -1031,6 +1067,7 @@ async function checkPriceManipulation(
  * Flags abnormal review velocity and suspicious patterns
  * 
  * @implemented [AGENT-001-A] 2026-01-02
+ * @updated [AGENT-0004] 2026-01-02 - Fix duplicate reviewer calc, use constants
  */
 async function checkFakeReviews(
   orgId: string,
@@ -1039,38 +1076,47 @@ async function checkFakeReviews(
   try {
     const db = await getDatabase();
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const { velocityWindowMinutes, velocityThreshold, minDuplicateReviewers, highSeverityDuplicates, historicalDays, velocityMultiplier } = FRAUD_DETECTION_THRESHOLDS.fakeReviews;
+    
+    const velocityWindowAgo = new Date(now.getTime() - velocityWindowMinutes * 60 * 1000);
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
-    // Check for review velocity spikes (> 5 reviews in 1 hour)
+    // Check for review velocity spikes
     const recentReviews = await db.collection("reviews")
       .find({
         orgId,
         vendorId,
-        createdAt: { $gte: oneHourAgo },
+        createdAt: { $gte: velocityWindowAgo },
       })
       .project({ userId: 1, rating: 1 })
       .toArray();
     
-    if (recentReviews.length >= 5) {
-      // Check for duplicate reviewers
-      const reviewerIds = recentReviews.map(r => r.userId?.toString());
-      const uniqueReviewers = new Set(reviewerIds);
-      const duplicateReviewers = reviewerIds.length - uniqueReviewers.size;
+    if (recentReviews.length >= velocityThreshold) {
+      // Count how many unique reviewers posted multiple times
+      const reviewerIds = recentReviews
+        .map(r => r.userId?.toString())
+        .filter((id): id is string => id !== undefined);
+      
+      const reviewerCounts = new Map<string, number>();
+      for (const id of reviewerIds) {
+        reviewerCounts.set(id, (reviewerCounts.get(id) ?? 0) + 1);
+      }
+      const duplicateReviewers = Array.from(reviewerCounts.values()).filter(count => count > 1).length;
+      const uniqueReviewers = reviewerCounts.size;
       
       // Check for rating patterns (all 5-star is suspicious)
       const allFiveStars = recentReviews.every(r => r.rating === 5);
       
-      if (duplicateReviewers >= 1 || allFiveStars) {
+      if (duplicateReviewers >= minDuplicateReviewers || allFiveStars) {
         return {
           type: "fake_reviews",
-          severity: duplicateReviewers >= 3 ? "high" : "medium",
-          description: `Suspicious review pattern: ${recentReviews.length} reviews in 1 hour${duplicateReviewers > 0 ? `, ${duplicateReviewers} duplicate reviewers` : ""}${allFiveStars ? ", all 5-star" : ""}`,
+          severity: duplicateReviewers >= highSeverityDuplicates ? "high" : "medium",
+          description: `Suspicious review pattern: ${recentReviews.length} reviews in ${velocityWindowMinutes} min${duplicateReviewers > 0 ? `, ${duplicateReviewers} duplicate reviewers` : ""}${allFiveStars ? ", all 5-star" : ""}`,
           evidence: {
             reviewsInHour: recentReviews.length,
             duplicateReviewers,
             allFiveStars,
-            uniqueReviewers: uniqueReviewers.size,
+            uniqueReviewers,
           },
           detectedAt: new Date(),
         };
@@ -1085,16 +1131,16 @@ async function checkFakeReviews(
     });
     
     // Get vendor's typical daily reviews (30-day average)
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const historicalPeriodAgo = new Date(now.getTime() - historicalDays * 24 * 60 * 60 * 1000);
     const historicalReviews = await db.collection("reviews").countDocuments({
       orgId,
       vendorId,
-      createdAt: { $gte: thirtyDaysAgo, $lt: oneDayAgo },
+      createdAt: { $gte: historicalPeriodAgo, $lt: oneDayAgo },
     });
     
-    const avgDailyReviews = historicalReviews / 29;
+    const avgDailyReviews = historicalReviews / (historicalDays - 1);
     
-    if (avgDailyReviews >= 1 && dailyReviews > avgDailyReviews * 5) {
+    if (avgDailyReviews >= 1 && dailyReviews > avgDailyReviews * velocityMultiplier) {
       return {
         type: "fake_reviews",
         severity: "medium",

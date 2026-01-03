@@ -1026,6 +1026,7 @@ interface EjarRegistrationRequest {
 /**
  * Call Ejar API with proper error handling
  * @implemented [AGENT-001-A] 2026-01-02
+ * @updated [AGENT-0004] 2026-01-02 - Added AbortController timeout, removed PII from logs
  */
 async function callEjarApi<T>(
   endpoint: string,
@@ -1037,6 +1038,9 @@ async function callEjarApi<T>(
     return { success: false, error: "Ejar API not configured" };
   }
   
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  
   try {
     const response = await fetch(`${EJAR_CONFIG.baseUrl}${endpoint}`, {
       method,
@@ -1046,14 +1050,16 @@ async function callEjarApi<T>(
         "Accept-Language": "ar", // Ejar requires Arabic
       },
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
     
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
-      const errorText = await response.text();
+      // Only log status, not response body which may contain PII
       logger.error("Ejar API error", {
         endpoint,
         status: response.status,
-        error: errorText.substring(0, 200),
       });
       return { success: false, error: `Ejar API error: ${response.status}` };
     }
@@ -1061,6 +1067,13 @@ async function callEjarApi<T>(
     const data = await response.json() as T;
     return { success: true, data };
   } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error && error.name === "AbortError") {
+      logger.error("Ejar API timeout", { endpoint });
+      return { success: false, error: "Ejar API request timed out" };
+    }
+    
     logger.error("Ejar API call failed", {
       endpoint,
       error: error instanceof Error ? error.message : String(error),
@@ -1106,41 +1119,56 @@ export async function registerWithEjar(
     });
     
     let contractNumber: string;
+    let registrationSource: "api" | "mock" = "mock";
     
     // Attempt real Ejar API registration if configured
     if (EJAR_CONFIG.enabled && EJAR_CONFIG.apiKey) {
-      const registrationRequest: EjarRegistrationRequest = {
-        landlordId: lease.landlordId?.toString() || orgId,
-        tenantId: lease.tenantId?.toString(),
-        propertyId: property?.ejarPropertyId || lease.propertyId?.toString(),
-        unitId: lease.unitId?.toString(),
-        startDate: new Date(lease.startDate).toISOString().split("T")[0],
-        endDate: new Date(lease.endDate).toISOString().split("T")[0],
-        monthlyRent: lease.monthlyRent || 0,
-        currency: lease.currency || "SAR",
-        paymentSchedule: lease.paymentSchedule || "monthly",
-      };
-      
-      const apiResult = await callEjarApi<{ contractNumber: string; status: string }>(
-        "/contracts/register",
-        "POST",
-        registrationRequest as unknown as Record<string, unknown>
-      );
-      
-      if (apiResult.success && apiResult.data?.contractNumber) {
-        contractNumber = apiResult.data.contractNumber;
-        
-        logger.info("Ejar API registration successful", {
-          leaseId,
-          contractNumber,
-          orgId,
-        });
+      // Validate required fields before API call
+      if (!lease.landlordId) {
+        logger.warn("Ejar registration: missing landlordId, using mock", { leaseId, orgId });
+      } else if (!lease.tenantId) {
+        logger.warn("Ejar registration: missing tenantId, using mock", { leaseId, orgId });
+      } else if (!lease.monthlyRent || lease.monthlyRent <= 0) {
+        logger.warn("Ejar registration: invalid monthlyRent, using mock", { leaseId, orgId });
       } else {
-        // Log warning but continue with mock for graceful degradation
-        logger.warn("Ejar API registration failed, using mock", {
-          leaseId,
-          error: apiResult.error,
-        });
+        const registrationRequest: EjarRegistrationRequest = {
+          landlordId: lease.landlordId.toString(),
+          tenantId: lease.tenantId.toString(),
+          propertyId: property?.ejarPropertyId || lease.propertyId?.toString(),
+          unitId: lease.unitId?.toString(),
+          startDate: new Date(lease.startDate).toISOString().split("T")[0],
+          endDate: new Date(lease.endDate).toISOString().split("T")[0],
+          monthlyRent: lease.monthlyRent,
+          currency: lease.currency ?? "SAR",
+          paymentSchedule: lease.paymentSchedule ?? "monthly",
+        };
+        
+        const apiResult = await callEjarApi<{ contractNumber: string; status: string }>(
+          "/contracts/register",
+          "POST",
+          registrationRequest as unknown as Record<string, unknown>
+        );
+        
+        if (apiResult.success && apiResult.data?.contractNumber) {
+          contractNumber = apiResult.data.contractNumber;
+          registrationSource = "api";
+          
+          logger.info("Ejar API registration successful", {
+            leaseId,
+            contractNumber,
+            orgId,
+          });
+        } else {
+          // Log warning but continue with mock for graceful degradation
+          logger.warn("Ejar API registration failed, using mock", {
+            leaseId,
+            error: apiResult.error,
+          });
+        }
+      }
+      
+      // Generate mock if API wasn't called or failed
+      if (!contractNumber!) {
         contractNumber = `EJAR-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
       }
     } else {
@@ -1163,7 +1191,7 @@ export async function registerWithEjar(
             registeredAt: new Date(),
             expiresAt: lease.endDate,
             status: "registered",
-            source: EJAR_CONFIG.enabled ? "api" : "mock",
+            source: registrationSource,
           },
           updatedAt: new Date(),
         },
@@ -1174,7 +1202,7 @@ export async function registerWithEjar(
       leaseId,
       contractNumber,
       orgId,
-      source: EJAR_CONFIG.enabled ? "api" : "mock",
+      source: registrationSource,
     });
     
     return { success: true, contractNumber };
