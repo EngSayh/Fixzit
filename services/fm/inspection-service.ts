@@ -502,10 +502,53 @@ export async function scheduleInspection(
     const result = await db.collection(INSPECTIONS_COLLECTION).insertOne(inspection);
     
     // TODO: Send notification to tenant if requested
-    if (request.notifyTenant) {
-      logger.info("TODO: Send tenant inspection notification", {
-        component: "inspection-service",
-      });
+    // Send notification to tenant if requested
+    if (request.notifyTenant && request.unitId) {
+      try {
+        // Lookup tenant from unit
+        const unit = await db.collection(COLLECTIONS.UNITS).findOne({
+          _id: ObjectId.isValid(request.unitId) ? new ObjectId(request.unitId) : null,
+          orgId: request.orgId
+        });
+        
+        if (unit?.currentTenantId) {
+          const scheduledDate = request.scheduledDate instanceof Date 
+            ? request.scheduledDate.toLocaleDateString("en-SA")
+            : new Date(request.scheduledDate).toLocaleDateString("en-SA");
+          const timeSlot = request.scheduledTimeSlot 
+            ? `${request.scheduledTimeSlot.start} - ${request.scheduledTimeSlot.end}`
+            : "TBD";
+            
+          await sendNotification({
+            orgId: request.orgId,
+            userId: unit.currentTenantId as string,
+            category: NotificationCategory.WORK_ORDER,
+            channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+            priority: NotificationPriority.NORMAL,
+            subject: "Scheduled Inspection",
+            subjectAr: "تفتيش مجدول",
+            body: `An inspection has been scheduled for ${scheduledDate} (${timeSlot}). Inspector: ${request.inspectorName}.`,
+            bodyAr: `تم جدولة تفتيش في ${scheduledDate} (${timeSlot}). المفتش: ${request.inspectorName}.`,
+            metadata: {
+              source: "inspection-service",
+              sourceId: result.insertedId.toString(),
+              tags: ["inspection", request.propertyId, request.unitId],
+            }
+          });
+          
+          logger.info("Tenant inspection notification sent", {
+            component: "inspection-service",
+            action: "scheduleInspection",
+            tenantId: unit.currentTenantId,
+          });
+        }
+      } catch (notificationError) {
+        // Log but don't fail the scheduling if notification fails
+        logger.warn("Failed to send tenant inspection notification", {
+          component: "inspection-service",
+          error: notificationError,
+        });
+      }
     }
     
     logger.info("Inspection scheduled", {
