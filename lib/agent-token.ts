@@ -243,7 +243,7 @@ export function isValidToken(token: string): boolean {
  * Strip brackets from token for storage
  * 
  * @param token - Token with brackets like '[AGENT-0001]'
- * @returns Token without brackets like 'AGENT-001-A'
+ * @returns Token without brackets like 'AGENT-0001'
  */
 export function stripBrackets(token: string): string {
   return token.replace(/^\[|\]$/g, '');
@@ -252,7 +252,7 @@ export function stripBrackets(token: string): string {
 /**
  * Add brackets to raw token
  * 
- * @param rawToken - Token without brackets like 'AGENT-001-A'
+ * @param rawToken - Token without brackets like 'AGENT-0001'
  * @returns Token with brackets like '[AGENT-0001]'
  */
 export function addBrackets(rawToken: string): string {
@@ -265,7 +265,7 @@ export function addBrackets(rawToken: string): string {
 // =============================================================================
 
 export interface AgentEventContext {
-  agentId: string;         // e.g., 'AGENT-001-A'
+  agentId: string;         // e.g., 'AGENT-0001'
   agentToken: string;      // e.g., '[AGENT-0001]'
   timestamp: Date;
   sessionId?: string;
