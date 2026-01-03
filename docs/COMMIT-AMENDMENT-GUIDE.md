@@ -83,7 +83,8 @@ git rebase -i <parent-commit-hash>
 ```
 
 **First commit message:**
-```
+
+```gitcommit
 fix(code-quality): Race conditions, type safety, field mappings [AGENT-0005]
 
 Issues Resolved:
@@ -114,7 +115,8 @@ Issues Resolved:
 ```
 
 **Second commit message:**
-```
+
+```gitcommit
 refactor(infra): Remove Redis dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
 
 Deleted:

@@ -1,12 +1,12 @@
 <!-- 
-  PENDING_MASTER.md - DERIVED SNAPSHOT (DO NOT EDIT MANUALLY)
+  PENDING_MASTER.md - DERIVED SNAPSHOT
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
-  Sync: This file is auto-generated/updated by agent workflows
+  Sync: This file is primarily auto-generated/updated by agent workflows
   Last-Sync: 2026-01-03T20:00:00+03:00
   
-  IMPORTANT: Manual edits to this file are forbidden.
-  To update issues, modify the MongoDB Issue Tracker directly.
+  NOTE: Manual edits are permitted for annotations and cross-references.
+  Core issue data should be maintained in the MongoDB Issue Tracker.
   
   Links:
   - SSOT: MongoDB Atlas issue-tracker collection
