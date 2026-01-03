@@ -19,6 +19,54 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 09:00 (Asia/Riyadh) — Code Quality Remediation: Category 3 Quick Wins [AGENT-0003]
+
+**Agent Token:** [AGENT-0003]  
+**Context:** Systematic remediation of code quality report, starting with Category 3 (Runtime Placeholders - Quick Wins)
+
+#### ✅ PLACEHOLDER-001: Fixed TBD in ICS Generator
+
+**File:** `lib/ats/ics-generator.ts` (line 151)
+
+**Problem:** Interview calendar events showed "TBD" when location was undefined and no meeting URL provided.
+
+**Solution:** Changed fallback from vague "TBD" to explicit "Onsite - Location to be confirmed"
+
+```diff
+-location: interview.location || (interview.meetingUrl ? "Virtual Meeting" : "TBD"),
++const resolvedLocation = interview.location 
++  || (interview.meetingUrl ? "Virtual Meeting" : "Onsite - Location to be confirmed");
++// ...
++location: resolvedLocation,
+```
+
+**Verification:** `pnpm typecheck` - 0 errors
+
+---
+
+#### ⭕ PLACEHOLDER-002: page.tsx TBD Items - FALSE POSITIVES
+
+**Analyzed Files:**
+| File | Line | Finding |
+|------|------|---------|
+| `app/(fm)/fm/properties/inspections/page.tsx` | 113 | `auto("TBD", "queue.tbd")` - Proper i18n call with translation key |
+| `app/(fm)/fm/hr/recruitment/page.tsx` | 266 | `t("hr.ats.jobs.location.unspecified", "TBD")` - Proper i18n call |
+
+**Verdict:** These are NOT placeholders to fix - they are correct i18n fallback patterns where "TBD" is the English fallback text for missing translations.
+
+---
+
+#### 📋 REMAINING CATEGORIES (Deferred)
+
+| Category | Items | Timebox | Status |
+|----------|-------|---------|--------|
+| 1. Runtime TODOs | 10 | 1-5 days each | Not started - requires external dependencies |
+| 2. Not Implemented | 10 | 2-5 days each | Not started - awaiting feature flags/credentials |
+| 4. Test Debt | 7 | 1-2 days each | Not started - needs test infrastructure |
+| 5. Tooling Exclusions | 1 | 0.5 day | Not started |
+
+---
+
 ### 2026-01-03 21:00 (Asia/Riyadh) — Code Quality Audit + API Route Enhancements [AGENT-0002]
 
 **Agent Token:** [AGENT-0002]  

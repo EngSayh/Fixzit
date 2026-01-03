@@ -144,11 +144,14 @@ export function generateInterviewICS(interview: {
     attendees.push(...interview.interviewers);
   }
 
+  // Determine location: use provided location, virtual meeting indicator, or onsite fallback
+  const resolvedLocation = interview.location 
+    || (interview.meetingUrl ? "Virtual Meeting" : "Onsite - Location to be confirmed");
+
   return generateICS({
     summary,
     description,
-    location:
-      interview.location || (interview.meetingUrl ? "Virtual Meeting" : "TBD"),
+    location: resolvedLocation,
     startTime,
     endTime,
     attendees,
