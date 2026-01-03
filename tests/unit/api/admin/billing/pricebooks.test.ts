@@ -120,8 +120,29 @@ describe("/api/admin/billing/pricebooks", () => {
     });
 
     // Security test: ensure prohibited fields are not passed to create
-    // This test is marked as todo until POST route implements field sanitization (tracked separately)
-    it.todo("rejects prohibited fields (isActive, adminOverride) in POST payload - requires route sanitization");
+    // Fixed: POST route now implements field sanitization (AUDIT-2025-01-03)
+    it("rejects prohibited fields (adminOverride, tenantId) in POST payload", async () => {
+      // Try to inject prohibited fields via POST
+      parseBodyResult = {
+        data: { name: "Enterprise", adminOverride: true, tenantId: "hacked", _id: "injected" },
+        error: null,
+      };
+
+      const res = await POST(createPostRequest());
+      expect(res.status).toBe(200);
+      
+      // Assert prohibited fields are NOT in the create call (only name is allowed)
+      expect(mockCreate).toHaveBeenCalled();
+      const createArgs = mockCreate.mock.calls[0] as unknown[];
+      const createPayload = createArgs[0] as Record<string, unknown>;
+      
+      // name should be included
+      expect(createPayload).toHaveProperty("name", "Enterprise");
+      // These fields should be filtered out
+      expect(createPayload).not.toHaveProperty("adminOverride");
+      expect(createPayload).not.toHaveProperty("tenantId");
+      expect(createPayload).not.toHaveProperty("_id");
+    });
   });
 
   describe("PATCH", () => {

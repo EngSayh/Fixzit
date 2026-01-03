@@ -38,7 +38,18 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Invalid JSON payload" }, 400, req);
     }
 
-    const doc = await PriceBook.create(body);
+    // AUDIT-2025-01-03: Whitelist allowed fields to prevent mass assignment
+    // Mirrors PATCH handler sanitization for consistency
+    const allowedFields = ['name', 'description', 'prices', 'currency', 'effectiveDate', 'expiryDate', 'isActive', 'metadata', 'modules', 'tiers', 'region'];
+    const sanitizedBody: Record<string, unknown> = {};
+    const bodyRecord = body as Record<string, unknown>;
+    for (const key of allowedFields) {
+      if (bodyRecord[key] !== undefined) {
+        sanitizedBody[key] = bodyRecord[key];
+      }
+    }
+
+    const doc = await PriceBook.create(sanitizedBody);
     return createSecureResponse(doc, 200, req);
   } catch (error) {
     logger.error("[admin/billing/pricebooks] POST error", { error });

@@ -8,6 +8,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // Mock dependencies before imports
 const mockConnectToDatabase = vi.fn().mockResolvedValue(undefined);
 const mockIssueAggregate = vi.fn();
+const mockIssueCountDocuments = vi.fn();
 const mockGetSessionOrNull = vi.fn();
 const mockGetSuperadminSession = vi.fn();
 const mockEnforceRateLimit = vi.fn();
@@ -19,18 +20,22 @@ vi.mock("@/lib/mongodb-unified", () => ({
 vi.mock("@/server/models/Issue", () => ({
   Issue: {
     aggregate: (...args: unknown[]) => mockIssueAggregate(...args),
+    countDocuments: (...args: unknown[]) => mockIssueCountDocuments(...args),
   },
   IssuePriority: {
-    P0: "P0",
-    P1: "P1",
-    P2: "P2",
-    P3: "P3",
+    P0_CRITICAL: "P0_CRITICAL",
+    P1_HIGH: "P1_HIGH",
+    P2_MEDIUM: "P2_MEDIUM",
+    P3_LOW: "P3_LOW",
   },
   IssueStatus: {
     OPEN: "OPEN",
     IN_PROGRESS: "IN_PROGRESS",
+    IN_REVIEW: "IN_REVIEW",
+    BLOCKED: "BLOCKED",
     RESOLVED: "RESOLVED",
     CLOSED: "CLOSED",
+    WONT_FIX: "WONT_FIX",
   },
   IssueEffort: {
     XS: "XS",
@@ -97,8 +102,24 @@ describe("/api/issues/stats", () => {
     mockConnectToDatabase.mockResolvedValue(undefined);
     
     // Default aggregate mock - returns empty arrays for all aggregations
+    // Route calls aggregate 12 times in Promise.all, so mock needs to handle multiple calls
     mockIssueAggregate.mockResolvedValue([]);
+    
+    // Default countDocuments mock - returns 0 for all counts
+    // Route calls countDocuments 5 times: quickWins, stale, sprintReady, blocked, recentlyResolved
+    mockIssueCountDocuments.mockResolvedValue(0);
   });
+
+  // Helper to set up aggregate mocks for stats endpoint
+  function setupStatsTestMocks() {
+    // The route calls aggregate multiple times for different breakdowns
+    mockIssueAggregate.mockResolvedValue([
+      { _id: "OPEN", count: 5 },
+      { _id: "CLOSED", count: 3 },
+    ]);
+    // countDocuments returns numbers
+    mockIssueCountDocuments.mockResolvedValue(2);
+  }
 
   describe("GET /api/issues/stats", () => {
     it("returns 401 when not authenticated", async () => {
@@ -122,12 +143,15 @@ describe("/api/issues/stats", () => {
       expect(res.status).toBe(403);
     });
 
-    // Skipped: Requires actual MongoDB connection for aggregation
-    it.skip("returns stats for admin users", async () => {
+    // Fixed: Now properly mocks aggregate responses for stats
+    it("returns stats for admin users", async () => {
       mockGetSessionOrNull.mockResolvedValueOnce({
         ok: true,
         session: mockSession,
       });
+      
+      // Setup mocks to return valid stats data
+      setupStatsTestMocks();
 
       const req = createRequest();
       const res = await GET(req);
@@ -136,10 +160,14 @@ describe("/api/issues/stats", () => {
       expect(res.status).toBe(200);
       // Stats should include various breakdowns
       expect(body).toBeDefined();
+      // Route returns byStatus, byPriority, etc.
+      expect(body.byStatus).toBeDefined();
+      expect(body.byPriority).toBeDefined();
+      expect(body.total).toBeDefined();
     });
 
-    // Skipped: Requires mongoose isValidObjectId mock - complex setup
-    it.skip("returns 400 for invalid orgId", async () => {
+    // Fixed: Properly mocks mongoose.isValidObjectId returning false
+    it("returns 400 for invalid orgId", async () => {
       const mongoose = await import("mongoose");
       vi.mocked(mongoose.default.isValidObjectId).mockReturnValueOnce(false);
 
@@ -152,6 +180,8 @@ describe("/api/issues/stats", () => {
       const res = await GET(req);
 
       expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("FIXZIT-API-003");
     });
 
     it("returns 429 when rate limited", async () => {
@@ -166,13 +196,16 @@ describe("/api/issues/stats", () => {
       expect(res.status).toBe(429);
     });
 
-    // Skipped: Requires actual MongoDB connection for aggregation
-    it.skip("allows superadmin access", async () => {
+    // Fixed: Now properly mocks superadmin session and aggregate responses
+    it("allows superadmin access", async () => {
       mockGetSuperadminSession.mockResolvedValueOnce({
         username: "superadmin@test.com",
         orgId: "507f1f77bcf86cd799439011",
         role: "super_admin",
       });
+      
+      // Setup mocks
+      setupStatsTestMocks();
 
       const req = createRequest();
       const res = await GET(req);
@@ -180,12 +213,15 @@ describe("/api/issues/stats", () => {
       expect(res.status).toBe(200);
     });
 
-    // Skipped: Requires actual MongoDB connection for aggregation
-    it.skip("uses orgId filter in aggregation for tenant isolation", async () => {
+    // Fixed: Verifies orgId is included in aggregation pipeline for tenant isolation
+    it("uses orgId filter in aggregation for tenant isolation", async () => {
       mockGetSessionOrNull.mockResolvedValueOnce({
         ok: true,
         session: mockSession,
       });
+      
+      // Setup mocks
+      setupStatsTestMocks();
 
       const req = createRequest();
       await GET(req);

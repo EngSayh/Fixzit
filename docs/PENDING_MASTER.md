@@ -19,6 +19,71 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 11:00 (Asia/Riyadh) — Test Debt Resolution: All 7 Skipped Tests Fixed [AGENT-0005]
+
+**Agent Token:** [AGENT-0005]  
+**Context:** Fixed all 7 skipped/todo tests from Category 4 (Test Debt)
+
+---
+
+#### ✅ TEST-DEBT-001: stats.route.test.ts (4 tests)
+
+**File:** `tests/api/issues/stats.route.test.ts`
+
+**Problem:** Tests were skipped due to incomplete MongoDB mocking.
+
+**Root Causes:**
+1. Missing `Issue.countDocuments` mock (route calls it 5 times)
+2. Wrong enum values for `IssuePriority` and `IssueStatus`
+3. Incorrect response field name (`statusCounts` vs `byStatus`)
+
+**Fixes Applied:**
+- Added `mockIssueCountDocuments` to mock factory
+- Fixed enum values to match actual model (e.g., `P0_CRITICAL`, `IN_REVIEW`)
+- Updated test assertions to use correct response field names
+- Created `setupStatsTestMocks()` helper function
+
+**Result:** All 7 tests now pass
+
+---
+
+#### ✅ TEST-DEBT-002: patch.route.test.ts (2 tests)
+
+**File:** `tests/unit/api/work-orders/patch.route.test.ts`
+
+**Problem:** Tests were skipped due to "timing issues" with async S3 cleanup.
+
+**Root Cause Analysis:** The route uses `await Promise.allSettled()` which is SYNCHRONOUS - there are no timing issues. The tests were incorrectly marked as skip.
+
+**Fixes Applied:**
+- Removed `it.skip` → `it`
+- Removed `vi.waitFor()` timeout wrappers (not needed)
+- Added assertion for `logger.info` success path
+- Updated comments to explain synchronous cleanup behavior
+
+**Result:** All 10 tests now pass
+
+---
+
+#### ✅ TEST-DEBT-003: pricebooks.test.ts (1 test) + SECURITY FIX
+
+**File:** `tests/unit/api/admin/billing/pricebooks.test.ts`
+
+**Problem:** Test was marked as `it.todo` awaiting POST route sanitization.
+
+**Security Issue Found:** POST route passed body directly to `PriceBook.create(body)` without field sanitization — potential mass assignment vulnerability.
+
+**Fixes Applied:**
+1. **Route Fix:** Added field sanitization to POST handler (`app/api/admin/billing/pricebooks/route.ts`)
+   - Added `allowedFields` whitelist (mirrors PATCH handler)
+   - Only safe fields passed to `PriceBook.create(sanitizedBody)`
+2. **Test Fix:** Implemented the security test
+   - Verifies prohibited fields (`adminOverride`, `tenantId`, `_id`) are filtered out
+
+**Result:** All 9 tests now pass
+
+---
+
 ### 2026-01-04 10:00 (Asia/Riyadh) — Code Quality Deep Dive: Categories 1-5 Analysis [AGENT-0004]
 
 **Agent Token:** [AGENT-0004]  
