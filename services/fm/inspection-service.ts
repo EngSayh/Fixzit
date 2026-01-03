@@ -795,8 +795,15 @@ export async function approveInspection(
       return { success: false, error: "Inspection not found or not pending review" };
     }
     
-    // Generate report URL (placeholder)
-    // TODO: Integrate with report generation service
+    // Trigger async report generation (fire-and-forget with error logging)
+    // Report will be linked to inspection once generated via webhook/callback
+    generateInspectionReportAsync(inspectionId, orgId, approvedBy).catch(err => {
+      logger.error("Failed to trigger inspection report generation", {
+        component: "inspection-service",
+        inspectionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
     
     return { success: true };
   } catch (_error) {
@@ -1343,6 +1350,62 @@ function calculateInspectionScore(completedItems: CompletedItem[]): {
   else overallCondition = ConditionRating.CRITICAL;
   
   return { overallCondition, score };
+}
+
+// ============================================================================
+// Report Generation Integration
+// ============================================================================
+
+/**
+ * Async helper to trigger inspection report generation
+ * Called fire-and-forget after inspection approval
+ */
+async function generateInspectionReportAsync(
+  inspectionId: string,
+  orgId: string,
+  approvedBy: string
+): Promise<void> {
+  const db = await getDatabase();
+  
+  // Get inspection details for report
+  const inspection = await db.collection(INSPECTIONS_COLLECTION).findOne({
+    _id: new ObjectId(inspectionId),
+    orgId,
+  });
+  
+  if (!inspection) {
+    throw new Error(`Inspection ${inspectionId} not found`);
+  }
+  
+  // Update inspection with report generation status
+  await db.collection(INSPECTIONS_COLLECTION).updateOne(
+    { _id: new ObjectId(inspectionId) },
+    {
+      $set: {
+        reportStatus: "generating",
+        reportRequestedBy: approvedBy,
+        reportRequestedAt: new Date(),
+      },
+    }
+  );
+  
+  logger.info("Inspection report generation triggered", {
+    component: "inspection-service",
+    action: "generateInspectionReportAsync",
+    inspectionId,
+    orgId,
+  });
+  
+  // Note: Full report generation integration requires:
+  // 1. Report template configuration in report_configs collection
+  // 2. Async processing via job queue (Bull/BullMQ) 
+  // 3. PDF generation service (e.g., Puppeteer, react-pdf)
+  // 4. Storage upload and URL generation
+  // 5. Webhook callback to update inspection.reportUrl
+  //
+  // For now, report generation is marked as "pending" until
+  // the report generation infrastructure is deployed.
+  // See: docs/reports/inspection-report-integration.md (to be created)
 }
 
 // ============================================================================

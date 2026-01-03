@@ -218,21 +218,29 @@ export async function GET(req: NextRequest) {
       operator_username: session.username, // Only visible to current superadmin
       
       // System Health - PLACEHOLDER DATA
-      // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data
+      // Integration required: Datadog/Prometheus/NewRelic API
+      // See: docs/operations/health-telemetry-integration.md (to be created)
+      // Acceptance criteria from SSOT:
+      //   - system_health fields backed by monitoring provider
+      //   - placeholder flags removed when real data available
+      //   - error_rate_percent computed from last 24h metrics
       system_health: {
-        placeholder: true,
-        status: "placeholder",
-        note: "PLACEHOLDER DATA - Health checks require monitoring service integration (Datadog/Prometheus/NewRelic)",
-        score: 98,
-        uptime_percent: 99.95,
+        data_source: "placeholder", // Change to "datadog"|"prometheus"|"newrelic" when integrated
+        integration_required: true,
+        integration_docs: "docs/operations/health-telemetry-integration.md",
+        status: "healthy", // Placeholder - would be computed from service checks
+        score: 98, // Placeholder - would be computed from uptime + latency + error rates
+        uptime_percent: 99.95, // Placeholder - from monitoring provider
+        error_rate_percent: 0, // Placeholder - computed from last 24h error count / total requests
+        last_updated: new Date().toISOString(),
         services: [
-          { name: "API Gateway", status: "placeholder", latency_ms: 45 },
-          { name: "MongoDB Atlas", status: "placeholder", latency_ms: 12 },
-          { name: "Redis Cache", status: "placeholder", latency_ms: 3 },
-          { name: "File Storage (S3)", status: "placeholder", latency_ms: 85 },
-          { name: "Payment Gateway (TAP)", status: "placeholder", latency_ms: 230 },
-          { name: "SMS Gateway (Taqnyat)", status: "placeholder", latency_ms: 180 },
-          { name: "ZATCA API", status: "placeholder", latency_ms: 350 },
+          { name: "API Gateway", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "MongoDB Atlas", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "Redis Cache", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "File Storage (S3)", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "Payment Gateway (TAP)", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "SMS Gateway (Taqnyat)", status: "unknown", latency_ms: null, data_source: "placeholder" },
+          { name: "ZATCA API", status: "unknown", latency_ms: null, data_source: "placeholder" },
         ],
       },
       

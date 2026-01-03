@@ -388,6 +388,26 @@ export async function completeMFASetup(
   }
 }
 
+/**
+ * Validate admin approval token for MFA override operations
+ * 
+ * INTEGRATION REQUIRED: Centralized approval system
+ * 
+ * Acceptance criteria from SSOT:
+ *   - Validate signature/expiry/scope against centralized approval service
+ *   - Return explicit error codes for invalid/expired tokens
+ *   - Admin override UI hides when approval not configured
+ *   - Unit tests for valid/expired/invalid tokens
+ * 
+ * Token format (when implemented):
+ *   - JWT signed by approval service
+ *   - Claims: action, targetUserId, adminId, orgId, exp, iat
+ *   - Signature verified against approval service public key
+ * 
+ * See: docs/auth/admin-approval-integration.md (to be created)
+ * 
+ * @returns {valid: false, errorCode: "APPROVAL_NOT_CONFIGURED"} until integration complete
+ */
 async function validateAdminApprovalToken(params: {
   approvalToken: string;
   orgId: string;
@@ -396,12 +416,13 @@ async function validateAdminApprovalToken(params: {
   action: "disable_mfa";
 }): Promise<{ valid: boolean; errorCode?: string; error?: string }> {
   void params;
-  // TODO: Integrate with centralized approval system to validate signature/expiry/scope.
-  // Return explicit error code so UI can detect and hide/disable admin override flows
+  
+  // Integration placeholder - returns explicit error code
+  // UI should check for APPROVAL_NOT_CONFIGURED and hide admin override options
   return {
     valid: false,
     errorCode: "APPROVAL_NOT_CONFIGURED",
-    error: "Admin approval system not configured",
+    error: "Admin approval system not configured. Contact platform team to enable.",
   };
 }
 
