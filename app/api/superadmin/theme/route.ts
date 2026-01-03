@@ -30,13 +30,13 @@ const DEFAULT_THEME = {
   
   // Semantic Colors
   success: BRAND_COLORS.success,
-  successLight: "#ECFDF5",
+  successLight: BRAND_COLORS.successLight,
   warning: BRAND_COLORS.warning,
-  warningLight: "#FFFAEB",
+  warningLight: BRAND_COLORS.warningLight,
   error: BRAND_COLORS.error,
-  errorLight: "#FEF3F2",
+  errorLight: BRAND_COLORS.errorLight,
   info: BRAND_COLORS.info,
-  infoLight: "#EFF8FF",
+  infoLight: BRAND_COLORS.infoLight,
   
   // Neutral Scale
   neutral50: NEUTRAL_SCALE[50],

@@ -17,6 +17,7 @@ import { revalidatePath } from "next/cache";
 import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
 import { setSuperAdminTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
 
@@ -35,7 +36,7 @@ const BrandingUpdateSchema = z.object({
   brandName: z.string().min(1).max(100).optional(),
   brandColor: z
     .string()
-    .regex(HEX_COLOR_REGEX, "brandColor must be a valid hex color (e.g. #0061A8)")
+    .regex(HEX_COLOR_REGEX, `brandColor must be a valid hex color (e.g. ${BRAND_COLORS.primary})`)
     .optional(),
   orgId: z.string().min(1).optional(), // Target tenant (superadmin can update specific org branding)
 });
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
         settings = await PlatformSettings.create({
           logoUrl: "/img/fixzit-logo.png",
           brandName: "Fixzit Enterprise",
-          brandColor: "#0061A8",
+          brandColor: BRAND_COLORS.primary,
           // createdBy/updatedBy are set by auditPlugin
         });
         logger.info("Created default platform settings", { username: session.username });

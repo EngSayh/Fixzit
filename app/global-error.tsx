@@ -5,6 +5,7 @@ import { AlertOctagon, RefreshCw, Home } from "@/components/ui/icons";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * Global Error Boundary Component
@@ -45,8 +46,8 @@ export default function GlobalError({
           justifyContent: "center",
           fontFamily:
             "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          backgroundColor: "#f8f9fa",
-          color: "#1a1a1a",
+          backgroundColor: NEUTRAL_COLORS.backgroundPage,
+          color: NEUTRAL_COLORS.textPrimary,
         }}
       >
         <div
@@ -71,7 +72,7 @@ export default function GlobalError({
             }}
           >
             <AlertOctagon
-              style={{ width: "40px", height: "40px", color: "#dc2626" }}
+              style={{ width: "40px", height: "40px", color: BRAND_COLORS.error }}
             />
           </div>
 
@@ -81,14 +82,14 @@ export default function GlobalError({
               fontSize: "24px",
               fontWeight: "bold",
               marginBottom: "8px",
-              color: "#1a1a1a",
+              color: NEUTRAL_COLORS.textPrimary,
             }}
           >
             Critical Error
           </h1>
           <p
             style={{
-              color: "#6b7280",
+              color: NEUTRAL_COLORS.textMuted,
               marginBottom: "24px",
               lineHeight: "1.5",
             }}
@@ -113,7 +114,7 @@ export default function GlobalError({
                 style={{
                   fontSize: "14px",
                   fontFamily: "monospace",
-                  color: "#dc2626",
+                  color: BRAND_COLORS.error,
                   wordBreak: "break-all",
                   margin: 0,
                 }}
@@ -124,7 +125,7 @@ export default function GlobalError({
                 <p
                   style={{
                     fontSize: "12px",
-                    color: "#6b7280",
+                    color: NEUTRAL_COLORS.textMuted,
                     margin: "8px 0 0 0",
                   }}
                 >
@@ -145,7 +146,7 @@ export default function GlobalError({
                 gap: "8px",
                 width: "100%",
                 padding: "12px 24px",
-                backgroundColor: "#25935F", /* Ejar primary-500 */
+                backgroundColor: BRAND_COLORS.primary,
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
@@ -168,8 +169,8 @@ export default function GlobalError({
                 width: "100%",
                 padding: "12px 24px",
                 backgroundColor: "transparent",
-                color: "#1a1a1a",
-                border: "1px solid #e5e7eb",
+                color: NEUTRAL_COLORS.textPrimary,
+                border: `1px solid ${NEUTRAL_COLORS.border}`,
                 borderRadius: "8px",
                 fontSize: "16px",
                 fontWeight: "500",
@@ -186,13 +187,13 @@ export default function GlobalError({
             style={{
               marginTop: "32px",
               fontSize: "14px",
-              color: "#6b7280",
+              color: NEUTRAL_COLORS.textMuted,
             }}
           >
             If this problem persists,{" "}
             <a
               href={`mailto:${EMAIL_DOMAINS.support}`}
-              style={{ color: "#25935F", textDecoration: "none" }} /* Ejar primary-500 */
+              style={{ color: BRAND_COLORS.primary, textDecoration: "none" }}
             >
               contact support
             </a>

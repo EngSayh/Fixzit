@@ -11,15 +11,16 @@ import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createHash } from "crypto";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 // Default branding for unauthenticated or fallback scenarios
-// Colors aligned with design tokens from tailwind.config.js
+// Colors aligned with centralized BRAND_COLORS
 const DEFAULT_BRANDING = {
   name: "FIXZIT ENTERPRISE",
   logo: "/img/fixzit-logo.png",
-  primaryColor: "#0061A8", // Business.sa primary blue
-  secondaryColor: "#00A859", // Fixzit green - aligned with design tokens
-  accentColor: "#00A859",
+  primaryColor: BRAND_COLORS.primary,
+  secondaryColor: BRAND_COLORS.success,
+  accentColor: BRAND_COLORS.success,
 };
 
 const CACHE_TTL_MS = 60_000;

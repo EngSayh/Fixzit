@@ -17,6 +17,7 @@ import { BrandLogo } from "@/components/brand";
 import { Upload, RotateCcw, AlertCircle, CheckCircle2 } from "@/components/ui/icons";
 import { SaveButton } from "@/components/ui/action-button";
 import { logger } from "@/lib/logger";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 interface BrandingData {
   logoUrl: string;
@@ -36,7 +37,7 @@ export function BrandingSettingsForm() {
   const [formData, setFormData] = useState<BrandingData>({
     logoUrl: "/img/fixzit-logo.png",
     brandName: "Fixzit Enterprise",
-    brandColor: "#25935F", // Ejar primary-500
+    brandColor: BRAND_COLORS.primary,
   });
   const [lastAudit, setLastAudit] = useState<{ updatedAt?: string; updatedBy?: string } | null>(null);
 
@@ -61,7 +62,7 @@ export function BrandingSettingsForm() {
         const data: BrandingData = {
           logoUrl: result.data.logoUrl || "/img/fixzit-logo.png",
           brandName: result.data.brandName || "Fixzit Enterprise",
-          brandColor: result.data.brandColor || "#25935F", // Ejar primary-500
+          brandColor: result.data.brandColor || BRAND_COLORS.primary,
           faviconUrl: result.data.faviconUrl,
           updatedAt: result.data.updatedAt,
           updatedBy: result.data.updatedBy,
@@ -298,7 +299,7 @@ export function BrandingSettingsForm() {
                 type="text"
                 value={formData.brandColor}
                 onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
-                placeholder="#25935F"
+                placeholder={BRAND_COLORS.primary}
                 className="bg-slate-800 border-slate-700 text-white"
                 pattern="^#[0-9A-Fa-f]{6}$"
               />
@@ -309,7 +310,7 @@ export function BrandingSettingsForm() {
               />
             </div>
             <p className="text-xs text-slate-500">
-              Hex color code (e.g., #25935F)
+              Hex color code (e.g., {BRAND_COLORS.primary})
             </p>
           </div>
 

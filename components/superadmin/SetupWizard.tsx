@@ -27,6 +27,7 @@ import {
 import { ChevronLeft, ChevronRight, Check, Upload } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 type WizardStep = "branding" | "defaults" | "users" | "complete";
 
@@ -69,8 +70,8 @@ export function SetupWizard() {
   const [branding, setBranding] = useState<BrandingData>({
     companyName: "",
     logoUrl: "",
-    primaryColor: "#25935F", // Ejar primary-500
-    secondaryColor: "#F5BD02", // Ejar gold accent
+    primaryColor: BRAND_COLORS.primary,
+    secondaryColor: BRAND_COLORS.secondary,
   });
 
   const [defaults, setDefaults] = useState<DefaultsData>({
@@ -307,7 +308,7 @@ export function SetupWizard() {
                       onChange={(e) =>
                         setBranding({ ...branding, primaryColor: e.target.value })
                       }
-                      placeholder="#25935F"
+                      placeholder={BRAND_COLORS.primary}
                     />
                   </div>
                 </div>
@@ -328,7 +329,7 @@ export function SetupWizard() {
                       onChange={(e) =>
                         setBranding({ ...branding, secondaryColor: e.target.value })
                       }
-                      placeholder="#F5BD02"
+                      placeholder={BRAND_COLORS.secondary}
                     />
                   </div>
                 </div>

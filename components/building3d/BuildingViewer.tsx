@@ -28,6 +28,7 @@ import type {
   RoomKind,
   UnitModel,
 } from "@/lib/buildingModel";
+import { RENDERING_COLORS } from "@/lib/config/brand-colors";
 
 // ============================================================================
 // TYPES
@@ -65,7 +66,7 @@ function _makeMaterial(
     color,
     transparent: opts?.transparent ?? true,
     opacity: opts?.opacity ?? 1,
-    emissive: opts?.emissive ?? "#000000",
+    emissive: opts?.emissive ?? RENDERING_COLORS.emissiveOff,
     roughness: 0.75,
     metalness: 0.05,
   });
@@ -128,7 +129,7 @@ function RoomMesh({
         color={color}
         transparent
         opacity={selected ? 0.95 : 0.75}
-        emissive={selected ? "#ffffff" : "#000000"}
+        emissive={selected ? RENDERING_COLORS.emissiveOn : RENDERING_COLORS.emissiveOff}
       />
       {showLabels && (
         <Html
@@ -192,7 +193,7 @@ function UnitMesh({
           color={unitColor}
           transparent
           opacity={unitOpacity}
-          emissive={isUnitSelected ? "#222222" : "#000000"}
+          emissive={isUnitSelected ? RENDERING_COLORS.emissiveHover : RENDERING_COLORS.emissiveOff}
         />
         {showLabels && (
           <Html
@@ -238,7 +239,7 @@ function FloorGroup({
         <boxGeometry
           args={[floor.slab.width, floor.slab.thickness, floor.slab.depth]}
         />
-        <meshStandardMaterial color="#e5e7eb" />
+        <meshStandardMaterial color={RENDERING_COLORS.floorPlane} />
       </mesh>
 
       {/* Units */}

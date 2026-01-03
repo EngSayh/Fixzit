@@ -16,6 +16,7 @@ import { ChatbotSettings } from "@/server/models/ChatbotSettings";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { setTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
@@ -43,7 +44,7 @@ const DEFAULT_SETTINGS = {
   welcomeMessage: "Hello! How can I help you today?",
   welcomeMessageAr: "مرحباً! كيف يمكنني مساعدتك اليوم؟",
   position: "bottom-right" as const,
-  primaryColor: "#0061A8",
+  primaryColor: BRAND_COLORS.info, // Using info blue for chatbot accent
   offlineMessage: "We're currently offline. Please leave a message and we'll get back to you.",
   maxTokens: 1000,
   temperature: 0.7,

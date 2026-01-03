@@ -106,6 +106,11 @@
   --color-secondary-hover: var(--ejar-gold-hover);
   --color-secondary-light: var(--ejar-gold-light);
 
+  /* Accent (Alias for Gold) */
+  --color-accent: var(--ejar-gold);
+  --color-accent-hover: var(--ejar-gold-hover);
+  --color-accent-light: var(--ejar-gold-light);
+
   /* Text Colors */
   --color-text-primary: var(--ejar-neutral-800);
   --color-text-secondary: var(--ejar-neutral-600);
@@ -125,6 +130,7 @@
   /* Border Colors */
   --color-border-primary: var(--ejar-neutral-200);
   --color-border-secondary: var(--ejar-neutral-300);
+  --color-border-soft: var(--ejar-neutral-200);
   --color-border-input: var(--ejar-neutral-300);
   --color-border-focus: var(--ejar-primary-500);
 
@@ -192,6 +198,15 @@
   --color-chart-purple: #8884D8;
   --color-chart-green: var(--ejar-primary-500);
   --color-chart-red: var(--ejar-error);
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     SPARKLINE COLORS
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --color-sparkline-blue: #0061A8;
+  --color-sparkline-orange: #F97316;
+  --color-sparkline-green: #10B981;
+  --color-sparkline-sky: #3B82F6;
 
   /* ═══════════════════════════════════════════════════════════════════════════════
      LEGACY ALIASES (For backward compatibility - DO NOT USE IN NEW CODE)

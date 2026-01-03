@@ -82,14 +82,26 @@ export const BRAND_COLORS = {
   /** Success green */
   success: "#17B26A",
 
+  /** Success light background */
+  successLight: "#ECFDF5",
+
   /** Warning amber */
   warning: "#F79009",
+
+  /** Warning light background */
+  warningLight: "#FFFAEB",
 
   /** Error/Destructive red */
   error: "#F04438",
 
+  /** Error light background */
+  errorLight: "#FEF3F2",
+
   /** Info blue */
   info: "#2E90FA",
+
+  /** Info light background */
+  infoLight: "#EFF8FF",
 } as const;
 
 /**
@@ -219,6 +231,26 @@ export const CHART_COLORS = {
     "#10b981",
     "#6366f1",
   ],
+} as const;
+
+/**
+ * 3D Rendering Colors
+ *
+ * Colors used in Three.js 3D components (BuildingViewer, etc.).
+ * These are rendering engine values, not brand colors.
+ */
+export const RENDERING_COLORS = {
+  /** No emissive light (black) */
+  emissiveOff: "#000000",
+
+  /** Full emissive light when selected (white) */
+  emissiveOn: "#ffffff",
+
+  /** Slight emissive glow when hovered/selected */
+  emissiveHover: "#222222",
+
+  /** Floor/ground plane color */
+  floorPlane: "#e5e7eb",
 } as const;
 
 /**

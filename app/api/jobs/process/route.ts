@@ -12,6 +12,7 @@ import { joinUrl } from "@/lib/utils/url";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * POST /api/jobs/process
@@ -160,22 +161,22 @@ async function processEmailInvitation(job: Job): Promise<void> {
         <h2>مرحباً ${firstName} ${lastName}!</h2>
         <p>تمت دعوتك للانضمام إلى منصة Fixzit بصفة <strong>${role}</strong>.</p>
         <p>
-          <a href="${inviteLink}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+          <a href="${inviteLink}" style="background-color: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             قبول الدعوة
           </a>
         </p>
-        <hr style="margin: 30px 0; border: 1px solid #eee;">
+        <hr style="margin: 30px 0; border: 1px solid ${NEUTRAL_COLORS.border};">
         <div dir="ltr">
           <h2>Hello ${firstName} ${lastName}!</h2>
           <p>You've been invited to join Fixzit platform as <strong>${role}</strong>.</p>
           <p>
-            <a href="${inviteLink}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            <a href="${inviteLink}" style="background-color: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
               Accept Invitation
             </a>
           </p>
         </div>
-        <hr style="margin: 30px 0; border: 1px solid #eee;">
-        <p style="color: #666; font-size: 12px;">
+        <hr style="margin: 30px 0; border: 1px solid ${NEUTRAL_COLORS.border};">
+        <p style="color: ${NEUTRAL_COLORS.textSecondary}; font-size: 12px;">
           إذا لم تطلب هذه الدعوة، يمكنك تجاهل هذه الرسالة بأمان.<br>
           If you didn't request this invitation, you can safely ignore this email.
         </p>

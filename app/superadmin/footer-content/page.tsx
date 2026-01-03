@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n/useI18n";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +125,7 @@ const DEFAULT_CHATBOT_SETTINGS: ChatbotSettings = {
   welcomeMessage: "Hello! How can I help you today?",
   welcomeMessageAr: "مرحباً! كيف يمكنني مساعدتك اليوم؟",
   position: "bottom-right",
-  primaryColor: "#0061A8",
+  primaryColor: BRAND_COLORS.info, // Using info blue for chatbot accent
   offlineMessage: "We're currently offline. Please leave a message and we'll get back to you.",
   maxTokens: 1000,
   temperature: 0.7,

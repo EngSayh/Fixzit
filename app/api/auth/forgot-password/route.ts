@@ -37,6 +37,7 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "@/lib/config/brand-colors";
 
 export const runtime = "nodejs";
 
@@ -158,24 +159,24 @@ export async function POST(req: NextRequest) {
       body: `مرحباً ${userName}،\n\nلقد تلقينا طلباً لإعادة تعيين كلمة مرور حسابك في Fixzit.\n\nاضغط على الرابط أدناه لإعادة تعيين كلمة المرور:\n\n${resetLink}\n\nهذا الرابط صالح لمدة ساعة واحدة.\n\nإذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان.\n\nمع أطيب التحيات،\nفريق Fixzit`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; text-align: right;">
-          <div style="background: linear-gradient(135deg, #dc2626, #f97316); padding: 30px; border-radius: 10px 10px 0 0;">
+          <div style="background: linear-gradient(135deg, ${BRAND_COLORS.error}, ${BRAND_COLORS.warning}); padding: 30px; border-radius: 10px 10px 0 0;">
             <h1 style="color: white; margin: 0; font-size: 24px;">إعادة تعيين كلمة المرور</h1>
           </div>
-          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="color: #333; font-size: 16px; line-height: 1.6;">مرحباً ${userName}،</p>
-            <p style="color: #666; font-size: 14px; line-height: 1.6;">
+          <div style="background: ${NEUTRAL_COLORS.backgroundPage}; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="color: ${NEUTRAL_COLORS.textPrimary}; font-size: 16px; line-height: 1.6;">مرحباً ${userName}،</p>
+            <p style="color: ${NEUTRAL_COLORS.textSecondary}; font-size: 14px; line-height: 1.6;">
               لقد تلقينا طلباً لإعادة تعيين كلمة مرور حسابك في Fixzit.
             </p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" style="background: #dc2626; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              <a href="${resetLink}" style="background: ${BRAND_COLORS.error}; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                 إعادة تعيين كلمة المرور
               </a>
             </div>
-            <p style="color: #999; font-size: 12px; line-height: 1.6;">
+            <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 12px; line-height: 1.6;">
               هذا الرابط صالح لمدة ساعة واحدة. إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان.
             </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+            <hr style="border: none; border-top: 1px solid ${NEUTRAL_COLORS.border}; margin: 20px 0;" />
+            <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
           </div>
         </div>
       `,
@@ -184,24 +185,24 @@ export async function POST(req: NextRequest) {
       body: `Hello ${userName},\n\nWe received a request to reset your Fixzit account password.\n\nClick the link below to reset your password:\n\n${resetLink}\n\nThis link expires in 1 hour.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nBest regards,\nThe Fixzit Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #dc2626, #f97316); padding: 30px; border-radius: 10px 10px 0 0;">
+          <div style="background: linear-gradient(135deg, ${BRAND_COLORS.error}, ${BRAND_COLORS.warning}); padding: 30px; border-radius: 10px 10px 0 0;">
             <h1 style="color: white; margin: 0; font-size: 24px;">Password Reset Request</h1>
           </div>
-          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="color: #333; font-size: 16px; line-height: 1.6;">Hello ${userName},</p>
-            <p style="color: #666; font-size: 14px; line-height: 1.6;">
+          <div style="background: ${NEUTRAL_COLORS.backgroundPage}; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="color: ${NEUTRAL_COLORS.textPrimary}; font-size: 16px; line-height: 1.6;">Hello ${userName},</p>
+            <p style="color: ${NEUTRAL_COLORS.textSecondary}; font-size: 14px; line-height: 1.6;">
               We received a request to reset your Fixzit account password.
             </p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" style="background: #dc2626; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              <a href="${resetLink}" style="background: ${BRAND_COLORS.error}; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                 Reset Password
               </a>
             </div>
-            <p style="color: #999; font-size: 12px; line-height: 1.6;">
+            <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 12px; line-height: 1.6;">
               This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.
             </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+            <hr style="border: none; border-top: 1px solid ${NEUTRAL_COLORS.border}; margin: 20px 0;" />
+            <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
           </div>
         </div>
       `,

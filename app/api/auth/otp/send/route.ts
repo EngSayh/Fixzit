@@ -46,6 +46,7 @@ import {
   DEMO_EMPLOYEE_IDS,
   SPECIAL_DEMO_EMAILS,
 } from "@/lib/config/demo-users";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "@/lib/config/brand-colors";
 import type { ObjectId } from "mongodb";
 
 interface UserDocument {
@@ -951,11 +952,11 @@ export async function POST(request: NextRequest) {
         {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">Login Verification</h2>
-              <p style="margin: 20px 0; line-height: 1.6; color: #666;">Your verification code is:</p>
-              <div style="font-size: 32px; font-weight: bold; color: #0070f3; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px; letter-spacing: 4px;">${otp}</div>
-              <p style="margin: 20px 0; line-height: 1.6; color: #666;">This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
-              <p style="margin: 20px 0; line-height: 1.6; color: #999; font-size: 12px;">If you did not request this code, please ignore this email.</p>
+              <h2 style="color: ${NEUTRAL_COLORS.textPrimary}; border-bottom: 2px solid ${BRAND_COLORS.primary}; padding-bottom: 10px;">Login Verification</h2>
+              <p style="margin: 20px 0; line-height: 1.6; color: ${NEUTRAL_COLORS.textSecondary};">Your verification code is:</p>
+              <div style="font-size: 32px; font-weight: bold; color: ${BRAND_COLORS.primary}; text-align: center; padding: 20px; background: ${NEUTRAL_COLORS.backgroundPage}; border-radius: 8px; letter-spacing: 4px;">${otp}</div>
+              <p style="margin: 20px 0; line-height: 1.6; color: ${NEUTRAL_COLORS.textSecondary};">This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
+              <p style="margin: 20px 0; line-height: 1.6; color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 12px;">If you did not request this code, please ignore this email.</p>
             </div>
           `,
         },

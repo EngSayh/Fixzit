@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n/useI18n";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "@/lib/config/brand-colors";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,10 +98,10 @@ const MOCK_TEMPLATES: EmailTemplate[] = [
     subject: "Welcome to Fixzit, {{userName}}!",
     category: "auth",
     bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Welcome to Fixzit!</h1>
+  <h1 style="color: ${BRAND_COLORS.primary};">Welcome to Fixzit!</h1>
   <p>Hi {{userName}},</p>
   <p>Thank you for joining Fixzit. Your account has been created successfully.</p>
-  <p><a href="{{loginUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Get Started</a></p>
+  <p><a href="{{loginUrl}}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Get Started</a></p>
   <p>If you have any questions, contact us at {{supportEmail}}</p>
   <p>Best regards,<br>The Fixzit Team</p>
 </div>`,
@@ -129,10 +130,10 @@ The Fixzit Team`,
     subject: "Reset your Fixzit password",
     category: "auth",
     bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Password Reset Request</h1>
+  <h1 style="color: ${BRAND_COLORS.primary};">Password Reset Request</h1>
   <p>Hi {{userName}},</p>
   <p>We received a request to reset your password. Click the button below to proceed:</p>
-  <p><a href="{{resetUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a></p>
+  <p><a href="{{resetUrl}}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a></p>
   <p>This link expires in {{expiryTime}}.</p>
   <p>If you didn't request this, please ignore this email.</p>
 </div>`,
@@ -160,15 +161,15 @@ If you didn't request this, please ignore this email.`,
     subject: "Invoice #{{invoiceNumber}} - {{amount}}",
     category: "billing",
     bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Invoice #{{invoiceNumber}}</h1>
+  <h1 style="color: ${BRAND_COLORS.primary};">Invoice #{{invoiceNumber}}</h1>
   <p>Hi {{customerName}},</p>
   <p>Your invoice for {{amount}} is now available.</p>
   <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Invoice Date:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{invoiceDate}}</td></tr>
-    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Due Date:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{dueDate}}</td></tr>
-    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Amount:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{amount}}</strong></td></tr>
+    <tr><td style="padding: 8px; border-bottom: 1px solid ${NEUTRAL_COLORS.border};">Invoice Date:</td><td style="padding: 8px; border-bottom: 1px solid ${NEUTRAL_COLORS.border};">{{invoiceDate}}</td></tr>
+    <tr><td style="padding: 8px; border-bottom: 1px solid ${NEUTRAL_COLORS.border};">Due Date:</td><td style="padding: 8px; border-bottom: 1px solid ${NEUTRAL_COLORS.border};">{{dueDate}}</td></tr>
+    <tr><td style="padding: 8px; border-bottom: 1px solid ${NEUTRAL_COLORS.border};"><strong>Amount:</strong></td><td style="padding: 8px; border-bottom: 1px solid ${NEUTRAL_COLORS.border};"><strong>{{amount}}</strong></td></tr>
   </table>
-  <p><a href="{{invoiceUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Invoice</a></p>
+  <p><a href="{{invoiceUrl}}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Invoice</a></p>
 </div>`,
     bodyText: `Invoice #{{invoiceNumber}}
 
@@ -194,16 +195,16 @@ View Invoice: {{invoiceUrl}}`,
     subject: "New Work Order: {{workOrderTitle}}",
     category: "notifications",
     bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">New Work Order Assigned</h1>
+  <h1 style="color: ${BRAND_COLORS.primary};">New Work Order Assigned</h1>
   <p>Hi {{technicianName}},</p>
   <p>A new work order has been assigned to you:</p>
-  <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+  <div style="background: ${NEUTRAL_COLORS.backgroundPage}; padding: 16px; border-radius: 8px; margin: 16px 0;">
     <p><strong>{{workOrderTitle}}</strong></p>
     <p>Property: {{propertyName}}</p>
     <p>Priority: {{priority}}</p>
     <p>Due: {{dueDate}}</p>
   </div>
-  <p><a href="{{workOrderUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Details</a></p>
+  <p><a href="{{workOrderUrl}}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Details</a></p>
 </div>`,
     bodyText: `New Work Order Assigned
 
@@ -230,11 +231,11 @@ View Details: {{workOrderUrl}}`,
     subject: "Your Fixzit subscription renews soon",
     category: "billing",
     bodyHtml: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1 style="color: #0070f3;">Subscription Renewal</h1>
+  <h1 style="color: ${BRAND_COLORS.primary};">Subscription Renewal</h1>
   <p>Hi {{customerName}},</p>
   <p>Your {{planName}} subscription will renew on {{renewalDate}} for {{amount}}.</p>
   <p>No action needed - your card ending in {{cardLast4}} will be charged automatically.</p>
-  <p><a href="{{billingUrl}}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Manage Subscription</a></p>
+  <p><a href="{{billingUrl}}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Manage Subscription</a></p>
 </div>`,
     bodyText: `Subscription Renewal
 

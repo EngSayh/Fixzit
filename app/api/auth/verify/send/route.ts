@@ -25,6 +25,7 @@ import { sendEmail } from "@/lib/email";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "@/lib/config/brand-colors";
 
 /**
  * Zod schema for verify/send request body
@@ -114,26 +115,26 @@ export async function POST(req: NextRequest) {
     body: `مرحباً ${userName}،\n\nشكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني بالضغط على الرابط أدناه:\n\n${link}\n\nهذا الرابط صالح لمدة 24 ساعة.\n\nإذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.\n\nمع أطيب التحيات،\nفريق Fixzit`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; text-align: right;">
-        <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+        <div style="background: linear-gradient(135deg, ${BRAND_COLORS.primary}, ${BRAND_COLORS.info}); padding: 30px; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0; font-size: 24px;">مرحباً بك في Fixzit</h1>
         </div>
-        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        <div style="background: ${NEUTRAL_COLORS.backgroundPage}; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="color: ${NEUTRAL_COLORS.textPrimary}; font-size: 16px; line-height: 1.6;">
             مرحباً ${userName}،
           </p>
-          <p style="color: #666; font-size: 14px; line-height: 1.6;">
+          <p style="color: ${NEUTRAL_COLORS.textSecondary}; font-size: 14px; line-height: 1.6;">
             شكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني للوصول الكامل إلى حسابك.
           </p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${link}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            <a href="${link}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               تأكيد البريد الإلكتروني
             </a>
           </div>
-          <p style="color: #999; font-size: 12px; line-height: 1.6;">
+          <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 12px; line-height: 1.6;">
             هذا الرابط صالح لمدة 24 ساعة. إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.
           </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">
+          <hr style="border: none; border-top: 1px solid ${NEUTRAL_COLORS.border}; margin: 20px 0;" />
+          <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 11px; text-align: center;">
             © ${new Date().getFullYear()} Fixzit. جميع الحقوق محفوظة.
           </p>
         </div>
@@ -144,26 +145,26 @@ export async function POST(req: NextRequest) {
     body: `Hello ${userName},\n\nThank you for signing up for Fixzit. Please verify your email address by clicking the link below:\n\n${link}\n\nThis link expires in 24 hours.\n\nIf you didn't create this account, you can ignore this email.\n\nBest regards,\nThe Fixzit Team`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+        <div style="background: linear-gradient(135deg, ${BRAND_COLORS.primary}, ${BRAND_COLORS.info}); padding: 30px; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Fixzit</h1>
         </div>
-        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        <div style="background: ${NEUTRAL_COLORS.backgroundPage}; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="color: ${NEUTRAL_COLORS.textPrimary}; font-size: 16px; line-height: 1.6;">
             Hello ${userName},
           </p>
-          <p style="color: #666; font-size: 14px; line-height: 1.6;">
+          <p style="color: ${NEUTRAL_COLORS.textSecondary}; font-size: 14px; line-height: 1.6;">
             Thank you for signing up for Fixzit. Please verify your email address to get full access to your account.
           </p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${link}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            <a href="${link}" style="background: ${BRAND_COLORS.primary}; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               Verify Email Address
             </a>
           </div>
-          <p style="color: #999; font-size: 12px; line-height: 1.6;">
+          <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 12px; line-height: 1.6;">
             This link expires in 24 hours. If you didn't create this account, you can safely ignore this email.
           </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">
+          <hr style="border: none; border-top: 1px solid ${NEUTRAL_COLORS.border}; margin: 20px 0;" />
+          <p style="color: ${NEUTRAL_COLORS.textPlaceholder}; font-size: 11px; text-align: center;">
             © ${new Date().getFullYear()} Fixzit. All rights reserved.
           </p>
         </div>
