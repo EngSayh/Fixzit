@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-02T21:00:00+03:00
+  Last-Sync: 2026-01-03T14:00:00+03:00
   
   IMPORTANT: Manual edits to this file are forbidden.
   To update issues, modify the MongoDB Issue Tracker directly.
@@ -16,6 +16,55 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-03 14:00 (Asia/Riyadh) — Rebase Hook Fix + PR Cleanup [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Context:** Fixed root cause of "stuck rebase" issue, updated PR statuses
+
+#### ✅ BUG-REBASE-HOOKS-001: Fixed
+
+**Problem:** Pre-commit hooks ran heavy checks (`pnpm audit`, `lint:prod`, etc.) for every commit during rebase, causing it to appear "stuck."
+
+**Solution:**
+| File | Change |
+|------|--------|
+| `scripts/git-hooks/pre-commit.sh` | Created wrapper that detects `.git/rebase-merge` or `.git/rebase-apply` and exits early |
+| `package.json` | Updated `simple-git-hooks.pre-commit` to use wrapper script |
+
+**Commit:** `f770f6ef2` pushed to origin/main
+
+#### 📊 Open PRs Status
+
+| PR | Branch | Status | CI | Action |
+|----|--------|--------|-----|--------|
+| #650 | `fix/superadmin-vercel-diag` | ✅ MERGEABLE | ⏳ Pending | Ready after CI |
+| #649 | `fix/todo-placeholder-cleanup-p0` | ✅ CLOSED | N/A | Superseded by main |
+| #647 | `fix/bi-data-schema-mismatch` | ✅ MERGEABLE | ⏳ Pending | Ready after CI |
+| #641 | `feat/p2-subscription-flows` | ❌ CONFLICTING | ❌ | Needs conflict resolution |
+| #640 | `feat/p1-compliance-fixes-sprint1` | ✅ MERGEABLE | ⏳ Pending | Ready after CI |
+
+#### ❌ P0 Investigation Results (All FALSE POSITIVES)
+
+All 8 originally flagged P0 items were investigated and found to be **intentional graceful degradation**:
+
+| Item | File | Verdict |
+|------|------|---------|
+| API 501 #1-3 | `welcome-email/route.ts`, `owner/statements/route.ts` | Feature stubs with proper error messages |
+| Payout live mode | `payout-processor.ts` | Feature-flagged, awaiting banking API |
+
+**Action:** Downgraded from P0 to P2 (enhancement backlog)
+
+#### 📋 Action Plan
+
+| Priority | Task | Status |
+|----------|------|--------|
+| P0 | ~~Fix rebase hook slowdown~~ | ✅ Done |
+| P1 | Merge MERGEABLE PRs (#650, #647, #640) | ⏳ Waiting on CI |
+| P1 | Resolve PR #641 conflicts or close | ⏳ Pending |
+| P2 | Address 5 lint warnings in theme/route.ts and gdpr.ts | ⏸️ Backlog |
 
 ---
 
