@@ -257,8 +257,8 @@ export async function submitApprovalDecision(params: {
         { requestId: params.requestId },
         { 
           $set: { status: ApprovalStatus.REJECTED },
-          $push: { approvals: decision as never },
-        }
+          $push: { approvals: { $each: [decision] } },
+        } as unknown as Document
       );
       
       logger.info("Approval request rejected", {
@@ -288,8 +288,8 @@ export async function submitApprovalDecision(params: {
             approvalToken: encryptField(token, "approval.token"),
             tokenExpiresAt,
           },
-          $push: { approvals: decision as never },
-        }
+          $push: { approvals: { $each: [decision] } },
+        } as unknown as Document
       );
       
       logger.info("Approval request fully approved", {
@@ -304,7 +304,7 @@ export async function submitApprovalDecision(params: {
       // More approvals needed
       await db.collection(COLLECTION_NAME).updateOne(
         { requestId: params.requestId },
-        { $push: { approvals: decision as never } }
+        { $push: { approvals: { $each: [decision] } } } as unknown as Document
       );
       
       logger.info("Approval added, more required", {
