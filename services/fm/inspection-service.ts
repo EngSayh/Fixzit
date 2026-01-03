@@ -17,6 +17,8 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
+import { sendNotification, NotificationCategory, NotificationChannel, NotificationPriority } from "@/services/admin/notification-engine";
 
 // ============================================================================
 // Types & Interfaces
@@ -501,15 +503,15 @@ export async function scheduleInspection(
     
     const result = await db.collection(INSPECTIONS_COLLECTION).insertOne(inspection);
     
-    // TODO: Send notification to tenant if requested
     // Send notification to tenant if requested
     if (request.notifyTenant && request.unitId) {
       try {
         // Lookup tenant from unit
+        const unitId = ObjectId.isValid(request.unitId) ? new ObjectId(request.unitId) : request.unitId;
         const unit = await db.collection(COLLECTIONS.UNITS).findOne({
-          _id: ObjectId.isValid(request.unitId) ? new ObjectId(request.unitId) : null,
+          _id: unitId as unknown,
           orgId: request.orgId
-        });
+        } as Record<string, unknown>);
         
         if (unit?.currentTenantId) {
           const scheduledDate = request.scheduledDate instanceof Date 
