@@ -1,0 +1,584 @@
+{
+  "metadata": {
+    "createdAt": "2026-01-03T12:00:00+03:00",
+    "agentToken": "[AGENT-0005]",
+    "purpose": "Retroactive SSOT entries for fixes committed without prior logging",
+    "commits": ["44085ee0b", "bc64455b3"],
+    "prNumber": 656,
+    "status": "pending_import",
+    "timezone": "Asia/Riyadh (UTC+03:00)"
+  },
+  "issues": [
+    {
+      "issueKey": "CORE-00001",
+      "title": "Race condition in payments route - missing transaction wrapper",
+      "description": "Finance payments route allows concurrent updates without MongoDB transaction, risking data corruption during approval/rejection operations",
+      "type": "bug",
+      "category": "race_condition",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "finance",
+      "status": "resolved",
+      "filePaths": ["app/api/finance/payments/[id]/[action]/route.ts"],
+      "action": "Wrap approve/reject operations in MongoDB startSession().withTransaction()",
+      "definitionOfDone": "All payment state changes use transactions",
+      "effort": "M",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added session.withTransaction() wrapper around payment update operations"
+      }
+    },
+    {
+      "issueKey": "CORE-00002",
+      "title": "Payment receipt number uses non-atomic counter increment",
+      "description": "Receipt number generation fetches last number and increments client-side, allowing duplicates under concurrent requests",
+      "type": "bug",
+      "category": "race_condition",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "finance",
+      "status": "resolved",
+      "filePaths": ["app/api/finance/payments/[id]/[action]/route.ts"],
+      "action": "Use $inc atomic operator for receipt number generation",
+      "definitionOfDone": "Receipt numbers guaranteed unique via atomic increment",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Replaced manual increment with findOneAndUpdate using $inc operator"
+      }
+    },
+    {
+      "issueKey": "CORE-00003",
+      "title": "Missing Zod validation on payment action route",
+      "description": "Payment approve/reject endpoint lacks input validation, accepting invalid action values",
+      "type": "bug",
+      "category": "validation",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "finance",
+      "status": "resolved",
+      "filePaths": ["app/api/finance/payments/[id]/[action]/route.ts"],
+      "action": "Add Zod schema for action parameter validation",
+      "definitionOfDone": "Invalid action values rejected with 400 status",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added z.enum(['approve', 'reject']) validation"
+      }
+    },
+    {
+      "issueKey": "CORE-00004",
+      "title": "Hardcoded SAR currency in payment route",
+      "description": "Payment route hardcodes 'SAR' currency instead of reading from organization settings",
+      "type": "bug",
+      "category": "hardcoded_value",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "finance",
+      "status": "resolved",
+      "filePaths": ["app/api/finance/payments/[id]/[action]/route.ts"],
+      "action": "Fetch currency from organization settings or payment record",
+      "definitionOfDone": "Currency dynamically determined per payment",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added dynamic currency lookup from payment.currency || org.defaultCurrency"
+      }
+    },
+    {
+      "issueKey": "FM-00001",
+      "title": "Vendor assignment lacks transaction wrapper",
+      "description": "FM vendor assignment operations not wrapped in transaction, risking partial state on failure",
+      "type": "bug",
+      "category": "race_condition",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["app/api/fm/inspections/vendor-assignments/route.ts"],
+      "action": "Add MongoDB transaction wrapper for vendor assignment",
+      "definitionOfDone": "Vendor assignments atomic with transaction rollback",
+      "effort": "M",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Wrapped assignment logic in session.withTransaction()"
+      }
+    },
+    {
+      "issueKey": "FM-00002",
+      "title": "Duplicate vendor assignment check uses wrong field",
+      "description": "Duplicate check queries vendorId instead of inspectionId + vendorId combination",
+      "type": "bug",
+      "category": "logic_error",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["app/api/fm/inspections/vendor-assignments/route.ts"],
+      "action": "Fix duplicate check query to use both inspectionId and vendorId",
+      "definitionOfDone": "Duplicates correctly detected per inspection-vendor pair",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Updated findOne query to { inspectionId, vendorId }"
+      }
+    },
+    {
+      "issueKey": "FM-00003",
+      "title": "Missing _id field in vendor assignment response",
+      "description": "Assignment response omits _id, breaking client-side reference",
+      "type": "bug",
+      "category": "missing_field",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["app/api/fm/inspections/vendor-assignments/route.ts"],
+      "action": "Include _id in assignment response",
+      "definitionOfDone": "Response contains _id for created assignment",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added _id: newAssignment._id to response"
+      }
+    },
+    {
+      "issueKey": "CORE-00005",
+      "title": "Approval service missing EXECUTED status in enum",
+      "description": "ApprovalStatus enum missing 'EXECUTED' value, causing type errors on workflow completion",
+      "type": "bug",
+      "category": "type_error",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "auth",
+      "status": "resolved",
+      "filePaths": ["lib/auth/approval-service.ts"],
+      "action": "Add EXECUTED to ApprovalStatus enum",
+      "definitionOfDone": "All approval lifecycle statuses represented in enum",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added EXECUTED = 'EXECUTED' to ApprovalStatus enum"
+      }
+    },
+    {
+      "issueKey": "SEC-00001",
+      "title": "Token comparison uses timing-unsafe === operator",
+      "description": "Approval token comparison uses direct === which is vulnerable to timing attacks",
+      "type": "security",
+      "category": "timing_attack",
+      "priorityLabel": "P0",
+      "priorityRank": 1,
+      "domain": "auth",
+      "status": "resolved",
+      "filePaths": ["lib/auth/approval-service.ts"],
+      "action": "Replace === with timingSafeEqual for token comparison",
+      "definitionOfDone": "Token comparison uses constant-time algorithm",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Imported crypto and used timingSafeEqual(Buffer.from(token), Buffer.from(stored))"
+      }
+    },
+    {
+      "issueKey": "CORE-00006",
+      "title": "Approval service null check missing before token comparison",
+      "description": "Token comparison throws if storedToken is null/undefined",
+      "type": "bug",
+      "category": "null_check",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "auth",
+      "status": "resolved",
+      "filePaths": ["lib/auth/approval-service.ts"],
+      "action": "Add null check before token comparison",
+      "definitionOfDone": "Null tokens handled gracefully without throwing",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added if (!storedToken) return false check"
+      }
+    },
+    {
+      "issueKey": "CORE-00007",
+      "title": "Event bus missing initialization guard",
+      "description": "EventBus methods called before initialization throw undefined errors",
+      "type": "bug",
+      "category": "initialization",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["lib/events/event-bus.ts"],
+      "action": "Add initialization check before all operations",
+      "definitionOfDone": "Clear error message if EventBus used before init",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added ensureInitialized() guard method and calls"
+      }
+    },
+    {
+      "issueKey": "CORE-00008",
+      "title": "Event bus poll lacks tie-breaking for concurrent consumers",
+      "description": "Multiple pollers can claim same event when polling simultaneously",
+      "type": "bug",
+      "category": "race_condition",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["lib/events/event-bus.ts"],
+      "action": "Add $or clause for tie-breaking with consumer ID",
+      "definitionOfDone": "Events only claimed by one consumer",
+      "effort": "M",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added $or: [{ claimedBy: null }, { claimedBy: consumerId }] to poll query"
+      }
+    },
+    {
+      "issueKey": "CORE-00009",
+      "title": "God-mode pingDatabase lacks try-catch",
+      "description": "Superadmin god-mode route throws unhandled error if MongoDB ping fails",
+      "type": "bug",
+      "category": "error_handling",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["app/api/superadmin/god-mode/route.ts"],
+      "action": "Wrap pingDatabase in try-catch with meaningful error response",
+      "definitionOfDone": "DB errors caught and returned as structured response",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added try-catch wrapper with error logging"
+      }
+    },
+    {
+      "issueKey": "CORE-00010",
+      "title": "AI analytics demo response structure mismatch",
+      "description": "Demo mode analytics response missing fields expected by frontend charts",
+      "type": "bug",
+      "category": "response_format",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["app/api/ai/analytics/route.ts"],
+      "action": "Align demo response with production schema",
+      "definitionOfDone": "Demo and production responses have identical structure",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Updated demo response to match production schema"
+      }
+    },
+    {
+      "issueKey": "CORE-00011",
+      "title": "Issue comments route has hardcoded fallback org ID",
+      "description": "Comments route falls back to hardcoded org ID, bypassing tenant isolation",
+      "type": "security",
+      "category": "tenant_isolation",
+      "priorityLabel": "P0",
+      "priorityRank": 1,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["app/api/issues/[id]/comments/route.ts"],
+      "action": "Remove hardcoded fallback, require org_id from session",
+      "definitionOfDone": "No hardcoded org IDs, proper tenant isolation enforced",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Removed || 'default-org' fallback, return 401 if no org"
+      }
+    },
+    {
+      "issueKey": "AQAR-00001",
+      "title": "Lease service buildingAge returns NaN",
+      "description": "buildingAge calculation returns NaN when yearBuilt is undefined or 0",
+      "type": "bug",
+      "category": "math_error",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "aqar",
+      "status": "resolved",
+      "filePaths": ["services/aqar/lease-service.ts"],
+      "action": "Add guard for undefined/zero yearBuilt",
+      "definitionOfDone": "buildingAge returns null or 0 for invalid yearBuilt",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added yearBuilt ? ... : null ternary guard"
+      }
+    },
+    {
+      "issueKey": "AQAR-00002",
+      "title": "Lease service field mappings incorrect",
+      "description": "Lease service maps wrong DB fields to DTO properties",
+      "type": "bug",
+      "category": "data_mapping",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "aqar",
+      "status": "resolved",
+      "filePaths": ["services/aqar/lease-service.ts"],
+      "action": "Correct field mappings to match schema",
+      "definitionOfDone": "DTO fields correctly populated from DB documents",
+      "effort": "M",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Corrected field mappings for all affected properties"
+      }
+    },
+    {
+      "issueKey": "AQAR-00003",
+      "title": "Lease service status type mismatch",
+      "description": "Status comparison uses string literal instead of enum value",
+      "type": "bug",
+      "category": "type_error",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "aqar",
+      "status": "resolved",
+      "filePaths": ["services/aqar/lease-service.ts"],
+      "action": "Use enum for status comparison",
+      "definitionOfDone": "Status uses consistent enum type throughout",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Changed 'active' string to LeaseStatus.ACTIVE enum"
+      }
+    },
+    {
+      "issueKey": "FM-00004",
+      "title": "Inspection service interface missing required fields",
+      "description": "InspectionResponse interface missing fields returned by API",
+      "type": "bug",
+      "category": "type_error",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["services/fm/inspection-service.ts"],
+      "action": "Add missing fields to interface definition",
+      "definitionOfDone": "Interface matches actual API response shape",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added missing fields to InspectionResponse interface"
+      }
+    },
+    {
+      "issueKey": "FM-00005",
+      "title": "Inspection service unitId not validated as ObjectId",
+      "description": "unitId parameter not validated as valid MongoDB ObjectId before query",
+      "type": "bug",
+      "category": "validation",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["services/fm/inspection-service.ts"],
+      "action": "Add ObjectId validation for unitId parameter",
+      "definitionOfDone": "Invalid ObjectId rejected with proper error",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added ObjectId.isValid(unitId) check with error throw"
+      }
+    },
+    {
+      "issueKey": "FM-00006",
+      "title": "Provider network missing ObjectId import",
+      "description": "ObjectId used but not imported, causing runtime error",
+      "type": "bug",
+      "category": "import_error",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["services/fm/provider-network.ts"],
+      "action": "Add ObjectId import from mongoose",
+      "definitionOfDone": "ObjectId properly imported and available",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added import { Types } from 'mongoose' and used Types.ObjectId"
+      }
+    },
+    {
+      "issueKey": "FM-00007",
+      "title": "Provider network org_id conversion incorrect",
+      "description": "org_id not converted to ObjectId before query, causing match failures",
+      "type": "bug",
+      "category": "type_conversion",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["services/fm/provider-network.ts"],
+      "action": "Convert org_id string to ObjectId for query",
+      "definitionOfDone": "Query correctly matches org_id documents",
+      "effort": "S",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added new Types.ObjectId(org_id) conversion"
+      }
+    },
+    {
+      "issueKey": "FM-00008",
+      "title": "Provider network response time calculation missing",
+      "description": "Response time metric not calculated in provider scoring",
+      "type": "bug",
+      "category": "missing_logic",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["services/fm/provider-network.ts"],
+      "action": "Add response time calculation to scoring algorithm",
+      "definitionOfDone": "Provider scores include response time factor",
+      "effort": "M",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Added avgResponseTime calculation and weight in scoring"
+      }
+    },
+    {
+      "issueKey": "INFRA-00001",
+      "title": "IORedis import incorrect in onboarding-expiry-worker",
+      "description": "IORedis imported incorrectly causing TypeScript compilation error",
+      "type": "bug",
+      "category": "import_error",
+      "priorityLabel": "P1",
+      "priorityRank": 2,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": ["jobs/onboarding-expiry-worker.ts"],
+      "action": "Fix IORedis import statement",
+      "definitionOfDone": "TypeScript compiles without import errors",
+      "effort": "XS",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T10:00:00+03:00",
+        "commit": "44085ee0b",
+        "changes": "Changed to import IORedis from 'ioredis' with default import"
+      }
+    },
+    {
+      "issueKey": "INFRA-00002",
+      "title": "Remove Redis dependency - migrate to in-memory queues",
+      "description": "Redis infrastructure adds deployment complexity without proportional benefit for current scale. Migrate to in-memory queue implementation.",
+      "type": "tech_debt",
+      "category": "infrastructure",
+      "priorityLabel": "P2",
+      "priorityRank": 3,
+      "domain": "core",
+      "status": "resolved",
+      "filePaths": [
+        "lib/redis.ts",
+        "lib/redis-client.ts",
+        "lib/otp-store-redis.ts",
+        "lib/stubs/bullmq.ts",
+        "lib/stubs/ioredis.ts",
+        "jobs/export-worker.ts",
+        "jobs/package-activation-queue.ts",
+        "jobs/search-index-jobs.ts",
+        "jobs/zatca-retry-queue.ts",
+        "tsconfig.json"
+      ],
+      "action": "Delete Redis files, migrate queue imports to @/lib/queue, update all tests",
+      "definitionOfDone": "No Redis dependency, all queues use in-memory implementation, tests pass",
+      "effort": "L",
+      "resolution": {
+        "fixedBy": "[AGENT-0005]",
+        "fixedAt": "2026-01-03T11:00:00+03:00",
+        "commit": "bc64455b3",
+        "changes": "Deleted 6 Redis files, updated 4 queue files, updated 15+ test files, removed path aliases from tsconfig"
+      }
+    }
+  ],
+  "summary": {
+    "totalIssues": 26,
+    "byPriority": {
+      "P0": 2,
+      "P1": 12,
+      "P2": 11,
+      "P3": 1
+    },
+    "byDomain": {
+      "finance": 4,
+      "auth": 3,
+      "core": 11,
+      "aqar": 3,
+      "infrastructure": 2
+    },
+    "byCategory": {
+      "race_condition": 4,
+      "type_error": 4,
+      "validation": 3,
+      "security": 2,
+      "import_error": 2,
+      "error_handling": 1,
+      "logic_error": 1,
+      "missing_field": 1,
+      "null_check": 1,
+      "initialization": 1,
+      "response_format": 1,
+      "math_error": 1,
+      "data_mapping": 1,
+      "type_conversion": 1,
+      "missing_logic": 1,
+      "infrastructure": 1
+    }
+  },
+  "importCommand": "cd issue-tracker && pnpm issue-log import ../docs/artifacts/SSOT-RETROACTIVE-ENTRIES-2026-01-03.json"
+}
