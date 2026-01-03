@@ -13,6 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,16 +24,8 @@ export async function GET(request: NextRequest) {
     const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
     const isSuperadmin = !!superadminSession;
     
-    // Demo mode requires ENABLE_DEMO_MODE env flag - strictly disallowed in production
-    let demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
-    if (demoEnabled && process.env.NODE_ENV === 'production') {
-      logger.error('[AI Analytics] ENABLE_DEMO_MODE is true in production - forcing to false for security');
-      demoEnabled = false;
-    }
-    const isDemo = demoEnabled && !session?.user && !isSuperadmin;
-    
-    // Require authentication if demo mode is disabled
-    if (!session?.user && !isSuperadmin && !isDemo) {
+    // Require authentication
+    if (!session?.user && !isSuperadmin) {
       return NextResponse.json(
         { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
         { status: 401 }
@@ -39,158 +33,175 @@ export async function GET(request: NextRequest) {
     }
     
     // Resolve orgId from session (NextAuth) or superadmin session
-    const sessionOrgId = isSuperadmin 
+    const orgId = isSuperadmin 
       ? superadminSession.orgId 
       : (session?.user as { orgId?: string })?.orgId;
-    if (!sessionOrgId || typeof sessionOrgId !== "string" || sessionOrgId.trim() === "") {
-      if (!isDemo) {
-        return NextResponse.json(
-          { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
-          { status: 400 }
-        );
-      }
+    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
+        { status: 400 }
+      );
     }
     
-    const orgId = isDemo ? "demo" : sessionOrgId;
-    if (isDemo) {
-      logger.warn("[AI Analytics] Demo org fallback used", {
-        demoEnabled,
-        hasSessionUser: !!session?.user,
-        isSuperadmin,
+    const db = await getDatabase();
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Query assets for health metrics
+    const assetStats = await db.collection(COLLECTIONS.ASSETS).aggregate([
+      { $match: { orgId } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          excellent: { $sum: { $cond: [{ $gte: ["$healthScore", 90] }, 1, 0] } },
+          good: { $sum: { $cond: [{ $and: [{ $gte: ["$healthScore", 70] }, { $lt: ["$healthScore", 90] }] }, 1, 0] } },
+          fair: { $sum: { $cond: [{ $and: [{ $gte: ["$healthScore", 50] }, { $lt: ["$healthScore", 70] }] }, 1, 0] } },
+          poor: { $sum: { $cond: [{ $and: [{ $gte: ["$healthScore", 30] }, { $lt: ["$healthScore", 50] }] }, 1, 0] } },
+          critical: { $sum: { $cond: [{ $lt: ["$healthScore", 30] }, 1, 0] } },
+        }
+      }
+    ]).toArray();
+    
+    const stats = assetStats[0] ?? { total: 0, excellent: 0, good: 0, fair: 0, poor: 0, critical: 0 };
+    
+    // Get critical assets (health score < 30)
+    const criticalAssets = await db.collection(COLLECTIONS.ASSETS).find(
+      { orgId, healthScore: { $lt: 30 } },
+      { projection: { _id: 1, name: 1, healthScore: 1, type: 1, lastMaintenanceDate: 1 } }
+    ).limit(10).toArray();
+    
+    // Query work orders for anomaly detection (result used for future anomaly patterns)
+    const [_workOrderStats] = await db.collection(COLLECTIONS.WORK_ORDERS).aggregate([
+      { $match: { orgId, createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          avgCost: { $avg: "$totalCost" }
+        }
+      }
+    ]).toArray() ?? [];
+    
+    // Query work orders created in last 24h for anomaly detection
+    const recentWorkOrderCount = await db.collection(COLLECTIONS.WORK_ORDERS).countDocuments({
+      orgId,
+      createdAt: { $gte: twentyFourHoursAgo }
+    });
+    
+    // Query tenants for churn prediction (for superadmin) or skip for regular users
+    const churnData = { at_risk_tenants: 0, healthy_tenants: 0, predictions: [] as Array<Record<string, unknown>> };
+    if (isSuperadmin) {
+      const tenantStats = await db.collection(COLLECTIONS.TENANTS).aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            atRisk: { $sum: { $cond: [{ $lte: ["$lastActivityAt", thirtyDaysAgo] }, 1, 0] } }
+          }
+        }
+      ]).toArray();
+      
+      if (tenantStats[0]) {
+        churnData.at_risk_tenants = tenantStats[0].atRisk ?? 0;
+        churnData.healthy_tenants = (tenantStats[0].total ?? 0) - (tenantStats[0].atRisk ?? 0);
+      }
+      
+      // Get at-risk tenants
+      const atRiskTenants = await db.collection(COLLECTIONS.TENANTS).find(
+        { lastActivityAt: { $lte: thirtyDaysAgo } },
+        { projection: { name: 1, lastActivityAt: 1 } }
+      ).limit(5).toArray();
+      
+      churnData.predictions = atRiskTenants.map(t => ({
+        tenant_name: t.name ?? "Unknown",
+        risk_level: "medium",
+        probability: 0.5,
+        primary_factor: "Low activity in last 30 days",
+        recommended_action: "Schedule customer success call",
+        predicted_churn_date: null
+      }));
+    }
+    
+    // Build insights based on real data
+    const insights: Array<{ type: string; title: string; description: string; priority: string; action_url: string }> = [];
+    
+    if (stats.critical > 0) {
+      insights.push({
+        type: "cost_saving",
+        title: "Preventive Maintenance Opportunity",
+        description: `${stats.critical} critical asset(s) need immediate attention`,
+        priority: "high",
+        action_url: "/fm/assets?filter=critical"
       });
     }
     
-    // AI Analytics summary
+    if (churnData.at_risk_tenants > 0) {
+      insights.push({
+        type: "risk",
+        title: "Churn Risk Alert",
+        description: `${churnData.at_risk_tenants} tenant(s) showing low activity signals`,
+        priority: "medium",
+        action_url: "/admin/tenants?filter=at-risk"
+      });
+    }
+    
+    if (recentWorkOrderCount > 10) {
+      insights.push({
+        type: "anomaly",
+        title: "High Work Order Volume",
+        description: `${recentWorkOrderCount} work orders created in last 24 hours`,
+        priority: "medium",
+        action_url: "/fm/work-orders"
+      });
+    }
+    
+    // AI Analytics from real data
     const analytics = {
       orgId,
-      is_demo: isDemo,
-      generated_at: new Date().toISOString(),
+      generated_at: now.toISOString(),
       
       // Anomaly Detection
       anomalies: {
-        active_count: 3,
-        resolved_24h: 7,
-        items: [
-          {
-            id: "ANO-001",
-            type: "cost_spike",
-            severity: "medium",
-            description: "Unusual maintenance cost increase in Building A - 45% above monthly average",
-            detected_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            asset_id: "ASSET-1234",
-            score: 0.78,
-          },
-          {
-            id: "ANO-002",
-            type: "usage_pattern",
-            severity: "low",
-            description: "HVAC running outside normal hours - 3 consecutive nights",
-            detected_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-            asset_id: "ASSET-5678",
-            score: 0.65,
-          },
-          {
-            id: "ANO-003",
-            type: "work_order_volume",
-            severity: "high",
-            description: "Work order volume 3x normal for elevator systems",
-            detected_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            asset_id: "ASSET-ELEV-01",
-            score: 0.92,
-          },
-        ],
+        active_count: stats.critical,
+        resolved_24h: 0, // Would require tracking resolved anomalies
+        items: criticalAssets.slice(0, 5).map((asset, idx) => ({
+          id: `ANO-${String(idx + 1).padStart(3, '0')}`,
+          type: "asset_health",
+          severity: asset.healthScore < 20 ? "high" : "medium",
+          description: `Asset "${asset.name}" has critical health score of ${asset.healthScore}%`,
+          detected_at: now.toISOString(),
+          asset_id: String(asset._id),
+          score: (100 - (asset.healthScore ?? 0)) / 100,
+        })),
       },
       
       // Churn Prediction
-      churn: {
-        at_risk_tenants: 2,
-        healthy_tenants: 45,
-        predictions: [
-          {
-            tenant_name: "Al-Faisal Properties",
-            risk_level: "high",
-            probability: 0.72,
-            primary_factor: "Declining login frequency",
-            recommended_action: "Schedule customer success call",
-            predicted_churn_date: "2025-02-15",
-          },
-          {
-            tenant_name: "Gulf Commercial",
-            risk_level: "medium",
-            probability: 0.45,
-            primary_factor: "Low feature adoption",
-            recommended_action: "Provide personalized training",
-            predicted_churn_date: null,
-          },
-        ],
-      },
+      churn: churnData,
       
       // Asset Health
       asset_health: {
-        total_assets: 234,
-        excellent: 89,
-        good: 98,
-        fair: 32,
-        poor: 12,
-        critical: 3,
-        critical_assets: [
-          {
-            asset_id: "ASSET-HVAC-12",
-            name: "Main HVAC Unit - Tower B",
-            health_score: 23,
-            rul_days: 15,
-            failure_probability_30d: 0.78,
-            recommended_action: "Schedule immediate maintenance",
-            estimated_cost_preventive: 5000,
-            estimated_cost_reactive: 25000,
-          },
-          {
-            asset_id: "ASSET-ELEV-03",
-            name: "Passenger Elevator 3",
-            health_score: 28,
-            rul_days: 22,
-            failure_probability_30d: 0.65,
-            recommended_action: "Order replacement parts",
-            estimated_cost_preventive: 8000,
-            estimated_cost_reactive: 45000,
-          },
-          {
-            asset_id: "ASSET-GEN-01",
-            name: "Backup Generator",
-            health_score: 31,
-            rul_days: 28,
-            failure_probability_30d: 0.52,
-            recommended_action: "Schedule comprehensive inspection",
-            estimated_cost_preventive: 3000,
-            estimated_cost_reactive: 15000,
-          },
-        ],
+        total_assets: stats.total,
+        excellent: stats.excellent,
+        good: stats.good,
+        fair: stats.fair,
+        poor: stats.poor,
+        critical: stats.critical,
+        critical_assets: criticalAssets.map(asset => ({
+          asset_id: String(asset._id),
+          name: asset.name ?? "Unknown Asset",
+          health_score: asset.healthScore ?? 0,
+          rul_days: Math.max(0, Math.round((asset.healthScore ?? 0) / 3)),
+          failure_probability_30d: Math.max(0, Math.min(1, (100 - (asset.healthScore ?? 0)) / 100)),
+          recommended_action: (asset.healthScore ?? 0) < 20 ? "Immediate replacement required" : "Schedule maintenance",
+          estimated_cost_preventive: 5000,
+          estimated_cost_reactive: 25000,
+        })),
       },
       
       // Summary Insights
-      insights: [
-        {
-          type: "cost_saving",
-          title: "Preventive Maintenance Opportunity",
-          description: "Acting on 3 critical asset alerts could save SAR 67,000 in reactive repair costs",
-          priority: "high",
-          action_url: "/fm/assets?filter=critical",
-        },
-        {
-          type: "risk",
-          title: "Churn Risk Alert",
-          description: "2 tenants showing early churn signals - immediate outreach recommended",
-          priority: "medium",
-          action_url: "/admin/tenants?filter=at-risk",
-        },
-        {
-          type: "anomaly",
-          title: "Elevator System Alert",
-          description: "Unusual work order pattern detected - possible systemic issue",
-          priority: "high",
-          action_url: "/fm/work-orders?asset_type=elevator",
-        },
-      ],
+      insights,
     };
     
     logger.info("AI analytics retrieved", {

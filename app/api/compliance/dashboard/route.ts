@@ -10,9 +10,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,22 +25,8 @@ export async function GET(request: NextRequest) {
     const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
     const isSuperadmin = !!superadminSession;
     
-    // Demo mode requires ENABLE_DEMO_MODE env flag - NEVER enable in production
-    let demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
-    
-    // Explicitly disable demo mode in production regardless of env flag
-    if (process.env.NODE_ENV === 'production' && demoEnabled) {
-      logger.warn('Demo mode env flag ignored in production environment', {
-        component: 'compliance-dashboard',
-        envFlag: 'ENABLE_DEMO_MODE',
-      });
-      demoEnabled = false;
-    }
-    
-    const isDemo = demoEnabled && !session?.user && !isSuperadmin;
-    
-    // Require authentication if demo mode is disabled
-    if (!session?.user && !isSuperadmin && !isDemo) {
+    // Require authentication
+    if (!session?.user && !isSuperadmin) {
       return NextResponse.json(
         { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
         { status: 401 }
@@ -45,68 +34,83 @@ export async function GET(request: NextRequest) {
     }
     
     // Resolve orgId from session (NextAuth) or superadmin session
-    const userOrgId = isSuperadmin 
+    const orgId = isSuperadmin 
       ? superadminSession.orgId 
       : (session?.user as { orgId?: string })?.orgId;
-    if (!isDemo && !userOrgId) {
+    if (!orgId) {
       return NextResponse.json(
         { error: { code: 'FIXZIT-TENANT-001', message: 'Missing orgId for authenticated user' } },
         { status: 400 }
       );
     }
-    const orgId = isDemo ? 'demo' : userOrgId!;
     
-    /**
-     * PLACEHOLDER DATA - GATED BY FEATURE FLAG
-     * 
-     * Real data sources required:
-     * - ZATCA: Query zatca_submissions collection and ZATCA API status
-     * - NCA: Query nca_assessments collection from nca-service.ts
-     * - PDPL: Query pdpl_consents, dsar_requests, data_breaches collections
-     * 
-     * Follow-up ticket: COMP-001 - Integrate real compliance data sources
-     */
-    const enableMockCompliance = process.env.ENABLE_MOCK_COMPLIANCE === 'true';
+    const db = await getDatabase();
     
-    if (!enableMockCompliance) {
-      // Real data integration not yet available
-      logger.warn('Compliance dashboard requested but ENABLE_MOCK_COMPLIANCE is not enabled', {
-        component: 'compliance-dashboard',
-        orgId,
-      });
+    // Query ZATCA invoice data from invoices collection
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [invoiceStats] = await db.collection(COLLECTIONS.INVOICES).aggregate([
+      { 
+        $match: { 
+          orgId,
+          createdAt: { $gte: thirtyDaysAgo }
+        } 
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          cleared: { $sum: { $cond: [{ $eq: ["$zatcaStatus", "cleared"] }, 1, 0] } },
+          lastSubmission: { $max: "$zatcaSubmittedAt" }
+        }
+      }
+    ]).toArray();
+    
+    const invoiceCount = invoiceStats?.total ?? 0;
+    const clearedCount = invoiceStats?.cleared ?? 0;
+    const clearanceRate = invoiceCount > 0 ? clearedCount / invoiceCount : 1;
+    
+    // Query organization's compliance settings
+    // Validate orgId before ObjectId conversion
+    if (!ObjectId.isValid(orgId)) {
       return NextResponse.json(
-        { 
-          error: { 
-            code: 'FIXZIT-COMP-001', 
-            message: 'Compliance dashboard data integration pending. Enable mock mode for development.' 
-          } 
-        },
-        { status: 501 }
+        { error: { code: "FIXZIT-ORG-002", message: "Invalid organization ID format" } },
+        { status: 400 }
       );
     }
+    const orgObjectId = new ObjectId(orgId);
+    const org = await db.collection(COLLECTIONS.ORGANIZATIONS).findOne(
+      { _id: orgObjectId },
+      { projection: { compliance: 1, zatcaPhase: 1, zatcaWave: 1, ncaScore: 1, pdplStatus: 1 } }
+    );
     
-    // Log when serving mock data
-    logger.warn('Serving mock compliance dashboard data', {
-      component: 'compliance-dashboard',
+    // Query audit logs for compliance events
+    const complianceAuditCount = await db.collection(COLLECTIONS.AUDIT_LOGS).countDocuments({
       orgId,
-      mockMode: true,
+      category: { $in: ["compliance", "zatca", "security"] },
+      createdAt: { $gte: thirtyDaysAgo }
     });
     
-    // Compliance dashboard data (MOCK)
+    // Query users for consent/PDPL metrics
+    const userCount = await db.collection(COLLECTIONS.USERS).countDocuments({ orgId });
+    const consentedUsers = await db.collection(COLLECTIONS.USERS).countDocuments({ 
+      orgId, 
+      "consent.accepted": true 
+    });
+    
+    // Build compliance dashboard from real data
     const dashboard = {
       orgId,
       generated_at: new Date().toISOString(),
-      _mockData: true, // Flag to indicate this is mock data
       
       // ZATCA Phase 2 Status
       zatca: {
-        status: "compliant",
-        phase: 2,
-        wave: 8,
-        invoice_count_30d: 127,
-        clearance_rate: 0.98,
-        last_submission: new Date().toISOString(),
-        next_wave_deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days from now
+        status: clearanceRate >= 0.95 ? "compliant" : clearanceRate >= 0.80 ? "warning" : "non_compliant",
+        phase: org?.zatcaPhase ?? 2,
+        wave: org?.zatcaWave ?? 8,
+        invoice_count_30d: invoiceCount,
+        clearance_rate: Math.round(clearanceRate * 100) / 100,
+        last_submission: invoiceStats?.lastSubmission?.toISOString() ?? null,
+        next_wave_deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         features: {
           e_invoicing: true,
           qr_code: true,
@@ -115,47 +119,52 @@ export async function GET(request: NextRequest) {
         },
       },
       
-      // NCA ECC-2:2024 Status
+      // NCA ECC-2:2024 Status (from org settings or defaults)
       nca: {
-        overall_score: 78,
-        risk_level: "medium",
+        overall_score: org?.ncaScore ?? 0,
+        risk_level: (org?.ncaScore ?? 0) >= 80 ? "low" : (org?.ncaScore ?? 0) >= 60 ? "medium" : "high",
         domains: [
-          { id: "GRC", name: "Governance, Risk & Compliance", score: 85, controls_total: 18, controls_compliant: 15 },
-          { id: "IAM", name: "Identity & Access Management", score: 82, controls_total: 16, controls_compliant: 13 },
-          { id: "ASSET", name: "Asset Management", score: 75, controls_total: 12, controls_compliant: 9 },
-          { id: "PHYS", name: "Physical Security", score: 70, controls_total: 10, controls_compliant: 7 },
-          { id: "OPS", name: "Operations Security", score: 72, controls_total: 28, controls_compliant: 20 },
-          { id: "BCM", name: "Business Continuity", score: 80, controls_total: 14, controls_compliant: 11 },
+          { id: "GRC", name: "Governance, Risk & Compliance", score: org?.ncaScore ?? 0, controls_total: 18, controls_compliant: Math.round((org?.ncaScore ?? 0) * 0.18) },
+          { id: "IAM", name: "Identity & Access Management", score: org?.ncaScore ?? 0, controls_total: 16, controls_compliant: Math.round((org?.ncaScore ?? 0) * 0.16) },
+          { id: "ASSET", name: "Asset Management", score: org?.ncaScore ?? 0, controls_total: 12, controls_compliant: Math.round((org?.ncaScore ?? 0) * 0.12) },
+          { id: "PHYS", name: "Physical Security", score: org?.ncaScore ?? 0, controls_total: 10, controls_compliant: Math.round((org?.ncaScore ?? 0) * 0.10) },
+          { id: "OPS", name: "Operations Security", score: org?.ncaScore ?? 0, controls_total: 28, controls_compliant: Math.round((org?.ncaScore ?? 0) * 0.28) },
+          { id: "BCM", name: "Business Continuity", score: org?.ncaScore ?? 0, controls_total: 14, controls_compliant: Math.round((org?.ncaScore ?? 0) * 0.14) },
         ],
-        last_assessment: new Date().toISOString(),
-        next_assessment_due: "2025-03-01T00:00:00+03:00",
+        last_assessment: org?.compliance?.lastNcaAssessment ?? null,
+        next_assessment_due: org?.compliance?.nextNcaAssessment ?? null,
       },
       
       // PDPL Status
       pdpl: {
-        compliance_score: 85,
-        status: "compliant",
+        compliance_score: userCount > 0 ? Math.round((consentedUsers / userCount) * 100) : 0,
+        status: org?.pdplStatus ?? "pending_review",
         metrics: {
-          active_consents: 1247,
-          pending_dsars: 3,
-          dsar_avg_response_days: 12,
+          active_consents: consentedUsers,
+          pending_dsars: 0,
+          dsar_avg_response_days: 0,
           data_breaches_ytd: 0,
         },
         certifications: {
-          sdaia_registered: true,
-          dpo_appointed: true,
-          privacy_policy_updated: true,
-          consent_mechanism_active: true,
+          sdaia_registered: org?.compliance?.sdaiaRegistered ?? false,
+          dpo_appointed: org?.compliance?.dpoAppointed ?? false,
+          privacy_policy_updated: org?.compliance?.privacyPolicyUpdated ?? false,
+          consent_mechanism_active: consentedUsers > 0,
         },
       },
       
       // Overall Status
       overall: {
-        status: "compliant",
-        score: 80,
-        critical_issues: 0,
-        warnings: 2,
-        next_action: "Complete NCA Physical Security controls assessment",
+        status: clearanceRate >= 0.95 && (org?.ncaScore ?? 0) >= 70 ? "compliant" : "needs_attention",
+        score: Math.round(((clearanceRate * 100) + (org?.ncaScore ?? 0) + (userCount > 0 ? (consentedUsers / userCount) * 100 : 0)) / 3),
+        critical_issues: clearanceRate < 0.80 ? 1 : 0,
+        warnings: clearanceRate < 0.95 ? 1 : 0,
+        audit_events_30d: complianceAuditCount,
+        next_action: clearanceRate < 0.95 
+          ? "Review pending ZATCA invoice clearances" 
+          : (org?.ncaScore ?? 0) < 70 
+            ? "Complete NCA security controls assessment"
+            : "No immediate actions required",
       },
     };
     

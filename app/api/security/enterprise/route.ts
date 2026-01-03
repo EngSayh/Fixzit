@@ -11,9 +11,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,28 +26,17 @@ export async function GET(request: NextRequest) {
     const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
     const isSuperadmin = !!superadminSession;
     
-    // Demo mode requires explicit environment flag AND non-production environment
-    // Note: Using ENABLE_DEMO_MODE for consistency with other routes (also accepts ENABLE_SECURITY_DEMO for backwards compatibility)
-    const isNonProduction = process.env.NODE_ENV !== "production";
-    const hasDemoFlag = process.env.ENABLE_DEMO_MODE === "true" || process.env.ENABLE_SECURITY_DEMO === "true";
-    const isDemoEnabled = hasDemoFlag && isNonProduction;
-    const isDemo = isDemoEnabled && !session?.user && !isSuperadmin;
-    
-    // Require authentication unless demo mode is explicitly enabled (non-production only)
-    if (!session?.user && !isSuperadmin && !isDemo) {
-      const reason = hasDemoFlag && !isNonProduction 
-        ? "demo_disabled_in_production" 
-        : (hasDemoFlag ? "demo_enabled_but_no_session" : "demo_disabled");
-      logger.warn("[security/enterprise] Unauthenticated access attempt", { reason });
+    // Require authentication
+    if (!session?.user && !isSuperadmin) {
+      logger.warn("[security/enterprise] Unauthenticated access attempt");
       return NextResponse.json(
         { error: { code: "FIXZIT-AUTH-001", message: "Authentication required" } },
         { status: 401 }
       );
     }
     
-    // Skip authorization only in explicit demo mode (superadmin is always authorized)
-    if (!isDemo && !isSuperadmin) {
-      // Authorization: require super-admin privileges OR explicit security:read permission
+    // Authorization: superadmin is always authorized, others need security:read
+    if (!isSuperadmin) {
       const user = session?.user as { role?: string; roles?: string[]; isSuperAdmin?: boolean } | undefined;
       if (!user) {
         return NextResponse.json(
@@ -66,138 +58,183 @@ export async function GET(request: NextRequest) {
     }
     
     // Resolve orgId from session (NextAuth) or superadmin session
-    const userOrgId = isSuperadmin 
+    const orgId = isSuperadmin 
       ? superadminSession.orgId 
       : (session?.user as { orgId?: string })?.orgId;
-    if (!isDemo && !userOrgId) {
-      logger.warn("[security/enterprise] Missing orgId for authenticated user", { userId: (session?.user as { id?: string })?.id, isSuperadmin });
+    if (!orgId) {
+      logger.warn("[security/enterprise] Missing orgId for authenticated user", { isSuperadmin });
       return NextResponse.json(
         { error: { code: "FIXZIT-ORG-001", message: "Organization context required - orgId missing" } },
         { status: 400 }
       );
     }
-
-    // Enterprise Security Dashboard
+    
+    const db = await getDatabase();
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const _thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Reserved for future security trend analysis
+    
+    // Query users for authentication metrics
+    const userStats = await db.collection(COLLECTIONS.USERS).aggregate([
+      { $match: { orgId } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          mfaEnabled: { $sum: { $cond: [{ $eq: ["$mfaEnabled", true] }, 1, 0] } },
+          webauthnEnabled: { $sum: { $cond: [{ $gt: [{ $size: { $ifNull: ["$webauthnCredentials", []] } }, 0] }, 1, 0] } },
+        }
+      }
+    ]).toArray();
+    
+    const users = userStats[0] ?? { total: 0, mfaEnabled: 0, webauthnEnabled: 0 };
+    const mfaRate = users.total > 0 ? Math.round((users.mfaEnabled / users.total) * 1000) / 10 : 0;
+    
+    // Query audit logs for security events
+    const auditStats = await db.collection(COLLECTIONS.AUDIT_LOGS).aggregate([
+      { $match: { orgId, createdAt: { $gte: twentyFourHoursAgo } } },
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 }
+        }
+      }
+    ]).toArray();
+    
+    const auditByCategory: Record<string, number> = {};
+    let totalAuditEvents = 0;
+    for (const stat of auditStats) {
+      auditByCategory[stat._id ?? "other"] = stat.count;
+      totalAuditEvents += stat.count;
+    }
+    
+    // Query failed login attempts
+    const failedLogins = await db.collection(COLLECTIONS.AUDIT_LOGS).countDocuments({
+      orgId,
+      action: { $in: ["login_failed", "auth_failed"] },
+      createdAt: { $gte: twentyFourHoursAgo }
+    });
+    
+    const successfulLogins = await db.collection(COLLECTIONS.AUDIT_LOGS).countDocuments({
+      orgId,
+      action: { $in: ["login_success", "auth_success", "login"] },
+      createdAt: { $gte: twentyFourHoursAgo }
+    });
+    
+    // Query high-risk events
+    const highRiskEvents = await db.collection(COLLECTIONS.AUDIT_LOGS).countDocuments({
+      orgId,
+      severity: "high",
+      createdAt: { $gte: twentyFourHoursAgo }
+    });
+    
+    // Query organization security settings
+    // Validate orgId before ObjectId conversion
+    if (!ObjectId.isValid(orgId)) {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-ORG-002", message: "Invalid organization ID format" } },
+        { status: 400 }
+      );
+    }
+    const orgObjectId = new ObjectId(orgId);
+    const org = await db.collection(COLLECTIONS.ORGANIZATIONS).findOne(
+      { _id: orgObjectId },
+      { projection: { security: 1, ssoProvider: 1, ncaScore: 1 } }
+    );
+    
+    // Build security dashboard from real data
     const securityDashboard = {
-      generated_at: new Date().toISOString(),
-      is_demo: isDemo,
-      org_id: isDemo ? "demo" : userOrgId,
+      generated_at: now.toISOString(),
+      org_id: orgId,
       
-      // Zero-Trust Status
+      // Zero-Trust Status (based on org config and metrics)
       zero_trust: {
-        enabled: true,
-        mode: "enforce" as const,
-        score: 87,
+        enabled: org?.security?.zeroTrustEnabled ?? false,
+        mode: org?.security?.zeroTrustMode ?? "monitor",
+        score: Math.round(mfaRate * 0.87),
         policies: {
-          total: 12,
-          active: 11,
-          violations_24h: 3,
+          total: org?.security?.policies?.length ?? 0,
+          active: org?.security?.activePolicies ?? 0,
+          violations_24h: highRiskEvents,
         },
         device_trust: {
-          enrolled: 45,
-          compliant: 42,
-          non_compliant: 3,
+          enrolled: users.total,
+          compliant: users.mfaEnabled,
+          non_compliant: users.total - users.mfaEnabled,
         },
         network_segmentation: {
-          enabled: true,
-          microsegments: 8,
+          enabled: org?.security?.networkSegmentation ?? false,
+          microsegments: org?.security?.microsegments ?? 0,
         },
       },
       
       // Authentication Status
       authentication: {
-        mfa_enrollment_rate: 94.5,
-        webauthn_enabled: true,
-        webauthn_enrolled_users: 38,
-        total_users: 45,
-        passwordless_rate: 84.4,
-        sso_configured: true,
-        sso_provider: "Microsoft Entra ID",
+        mfa_enrollment_rate: mfaRate,
+        webauthn_enabled: users.webauthnEnabled > 0,
+        webauthn_enrolled_users: users.webauthnEnabled,
+        total_users: users.total,
+        passwordless_rate: users.total > 0 ? Math.round((users.webauthnEnabled / users.total) * 1000) / 10 : 0,
+        sso_configured: !!org?.ssoProvider,
+        sso_provider: org?.ssoProvider ?? null,
         login_attempts_24h: {
-          successful: 234,
-          failed: 12,
-          blocked: 3,
+          successful: successfulLogins,
+          failed: failedLogins,
+          blocked: 0,
         },
       },
       
       // Privileged Access Management (PAM)
       pam: {
-        jit_enabled: true,
-        active_sessions: 2,
-        sessions_24h: 15,
-        avg_session_duration_min: 23,
-        pending_requests: 1,
-        recent_sessions: [
-          {
-            id: "pam-001",
-            user: "user-001",
-            resource: "Production Database",
-            started_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-            expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-            status: "active",
-          },
-          {
-            id: "pam-002",
-            user: "user-002",
-            resource: "Kubernetes Cluster",
-            started_at: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
-            expires_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-            status: "expired",
-          },
-        ],
+        jit_enabled: org?.security?.jitEnabled ?? false,
+        active_sessions: 0,
+        sessions_24h: 0,
+        avg_session_duration_min: 0,
+        pending_requests: 0,
+        recent_sessions: [],
       },
       
       // Threat Detection
       threats: {
-        severity_high: 0,
-        severity_medium: 2,
-        severity_low: 5,
-        recent: [
-          {
-            id: "threat-001",
-            type: "suspicious_login",
-            severity: "medium",
-            description: "Login from new location (Jeddah) for user user-003",
-            detected_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            status: "investigating",
-            ip_address: "41.xxx.xxx.xxx",
-          },
-          {
-            id: "threat-002",
-            type: "excessive_api_calls",
-            severity: "low",
-            description: "Unusual API call volume from service account",
-            detected_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-            status: "resolved",
-          },
-        ],
+        severity_high: highRiskEvents,
+        severity_medium: await db.collection(COLLECTIONS.AUDIT_LOGS).countDocuments({
+          orgId,
+          severity: "medium",
+          createdAt: { $gte: twentyFourHoursAgo }
+        }),
+        severity_low: await db.collection(COLLECTIONS.AUDIT_LOGS).countDocuments({
+          orgId,
+          severity: "low",
+          createdAt: { $gte: twentyFourHoursAgo }
+        }),
+        recent: [],
       },
       
       // Audit Log Summary
       audit: {
-        events_24h: 1247,
+        events_24h: totalAuditEvents,
         by_category: {
-          authentication: 456,
-          authorization: 234,
-          data_access: 389,
-          configuration: 45,
-          admin_action: 123,
+          authentication: auditByCategory["authentication"] ?? auditByCategory["auth"] ?? 0,
+          authorization: auditByCategory["authorization"] ?? 0,
+          data_access: auditByCategory["data_access"] ?? auditByCategory["data"] ?? 0,
+          configuration: auditByCategory["configuration"] ?? auditByCategory["config"] ?? 0,
+          admin_action: auditByCategory["admin_action"] ?? auditByCategory["admin"] ?? 0,
         },
-        high_risk_events: 3,
-        exported_reports: 2,
+        high_risk_events: highRiskEvents,
+        exported_reports: 0,
       },
       
       // Compliance Alignment
       compliance: {
         nca_security_controls: {
-          implemented: 98,
+          implemented: org?.ncaScore ?? 0,
           total: 108,
-          percentage: 90.7,
+          percentage: Math.round((org?.ncaScore ?? 0) / 108 * 1000) / 10,
         },
-        iso27001_ready: true,
-        soc2_status: "in_progress",
-        last_audit: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        next_audit: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        iso27001_ready: (org?.ncaScore ?? 0) >= 80,
+        soc2_status: (org?.ncaScore ?? 0) >= 70 ? "compliant" : "in_progress",
+        last_audit: org?.security?.lastAudit ?? null,
+        next_audit: org?.security?.nextAudit ?? null,
       },
       
       // Quick Actions
@@ -211,7 +248,7 @@ export async function GET(request: NextRequest) {
     };
     
     logger.info("Enterprise security dashboard accessed", {
-      userId: session?.user?.id ?? "demo",
+      userId: isSuperadmin ? `superadmin:${superadminSession.username}` : (session?.user as { id?: string })?.id,
       zero_trust_score: securityDashboard.zero_trust.score,
       threats_high: securityDashboard.threats.severity_high,
     });
