@@ -26,6 +26,9 @@ const IGNORED_DIRS = [
   "coverage",
   "docs",
   "_artifacts",
+  "qa", // Contains detection patterns, not actual placeholders
+  "issue-tracker", // CLI tools with expected placeholder prompts
+  "pnpm-lock.yaml", // Package hashes contain false positive strings
 ];
 const SCANNED_EXTENSIONS = [
   ".ts",
@@ -69,6 +72,11 @@ function scanFile(filePath) {
       /WEAK\s*=.*Set\(.*changeme/i.test(line) ||
       /const\s+\w+\s*=.*\['.*changeme.*'\]/i.test(line)
     ) {
+      return;
+    }
+
+    // Skip i18n translation fallbacks (e.g., t("key", "TBD") or auto("TBD", "key"))
+    if (/\bt\s*\([^)]*,\s*["']TBD["']\s*\)/.test(line) || /auto\s*\(\s*["']TBD["']/.test(line)) {
       return;
     }
 

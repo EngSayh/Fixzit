@@ -19,6 +19,79 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 10:00 (Asia/Riyadh) — Code Quality Deep Dive: Categories 1-5 Analysis [AGENT-0004]
+
+**Agent Token:** [AGENT-0004]  
+**Context:** Deep analysis of remaining code quality categories to determine actionability
+
+---
+
+#### ✅ CATEGORY-1: Runtime TODOs - PROPERLY DOCUMENTED STUBS
+
+**Analysis Results:**
+| Component | TODOs Found | Verdict |
+|-----------|-------------|---------|
+| `vendor-intelligence.ts` | 4 fraud detection stubs | ✅ Marked `@deprecated STUB`, return `null` safely |
+| `notifications/stream/route.ts` | Redis scaling TODO | ✅ Enhancement, not bug - current SSE works |
+| `god-mode/route.ts` | Monitoring integration TODO | ✅ Enhancement - basic health works |
+
+**Conclusion:** All runtime TODOs are properly documented stubs awaiting external dependencies (fraud ML APIs, monitoring systems). No action required.
+
+---
+
+#### ✅ CATEGORY-2: Not Implemented (501 Routes) - CORRECT FEATURE FLAGS
+
+**Analysis Results:**
+| Route | 501 Reason | Verdict |
+|-------|------------|---------|
+| `upload/scan` | S3 not configured | ✅ Correct - graceful degradation |
+| `upload/verify-metadata` | S3 not configured | ✅ Correct - graceful degradation |
+| `vendor-assignments` | FMInspection pending | ✅ Correct - with clear env var instructions |
+| `feeds/indeed` | ATS_ENABLED !== true | ✅ Correct - feature flag |
+| `ats/public-post` | ATS disabled | ✅ Correct - feature flag |
+| `payout-processor` | SADAD/SPAN awaits banking creds | ✅ Correct - manual fallback mode |
+
+**Conclusion:** All 501 responses are intentional feature flags for unimplemented/disabled features. No bugs.
+
+---
+
+#### ⏳ CATEGORY-4: Test Debt - REQUIRES DEDICATED SPRINT
+
+**Skipped Tests Identified:**
+| File | Count | Reason |
+|------|-------|--------|
+| `tests/api/issues/stats.route.test.ts` | 4 | Needs MongoDB aggregation mocking |
+| `tests/unit/api/work-orders/patch.route.test.ts` | 2 | Async S3 cleanup timing issues |
+| `tests/unit/api/admin/billing/pricebooks.test.ts` | 1 | Route sanitization todo |
+
+**Total:** 7 skipped tests  
+**Effort Estimate:** 1-2 days per test file (4-8 days total)  
+**Recommendation:** Schedule in dedicated test sprint, not hotfix priority
+
+---
+
+#### ✅ TOOLING-001: Updated Placeholder Scanner Exclusions
+
+**File:** `qa/scripts/scanPlaceholders.mjs`
+
+**Changes:**
+1. Added directory exclusions:
+   - `qa/` - Contains detection patterns, not actual placeholders
+   - `issue-tracker/` - CLI tools with expected placeholder prompts
+   - `pnpm-lock.yaml` - Package hashes contain false positive strings
+
+2. Added pattern exclusion for i18n translation fallbacks:
+   ```javascript
+   // Skip i18n translation fallbacks (e.g., t("key", "TBD"))
+   if (/\bt\s*\([^)]*,\s*["']TBD["']\s*\)/.test(line) || /auto\s*\(\s*["']TBD["']/.test(line)) {
+     return;
+   }
+   ```
+
+**Verification:** `pnpm typecheck && pnpm lint` - 0 errors
+
+---
+
 ### 2026-01-04 09:00 (Asia/Riyadh) — Code Quality Remediation: Category 3 Quick Wins [AGENT-0003]
 
 **Agent Token:** [AGENT-0003]  
