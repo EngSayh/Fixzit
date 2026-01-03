@@ -6,49 +6,34 @@
  * @route POST /api/fm/inspections/vendor-assignments - Create an assignment
  * @access Protected - Requires authenticated session
  * @module fm/inspections
+ * @status PRODUCTION [AGENT-0008]
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
 
-const VENDOR_ASSIGNMENTS_API_ENABLED =
-  process.env.VENDOR_ASSIGNMENTS_API_ENABLED === "true";
-const VENDOR_ASSIGNMENTS_API_MOCKS =
-  process.env.VENDOR_ASSIGNMENTS_API_MOCKS === "true" ||
-  process.env.NODE_ENV !== "production";
-
-type VendorAssignmentsMode =
-  | "disabled"
-  | "mock"
-  | "flagged-mock"
-  | "pending-real";
-
-const resolveVendorAssignmentsMode = (): VendorAssignmentsMode => {
-  if (!VENDOR_ASSIGNMENTS_API_ENABLED && !VENDOR_ASSIGNMENTS_API_MOCKS) {
-    return "disabled";
-  }
-
-  if (VENDOR_ASSIGNMENTS_API_ENABLED && !VENDOR_ASSIGNMENTS_API_MOCKS) {
-    return "pending-real";
-  }
-
-  if (VENDOR_ASSIGNMENTS_API_ENABLED && VENDOR_ASSIGNMENTS_API_MOCKS) {
-    return "flagged-mock";
-  }
-
-  return "mock";
-};
+// Collection names
+const INSPECTIONS_COLLECTION = "inspections";
+const VENDOR_ASSIGNMENTS_COLLECTION = "vendor_assignments";
 
 interface VendorAssignment {
+  _id?: ObjectId;
+  orgId: string;
   inspectionId: string;
   propertyId: string;
+  unitId?: string;
   vendorId: string;
   vendorName: string;
   trade: string;
   scheduledDate?: Date;
   status: "scheduled" | "in-progress" | "completed" | "cancelled";
+  createdAt: Date;
+  createdBy: string;
+  updatedAt?: Date;
 }
 
 /**
@@ -93,95 +78,85 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const propertyId = searchParams.get("propertyId");
     const status = searchParams.get("status");
-    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 500);
+    const orgId = session.user.orgId;
 
-    const mode = resolveVendorAssignmentsMode();
-
-    if (mode === "disabled") {
+    if (!orgId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Vendor assignments API disabled",
-          note: "Set VENDOR_ASSIGNMENTS_API_MOCKS=true to enable mock responses while FMInspection integration is wired.",
-        },
-        { status: 503 },
+        { error: "Organization ID required" },
+        { status: 400 },
       );
     }
 
-    if (mode === "pending-real") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Vendor assignments data source not implemented yet",
-          note: "Leave VENDOR_ASSIGNMENTS_API_ENABLED=false or enable VENDOR_ASSIGNMENTS_API_MOCKS=true until FMInspection-backed assignments are available.",
-        },
-        { status: 501 },
-      );
+    const db = await getDatabase();
+
+    // Build query with tenant scoping
+    const query: Record<string, unknown> = { orgId };
+    
+    if (propertyId) {
+      query.propertyId = propertyId;
     }
-
-    // Real FMInspection integration not wired yet; allow mock payloads only when flags permit.
-    const usingMockData = mode === "mock" || mode === "flagged-mock";
-
-    // For now, return mock data structure
-    // In production, this would query from FMInspection or similar collection
-    const assignments: VendorAssignment[] = [
-      {
-        inspectionId: "INS-001",
-        propertyId: propertyId || "PROP-001",
-        vendorId: "VEND-001",
-        vendorName: "AC Masters Co.",
-        trade: "HVAC",
-        scheduledDate: new Date("2025-11-25"),
-        status: "scheduled",
-      },
-      {
-        inspectionId: "INS-002",
-        propertyId: propertyId || "PROP-002",
-        vendorId: "VEND-002",
-        vendorName: "Electrical Solutions",
-        trade: "Electrical",
-        scheduledDate: new Date("2025-11-26"),
-        status: "scheduled",
-      },
-      {
-        inspectionId: "INS-003",
-        propertyId: propertyId || "PROP-003",
-        vendorId: "VEND-003",
-        vendorName: "Plumbing Pros",
-        trade: "Plumbing",
-        scheduledDate: new Date("2025-11-27"),
-        status: "scheduled",
-      },
-    ];
-
-    // Filter by status if provided
-    let filteredAssignments = assignments;
+    
     if (status && status !== "all") {
-      filteredAssignments = assignments.filter((a) => a.status === status);
+      query.status = status;
+    }
+
+    // Fetch vendor assignments from database
+    const assignmentsFromDb = await db.collection(VENDOR_ASSIGNMENTS_COLLECTION)
+      .find(query)
+      .sort({ scheduledDate: -1, createdAt: -1 })
+      .limit(limit)
+      .toArray() as VendorAssignment[];
+
+    // If no dedicated assignments, check inspections with assigned vendors
+    let assignments: VendorAssignment[] = assignmentsFromDb;
+    
+    if (assignments.length === 0) {
+      // Query inspections that have vendor assignments embedded
+      const inspectionsWithVendors = await db.collection(INSPECTIONS_COLLECTION)
+        .find({
+          orgId,
+          "assignedVendor.vendorId": { $exists: true },
+          ...(propertyId ? { propertyId } : {}),
+          ...(status && status !== "all" ? { status } : {}),
+        })
+        .limit(limit)
+        .toArray();
+
+      // Transform inspections to vendor assignment format
+      assignments = inspectionsWithVendors
+        .filter(insp => insp.assignedVendor)
+        .map(insp => ({
+          inspectionId: insp._id?.toString() || insp.inspectionId,
+          propertyId: insp.propertyId,
+          unitId: insp.unitId,
+          vendorId: insp.assignedVendor.vendorId,
+          vendorName: insp.assignedVendor.vendorName || "Vendor",
+          trade: insp.assignedVendor.trade || insp.type || "General",
+          scheduledDate: insp.scheduledDate,
+          status: mapInspectionStatusToAssignment(insp.status),
+          orgId,
+          createdAt: insp.createdAt || new Date(),
+          createdBy: insp.createdBy || "system",
+        }));
     }
 
     // Calculate statistics
     const stats = {
-      total: filteredAssignments.length,
-      scheduled: filteredAssignments.filter((a) => a.status === "scheduled")
-        .length,
-      inProgress: filteredAssignments.filter((a) => a.status === "in-progress")
-        .length,
-      completed: filteredAssignments.filter((a) => a.status === "completed")
-        .length,
-      uniqueVendors: new Set(filteredAssignments.map((a) => a.vendorId)).size,
-      uniqueTrades: new Set(filteredAssignments.map((a) => a.trade)).size,
+      total: assignments.length,
+      scheduled: assignments.filter((a) => a.status === "scheduled").length,
+      inProgress: assignments.filter((a) => a.status === "in-progress").length,
+      completed: assignments.filter((a) => a.status === "completed").length,
+      cancelled: assignments.filter((a) => a.status === "cancelled").length,
+      uniqueVendors: new Set(assignments.map((a) => a.vendorId)).size,
+      uniqueTrades: new Set(assignments.map((a) => a.trade)).size,
     };
 
     return NextResponse.json({
       success: true,
-      source: usingMockData ? "mock" : "database",
-      assignments: filteredAssignments.slice(0, limit),
+      source: "database",
+      assignments: assignments.slice(0, limit),
       stats,
-      note:
-        mode === "flagged-mock"
-          ? "VENDOR_ASSIGNMENTS_API_ENABLED is true but using mock data until FMInspection integration is completed."
-          : "Mock vendor assignments payload. Set VENDOR_ASSIGNMENTS_API_MOCKS=true only in non-production or after integration is ready.",
     });
   } catch (error) {
     logger.error("Vendor assignments API error", error as Error);
@@ -189,6 +164,27 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 },
     );
+  }
+}
+
+/**
+ * Map inspection status to assignment status
+ */
+function mapInspectionStatusToAssignment(inspStatus: string): VendorAssignment["status"] {
+  switch (inspStatus) {
+    case "scheduled":
+    case "pending":
+      return "scheduled";
+    case "in_progress":
+    case "started":
+      return "in-progress";
+    case "completed":
+    case "approved":
+      return "completed";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return "scheduled";
   }
 }
 
@@ -201,6 +197,7 @@ export async function GET(request: NextRequest) {
  *   inspectionId: string,
  *   propertyId: string,
  *   vendorId: string,
+ *   vendorName: string,
  *   trade: string,
  *   scheduledDate?: string
  * }
@@ -228,7 +225,9 @@ export async function POST(request: NextRequest) {
     const { data: body, error: parseError } = await parseBodySafe<{
       inspectionId?: string;
       propertyId?: string;
+      unitId?: string;
       vendorId?: string;
+      vendorName?: string;
       trade?: string;
       scheduledDate?: string;
     }>(request);
@@ -238,32 +237,16 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    const { inspectionId, propertyId, vendorId, trade, scheduledDate } = body;
+    const { inspectionId, propertyId, unitId, vendorId, vendorName, trade, scheduledDate } = body;
 
-    const mode = resolveVendorAssignmentsMode();
-    if (mode === "disabled") {
+    const orgId = session.user.orgId;
+
+    if (!orgId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Vendor assignments API disabled",
-          note: "Set VENDOR_ASSIGNMENTS_API_MOCKS=true to allow mock creation responses while FMInspection integration is wired.",
-        },
-        { status: 503 },
+        { error: "Organization ID required" },
+        { status: 400 },
       );
     }
-
-    if (mode === "pending-real") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Vendor assignments persistence not implemented yet",
-          note: "Disable VENDOR_ASSIGNMENTS_API_ENABLED or enable VENDOR_ASSIGNMENTS_API_MOCKS=true to use mock assignments until FMInspection-backed storage is available.",
-        },
-        { status: 501 },
-      );
-    }
-
-    const usingMockData = mode === "mock" || mode === "flagged-mock";
 
     // Validate required fields
     if (!inspectionId || !propertyId || !vendorId || !trade) {
@@ -276,40 +259,103 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In production, this would:
-    // 1. Verify inspection exists
-    // 2. Verify vendor exists and has required trade certification
-    // 3. Check vendor availability
-    // 4. Create assignment record
-    // 5. Send notification to vendor
+    const db = await getDatabase();
 
+    // 1. Verify inspection exists and belongs to org
+    // Build query - check both _id (if valid ObjectId) and inspectionId field
+    const inspectionQuery: Record<string, unknown> = { orgId };
+    if (ObjectId.isValid(inspectionId)) {
+      inspectionQuery.$or = [
+        { _id: new ObjectId(inspectionId) },
+        { inspectionId },
+      ];
+    } else {
+      inspectionQuery.inspectionId = inspectionId;
+    }
+    
+    const inspection = await db.collection(INSPECTIONS_COLLECTION).findOne(inspectionQuery);
+
+    if (!inspection) {
+      return NextResponse.json(
+        { error: "Inspection not found or access denied" },
+        { status: 404 },
+      );
+    }
+
+    // 2. Check if vendor is already assigned to this inspection
+    const existingAssignment = await db.collection(VENDOR_ASSIGNMENTS_COLLECTION).findOne({
+      inspectionId,
+      orgId,
+      status: { $ne: "cancelled" },
+    });
+
+    if (existingAssignment) {
+      return NextResponse.json(
+        { 
+          error: "Vendor already assigned to this inspection",
+          existingAssignment: {
+            vendorId: existingAssignment.vendorId,
+            vendorName: existingAssignment.vendorName,
+            status: existingAssignment.status,
+          },
+        },
+        { status: 409 },
+      );
+    }
+
+    // 3. Create the assignment record
+    const now = new Date();
     const assignment: VendorAssignment = {
+      orgId,
       inspectionId,
       propertyId,
+      unitId,
       vendorId,
-      vendorName: `Vendor ${vendorId}`, // Would be fetched from DB
+      vendorName: vendorName || `Vendor ${vendorId}`,
       trade,
       scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
       status: "scheduled",
+      createdAt: now,
+      createdBy: session.user.id || "system",
     };
 
+    const result = await db.collection(VENDOR_ASSIGNMENTS_COLLECTION).insertOne(assignment);
+
+    // 4. Update the inspection with the assigned vendor
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: inspection._id },
+      {
+        $set: {
+          assignedVendor: {
+            vendorId,
+            vendorName: assignment.vendorName,
+            trade,
+            assignedAt: now,
+          },
+          status: "scheduled",
+          updatedAt: now,
+        },
+      },
+    );
+
     logger.info("Vendor assignment created", {
+      assignmentId: result.insertedId.toString(),
       inspectionId,
       vendorId,
       trade,
+      orgId,
       createdBy: session.user.id,
     });
 
     return NextResponse.json(
       {
         success: true,
-        source: usingMockData ? "mock" : "database",
-        assignment,
+        source: "database",
+        assignment: {
+          ...assignment,
+          _id: result.insertedId,
+        },
         message: "Vendor assigned successfully",
-        note:
-          mode === "flagged-mock"
-            ? "VENDOR_ASSIGNMENTS_API_ENABLED is true but using mock data until FMInspection integration is completed."
-            : "Mock vendor assignment created. Enable VENDOR_ASSIGNMENTS_API_MOCKS=true explicitly while integration is pending.",
       },
       { status: 201 },
     );

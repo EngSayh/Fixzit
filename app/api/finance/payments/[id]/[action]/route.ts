@@ -218,33 +218,160 @@ export async function POST(
           });
         }
 
-        // Refund action - requires integration with payment gateway
+        // Refund action - creates a refund payment record
         if (action === "refund") {
-          // Feature flag check for refund capability
-          const refundsEnabled = process.env.ENABLE_PAYMENT_REFUNDS === "true";
-          if (!refundsEnabled) {
+          // Validate refund request body
+          const body = await parseBodyOrNull(req);
+          const refundAmount = (body as Record<string, unknown>)?.amount as number ?? payment.amount;
+          const refundReason = (body as Record<string, unknown>)?.reason as string ?? "Customer refund request";
+          
+          // Validate payment is in refundable state
+          const refundableStatuses = ["CLEARED", "POSTED"];
+          if (!refundableStatuses.includes(payment.status)) {
             return NextResponse.json(
               { 
                 success: false, 
-                error: "Payment refunds are not enabled",
+                error: "Payment cannot be refunded in current status",
                 details: { 
-                  reason: "Contact administrator to enable ENABLE_PAYMENT_REFUNDS",
-                  statusCode: 501 
+                  currentStatus: payment.status, 
+                  refundableStatuses,
                 }
               },
-              { status: 501 },
+              { status: 400 },
             );
           }
+
+          // Check if already refunded
+          if (payment.isRefund) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: "Cannot refund a refund payment",
+              },
+              { status: 400 },
+            );
+          }
+
+          // Validate refund amount
+          if (refundAmount <= 0 || refundAmount > payment.amount) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: "Invalid refund amount",
+                details: { 
+                  requested: refundAmount,
+                  maxRefundable: payment.amount,
+                }
+              },
+              { status: 400 },
+            );
+          }
+
+          // Check for existing refunds on this payment
+          const existingRefunds = await Payment.find({
+            orgId: user.orgId,
+            originalPaymentId: payment._id,
+            isRefund: true,
+          }).lean();
+
+          const totalRefunded = existingRefunds.reduce((sum, r) => sum + (r.amount || 0), 0);
+          const remainingRefundable = payment.amount - totalRefunded;
+
+          if (refundAmount > remainingRefundable) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: "Refund amount exceeds remaining refundable amount",
+                details: { 
+                  requested: refundAmount,
+                  totalRefunded,
+                  remainingRefundable,
+                }
+              },
+              { status: 400 },
+            );
+          }
+
+          // Generate refund payment number
+          const now = new Date();
+          const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const lastRefund = await Payment.findOne({
+            orgId: user.orgId,
+            paymentNumber: { $regex: `^REF-${yearMonth}-` },
+          })
+            .sort({ paymentNumber: -1 })
+            .lean();
           
-          // Refund implementation placeholder - requires payment gateway integration
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: "Refund integration pending payment gateway setup",
-              details: { action: "refund", paymentId: _params.id }
+          const nextSeq = lastRefund 
+            ? parseInt(lastRefund.paymentNumber.split("-").pop() || "0", 10) + 1 
+            : 1;
+          const refundNumber = `REF-${yearMonth}-${String(nextSeq).padStart(4, "0")}`;
+
+          // Create refund payment record
+          const refundPayment = new Payment({
+            orgId: user.orgId,
+            paymentNumber: refundNumber,
+            paymentType: "MADE", // Refund is money going out
+            amount: refundAmount,
+            currency: payment.currency || "SAR",
+            paymentMethod: payment.paymentMethod,
+            paymentDate: now,
+            status: "POSTED",
+            partyType: payment.partyType,
+            partyId: payment.partyId,
+            partyName: payment.partyName,
+            isRefund: true,
+            originalPaymentId: payment._id,
+            refundReason,
+            notes: `Refund for payment ${payment.paymentNumber}: ${refundReason}`,
+            referenceNumber: payment.paymentNumber,
+            propertyId: payment.propertyId,
+            unitId: payment.unitId,
+            workOrderId: payment.workOrderId,
+            createdBy: new Types.ObjectId(user.userId),
+            allocations: [],
+            unallocatedAmount: refundAmount,
+            reconciliation: { isReconciled: false },
+          });
+
+          await refundPayment.save();
+
+          // Update original payment status if fully refunded
+          const isFullyRefunded = totalRefunded + refundAmount >= payment.amount;
+          if (isFullyRefunded) {
+            payment.status = "REFUNDED";
+            payment.updatedBy = new Types.ObjectId(user.userId);
+            payment.notes = `${payment.notes || ""}\nFully refunded via ${refundNumber}`;
+            await payment.save();
+          }
+
+          logger.info("Payment refund created", {
+            originalPaymentId: _params.id,
+            refundPaymentId: refundPayment._id.toString(),
+            refundNumber,
+            refundAmount,
+            totalRefunded: totalRefunded + refundAmount,
+            isFullyRefunded,
+            processedBy: user.userId,
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: {
+              originalPayment: payment,
+              refundPayment,
+              summary: {
+                refundNumber,
+                refundAmount,
+                totalRefunded: totalRefunded + refundAmount,
+                remainingRefundable: payment.amount - totalRefunded - refundAmount,
+                isFullyRefunded,
+              },
             },
-            { status: 501 },
-          );
+            message: isFullyRefunded 
+              ? "Payment fully refunded" 
+              : `Partial refund of ${refundAmount} SAR processed`,
+          });
         }
 
         // Unknown action (should not reach here due to authorization checks)

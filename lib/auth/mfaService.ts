@@ -391,16 +391,10 @@ export async function completeMFASetup(
 /**
  * Validate admin approval token for MFA override operations
  * 
- * Admin approval for MFA override requires a centralized approval workflow
- * that is currently disabled. When disabled, admin cannot forcibly disable
- * user MFA - the user must self-disable using their own verification code.
+ * Uses the centralized approval service (lib/auth/approval-service.ts)
+ * for secure multi-admin approval workflow.
  * 
- * When enabled in future:
- *   - Token format: JWT signed by approval service
- *   - Claims: action, targetUserId, adminId, orgId, exp, iat
- *   - Signature verified against approval service public key
- * 
- * @returns {valid: false, errorCode: "APPROVAL_NOT_CONFIGURED"} - Feature disabled
+ * @returns Validation result with error code if invalid
  */
 async function validateAdminApprovalToken(params: {
   approvalToken: string;
@@ -409,15 +403,26 @@ async function validateAdminApprovalToken(params: {
   targetUserId: string;
   action: "disable_mfa";
 }): Promise<{ valid: boolean; errorCode?: string; error?: string }> {
-  void params;
+  // Use the centralized approval service
+  const { validateApprovalToken, ApprovalAction, isApprovalServiceEnabled } = await import("@/lib/auth/approval-service");
   
-  // Feature disabled - admin MFA override requires centralized approval workflow
-  // UI checks for APPROVAL_NOT_CONFIGURED and hides admin override options
-  return {
-    valid: false,
-    errorCode: "APPROVAL_NOT_CONFIGURED",
-    error: "Admin approval system not configured. Users must self-disable MFA.",
-  };
+  // Check if approval service is available
+  if (!isApprovalServiceEnabled()) {
+    return {
+      valid: false,
+      errorCode: "APPROVAL_SERVICE_UNAVAILABLE",
+      error: "Approval service is not available. Contact administrator.",
+    };
+  }
+  
+  // Validate the token against the approval service
+  return validateApprovalToken({
+    orgId: params.orgId,
+    action: ApprovalAction.DISABLE_MFA,
+    targetUserId: params.targetUserId,
+    token: params.approvalToken,
+    adminId: params.adminId,
+  });
 }
 
 /**
