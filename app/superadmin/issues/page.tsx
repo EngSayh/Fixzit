@@ -471,10 +471,18 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
     }
   }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t, connectionError]);
 
-  // Fetch stats
+  // Fetch stats (with filters for interactive dashboard)
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch("/api/issues/stats", {
+      // Build params to match current filters for interactive stats
+      const params = new URLSearchParams();
+      if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
+      if (priorityFilter && priorityFilter !== "all") params.set("priority", priorityFilter);
+      if (categoryFilter && categoryFilter !== "all") params.set("category", categoryFilter);
+      if (search) params.set("search", search);
+      
+      const queryString = params.toString();
+      const response = await fetch(`/api/issues/stats${queryString ? `?${queryString}` : ""}`, {
         credentials: "include",
       });
       
@@ -497,7 +505,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [statusFilter, priorityFilter, categoryFilter, search]);
 
   // Load data when session is ready
   useEffect(() => {
@@ -511,9 +519,11 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
   useEffect(() => {
     if (isAuthenticated) {
       setLoading(true);
+      setStatsLoading(true);
       fetchIssues();
+      fetchStats();
     }
-  }, [statusFilter, priorityFilter, categoryFilter, search, viewMode, page, isAuthenticated, fetchIssues]);
+  }, [statusFilter, priorityFilter, categoryFilter, search, viewMode, page, isAuthenticated, fetchIssues, fetchStats]);
 
   // Tab visibility detection
   useEffect(() => {

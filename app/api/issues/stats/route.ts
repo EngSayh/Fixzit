@@ -144,6 +144,41 @@ export async function GET(request: NextRequest) {
     
     const orgId = new mongoose.Types.ObjectId(session.orgId);
     
+    // Parse filter parameters from query string
+    const url = new URL(request.url);
+    const statusParam = url.searchParams.get('status');
+    const priorityParam = url.searchParams.get('priority');
+    const categoryParam = url.searchParams.get('category');
+    const searchParam = url.searchParams.get('search');
+    
+    // Build base match filter
+    interface MatchFilter {
+      orgId: mongoose.Types.ObjectId;
+      status?: string;
+      priority?: string;
+      category?: string;
+      $or?: Array<{ title?: { $regex: RegExp }; description?: { $regex: RegExp }; module?: { $regex: RegExp } }>;
+    }
+    
+    const baseMatch: MatchFilter = { orgId };
+    if (statusParam && statusParam !== 'all') {
+      baseMatch.status = statusParam;
+    }
+    if (priorityParam && priorityParam !== 'all') {
+      baseMatch.priority = priorityParam;
+    }
+    if (categoryParam && categoryParam !== 'all') {
+      baseMatch.category = categoryParam;
+    }
+    if (searchParam) {
+      const searchRegex = new RegExp(searchParam, 'i');
+      baseMatch.$or = [
+        { title: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } },
+        { module: { $regex: searchRegex } },
+      ];
+    }
+    
     // Run all aggregations in parallel
     const [
       statusCounts,
@@ -160,32 +195,33 @@ export async function GET(request: NextRequest) {
       timeline,
     ] = await Promise.all([
       // Status breakdown (AUDIT-2025-12-18: Added maxTimeMS)
+      // Note: Status breakdown uses orgId only (not baseMatch) to show all statuses for reference
       Issue.aggregate([
-        { $match: { orgId } },
+        { $match: { orgId, ...(priorityParam && priorityParam !== 'all' ? { priority: priorityParam } : {}), ...(categoryParam && categoryParam !== 'all' ? { category: categoryParam } : {}) } },
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ], { maxTimeMS: 10_000 }),
       
-      // Priority breakdown
+      // Priority breakdown (filtered by status and category if provided)
       Issue.aggregate([
-        { $match: { orgId } },
+        { $match: { orgId, ...(statusParam && statusParam !== 'all' ? { status: statusParam } : {}), ...(categoryParam && categoryParam !== 'all' ? { category: categoryParam } : {}) } },
         { $group: { _id: '$priority', count: { $sum: 1 } } },
       ], { maxTimeMS: 10_000 }),
       
-      // Category breakdown
+      // Category breakdown (filtered by status and priority if provided)
       Issue.aggregate([
-        { $match: { orgId } },
+        { $match: { orgId, ...(statusParam && statusParam !== 'all' ? { status: statusParam } : {}), ...(priorityParam && priorityParam !== 'all' ? { priority: priorityParam } : {}) } },
         { $group: { _id: '$category', count: { $sum: 1 } } },
       ], { maxTimeMS: 10_000 }),
       
-      // Effort breakdown
+      // Effort breakdown (uses all filters)
       Issue.aggregate([
-        { $match: { orgId } },
+        { $match: baseMatch },
         { $group: { _id: '$effort', count: { $sum: 1 } } },
       ], { maxTimeMS: 10_000 }),
       
-      // Module breakdown (top 10)
+      // Module breakdown (top 10, uses all filters)
       Issue.aggregate([
-        { $match: { orgId } },
+        { $match: baseMatch },
         { $group: { _id: '$module', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
