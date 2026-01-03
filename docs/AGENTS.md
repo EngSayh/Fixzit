@@ -1164,6 +1164,44 @@ No static override codes or secrets may be stored in the repo.
 
 **Goal:** Prevent terminal corruption and resource exhaustion when multiple agents/extensions operate in the same workspace.
 
+#### 5.8.0 Dev Server Protection (NON-NEGOTIABLE)
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🔒 DEV SERVER TERMINAL IS SACRED — NEVER KILL IT                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ The dev server on localhost:3000 MUST be running at ALL times.         │
+│ It auto-starts when VS Code opens the workspace.                       │
+│ Only ONE instance should ever exist (no duplicates).                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+**Dev Server Rules:**
+
+| Rule | Requirement |
+|------|-------------|
+| **Auto-Start** | Dev server starts automatically when workspace opens |
+| **Single Instance** | Only ONE dev server terminal can exist at a time |
+| **Never Kill** | Agents MUST NEVER kill the `Dev: Start Server` terminal |
+| **Dedicated Panel** | Dev server runs in its own dedicated panel |
+| **Always Alive** | If crashed, manually restart via `Dev: Restart Server` task |
+
+**At Session Start, VERIFY dev server is running:**
+```powershell
+# Check if dev server is running on port 3000
+(Test-NetConnection -ComputerName localhost -Port 3000).TcpTestSucceeded
+# If FALSE → Run task "Dev: Start Server"
+```
+
+**If Dev Server Crashed:**
+1. Run VS Code task: `Dev: Restart Server`
+2. OR manually: `pnpm dev`
+3. Verify at http://localhost:3000
+
+**Forbidden:**
+- ❌ Killing the dev server terminal
+- ❌ Running `pnpm dev` in a shared/agent terminal
+- ❌ Creating duplicate dev server instances
+- ❌ Using the dev server terminal for other commands
+
 #### 5.8.1 Terminal Isolation Rules
 
 | Rule | Requirement |
@@ -1195,23 +1233,40 @@ No static override codes or secrets may be stored in the repo.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### 5.8.3 Cleanup Commands
+#### 5.8.3 Cleanup Commands (PROTECT DEV SERVER)
 
-**PowerShell (Windows):**
+**⚠️ IMPORTANT: These commands must NOT kill the dev server terminal!**
+
+**PowerShell (Windows) — Agent Terminal Cleanup:**
 ```powershell
-# Kill orphaned PowerShell terminals (keep current)
-Get-Process powershell | Where-Object { $_.Id -ne $PID } | Stop-Process -Force
+# Kill orphaned PowerShell terminals (keep current AND dev server)
+# First, identify dev server terminal by checking port 3000
+$devServerPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess
+Get-Process powershell | Where-Object { 
+    $_.Id -ne $PID -and $_.Id -ne $devServerPID 
+} | Stop-Process -Force
+```
+
+**Verify Dev Server Still Running:**
+```powershell
+# After cleanup, ALWAYS verify dev server is alive
+$portCheck = Test-NetConnection -ComputerName localhost -Port 3000 -WarningAction SilentlyContinue
+if (-not $portCheck.TcpTestSucceeded) {
+    Write-Host "⚠️ Dev server not running! Restarting..."
+    # Trigger VS Code task or manual restart
+}
 ```
 
 **Bash (macOS/Linux):**
 ```bash
-# List terminal processes for review
-ps aux | grep -E 'bash|zsh|sh' | grep -v grep
+# List terminal processes for review (exclude node/next processes)
+ps aux | grep -E 'bash|zsh|sh' | grep -v grep | grep -v node
 ```
 
 #### 5.8.4 Forbidden Terminal Actions
 
-- ❌ Reusing terminals from previous agent sessions
+- ❌ Killing the `Dev: Start Server` terminal
+- ❌ Killing node processes running on port 3000
 - ❌ Sharing terminals between concurrent agents
 - ❌ Leaving orphaned terminals after task completion
 - ❌ Running commands in the Dev Server terminal

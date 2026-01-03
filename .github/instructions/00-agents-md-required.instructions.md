@@ -117,10 +117,28 @@ Each session MUST have a unique sequential number from SSOT.
 | **Preserve Dev Server** | NEVER kill the `Dev: Start Server` terminal |
 | **Limit 3** | MAX 3 concurrent terminals per session |
 
+### 🔒 Dev Server Protection (NON-NEGOTIABLE)
+
+**The dev server on localhost:3000 MUST be running at ALL times.**
+
+| Requirement | Details |
+|-------------|---------|
+| **Auto-Start** | Dev server starts automatically when workspace opens |
+| **Single Instance** | Only ONE dev server terminal allowed |
+| **NEVER Kill** | Agents MUST NEVER kill the dev server terminal |
+| **Verify at Start** | Check port 3000 is alive before any work |
+
+**At session start, verify dev server:**
+```powershell
+(Test-NetConnection -ComputerName localhost -Port 3000).TcpTestSucceeded
+# If FALSE → Run VS Code task "Dev: Start Server"
+```
+
 ### At Task End (MANDATORY):
 ```powershell
-# Windows: Kill orphans
-Get-Process powershell | Where-Object { $_.Id -ne $PID } | Stop-Process -Force
+# Windows: Kill orphans BUT PROTECT dev server on port 3000
+$devPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess
+Get-Process powershell | Where-Object { $_.Id -ne $PID -and $_.Id -ne $devPID } | Stop-Process -Force
 ```
 
 See **docs/AGENTS.md Section 5.8** for the complete Terminal Management Protocol.

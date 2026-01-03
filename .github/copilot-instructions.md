@@ -122,10 +122,22 @@ Core rules (non-negotiable):
 4. **PRESERVE the Dev Server terminal** — Never kill `Dev: Start Server`
 5. **MAX 3 terminals per agent session** — Prevent resource exhaustion
 
+### 🔒 Dev Server Protection (CRITICAL)
+
+**The dev server on localhost:3000 MUST ALWAYS be running.**
+
+- **Auto-starts** when VS Code opens the workspace
+- **Single instance only** — no duplicates
+- **NEVER kill** the dev server terminal
+- **Verify at session start**: `Test-NetConnection localhost -Port 3000`
+
+**If dev server is down:** Run VS Code task `Dev: Restart Server`
+
 ### Terminal Cleanup (Run at task end):
 ```powershell
-# Windows: Kill orphaned PowerShell terminals (keeps current)
-Get-Process powershell | Where-Object { $_.Id -ne $PID } | Stop-Process -Force
+# Windows: Kill orphaned PowerShell terminals (keeps current AND dev server)
+$devPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess
+Get-Process powershell | Where-Object { $_.Id -ne $PID -and $_.Id -ne $devPID } | Stop-Process -Force
 ```
 
 ### Forbidden:

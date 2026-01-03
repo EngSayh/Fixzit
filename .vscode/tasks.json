@@ -70,8 +70,39 @@
 			"command": "pnpm dev",
 			"group": "none",
 			"isBackground": true,
+			"runOptions": {
+				"runOn": "folderOpen",
+				"instanceLimit": 1
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"group": "dev-server",
+				"close": false,
+				"focus": false
+			},
 			"problemMatcher": [],
-			"detail": "Start Next.js development server"
+			"detail": "Start Next.js development server - AUTO-STARTS on folder open"
+		},
+		{
+			"label": "Dev: Restart Server",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /FI \"WINDOWTITLE eq *pnpm dev*\" 2>nul; pnpm dev",
+			"windows": {
+				"command": "taskkill /F /IM node.exe /FI \"WINDOWTITLE eq *pnpm dev*\" 2>nul; Start-Sleep -Seconds 2; pnpm dev"
+			},
+			"group": "none",
+			"isBackground": true,
+			"runOptions": {
+				"instanceLimit": 1
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"group": "dev-server"
+			},
+			"problemMatcher": [],
+			"detail": "Kill existing dev server and restart"
 		},
 		{
 			"label": "TypeCheck",
