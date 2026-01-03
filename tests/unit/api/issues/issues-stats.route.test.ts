@@ -29,6 +29,28 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock mongoose to avoid ObjectId validation issues in tests
+vi.mock("mongoose", () => ({
+  default: {
+    isValidObjectId: vi.fn().mockReturnValue(true),
+    Types: {
+      ObjectId: class MockObjectId {
+        constructor(public id: string = "507f1f77bcf86cd799439011") {}
+        toString() { return this.id; }
+        toHexString() { return this.id; }
+      },
+    },
+  },
+  isValidObjectId: vi.fn().mockReturnValue(true),
+  Types: {
+    ObjectId: class MockObjectId {
+      constructor(public id: string = "507f1f77bcf86cd799439011") {}
+      toString() { return this.id; }
+      toHexString() { return this.id; }
+    },
+  },
+}));
+
 // Mock rate limit
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
@@ -132,7 +154,7 @@ describe("Issues Stats API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
-      const req = {} as any;
+      const req = { url: "http://localhost/api/issues/stats" } as any;
       const res = await GET(req);
       // Auth/RBAC verified - aggregation should succeed with mocked DB
       expect(res.status).toBe(200);
@@ -154,21 +176,21 @@ describe("Issues Stats API Route", () => {
     });
 
     it("includes quick wins count", async () => {
-      const req = {} as any;
+      const req = { url: "http://localhost/api/issues/stats" } as any;
       const res = await GET(req);
       // Aggregation should return 200 with mocked DB
       expect(res.status).toBe(200);
     });
 
     it("includes timeline data", async () => {
-      const req = {} as any;
+      const req = { url: "http://localhost/api/issues/stats" } as any;
       const res = await GET(req);
       // Aggregation should return 200 with mocked DB
       expect(res.status).toBe(200);
     });
 
     it("runs aggregations in parallel", async () => {
-      const req = {} as any;
+      const req = { url: "http://localhost/api/issues/stats" } as any;
       await GET(req);
       
       // Aggregation mocking is complex - verify route doesn't crash

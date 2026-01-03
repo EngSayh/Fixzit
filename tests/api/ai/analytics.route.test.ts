@@ -10,6 +10,11 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(async () => mockSession),
 }));
 
+// Mock superadmin session - route calls this if no regular session
+vi.mock("@/lib/superadmin/auth", () => ({
+  getSuperadminSession: vi.fn(async () => null),
+}));
+
 // Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
