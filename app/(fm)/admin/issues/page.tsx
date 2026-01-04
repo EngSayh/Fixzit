@@ -584,7 +584,7 @@ export default function AdminIssuesPage() {
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[140px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="open">Open</SelectItem>
               <SelectItem value="in_progress">In Progress</SelectItem>
@@ -594,7 +594,7 @@ export default function AdminIssuesPage() {
               <SelectItem value="closed">Closed</SelectItem>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-[140px]">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-[120px]">
               <SelectItem value="all">All Priority</SelectItem>
               <SelectItem value="P0">P0 Critical</SelectItem>
               <SelectItem value="P1">P1 High</SelectItem>
@@ -602,7 +602,7 @@ export default function AdminIssuesPage() {
               <SelectItem value="P3">P3 Low</SelectItem>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[140px]">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px]">
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="bug">Bug</SelectItem>
               <SelectItem value="security">Security</SelectItem>

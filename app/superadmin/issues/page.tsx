@@ -1034,7 +1034,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[140px] bg-muted border-input text-white">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[120px] bg-muted border-input text-white">
               <SelectTrigger>
                 {statusOptions.find(o => o.value === statusFilter)?.label || t("superadmin.issues.filters.status")}
               </SelectTrigger>
@@ -1047,7 +1047,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[140px] bg-muted border-input text-white">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[120px] bg-muted border-input text-white">
               <SelectTrigger>
                 {priorityOptions.find(o => o.value === priorityFilter)?.label || t("superadmin.issues.filters.priority")}
               </SelectTrigger>
@@ -1060,7 +1060,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[140px] bg-muted border-input text-white">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[120px] bg-muted border-input text-white">
               <SelectTrigger>
                 {categoryOptions.find(o => o.value === categoryFilter)?.label || t("superadmin.issues.filters.category")}
               </SelectTrigger>

@@ -175,7 +175,7 @@ export default function SuperadminNotificationsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex gap-4">
-                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[160px]">
+                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[120px]">
                   <SelectTrigger>{channelFilter === "all" ? "All Channels" : channelFilter.charAt(0).toUpperCase() + channelFilter.slice(1)}</SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Channels</SelectItem>
