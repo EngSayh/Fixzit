@@ -171,7 +171,26 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
     - lib/feature-flags.ts: Removed redundant `.replace(/\./, ".")` (no-op)
     - app/api/support/welcome-email/route.ts: Improved HTML-to-text conversion
 
-**False Positives Identified:**
+18. **Unused Variables - Test Files (Continuation)**
+    - tests/test-auth-flow.mjs: Removed unused `rememberMe` from destructuring
+    - tests/tools.spec.ts: Removed unused `mocks` from destructuring
+    - public/js/saudi-mobile-optimizations.js: Removed unused `supportedMethods` array
+
+**False Positives Verified (Session Continuation):**
+- tests/unit/lib/sla.spec.ts:7 - `beforeEach`/`vi` ARE used (lines 19-20)
+- tests/specs/smoke.spec.ts:113 - `FOOTER_OPTIONAL_PATHS` IS used (line 190)
+- tests/smoke/rtl-dashboard-system.smoke.spec.ts:2 - `setLocaleToArabic` IS used (line 24)
+- tests/unit/server/security/idempotency.spec.ts:169 - `digest` IS used (line 172)
+- server/plugins/auditPlugin.ts:1 - `Types` IS used (lines 121, 122, 132, 133)
+
+**Stale Alerts (Already Fixed, Pending GitHub Rescan):**
+- next.config.js:609,611 - File now only has 612 lines, code was refactored
+- tests/test_zatca.js:2,9 - File was rewritten, `crypto`/`base64Data` removed
+- lib/finance/tap-payments.ts:403 - SEC-SSRF-001 already applied
+- scripts/serve-frontend.js:22 - SEC-SSRF-005 already applied
+- js/sql-injection alerts (4) - Already using $eq operator
+
+**False Positives Identified:
 - js/user-controlled-bypass: Checking env vars (NODE_ENV, VERCEL) is secure
 - js/insufficient-password-hash: Using bcrypt with proper cost factor; HMAC for tokens
 - js/client-side-request-forgery: In qa/qa/artifacts (generated Playwright files)
