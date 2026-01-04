@@ -16,6 +16,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { revalidatePath } from "next/cache";
 import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
 import { setSuperAdminTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
+import { setAuditContext, clearAuditContext } from "@/server/plugins/auditPlugin";
 import { z } from "zod";
 import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
@@ -86,6 +87,14 @@ export async function GET(request: NextRequest) {
     setSuperAdminTenantContext("global", session.username || "superadmin", {
       skipTenantFilter: true,
     });
+    
+    // Set audit context for platform operations (createdBy is optional for PlatformSettings)
+    // Note: superadmin sessions don't have a MongoDB userId, just a username
+    // The auditPlugin will skip setting createdBy/updatedBy since the userId is not a valid ObjectId
+    setAuditContext({
+      userId: undefined, // superadmin has no MongoDB user ID
+      userEmail: session.username,
+    });
 
     try {
       // Get default platform settings (no orgId = global)
@@ -122,6 +131,7 @@ export async function GET(request: NextRequest) {
       });
     } finally {
       clearTenantContext();
+      clearAuditContext();
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -169,6 +179,13 @@ export async function PATCH(request: NextRequest) {
     // Set superadmin tenant context to bypass tenant isolation for global settings
     setSuperAdminTenantContext("global", session.username || "superadmin", {
       skipTenantFilter: true,
+    });
+    
+    // Set audit context for platform operations
+    // Note: superadmin sessions don't have a MongoDB userId, just a username
+    setAuditContext({
+      userId: undefined, // superadmin has no MongoDB user ID
+      userEmail: session.username,
     });
 
     try {
@@ -299,6 +316,7 @@ export async function PATCH(request: NextRequest) {
       });
     } finally {
       clearTenantContext();
+      clearAuditContext();
     }
   } catch (error) {
     logger.error("Failed to update platform branding", { error });
