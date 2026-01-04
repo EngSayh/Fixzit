@@ -98,12 +98,28 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 3. **Automatic Semicolon (next.config.js)**
    - Added missing semicolons on lines 609 and 611
 
-4. **Unused Variables (test files)**
-   - tests/unit/lib/__tests__/audit.test.ts: Removed unused afterEach import
-   - tests/unit/lib/__tests__/audit.test.ts: Removed 6 unused helper functions
+4. **Unused Variables (test files) - Batch 1**
+   - tests/unit/lib/__tests__/audit.test.ts: Removed unused afterEach import + 6 helper functions
    - tests/unit/parseCartAmount.test.ts: Removed unused describe import
+   - tests/unit/models/NotificationLog.test.ts: Removed unused vi import
+   - tests/unit/security/encryption.test.ts: Removed unused vi import
+   - tests/unit/lib/utils/currency-formatter.test.ts: Removed unused beforeEach import
 
-5. **Generated Files (.gitignore)**
+5. **Unused Variables (test files) - Batch 2**
+   - tests/validation/enhanced-routes-validation.test.ts: Removed beforeEach, vi, mockUpdate, userInput
+   - tests/unit/services/websocket-cleanup.test.ts: Removed timerId, HEARTBEAT_INTERVAL_MS
+   - tests/unit/server/services/subscriptionBillingService.test.ts: Removed beforeEach
+   - tests/unit/server/security/idempotency.spec.ts: Removed createHash, expected
+   - tests/unit/models/HelpArticle.test.ts: Removed clearTenantContext
+   - tests/unit/models/Property.test.ts: Removed requiredFields array
+   - tests/unit/i18n/useI18n.test.ts: Removed setDict
+   - tests/unit/finance/finance-encryption.test.ts: Removed updated, encryptedTaxId
+
+6. **Unused Variables (test files) - Batch 3**
+   - tests/unit/export/export-worker.process.test.ts: Removed beforeAll
+   - tests/unit/contexts/TranslationContext.test.tsx: Removed static import
+
+7. **Generated Files (.gitignore)**
    - Added `/qa/qa/artifacts/` to .gitignore (Playwright reports with 43+ alerts)
 
 **False Positives Identified:**
