@@ -726,15 +726,17 @@ export class PayoutProcessorService {
           transactionId: transfer.id,
         };
       } else if (transfer.status === "PENDING") {
-        // Pending transfers need webhook to confirm
-        logger.info("TAP transfer pending - will be confirmed via webhook", {
+        // Pending transfers need webhook to confirm - do NOT mark as success yet
+        logger.info("TAP transfer pending - awaiting webhook confirmation", {
           transferId: transfer.id,
           amount: payout.amount,
           payoutId: payout.payoutId,
         });
         return {
-          success: true,
+          success: false,
           transactionId: transfer.id,
+          errorCode: "TRANSFER_PENDING",
+          errorMessage: "Transfer initiated but awaiting webhook confirmation. Do not release escrow until confirmed.",
         };
       } else {
         // FAILED or CANCELLED

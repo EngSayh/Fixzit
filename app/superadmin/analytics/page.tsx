@@ -120,9 +120,9 @@ export default function SuperadminAnalyticsPage() {
           <p className="text-muted-foreground">System-wide analytics and business intelligence</p>
         </div>
         <div className="flex gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange} placeholder="Time Range" className="w-[120px] bg-muted border-input text-foreground">
-            <SelectTrigger>
-              <SelectValue />
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[120px] bg-muted border-input text-foreground">
+              <SelectValue placeholder="Time Range" />
             </SelectTrigger>
             <SelectContent className="bg-muted border-input">
               <SelectItem value="24h">Last 24h</SelectItem>

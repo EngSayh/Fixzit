@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-01-04T14:04:02+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-04-135446.json",
+  "current": "docs/artifacts/todo-scan-2026-01-04-140316.json",
+  "summary": {
+    "added": 1,
+    "resolved": 2,
+    "current": 2500,
+    "baseline": 2501
+  },
+  "fileChanges": [
+    {
+      "file": ".\\jobs\\onboarding-ocr-worker.ts",
+      "added": [
+        {
+          "key": "todo-marker-jobs-onboarding-ocr-worker-ts-l263",
+          "title": "Marker 'placeholder' in .\\jobs\\onboarding-ocr-worker.ts:263",
+          "location": ".\\jobs\\onboarding-ocr-worker.ts:263"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-jobs-onboarding-ocr-worker-ts-l137",
+          "title": "Marker 'pending' in .\\jobs\\onboarding-ocr-worker.ts:137",
+          "location": ".\\jobs\\onboarding-ocr-worker.ts:137"
+        },
+        {
+          "key": "todo-marker-jobs-onboarding-ocr-worker-ts-l172",
+          "title": "Marker 'placeholder' in .\\jobs\\onboarding-ocr-worker.ts:172",
+          "location": ".\\jobs\\onboarding-ocr-worker.ts:172"
+        }
+      ]
+    }
+  ]
+}

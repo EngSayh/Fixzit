@@ -93,6 +93,7 @@ describe("PropertiesList query params", () => {
 
   it("passes correct props to FilterPresetsDropdown", async () => {
     capturedKeys = [];
+    capturedPresetProps = undefined;
     await act(async () => {
       render(<PropertiesList orgId="org-1" />);
     });

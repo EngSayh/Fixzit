@@ -118,19 +118,6 @@
       "description": "Tag: post-patch scan. Vitest config includes TODO for multi-project migration once environmentMatchGlobs is removed."
     },
     {
-      "key": "501-not-implemented-feature-app-api-support-welcome-email-route-ts-315",
-      "title": "); // 501 Not Implemented",
-      "category": "feature",
-      "priority": "P1",
-      "status": "open",
-      "effort": "M",
-      "location": "app/api/support/welcome-email/route.ts:78",
-      "sourcePath": "docs/artifacts/incomplete-code-scan-2026-01-04-104511.json",
-      "sourceRef": "scan:incomplete-code:2026-01-04T10:45:11+03:00 [AGENT-TEMP-20260104T0900]",
-      "evidenceSnippet": "); // 501 Not Implemented",
-      "description": "Tag: post-patch scan. Auto-detected incomplete implementation in app/api/support/welcome-email/route.ts:315."
-    },
-    {
       "key": "accept-200-404-not-implemented-or-auth-errors-missing-test-tests-e2e-finance-bil",
       "title": "Accept 200, 404 (not implemented), or auth errors",
       "category": "missing_test",

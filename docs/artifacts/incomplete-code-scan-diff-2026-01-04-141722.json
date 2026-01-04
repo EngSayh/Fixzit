@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-01-04T14:17:22+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-04-140147.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-04-141722.json",
+  "summary": {
+    "added": 0,
+    "resolved": 0,
+    "current": 18,
+    "baseline": 18
+  },
+  "fileChanges": []
+}

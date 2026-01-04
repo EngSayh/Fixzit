@@ -89,6 +89,7 @@ describe("ProductsList query params", () => {
 
   it("passes correct props to FilterPresetsDropdown", async () => {
     capturedKeys = [];
+    capturedPresetProps = undefined;
     await act(async () => {
       render(<ProductsList orgId="org-1" />);
     });

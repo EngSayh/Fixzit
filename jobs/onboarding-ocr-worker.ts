@@ -87,10 +87,19 @@ async function performAzureOcr(documentUrl: string, documentType: string): Promi
       throw new Error('No operation location returned');
     }
 
-    // Poll for completion (with timeout)
+    // Poll for completion with exponential backoff (configurable, ~60s total wait)
+    const maxAttempts = 12; // 12 attempts
+    const baseIntervalMs = 1000; // Start with 1s
+    const maxIntervalMs = 10000; // Cap at 10s
     let result = null;
-    for (let i = 0; i < 10; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    let elapsedMs = 0;
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Exponential backoff: 1s, 2s, 4s, 8s, 10s (capped), 10s, ...
+      const intervalMs = Math.min(baseIntervalMs * Math.pow(2, attempt), maxIntervalMs);
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      elapsedMs += intervalMs;
+      
       const pollResponse = await fetch(operationLocation, {
         headers: { 'Ocp-Apim-Subscription-Key': key },
       });
@@ -100,12 +109,13 @@ async function performAzureOcr(documentUrl: string, documentType: string): Promi
         result = pollData;
         break;
       } else if (pollData.status === 'failed') {
-        throw new Error('OCR operation failed');
+        throw new Error(`OCR operation failed after ${attempt + 1} attempts (${elapsedMs}ms): ${pollData.error?.message || 'Unknown error'}`);
       }
+      // 'running' or 'notStarted' - continue polling
     }
 
     if (!result) {
-      throw new Error('OCR operation timed out');
+      throw new Error(`OCR operation timed out after ${maxAttempts} attempts (${elapsedMs}ms elapsed). Consider increasing maxAttempts or intervals.`);
     }
 
     // Extract text from Azure response

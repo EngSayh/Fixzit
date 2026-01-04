@@ -1174,10 +1174,11 @@ export const resolvers = {
           };
         }
 
-        // Build tenant-scoped query
+        // Build tenant-scoped query with soft-delete guard
         const scopedQuery = {
           _id: new Types.ObjectId(args.id),
           orgId: ctx.orgId,
+          deletedAt: null, // Exclude soft-deleted work orders
         };
 
         // Sanitize input - only allow specific fields
@@ -1260,10 +1261,11 @@ export const resolvers = {
           };
         }
 
-        // Build tenant-scoped query
+        // Build tenant-scoped query with soft-delete guard
         const scopedQuery = {
           _id: new Types.ObjectId(args.id),
           orgId: ctx.orgId,
+          deletedAt: null, // Only allow deleting non-deleted work orders
         };
 
         // Soft delete: set deletedAt timestamp

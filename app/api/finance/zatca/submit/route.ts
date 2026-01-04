@@ -15,7 +15,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const body = await req.json() as { type: "clearance" | "reporting"; invoiceXml: string; invoiceId: string };
   const { type, invoiceXml, invoiceId } = body;
-  if (!type || !invoiceXml || !invoiceId) return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  if (!invoiceXml || typeof invoiceXml !== "string" || !invoiceXml.trim()) return NextResponse.json({ error: "Missing or empty invoiceXml" }, { status: 400 });
+  if (!invoiceId || typeof invoiceId !== "string" || !invoiceId.trim()) return NextResponse.json({ error: "Missing or empty invoiceId" }, { status: 400 });
+  if (type !== "clearance" && type !== "reporting") return NextResponse.json({ error: "Invalid type" }, { status: 400 });
 
   const db = await connectDb();
   const creds = await db.collection("zatca_credentials").findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;

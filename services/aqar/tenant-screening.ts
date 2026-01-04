@@ -791,6 +791,11 @@ async function fetchSimahCreditScore(
   redFlags: string[],
   positiveIndicators: string[]
 ): Promise<number | null> {
+  // Configurable timeout for SIMAH API (default 10 seconds)
+  const SIMAH_TIMEOUT_MS = 10_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SIMAH_TIMEOUT_MS);
+
   try {
     const response = await fetch(`${apiUrl}/v1/credit-report`, {
       method: 'POST',
@@ -804,7 +809,10 @@ async function fetchSimahCreditScore(
         consentProvided: true,
         reportType: 'CREDIT_SCORE',
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -827,8 +835,18 @@ async function fetchSimahCreditScore(
       totalInquiries: number;
     };
 
-    // Normalize SIMAH score (300-900) to our scale (0-100)
-    const normalizedScore = Math.round(((data.score - 300) / 600) * 100);
+    // Validate score is a number
+    if (typeof data.score !== 'number' || isNaN(data.score)) {
+      logger.warn("SIMAH API returned invalid score", {
+        component: "tenant-screening",
+        rawScore: data.score,
+      });
+      return null;
+    }
+
+    // Normalize SIMAH score (300-900) to our scale (0-100) and clamp to valid range
+    const rawNormalized = ((data.score - 300) / 600) * 100;
+    const normalizedScore = Math.max(0, Math.min(100, Math.round(rawNormalized)));
 
     // Add indicators based on SIMAH data
     if (data.activeDefaults > 0) {
@@ -854,6 +872,14 @@ async function fetchSimahCreditScore(
 
     return normalizedScore;
   } catch (error) {
+    // Handle timeout specifically
+    if (error instanceof Error && error.name === 'AbortError') {
+      logger.error("SIMAH API request timed out", {
+        component: "tenant-screening",
+        timeoutMs: 10_000,
+      });
+      return null;
+    }
     logger.error("Failed to fetch SIMAH credit score", {
       component: "tenant-screening",
       error: error instanceof Error ? error.message : String(error),

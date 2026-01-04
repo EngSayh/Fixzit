@@ -185,9 +185,9 @@ export default function SuperadminImportExportPage() {
                 <CardContent className="p-4 space-y-4">
                   <div>
                     <Label className="text-muted-foreground mb-2 block">Format</Label>
-                    <Select value={exportFormat} onValueChange={setExportFormat} placeholder="Select format" className="bg-muted border-input text-foreground">
-                      <SelectTrigger>
-                        <SelectValue />
+                    <Select value={exportFormat} onValueChange={setExportFormat}>
+                      <SelectTrigger className="bg-muted border-input text-foreground">
+                        <SelectValue placeholder="Select format" />
                       </SelectTrigger>
                       <SelectContent className="bg-muted border-input">
                         <SelectItem value="json">JSON</SelectItem>
