@@ -30,6 +30,8 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { connectMongo } from "@/lib/mongo";
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -292,8 +294,37 @@ export async function POST(req: NextRequest) {
         userId: session.userId,
         message: message.slice(0, 100),
       });
-      // NOTE: Escalation workflow deferred to Phase 2 - requires support ticket integration
-      // When implemented, will create support ticket for negative sentiment conversations
+      
+      // Escalate to support ticket for negative sentiment conversations
+      try {
+        await connectMongo();
+        const ticketCode = `CPE-${Date.now().toString(36).toUpperCase()}`;
+        await SupportTicket.create({
+          orgId: session.tenantId,
+          code: ticketCode,
+          subject: `[Copilot Escalation] Negative sentiment detected`,
+          module: "Other",
+          type: "Complaint",
+          priority: "Medium",
+          category: "General",
+          subCategory: "Feedback",
+          status: "New",
+          requester: {
+            name: session.name || "Copilot User",
+            email: session.email || undefined,
+          },
+          messages: [{
+            byUserId: session.userId,
+            byRole: session.role,
+            at: new Date(),
+            text: `User message with negative sentiment:\n\n"${message.slice(0, 500)}"\n\nDetected sentiment: ${sentiment}\nIntent classified as: ${intent}`,
+          }],
+        });
+        logger.info("[copilot] Escalation ticket created", { ticketCode, userId: session.userId });
+      } catch (escalationError) {
+        // Log but don't fail the main request if escalation fails
+        logger.error("[copilot] Failed to create escalation ticket", { error: escalationError });
+      }
     }
 
     // Handle apartment search intent via dedicated module
