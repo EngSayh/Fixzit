@@ -98,19 +98,37 @@ export async function GET(request: NextRequest) {
 
     try {
       // Get default platform settings (no orgId = global)
-      // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document; SUPER_ADMIN: global platform settings
-      let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
+      let settings;
+      try {
+        // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document; SUPER_ADMIN: global platform settings
+        settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
+      } catch (findError) {
+        logger.error("Failed to query PlatformSettings", { 
+          error: findError instanceof Error ? findError.message : String(findError),
+          stack: findError instanceof Error ? findError.stack : undefined,
+        });
+        throw findError;
+      }
 
       // If no settings exist, create default
       if (!settings) {
-        // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: global platform settings
-        settings = await PlatformSettings.create({
-          logoUrl: "/img/fixzit-logo.png",
-          brandName: "Fixzit Enterprise",
-          brandColor: BRAND_COLORS.primary,
-          // createdBy/updatedBy are set by auditPlugin
-        });
-        logger.info("Created default platform settings", { username: session.username });
+        try {
+          // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: global platform settings
+          settings = await PlatformSettings.create({
+            logoUrl: "/img/fixzit-logo.png",
+            brandName: "Fixzit Enterprise",
+            brandColor: BRAND_COLORS.primary,
+            // createdBy/updatedBy are set by auditPlugin
+          });
+          logger.info("Created default platform settings", { username: session.username });
+        } catch (createError) {
+          logger.error("Failed to create PlatformSettings", {
+            error: createError instanceof Error ? createError.message : String(createError),
+            stack: createError instanceof Error ? createError.stack : undefined,
+            errorType: createError?.constructor?.name,
+          });
+          throw createError;
+        }
       }
 
       const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
