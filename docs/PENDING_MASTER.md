@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-04T17:30:00+03:00
+  Last-Sync: 2026-01-04T18:15:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,39 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 18:15 (Asia/Riyadh) — VERCEL BUILD FIX [AGENT-0012]
+
+**Agent Token:** [AGENT-0012]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** Fixed Vercel build failure due to pnpm lockfile config mismatch
+
+#### Problem
+
+Vercel build failed with:
+```
+ERR_PNPM_LOCKFILE_CONFIG_MISMATCH  Cannot proceed with the frozen installation.
+The current "overrides" configuration doesn't match the value found in the lockfile
+```
+
+**Root Cause:** Vercel's default pnpm version (10.x) doesn't match the lockfile format (pnpm 9.0). The `packageManager` field in package.json specifies `pnpm@9.0.0`, but Vercel was ignoring it.
+
+#### Solution
+
+Updated `vercel.json` to explicitly activate pnpm 9.0.0 via corepack before running install:
+
+```json
+"installCommand": "corepack enable && corepack prepare pnpm@9.0.0 --activate && pnpm install --frozen-lockfile"
+```
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors  
+- Commit: `74642adca`
+- Push: ✅ Successful
 
 ---
 
