@@ -76,11 +76,12 @@ export function expectServiceUnavailable(response: Response, message?: string): 
 
 /**
  * ONLY use for explicit feature flag disabled tests
+ * Tests for endpoints that intentionally return 501 (e.g., deprecated features)
  */
-export function expectNotImplemented(response: Response, message?: string): void {
+export function expect501Deprecated(response: Response, message?: string): void {
   expect(
     response.status,
-    message || `Expected not implemented (501) but got ${response.status}`
+    message || `Expected 501 (deprecated endpoint) but got ${response.status}`
   ).toBe(501);
 }
 

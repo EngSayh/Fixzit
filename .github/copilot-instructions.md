@@ -185,3 +185,45 @@ Get-Process powershell | Where-Object { $_.Id -ne $PID -and $_.Id -ne $devPID } 
 - ❌ Killing the Dev Server terminal
 
 See docs/AGENTS.md Section 5.8 for the full Terminal Management Protocol.
+
+## 🚫 ANTI-DEFERRAL PROTOCOL (MANDATORY)
+
+**⚠️ DEFERRING WORK IS A VIOLATION OF AGENTS.md**
+
+### Forbidden Deferral Patterns:
+- ❌ "This will be implemented in a follow-up" → **IMPLEMENT NOW**
+- ❌ "Deferred to Phase 2" → **COMPLETE IN CURRENT SESSION**
+- ❌ "TODO: Add dialog later" → **ADD DIALOG NOW**
+- ❌ "Tracked for future implementation" → **IMPLEMENT IMMEDIATELY**
+- ❌ "Next steps will include..." → **DO THE STEPS NOW**
+- ❌ "Placeholder for now" → **FULL IMPLEMENTATION REQUIRED**
+- ❌ "📋 Next Steps (UI Enhancement)" → **DO THE ENHANCEMENT NOW**
+
+### Why Deferral is Forbidden:
+1. **User pays for COMPLETE work** — not partial implementations
+2. **Deferred work gets lost** — future sessions lose context
+3. **Technical debt compounds** — incomplete features cause bugs
+4. **Violates AGENTS.md Section 1.2** — "Deferring without logging to MongoDB"
+
+### When Deferral is ONLY Acceptable:
+| Acceptable | Reason | Action Required |
+|------------|--------|-----------------|
+| External dependency | Waiting on API credentials | Log to SSOT with blocker tag |
+| Explicit user request | User says "we'll do that later" | Quote user request |
+| Scope expansion needed | Work touches locked paths | Follow Section 8 protocol |
+
+### Anti-Deferral Checklist (Run BEFORE Ending Session):
+```
+☐ Did I complete ALL requested features?
+☐ Did I add ALL mentioned dialogs/components?
+☐ Did I implement ALL mentioned functionality?
+☐ Are there ANY "TODO" comments I can resolve?
+☐ Are there ANY "follow-up" items I can complete now?
+```
+
+**If ANY item is unchecked → DO NOT END SESSION until complete.**
+
+### Enforcement:
+- User will REJECT sessions that defer work
+- All commits with "TODO" or "follow-up" will be questioned
+- Incomplete implementations → USER REVERTS YOUR WORK

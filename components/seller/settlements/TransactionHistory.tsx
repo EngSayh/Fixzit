@@ -206,7 +206,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
             onChange={(e) =>
               setFilters({ ...filters, type: e.target.value, page: 1 })
             }
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full h-8 px-3 py-1.5 border rounded-md text-sm"
           >
             {TRANSACTION_TYPES.map((type) => (
               <option key={type.value} value={type.value}>

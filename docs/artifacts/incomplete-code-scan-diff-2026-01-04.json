@@ -1,0 +1,143 @@
+{
+  "generatedAt": "2026-01-04T09:01:50+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-03.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-04.json",
+  "summary": {
+    "added": 13,
+    "resolved": 1,
+    "current": 23,
+    "baseline": 11
+  },
+  "fileChanges": [
+    {
+      "file": "app/(fm)/admin/issues/[id]/page.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "fm-issues-comments-api-missing-feature-app-fm-admin-issues-id-page-tsx-l313",
+          "title": "FM issues comments API missing",
+          "location": "app/(fm)/admin/issues/[id]/page.tsx:313"
+        }
+      ]
+    },
+    {
+      "file": "app/api/support/welcome-email/route.ts",
+      "added": [
+        {
+          "key": "501-not-implemented-feature-app-api-support-welcome-email-route-ts-315",
+          "title": "); // 501 Not Implemented",
+          "location": "app/api/support/welcome-email/route.ts:315"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "jobs/export-worker.ts",
+      "added": [
+        {
+          "key": "implement-proper-xlsx-export-using-exceljs-sheetjs-when-needed-feature-jobs-expo",
+          "title": "Implement proper XLSX export using exceljs/sheetjs when needed.",
+          "location": "jobs/export-worker.ts:42"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "lib/graphql/index.ts",
+      "added": [
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1158",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1158"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1182",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1182"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1207",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1207"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1233",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1233"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "services/souq/settlements/payout-processor.ts",
+      "added": [
+        {
+          "key": "sadad-span-live-mode-is-not-implemented-yet-keep-enable-sadad-payouts-false-or-s",
+          "title": "\"SADAD/SPAN live mode is not implemented yet. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.\",",
+          "location": "services/souq/settlements/payout-processor.ts:611"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "tests/api/_helpers/expectStatus.ts",
+      "added": [
+        {
+          "key": "message-expected-not-implemented-501-but-got-response-status-feature-tests-api-h",
+          "title": "message || `Expected not implemented (501) but got ${response.status}`",
+          "location": "tests/api/_helpers/expectStatus.ts:83"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "tests/api/_helpers/loadRoute.ts",
+      "added": [
+        {
+          "key": "it-skip-route-not-implemented-feature-tests-api-helpers-loadroute-ts-29",
+          "title": "it.skip('route not implemented');",
+          "location": "tests/api/_helpers/loadRoute.ts:29"
+        },
+        {
+          "key": "testfn-skip-route-not-implemented-result-error-feature-tests-api-helpers-loadrou",
+          "title": "testFn.skip(`Route not implemented: ${result.error}`);",
+          "location": "tests/api/_helpers/loadRoute.ts:69"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "tests/e2e/finance-billing-flow.spec.ts",
+      "added": [
+        {
+          "key": "accept-200-404-not-implemented-or-auth-errors-missing-test-tests-e2e-finance-bil",
+          "title": "Accept 200, 404 (not implemented), or auth errors",
+          "location": "tests/e2e/finance-billing-flow.spec.ts:324"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "tests/unit/api/admin/billing/pricebooks.test.ts",
+      "added": [
+        {
+          "key": "this-test-is-marked-as-todo-until-post-route-implements-field-sanitization-track",
+          "title": "This test is marked as todo until POST route implements field sanitization (tracked separately)",
+          "location": "tests/unit/api/admin/billing/pricebooks.test.ts:123"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "tests/unit/components/aqar/PropertiesList.query.test.tsx",
+      "added": [
+        {
+          "key": "filterpresetsdropdown-not-implemented-tracked-in-ssot-for-future-implementation-",
+          "title": "FilterPresetsDropdown not implemented - tracked in SSOT for future implementation",
+          "location": "tests/unit/components/aqar/PropertiesList.query.test.tsx:94"
+        }
+      ],
+      "resolved": []
+    }
+  ]
+}

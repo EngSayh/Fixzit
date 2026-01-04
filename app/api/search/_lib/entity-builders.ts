@@ -41,7 +41,7 @@ export const ENTITY_COLLECTION_MAP: Record<string, string | undefined> = {
   products: COLLECTIONS.PRODUCTS,
   services: COLLECTIONS.SERVICES,
   rfqs: COLLECTIONS.RFQS,
-  orders: COLLECTIONS.ORDERS,
+  orders: COLLECTIONS.CLAIMS_ORDERS, // TD-002: Renamed from legacy ORDERS to CLAIMS_ORDERS
   listings: COLLECTIONS.LISTINGS, // FIXED: Use LISTINGS (aqar_listings), not SOUQ_LISTINGS
   projects: COLLECTIONS.PROJECTS,
   agents: COLLECTIONS.AGENTS,

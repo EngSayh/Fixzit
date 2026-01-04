@@ -5,9 +5,7 @@ import { SouqRMA } from '@/server/models/souq/RMA';
 
 type FinanceReviewJob = { rmaId: string; orgId: string };
 
-// Redis URL for the worker is handled by the queue library
-const _redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-
+// Queue uses in-memory implementation (lib/queue.ts) - no external dependencies
 const QUEUE_NAME = process.env.REFUNDS_QUEUE_NAME || 'souq:refunds';
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {

@@ -16,6 +16,8 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  UserPlus,
   Eye,
   AlertCircle,
   CheckCircle,
@@ -67,7 +69,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { RBAC_MODULES, RBAC_ROLE_PERMISSIONS, type ModulePermissions } from "@/config/rbac.matrix";
-import { type UserRoleType } from "@/types/user";
+import { getSubModulesForParent } from "@/config/rbac.submodules";
+import { type UserRoleType, CANONICAL_ROLES } from "@/types/user";
 
 // Types
 interface UserData {
@@ -154,6 +157,25 @@ export default function SuperadminUsersPage() {
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // NEW: Create User Dialog state
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    email: "",
+    firstName: "",
+    lastName: "",
+    role: "" as UserRoleType | "",
+    orgId: "",
+  });
+  
+  // NEW: Edit Role Dialog state
+  const [editRoleDialogOpen, setEditRoleDialogOpen] = useState(false);
+  const [newRole, setNewRole] = useState<UserRoleType | "">("");
+  
+  // NEW: Edit Permissions Dialog state
+  const [editPermissionsDialogOpen, setEditPermissionsDialogOpen] = useState(false);
+  const [permissionOverrides, setPermissionOverrides] = useState<Record<string, Partial<ModulePermissions>>>({});
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   
   // Bulk action state
   const [bulkStatus, setBulkStatus] = useState<string>("");
@@ -393,6 +415,146 @@ export default function SuperadminUsersPage() {
     }
   };
 
+  // NEW: Create User handler
+  const handleCreateUser = async () => {
+    if (!createUserForm.email || !createUserForm.role) {
+      toast.error("Email and role are required");
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      const response = await fetch("/api/superadmin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: createUserForm.email,
+          personal: {
+            firstName: createUserForm.firstName,
+            lastName: createUserForm.lastName,
+          },
+          professional: {
+            role: createUserForm.role,
+          },
+          orgId: createUserForm.orgId || undefined,
+          status: "PENDING",
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create user");
+      }
+
+      toast.success("User created successfully");
+      setCreateUserDialogOpen(false);
+      setCreateUserForm({ email: "", firstName: "", lastName: "", role: "", orgId: "" });
+      fetchUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create user");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // NEW: Edit Role handler
+  const handleEditRole = async () => {
+    if (!selectedUser || !newRole) {
+      toast.error("Please select a role");
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/superadmin/users/${selectedUser._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          professional: { role: newRole },
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update role");
+      }
+
+      toast.success("User role updated");
+      setEditRoleDialogOpen(false);
+      setNewRole("");
+      fetchUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update role");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // NEW: Edit Permissions handler
+  const handleSavePermissions = async () => {
+    if (!selectedUser) return;
+    
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/superadmin/users/${selectedUser._id}/permissions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          permissionOverrides,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update permissions");
+      }
+
+      toast.success("User permissions updated");
+      setEditPermissionsDialogOpen(false);
+      setPermissionOverrides({});
+      setExpandedModules(new Set());
+      fetchUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update permissions");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Toggle permission for a sub-module
+  const toggleSubModulePermission = (
+    subModuleId: string,
+    permissionKey: keyof ModulePermissions
+  ) => {
+    setPermissionOverrides((prev) => {
+      const current = prev[subModuleId] || {};
+      const currentValue = current[permissionKey] ?? false;
+      return {
+        ...prev,
+        [subModuleId]: {
+          ...current,
+          [permissionKey]: !currentValue,
+        },
+      };
+    });
+  };
+
+  // Toggle module expansion in permissions tree
+  const toggleModuleExpansion = (moduleId: string) => {
+    setExpandedModules((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(moduleId)) {
+        newSet.delete(moduleId);
+      } else {
+        newSet.add(moduleId);
+      }
+      return newSet;
+    });
+  };
+
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -459,6 +621,17 @@ export default function SuperadminUsersPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setCreateUserDialogOpen(true)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            aria-label={t("superadmin.users.createUser", "Create new user")}
+            title={t("superadmin.users.createUser", "Create new user")}
+          >
+            <UserPlus className="h-4 w-4 me-2" />
+            Create User
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -682,12 +855,35 @@ export default function SuperadminUsersPage() {
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedUser(user);
+                                setNewRole((user.professional?.role || user.role || "") as UserRoleType);
+                                setEditRoleDialogOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <Shield className="h-4 w-4 me-2" />
+                              Edit Role
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
                                 setPermissionsDialogOpen(true);
                               }}
                               className="text-muted-foreground hover:bg-muted/80"
                             >
                               <KeyRound className="h-4 w-4 me-2" />
                               View Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setPermissionOverrides({});
+                                setExpandedModules(new Set());
+                                setEditPermissionsDialogOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <KeyRound className="h-4 w-4 me-2" />
+                              Edit Permissions
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-input" />
                             <DropdownMenuItem
@@ -1097,6 +1293,320 @@ export default function SuperadminUsersPage() {
               title={t("common.close", "Close permissions dialog")}
             >
               {t("common.close", "Close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              {t("superadmin.users.createUser", "Create User")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.users.createUserDescription", "Create a new user account")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-email">{t("superadmin.users.email", "Email")} *</Label>
+              <Input
+                id="create-email"
+                type="email"
+                value={createUserForm.email}
+                onChange={(e) => setCreateUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="user@example.com"
+                className="bg-muted border-input"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-firstName">{t("superadmin.users.firstName", "First Name")}</Label>
+                <Input
+                  id="create-firstName"
+                  value={createUserForm.firstName}
+                  onChange={(e) => setCreateUserForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="John"
+                  className="bg-muted border-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-lastName">{t("superadmin.users.lastName", "Last Name")}</Label>
+                <Input
+                  id="create-lastName"
+                  value={createUserForm.lastName}
+                  onChange={(e) => setCreateUserForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Doe"
+                  className="bg-muted border-input"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="create-role">{t("superadmin.users.role", "Role")} *</Label>
+              <Select
+                value={createUserForm.role}
+                onValueChange={(value) => setCreateUserForm((prev) => ({ ...prev, role: value as UserRoleType }))}
+                placeholder={t("superadmin.users.selectRole", "Select a role")}
+                className="bg-muted border-input"
+              >
+                {CANONICAL_ROLES.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role.replace(/_/g, " ")}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="create-org">{t("superadmin.users.organization", "Organization")}</Label>
+              <Select
+                value={createUserForm.orgId}
+                onValueChange={(value) => setCreateUserForm((prev) => ({ ...prev, orgId: value }))}
+                placeholder={t("superadmin.users.selectOrg", "Select organization (optional)")}
+                className="bg-muted border-input"
+              >
+                <SelectItem value="">{t("superadmin.users.noOrg", "No organization")}</SelectItem>
+                {organizations.map((org) => (
+                  <SelectItem key={org._id} value={org._id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateUserDialogOpen(false);
+                setCreateUserForm({ email: "", firstName: "", lastName: "", role: "", orgId: "" });
+              }}
+              className="border-input"
+              disabled={actionLoading}
+            >
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={actionLoading || !createUserForm.email || !createUserForm.role}
+              className="bg-primary text-primary-foreground"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                  {t("common.creating", "Creating...")}
+                </>
+              ) : (
+                t("common.create", "Create")
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={editRoleDialogOpen} onOpenChange={setEditRoleDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-400" />
+              {t("superadmin.users.editRole", "Edit User Role")}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUser && (
+                <>
+                  {t("superadmin.users.editRoleFor", "Change role for")} <strong>{selectedUser.email}</strong>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {selectedUser && (
+              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                <p className="text-muted-foreground">
+                  {t("superadmin.users.currentRole", "Current role")}:{" "}
+                  <Badge variant="outline">{getUserRole(selectedUser)}</Badge>
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">{t("superadmin.users.newRole", "New Role")}</Label>
+              <Select
+                value={newRole}
+                onValueChange={(value) => setNewRole(value as UserRoleType)}
+                placeholder={t("superadmin.users.selectRole", "Select a role")}
+                className="bg-muted border-input"
+              >
+                {CANONICAL_ROLES.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role.replace(/_/g, " ")}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditRoleDialogOpen(false);
+                setNewRole("");
+              }}
+              className="border-input"
+              disabled={actionLoading}
+            >
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              onClick={handleEditRole}
+              disabled={actionLoading || !newRole}
+              className="bg-primary text-primary-foreground"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                  {t("common.saving", "Saving...")}
+                </>
+              ) : (
+                t("common.save", "Save")
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={editPermissionsDialogOpen} onOpenChange={setEditPermissionsDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-yellow-400" />
+              {t("superadmin.users.editPermissions", "Edit Permissions")}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUser && (
+                <>
+                  {t("superadmin.users.editPermissionsFor", "Configure permission overrides for")} <strong>{selectedUser.email}</strong>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-2 py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              {t("superadmin.users.permissionsNote", "Override default role permissions. Checked items grant permission beyond the role default.")}
+            </p>
+            
+            {/* Collapsible module tree */}
+            <div className="border rounded-lg divide-y divide-border">
+              {RBAC_MODULES.map((module) => {
+                const subModules = getSubModulesForParent(module.id);
+                const isExpanded = expandedModules.has(module.id);
+                
+                return (
+                  <div key={module.id}>
+                    {/* Module header */}
+                    <button
+                      type="button"
+                      onClick={() => toggleModuleExpansion(module.id)}
+                      className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="font-medium">{module.label}</span>
+                        {subModules.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {subModules.length} sub-modules
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* Sub-modules list (collapsible) */}
+                    {isExpanded && subModules.length > 0 && (
+                      <div className="bg-muted/30 border-t border-border">
+                        {subModules.map((sub) => {
+                          const overrides = permissionOverrides[sub.id] || {};
+                          return (
+                            <div
+                              key={sub.id}
+                              className="flex items-center justify-between px-6 py-2 border-b border-border/50 last:border-0"
+                            >
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{sub.label}</p>
+                                <p className="text-xs text-muted-foreground">{sub.description}</p>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {(["view", "create", "edit", "delete"] as const).map((perm) => (
+                                  <label key={perm} className="flex items-center gap-1 cursor-pointer">
+                                    <Checkbox
+                                      checked={overrides[perm] ?? false}
+                                      onCheckedChange={() => toggleSubModulePermission(sub.id, perm)}
+                                    />
+                                    <span className="text-xs capitalize">{perm}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    {/* No sub-modules message */}
+                    {isExpanded && subModules.length === 0 && (
+                      <div className="bg-muted/30 border-t border-border px-6 py-3">
+                        <p className="text-sm text-muted-foreground italic">
+                          {t("superadmin.users.noSubModules", "No sub-modules for this module")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditPermissionsDialogOpen(false);
+                setPermissionOverrides({});
+                setExpandedModules(new Set());
+              }}
+              className="border-input"
+              disabled={actionLoading}
+            >
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              onClick={handleSavePermissions}
+              disabled={actionLoading}
+              className="bg-primary text-primary-foreground"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                  {t("common.saving", "Saving...")}
+                </>
+              ) : (
+                t("common.savePermissions", "Save Permissions")
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

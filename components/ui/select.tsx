@@ -120,8 +120,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           className={`
-            flex h-10 w-full items-center justify-between rounded-2xl border border-border
-            bg-card px-3 py-2 text-sm appearance-none
+            flex h-8 w-full items-center justify-between rounded-md border border-border
+            bg-card px-3 py-1.5 text-sm appearance-none
             ring-offset-white 
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 
             disabled:cursor-not-allowed disabled:opacity-50
@@ -231,6 +231,9 @@ interface SelectTriggerProps extends React.HTMLAttributes<HTMLDivElement> {
  * @deprecated This component is provided for backward compatibility only.
  * With the new native select implementation, you don't need SelectTrigger.
  * Just use <Select> with the placeholder prop.
+ * 
+ * Note: This wrapper does nothing - the native Select already handles styling.
+ * Any className passed here is IGNORED. Move classNames to <Select className="...">.
  */
 export const SelectTrigger: React.FC<SelectTriggerProps> = ({ children }) => {
   // This component does nothing - it's just a passthrough for compatibility

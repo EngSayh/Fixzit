@@ -523,7 +523,7 @@ export function BuildingModelTab({ propertyId }: { propertyId: string }) {
                     template: e.target.value as BuildingGenSpec["template"],
                   }))
                 }
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                className="mt-1 w-full h-8 px-3 py-1.5 border rounded-md text-sm"
               >
                 <option value="studio">Studio</option>
                 <option value="1br">1 Bedroom</option>
@@ -611,7 +611,7 @@ export function BuildingModelTab({ propertyId }: { propertyId: string }) {
                     viewMode: e.target.value as "orbit" | "topdown",
                   }))
                 }
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                className="mt-1 w-full h-8 px-3 py-1.5 border rounded-md text-sm"
               >
                 <option value="orbit">Walkthrough (Orbit)</option>
                 <option value="topdown">Top-Down View</option>
@@ -633,7 +633,7 @@ export function BuildingModelTab({ propertyId }: { propertyId: string }) {
                     focusFloor: val === "all" ? null : Number(val),
                   }));
                 }}
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                className="mt-1 w-full h-8 px-3 py-1.5 border rounded-md text-sm"
               >
                 <option value="all">All Floors</option>
                 {floorsList.map((f) => (

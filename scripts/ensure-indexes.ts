@@ -13,10 +13,11 @@ import { connectToDatabase } from "../lib/mongodb-unified";
 import mongoose from "mongoose";
 
 // Collections to verify indexes for
+// TD-002: Use CLAIMS_ORDERS instead of legacy ORDERS
 const VERIFY_COLLECTIONS = [
   COLLECTIONS.WORK_ORDERS,
   COLLECTIONS.PRODUCTS,
-  COLLECTIONS.ORDERS,
+  COLLECTIONS.CLAIMS_ORDERS,
   COLLECTIONS.INVOICES,
   COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS,
   "supporttickets",

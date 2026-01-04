@@ -32,7 +32,7 @@ vi.mock("@/lib/mongodb-unified", () => ({
 
 vi.mock("@/lib/db/collections", () => ({
   COLLECTIONS: {
-    ORDERS: "orders",
+    CLAIMS_ORDERS: "claims_orders",
     USERS: "users",
   },
 }));

@@ -163,8 +163,8 @@ export default function SuperadminFeaturesPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search flags..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
-              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"></SelectTrigger>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[160px] bg-muted border-input text-foreground">
+              <SelectTrigger></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (<SelectItem key={cat} value={cat!}>{cat}</SelectItem>))}

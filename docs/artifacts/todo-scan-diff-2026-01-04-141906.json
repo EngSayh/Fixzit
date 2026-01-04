@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-01-04T14:19:30+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-04-140316.json",
+  "current": "docs/artifacts/todo-scan-2026-01-04-141906.json",
+  "summary": {
+    "added": 3,
+    "resolved": 3,
+    "current": 2500,
+    "baseline": 2500
+  },
+  "fileChanges": [
+    {
+      "file": ".\\lib\\graphql\\index.ts",
+      "added": [
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1484",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1484",
+          "location": ".\\lib\\graphql\\index.ts:1484"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1505",
+          "title": "Marker 'stub' in .\\lib\\graphql\\index.ts:1505",
+          "location": ".\\lib\\graphql\\index.ts:1505"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1517",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1517",
+          "location": ".\\lib\\graphql\\index.ts:1517"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1477",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1477",
+          "location": ".\\lib\\graphql\\index.ts:1477"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1498",
+          "title": "Marker 'stub' in .\\lib\\graphql\\index.ts:1498",
+          "location": ".\\lib\\graphql\\index.ts:1498"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1510",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1510",
+          "location": ".\\lib\\graphql\\index.ts:1510"
+        }
+      ]
+    }
+  ]
+}

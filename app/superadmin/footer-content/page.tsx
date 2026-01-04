@@ -807,8 +807,8 @@ export default function SuperadminFooterContentPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Provider</Label>
-                  <Select value={chatbotSettings.provider} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, provider: v as ChatbotSettings["provider"] })} placeholder="Select provider">
-                    <SelectTrigger className="bg-muted border-input"></SelectTrigger>
+                  <Select value={chatbotSettings.provider} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, provider: v as ChatbotSettings["provider"] })} placeholder="Select provider" className="bg-muted border-input">
+                    <SelectTrigger></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="internal">Internal (Fixzit AI)</SelectItem>
                       <SelectItem value="openai">OpenAI</SelectItem>
@@ -819,8 +819,8 @@ export default function SuperadminFooterContentPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Position</Label>
-                  <Select value={chatbotSettings.position} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, position: v as ChatbotSettings["position"] })} placeholder="Select position">
-                    <SelectTrigger className="bg-muted border-input"></SelectTrigger>
+                  <Select value={chatbotSettings.position} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, position: v as ChatbotSettings["position"] })} placeholder="Select position" className="bg-muted border-input">
+                    <SelectTrigger></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bottom-right">Bottom Right</SelectItem>
                       <SelectItem value="bottom-left">Bottom Left</SelectItem>
@@ -1125,8 +1125,8 @@ export default function SuperadminFooterContentPage() {
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={policyForm.type} onValueChange={(v) => setPolicyForm({ ...policyForm, type: v as PolicyPage["type"] })} placeholder="Select type">
-                  <SelectTrigger className="bg-muted border-input"></SelectTrigger>
+                <Select value={policyForm.type} onValueChange={(v) => setPolicyForm({ ...policyForm, type: v as PolicyPage["type"] })} placeholder="Select type" className="bg-muted border-input">
+                  <SelectTrigger></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="privacy">Privacy Policy</SelectItem>
                     <SelectItem value="terms">Terms of Service</SelectItem>
@@ -1182,8 +1182,8 @@ export default function SuperadminFooterContentPage() {
             </div>
             <div className="space-y-2">
               <Label>Section</Label>
-              <Select value={linkForm.section} onValueChange={(v) => setLinkForm({ ...linkForm, section: v as FooterLink["section"] })} placeholder="Select section">
-                <SelectTrigger className="bg-muted border-input"></SelectTrigger>
+              <Select value={linkForm.section} onValueChange={(v) => setLinkForm({ ...linkForm, section: v as FooterLink["section"] })} placeholder="Select section" className="bg-muted border-input">
+                <SelectTrigger></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="company">Company</SelectItem>
                   <SelectItem value="support">Support</SelectItem>

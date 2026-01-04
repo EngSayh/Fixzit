@@ -274,8 +274,8 @@ export default function SuperadminTenantsPage() {
                 className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
-              <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectTrigger>
                 {statusFilter === "all" ? "All Status" : statusFilter}
               </SelectTrigger>
               <SelectContent className="bg-muted border-input">
@@ -287,8 +287,8 @@ export default function SuperadminTenantsPage() {
                 <SelectItem value="EXPIRED">Expired</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type">
-              <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectTrigger>
                 {typeFilter === "all" ? "All Types" : typeFilter}
               </SelectTrigger>
               <SelectContent className="bg-muted border-input">

@@ -23,6 +23,34 @@ import { COLLECTIONS } from "@/lib/db/collection-names";
 // ============================================================================
 
 /**
+ * Type guard for price history entry - handles Date, string, and number variants
+ */
+interface PriceHistoryEntry {
+  changedAt: Date | string | number;
+  price: number;
+}
+
+function isPriceHistoryEntry(entry: unknown): entry is PriceHistoryEntry {
+  if (typeof entry !== "object" || entry === null) return false;
+  const e = entry as Record<string, unknown>;
+  return (
+    (e.changedAt instanceof Date ||
+      typeof e.changedAt === "string" ||
+      typeof e.changedAt === "number") &&
+    typeof e.price === "number"
+  );
+}
+
+/**
+ * Normalize Date/string/number to timestamp for safe comparison
+ */
+function normalizeToTime(value: Date | string | number): number {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value;
+  return new Date(value).getTime();
+}
+
+/**
  * Validate orgId and vendorId are non-empty strings
  * @throws Error if validation fails
  */
@@ -856,10 +884,11 @@ async function checkActivitySpike(
       }),
     ]);
     const weeklyActivity = weekOrders + weekListings;
-    const dailyBaseline = weeklyActivity / 6; // 6 days in baseline period
+    // Prevent division by zero with minimum baseline
+    const dailyBaseline = Math.max(weeklyActivity / 6, 0.001); // 6 days in baseline period
     
     // Flag if current > 3x baseline
-    if (dailyBaseline > 0 && recentActivity > dailyBaseline * 3) {
+    if (recentActivity > dailyBaseline * 3) {
       return {
         type: "activity_spike",
         severity: recentActivity > dailyBaseline * 5 ? "high" : "medium",
@@ -994,15 +1023,19 @@ async function checkPriceManipulation(
     const manipulated: Array<{ productId: string; changePercent: number }> = [];
     
     for (const product of products) {
-      const history = product.priceHistory || [];
-      if (history.length < 2) continue;
+      // [AGENT-0008] PR Review: Ensure priceHistory is an array before filtering
+      const history = Array.isArray(product.priceHistory) ? product.priceHistory : [];
+      // Filter to validated entries using type guard
+      const validHistory = history.filter(isPriceHistoryEntry);
+      if (validHistory.length < 2) continue;
       
-      // Sort by date descending
-      const sorted = [...history].sort((a: { changedAt: Date }, b: { changedAt: Date }) => 
-        new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime()
+      // Sort by date descending using safe normalization
+      const sorted = [...validHistory].sort(
+        (a, b) => normalizeToTime(b.changedAt) - normalizeToTime(a.changedAt)
       );
       
-      const currentPrice = sorted[0]?.price || product.price;
+      // [AGENT-0008] PR Review: Use ?? to handle price=0 correctly (|| treats 0 as falsy)
+      const currentPrice = sorted[0]?.price ?? product.price;
       const previousPrice = sorted[1]?.price;
       
       if (previousPrice && previousPrice > 0) {

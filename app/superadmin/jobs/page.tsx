@@ -187,8 +187,9 @@ export default function SuperadminJobsPage() {
               value={typeFilter} 
               onValueChange={setTypeFilter}
               placeholder="Job Type"
+              className="w-[180px]"
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>

@@ -154,8 +154,8 @@ export default function SuperadminReportsPage() {
       {/* Filter */}
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
-            <SelectTrigger className="w-[160px] bg-muted border-input text-foreground">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[160px] bg-muted border-input text-foreground">
+            <SelectTrigger>
               {categoryFilter === "all" ? "All Categories" : categoryFilter}
             </SelectTrigger>
             <SelectContent className="bg-muted border-input">

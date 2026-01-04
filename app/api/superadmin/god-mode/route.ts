@@ -62,15 +62,15 @@ export async function GET(req: NextRequest) {
       suspendedTenants,
       pendingOffboarding,
     ] = await Promise.all([
-      db.collection("organizations").countDocuments(orgFilter),
-      db.collection("organizations").countDocuments({ ...orgFilter, status: "active" }),
-      db.collection("organizations").countDocuments({ ...orgFilter, plan: "trial" }),
-      db.collection("organizations").countDocuments({ ...orgFilter, status: "suspended" }),
-      db.collection("organizations").countDocuments({ ...orgFilter, status: "pending_offboarding" }),
+      db.collection(COLLECTIONS.ORGANIZATIONS).countDocuments(orgFilter),
+      db.collection(COLLECTIONS.ORGANIZATIONS).countDocuments({ ...orgFilter, status: "active" }),
+      db.collection(COLLECTIONS.ORGANIZATIONS).countDocuments({ ...orgFilter, plan: "trial" }),
+      db.collection(COLLECTIONS.ORGANIZATIONS).countDocuments({ ...orgFilter, status: "suspended" }),
+      db.collection(COLLECTIONS.ORGANIZATIONS).countDocuments({ ...orgFilter, status: "pending_offboarding" }),
     ]);
     
     // Fetch top tenants (sanitize - only expose necessary fields) - scoped by tenantId if provided
-    const topTenants = await db.collection("organizations")
+    const topTenants = await db.collection(COLLECTIONS.ORGANIZATIONS)
       .find({ ...orgFilter, status: { $in: ["active", "trial"] } })
       .project({ 
         _id: 1, 
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     
     // Count users per tenant - batch query to avoid N+1
     const tenantIds = topTenants.map(t => t._id);
-    const userCountsAgg = await db.collection("users").aggregate([
+    const userCountsAgg = await db.collection(COLLECTIONS.USERS).aggregate([
       { $match: { orgId: { $in: tenantIds } } },
       { $group: { _id: "$orgId", count: { $sum: 1 } } }
     ]).toArray();
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     }));
     
     // Fetch active kill switch events (scoped by tenantId if provided)
-    const activeKillSwitchEvents = await db.collection("kill_switch_events")
+    const activeKillSwitchEvents = await db.collection(COLLECTIONS.KILL_SWITCH_EVENTS)
       .find({ ...tenantIdFilter, deactivated_at: { $exists: false } })
       .sort({ activated_at: -1 })
       .limit(10)
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     // Enrich kill switch events with tenant names - batch query to avoid N+1
     const killSwitchTenantIds = activeKillSwitchEvents.map(e => e.tenant_id).filter(Boolean);
     const killSwitchTenants = killSwitchTenantIds.length > 0 
-      ? await db.collection("organizations").find(
+      ? await db.collection(COLLECTIONS.ORGANIZATIONS).find(
           { _id: { $in: killSwitchTenantIds } },
           { projection: { name: 1 } }
         ).toArray()
@@ -130,9 +130,9 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const [totalSnapshots, snapshots24h, recentSnapshots] = await Promise.all([
-      db.collection("tenant_snapshots").countDocuments(tenantIdFilter),
-      db.collection("tenant_snapshots").countDocuments({ ...tenantIdFilter, created_at: { $gte: yesterday } }),
-      db.collection("tenant_snapshots")
+      db.collection(COLLECTIONS.TENANT_SNAPSHOTS).countDocuments(tenantIdFilter),
+      db.collection(COLLECTIONS.TENANT_SNAPSHOTS).countDocuments({ ...tenantIdFilter, created_at: { $gte: yesterday } }),
+      db.collection(COLLECTIONS.TENANT_SNAPSHOTS)
         .find(tenantIdFilter)
         .sort({ created_at: -1 })
         .limit(5)
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
     // Enrich snapshots with tenant names - batch query to avoid N+1
     const snapshotTenantIds = recentSnapshots.map(s => s.tenant_id).filter(Boolean);
     const snapshotTenants = snapshotTenantIds.length > 0
-      ? await db.collection("organizations").find(
+      ? await db.collection(COLLECTIONS.ORGANIZATIONS).find(
           { _id: { $in: snapshotTenantIds } },
           { projection: { name: 1 } }
         ).toArray()
@@ -159,7 +159,7 @@ export async function GET(req: NextRequest) {
     }));
     
     // Fetch active ghost sessions (scoped by tenantId if provided)
-    const activeGhostSessions = await db.collection("ghost_sessions")
+    const activeGhostSessions = await db.collection(COLLECTIONS.GHOST_SESSIONS)
       .find({ ...tenantIdFilter, active: true })
       .limit(10)
       .toArray();
@@ -184,14 +184,14 @@ export async function GET(req: NextRequest) {
         invoicesToday,
         paymentsToday,
       ] = await Promise.all([
-        db.collection("users").countDocuments({ ...orgIdFilter, lastLoginAt: { $gte: yesterday } }),
+        db.collection(COLLECTIONS.USERS).countDocuments({ ...orgIdFilter, lastLoginAt: { $gte: yesterday } }),
         db.collection(COLLECTIONS.WORK_ORDERS).countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
-        db.collection("invoices").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
-        db.collection("payments").countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
+        db.collection(COLLECTIONS.INVOICES).countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
+        db.collection(COLLECTIONS.PAYMENTS).countDocuments({ ...orgIdFilter, createdAt: { $gte: yesterday } }),
       ]);
       
       // Calculate payments total (scoped by tenantId if provided)
-      const paymentsAgg = await db.collection("payments").aggregate([
+      const paymentsAgg = await db.collection(COLLECTIONS.PAYMENTS).aggregate([
         { $match: { ...orgIdFilter, createdAt: { $gte: yesterday }, status: "completed" } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]).toArray();

@@ -87,5 +87,17 @@ describe("ProductsList query params", () => {
     expect(params.get("ratingMin")).toBe("4");
   });
 
-  // FilterPresetsDropdown not implemented - tracked in SSOT for future implementation
+  it("passes correct props to FilterPresetsDropdown", async () => {
+    capturedKeys = [];
+    capturedPresetProps = undefined;
+    await act(async () => {
+      render(<ProductsList orgId="org-1" />);
+    });
+
+    // Verify FilterPresetsDropdown receives the expected props
+    expect(capturedPresetProps).toBeDefined();
+    expect(capturedPresetProps?.entityType).toBe("products");
+    expect(typeof capturedPresetProps?.onLoadPreset).toBe("function");
+    expect(capturedPresetProps?.currentFilters).toBeDefined();
+  });
 });

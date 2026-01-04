@@ -507,8 +507,8 @@ export default function CustomerRequestsPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
-              <SelectTrigger className="w-[140px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[140px]">
+              <SelectTrigger>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -519,8 +519,8 @@ export default function CustomerRequestsPage() {
                 <SelectItem value="closed">Closed</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity">
-              <SelectTrigger className="w-[140px]">
+            <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity" className="w-[140px]">
+              <SelectTrigger>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Severity</SelectItem>
@@ -530,8 +530,8 @@ export default function CustomerRequestsPage() {
                 <SelectItem value="low">Low</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type">
-              <SelectTrigger className="w-[160px]">
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-[160px]">
+              <SelectTrigger>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -541,8 +541,8 @@ export default function CustomerRequestsPage() {
                 <SelectItem value="question">Question</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel">
-              <SelectTrigger className="w-[140px]">
+            <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[140px]">
+              <SelectTrigger>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Channels</SelectItem>

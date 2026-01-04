@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Db } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
@@ -47,7 +48,7 @@ describe("Claims API - Core Functionality", () => {
     vi.clearAllMocks();
     // Clean up test data
     await db.collection("claims").deleteMany({ testData: true });
-    await db.collection("orders").deleteMany({ testData: true });
+    await db.collection(COLLECTIONS.CLAIMS_ORDERS).deleteMany({ testData: true });
     await db.collection("users").deleteMany({ testData: true });
     testOrgId = new ObjectId();
     const buyerCode = new ObjectId().toHexString();
@@ -77,7 +78,7 @@ describe("Claims API - Core Functionality", () => {
     testSellerId = sellerResult.insertedId;
 
     // Create test order with orgId for multi-tenant isolation
-    const orderResult = await db.collection("orders").insertOne({
+    const orderResult = await db.collection(COLLECTIONS.CLAIMS_ORDERS).insertOne({
       buyerId: testBuyerId,
       sellerId: testSellerId,
       orgId: testOrgId,
@@ -146,12 +147,14 @@ describe("Claims API - Core Functionality", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("reason");
+      // Zod validation returns { error: "Validation failed", details: [...] }
+      expect(data.error).toBe("Validation failed");
+      expect(data.details?.some((d: string) => d.includes("reason"))).toBe(true);
     });
 
     it("should reject claim after deadline (30 days)", async () => {
       // Update order to be delivered 31 days ago
-      await db.collection("orders").updateOne(
+      await db.collection(COLLECTIONS.CLAIMS_ORDERS).updateOne(
         { _id: testOrderId },
         {
           $set: {
@@ -801,7 +804,7 @@ describe("Claims API - Core Functionality", () => {
     it("should flag suspicious claim patterns", async () => {
       // Create multiple claims from same buyer
       for (let i = 0; i < 5; i++) {
-        const order = await db.collection("orders").insertOne({
+        const order = await db.collection(COLLECTIONS.CLAIMS_ORDERS).insertOne({
           buyerId: testBuyerId,
           sellerId: new ObjectId(),
           orgId: testOrgId,
@@ -850,7 +853,7 @@ describe("Claims API - Core Functionality", () => {
     it("should detect high-value claim patterns", async () => {
       // Create expensive order
       await db
-        .collection("orders")
+        .collection(COLLECTIONS.CLAIMS_ORDERS)
         .updateOne({ _id: testOrderId }, { $set: { total: 5000 } });
 
       const claim = {

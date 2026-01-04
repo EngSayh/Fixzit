@@ -5,6 +5,7 @@
  */
 
 import { Property } from "@/server/models/Property";
+import { User } from "@/server/models/User";
 import { db } from "@/lib/mongo";
 import type { SessionContext } from "@/types/copilot";
 import { extractApartmentSearchParams } from "./classifier";
@@ -13,6 +14,9 @@ import {
   clearTenantContext,
   setTenantContext,
 } from "@/server/plugins/tenantIsolation";
+
+// Type for request-scoped agent name cache
+type AgentNameCache = Map<string, string>;
 
 /**
  * Guest-safe apartment search result
@@ -52,6 +56,10 @@ export async function searchAvailableUnits(
   context: SessionContext,
 ): Promise<ApartmentSearchResult[]> {
   await db;
+
+  // Request-scoped cache for agent names to avoid repeated DB lookups within same request
+  // This prevents unbounded growth and stale data issues of module-scoped caches
+  const agentNameCache: AgentNameCache = new Map();
 
   // Enforce tenant isolation for authenticated users to avoid cross-tenant leakage
   const tenantContextOrgId = context.orgId ?? context.tenantId ?? undefined;
@@ -167,7 +175,7 @@ export async function searchAvailableUnits(
             district: property.address?.district || undefined,
             available: true,
             furnished: Boolean(unitData.furnished),
-            agentName: context.userId ? getAgentName(property) : undefined,
+            agentName: context.userId ? await getAgentName(property, agentNameCache) : undefined,
             agentContact: context.userId
               ? getAgentContact(property)
               : undefined,
@@ -197,7 +205,7 @@ export async function searchAvailableUnits(
           district: property.address?.district || undefined,
           available:
             propData.status === "VACANT" || propData.status === "ACTIVE",
-          agentName: context.userId ? getAgentName(property) : undefined,
+          agentName: context.userId ? await getAgentName(property, agentNameCache) : undefined,
           agentContact: context.userId ? getAgentContact(property) : undefined,
           mapLink: generateMapLink(property),
           features: extractPropertyFeatures(property.details),
@@ -243,14 +251,46 @@ function formatAddress(property: unknown): string {
 
 /**
  * Gets agent name from property (authenticated users only)
+ * Fetches agent details from User model using agentId
+ * @param property - Property object with agentId
+ * @param cache - Request-scoped cache to avoid repeated DB lookups
  */
-function getAgentName(property: unknown): string | undefined {
+async function getAgentName(property: unknown, cache: AgentNameCache): Promise<string | undefined> {
   const prop = property as Record<string, unknown>;
   const ownerPortal = prop.ownerPortal as Record<string, unknown> | undefined;
+  
+  // Also check direct agentId on property
+  const agentId = (ownerPortal?.agentId || prop.agentId) as string | undefined;
 
-  if (ownerPortal?.agentId) {
-    // In real implementation, would populate agent user details
-    return "Assigned Agent"; // Placeholder
+  if (!agentId) {
+    return undefined;
+  }
+
+  // Check cache first
+  if (cache.has(agentId)) {
+    return cache.get(agentId);
+  }
+
+  try {
+    const agent = await User.findById(agentId)
+      .select("name firstName lastName")
+      .lean()
+      .exec();
+
+    if (agent) {
+      // Construct display name from available fields
+      const agentData = agent as Record<string, unknown>;
+      const displayName = 
+        (agentData.name as string) ||
+        [agentData.firstName, agentData.lastName].filter(Boolean).join(" ") ||
+        "Property Agent";
+      
+      // Cache the result
+      cache.set(agentId, displayName);
+      return displayName;
+    }
+  } catch (error) {
+    logger.warn("[apartmentSearch] Failed to fetch agent name", { agentId, error });
   }
 
   return undefined;

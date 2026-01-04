@@ -29,6 +29,7 @@ import { SouqClaim } from "@/server/models/souq/Claim";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { buildOrgScopeFilter as buildOrgScope } from "@/services/souq/org-scope";
+import { CreateClaimSchema } from "@/lib/validations/souq-claims";
 
 const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -77,25 +78,23 @@ export async function POST(request: NextRequest) {
     if (parseError) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
-    const { orderId, reason, description, requestedAmount, requestType } = body as Record<string, unknown>;
 
-    const missingFields: string[] = [];
-    if (!orderId) missingFields.push("orderId");
-    if (!reason) missingFields.push("reason");
-    if (!description) missingFields.push("description");
-    if (requestedAmount == null) missingFields.push("requestedAmount");
-    if (!requestType) missingFields.push("requestType");
-
-    if (missingFields.length) {
+    // Validate request body with Zod schema (TD-001-2)
+    const validation = CreateClaimSchema.safeParse(body);
+    if (!validation.success) {
+      const zodError = validation.error;
+      const errors = zodError.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
       return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(", ")}` },
+        { error: "Validation failed", details: errors },
         { status: 400 },
       );
     }
 
+    const { orderId, reason, description, requestedAmount, requestType } = validation.data;
+
     let orderObjectId: ObjectId;
     try {
-      orderObjectId = new ObjectId(orderId as string);
+      orderObjectId = new ObjectId(orderId);
     } catch {
       return NextResponse.json({ error: "Invalid orderId" }, { status: 400 });
     }
@@ -146,7 +145,7 @@ export async function POST(request: NextRequest) {
 
     const orderTotal =
       typeof order.total === "number" ? order.total : Number(order.total ?? 0);
-    if (Number(requestedAmount) > orderTotal) {
+    if (requestedAmount > orderTotal) {
       return NextResponse.json(
         { error: "Requested amount exceeds order total" },
         { status: 400 },
@@ -192,7 +191,7 @@ export async function POST(request: NextRequest) {
     }
 
     const requiresEnhancedVerification =
-      Number(order.total ?? 0) >= 3000 || Number(requestedAmount) >= 3000;
+      Number(order.total ?? 0) >= 3000 || requestedAmount >= 3000;
     if (requiresEnhancedVerification) {
       requiresManualReview = true;
     }
@@ -203,13 +202,13 @@ export async function POST(request: NextRequest) {
       buyerId: session.user.id,
       sellerId,
       productId,
-      type: mapReasonToType(reason as string),
-      reason: reason as string,
-      description: description as string,
+      type: mapReasonToType(reason),
+      reason,
+      description,
       evidence: [],
       orderAmount: orderTotal,
-      requestedAmount: Number(requestedAmount),
-      requestType: requestType as string | undefined,
+      requestedAmount,
+      requestType,
     });
 
     return NextResponse.json(

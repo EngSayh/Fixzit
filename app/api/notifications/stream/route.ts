@@ -123,13 +123,21 @@ export async function GET(request: NextRequest) {
  * Broadcast notification to SSE stream
  * Called by other API routes to push notifications
  * 
- * @todo Connect to durable pub/sub for multi-instance support
+ * Multi-instance support: Uses NATS when NATS_URL is configured.
+ * Falls back to in-memory pub/sub for single-instance deployments.
+ * @see lib/sse/index.ts for implementation
  */
-export function broadcastNotification(
-  _notification: NotificationPayload,
-  _targetOrgId: string,
-  _targetUserIds?: string[]
-): void {
-  // TODO: Publish to a shared pub/sub channel for horizontal scaling
-  // This is a placeholder for the Q1 2026 implementation
+export async function broadcastNotification(
+  notification: NotificationPayload,
+  targetOrgId: string,
+  targetUserIds?: string[]
+): Promise<void> {
+  const { publishNotification } = await import('@/lib/sse');
+  const { Types } = await import('mongoose');
+  
+  await publishNotification(
+    new Types.ObjectId(targetOrgId),
+    notification,
+    targetUserIds?.map(id => new Types.ObjectId(id))
+  );
 }

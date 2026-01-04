@@ -499,8 +499,8 @@ export default function ScheduledTasksPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[160px]">
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-[160px]">
+          <SelectTrigger>
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>

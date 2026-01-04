@@ -5,13 +5,13 @@ import { logger } from "@/lib/logger";
  * @description Refresh token replay protection with in-memory storage.
  *
  * Stores refresh token JTIs with TTL to detect reuse across instances.
- * Falls back to in-memory storage when Redis unavailable (development only).
+ * Uses in-memory storage optimized for single-instance deployments.
  *
  * @features
  * - In-memory JTI storage (single-instance)
  * - TTL-based expiration (matches token lifetime)
  * - Replay attack detection (JTI validation)
- * - Production-critical warnings (Redis unavailable alerts)
+ * - Production-critical warnings when multi-instance detected
  * - User-scoped keys (userId + JTI composite key)
  *
  * @usage

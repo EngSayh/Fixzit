@@ -20,6 +20,7 @@ import { User } from "@/server/models/User";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { Property } from "@/server/models/Property";
 import { MarketplaceProduct } from "@/server/models/MarketplaceProduct";
+import ExcelJS from "exceljs";
 
 type CsvValue =
   | string
@@ -37,9 +38,8 @@ type ExportJobPayload = {
   userId: string;
   entityType: string;
   /**
-   * Export format - currently only "csv" is fully implemented.
-   * "xlsx" is accepted for API compatibility but outputs CSV format.
-   * TODO: Implement proper XLSX export using exceljs/sheetjs when needed.
+   * Export format - supports both CSV and XLSX.
+   * XLSX uses exceljs for proper Excel formatting with headers and auto-filter.
    */
   format: "csv" | "xlsx";
   filters?: Record<string, unknown>;
@@ -141,16 +141,64 @@ async function processExportJob(payload: ExportJobPayload) {
         safeFilters,
         exportJob.ids,
       )) ?? [];
-    // Normalize rows to JSON-safe objects for CSV serialization
+    // Normalize rows to JSON-safe objects for serialization
     const exportRows: CsvRow[] = rows.map(
       (row) => JSON.parse(JSON.stringify(row)) as CsvRow,
     );
-    const csv = arrayToCSV(exportRows);
-    const buffer = Buffer.from(csv, "utf-8");
+
+    let buffer: Buffer;
+    let contentType: string;
     const key = buildExportKey(exportJob.org_id, exportJob._id.toString(), exportJob.format);
 
-    // Currently we export CSV for both CSV/XLSX requests to keep pipeline consistent.
-    await putObjectBuffer(key, buffer, "text/csv");
+    if (exportJob.format === "xlsx") {
+      // Generate proper XLSX using exceljs
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "Fixzit Enterprise";
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet(exportJob.entity_type);
+
+      // Add headers from first row
+      if (exportRows.length > 0) {
+        const headers = Object.keys(exportRows[0]);
+        worksheet.columns = headers.map((header) => ({
+          header: header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, " "),
+          key: header,
+          width: 20,
+        }));
+
+        // Style header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF0061A8" },
+        };
+        worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+        // Add data rows
+        exportRows.forEach((row) => {
+          worksheet.addRow(row);
+        });
+
+        // Auto-filter
+        worksheet.autoFilter = {
+          from: { row: 1, column: 1 },
+          to: { row: 1, column: headers.length },
+        };
+      }
+
+      const xlsxBuffer = await workbook.xlsx.writeBuffer();
+      buffer = Buffer.from(xlsxBuffer);
+      contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    } else {
+      // CSV export
+      const csv = arrayToCSV(exportRows);
+      buffer = Buffer.from(csv, "utf-8");
+      contentType = "text/csv";
+    }
+
+    await putObjectBuffer(key, buffer, contentType);
     const url = await getPresignedGetUrl(key, 86_400); // 24h
 
     await markJob(exportJob, {
@@ -163,6 +211,7 @@ async function processExportJob(payload: ExportJobPayload) {
     logger.info("[ExportWorker] Export completed", {
       jobId: exportJob._id.toString(),
       entity: exportJob.entity_type,
+      format: exportJob.format,
       bucket: config.bucket,
       rows: exportRows.length,
     });

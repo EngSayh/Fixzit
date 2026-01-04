@@ -1,0 +1,178 @@
+{
+  "generatedAt": "2026-01-04T11:48:09+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-04-20260104T1118.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-04-114809.json",
+  "summary": {
+    "added": 6,
+    "resolved": 9,
+    "current": 27,
+    "baseline": 30
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/aqar/offline/route.ts",
+      "added": [
+        {
+          "key": "aqar-offline-sync-post-is-stubbed-feature-app-api-aqar-offline-route-ts",
+          "title": "Aqar offline sync POST is stubbed",
+          "location": "app/api/aqar/offline/route.ts:83"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/copilot/chat/route.ts",
+      "added": [
+        {
+          "key": "copilot-negative-sentiment-escalation-workflow-deferred-feature-app-api-copilot-",
+          "title": "Copilot negative sentiment escalation workflow deferred",
+          "location": "app/api/copilot/chat/route.ts:295"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/notifications/stream/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "notifications-stream-lacks-pub-sub-scaling-efficiency-app-api-notifications-stre",
+          "title": "Notifications stream lacks pub/sub scaling",
+          "location": "app/api/notifications/stream/route.ts:126"
+        }
+      ]
+    },
+    {
+      "file": "app/api/superadmin/notifications/count/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "superadmin-notification-count-badge-todo-feature-app-api-superadmin-notification",
+          "title": "Superadmin notification count badge TODO",
+          "location": "app/api/superadmin/notifications/count/route.ts:8"
+        }
+      ]
+    },
+    {
+      "file": "jobs/onboarding-ocr-worker.ts",
+      "added": [
+        {
+          "key": "onboarding-ocr-worker-uses-simulated-placeholder-feature-jobs-onboarding-ocr-wor",
+          "title": "Onboarding OCR worker uses simulated placeholder",
+          "location": "jobs/onboarding-ocr-worker.ts:23"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "lib/sse/index.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "sse-pub-sub-lacks-durable-backplane-efficiency-lib-sse-index-ts",
+          "title": "SSE pub/sub lacks durable backplane",
+          "location": "lib/sse/index.ts:155"
+        }
+      ]
+    },
+    {
+      "file": "server/copilot/apartmentSearch.ts",
+      "added": [
+        {
+          "key": "apartment-search-agent-name-uses-placeholder-feature-server-copilot-apartmentsea",
+          "title": "Apartment search agent name uses placeholder",
+          "location": "server/copilot/apartmentSearch.ts:253"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "server/services/onboardingEntities.ts",
+      "added": [
+        {
+          "key": "onboarding-provisioning-integrations-are-stubbed-feature-server-services-onboard",
+          "title": "Onboarding provisioning integrations are stubbed",
+          "location": "server/services/onboardingEntities.ts:116"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "services/aqar/tenant-screening.ts",
+      "added": [
+        {
+          "key": "tenant-screening-credit-bureau-integration-placeholder-feature-services-aqar-ten",
+          "title": "Tenant screening credit bureau integration placeholder",
+          "location": "services/aqar/tenant-screening.ts:737"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "tests/unit/api/admin/billing/pricebooks.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "pricebooks-post-sanitization-tests-pending-missing-test-tests-unit-api-admin-bil",
+          "title": "Pricebooks POST sanitization tests pending",
+          "location": "tests/unit/api/admin/billing/pricebooks.test.ts:123"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/components/aqar/PropertiesList.query.test.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "filterpresetsdropdown-not-implemented-tracked-in-ssot-for-future-implementation-",
+          "title": "FilterPresetsDropdown not implemented - tracked in SSOT for future implementation",
+          "location": "tests/unit/components/aqar/PropertiesList.query.test.tsx:94"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/components/marketplace/ProductsList.query.test.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "filterpresetsdropdown-tests-not-implemented-missing-test-tests-unit-components-m",
+          "title": "FilterPresetsDropdown tests not implemented",
+          "location": "tests/unit/components/marketplace/ProductsList.query.test.tsx:90"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/lib/sla/business-hours.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "sla-business-hours-tests-todo-backlog-missing-test-tests-unit-lib-sla-business-h",
+          "title": "SLA business hours tests TODO backlog",
+          "location": "tests/unit/lib/sla/business-hours.test.ts:4"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/lib/sse/index.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "sse-unit-tests-todo-backlog-missing-test-tests-unit-lib-sse-index-test-ts",
+          "title": "SSE unit tests TODO backlog",
+          "location": "tests/unit/lib/sse/index.test.ts:4"
+        }
+      ]
+    },
+    {
+      "file": "tools/generators/generate-api-test.js",
+      "added": [],
+      "resolved": [
+        {
+          "key": "api-test-generator-templates-incomplete-refactor-tools-generators-generate-api-t",
+          "title": "API test generator templates incomplete",
+          "location": "tools/generators/generate-api-test.js:127"
+        }
+      ]
+    }
+  ]
+}

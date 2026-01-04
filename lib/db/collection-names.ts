@@ -16,7 +16,8 @@ export const COLLECTIONS = {
   VENDORS: "vendors",
   PRODUCTS: "products",
   CARTS: "carts",
-  ORDERS: "orders",
+  ORDERS: "orders", // Legacy - kept for backward compatibility
+  CLAIMS_ORDERS: "claims_orders", // Claims module orders (renamed from 'orders')
   INVOICES: "invoices",
   RFQS: "rfqs",
   PROJECT_BIDS: "projectbids",
@@ -92,6 +93,13 @@ export const COLLECTIONS = {
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
   
+  // Aqar offline/user data collections
+  AQAR_USER_FAVORITES: "aqar_user_favorites",
+  AQAR_SEARCH_HISTORY: "aqar_search_history",
+  AQAR_VIEWED_LISTINGS: "aqar_viewed_listings",
+  AQAR_INQUIRIES: "aqar_inquiries",
+  AQAR_SYNC_LOG: "aqar_sync_log",
+  
   // Errors / telemetry
   ERROR_EVENTS: "error_events",
   
@@ -118,6 +126,16 @@ export const COLLECTIONS = {
   
   // Subscription/billing collections
   SUBSCRIPTION_INVOICES: "subscriptioninvoices",
+  
+  // Superadmin / System collections
+  TRIAL_REQUESTS: "trial_requests",
+  MFA_APPROVALS: "mfa_approvals",
+  KILL_SWITCH_EVENTS: "kill_switch_events",
+  TENANT_SNAPSHOTS: "tenant_snapshots",
+  GHOST_SESSIONS: "ghost_sessions",
+  
+  // Issue tracker (SSOT)
+  ISSUES: "issues",
 } as const;
 
 // Type for collection names

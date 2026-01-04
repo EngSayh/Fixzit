@@ -1055,13 +1055,15 @@ export async function registerWithEjar(
             orgId,
           })
         : (async () => {
-            const prop = await db.collection("properties").findOne({
+            // [AGENT-0008] Explicit type for multi-tenancy safety, cast to extract ownerId
+            const propDoc = await db.collection("properties").findOne({
               _id: new ObjectId(lease.propertyId),
               orgId,
             });
+            const prop = propDoc as { ownerId?: string } | null;
             if (prop?.ownerId) {
               return db.collection("users").findOne({
-                _id: new ObjectId(prop.ownerId as string),
+                _id: new ObjectId(prop.ownerId),
                 orgId,
               });
             }
@@ -1086,6 +1088,27 @@ export async function registerWithEjar(
     
     // Map property type to Ejar enum
     const ejarPropertyType = mapPropertyTypeToEjar(property.type, EjarPropertyType);
+    
+    // [AGENT-0008] Pre-flight validation before Ejar call - fail fast with actionable errors
+    const validationErrors: string[] = [];
+    if (!property.address && !property.addressAr) {
+      validationErrors.push("property.address or property.addressAr is required for Ejar registration");
+    }
+    if (!tenant.nationalId && !tenant.iqamaNumber) {
+      validationErrors.push("tenant.nationalId or tenant.iqamaNumber is required");
+    }
+    if (!landlord.nationalId && !landlord.iqamaNumber && !landlord.commercialRegistration) {
+      validationErrors.push("landlord.nationalId, landlord.iqamaNumber, or landlord.commercialRegistration is required");
+    }
+    if (!lease.startDate || !lease.endDate) {
+      validationErrors.push("lease.startDate and lease.endDate are required");
+    }
+    if (validationErrors.length > 0) {
+      return {
+        success: false,
+        error: `Pre-flight validation failed: ${validationErrors.join("; ")}`,
+      };
+    }
     
     // Build the Ejar registration request from fetched data
     const result = await registerContract({

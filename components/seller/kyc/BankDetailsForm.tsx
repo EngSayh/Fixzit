@@ -105,7 +105,7 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
         <select
           id="bankName"
           {...register("bankName")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
         >
           <option value="">
             {auto("Select Bank", "fields.bankName.placeholder")}
@@ -179,7 +179,7 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
           <select
             id="currency"
             {...register("currency")}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
           >
             <option value="SAR">
               {auto("SAR - Saudi Riyal", "fields.currency.sar")}

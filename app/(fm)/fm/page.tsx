@@ -316,8 +316,8 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-            <SelectTrigger className="w-40">
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange} className="w-40">
+            <SelectTrigger>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">

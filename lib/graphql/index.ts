@@ -18,6 +18,8 @@ import { logger } from "@/lib/logger";
 // NOTE: These imports are prepared for full GraphQL implementation (BUG-002)
 // Currently disabled as GraphQL is behind FEATURE_INTEGRATIONS_GRAPHQL_API flag
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+import { WorkOrderService, WOStatus } from "@/services/fm/work-order-service";
+import { Role } from "@/domain/fm/fm.behavior";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { Expense, ExpenseStatus } from "@/server/models/finance/Expense";
 import { User } from "@/server/models/User";
@@ -1150,16 +1152,80 @@ export const resolvers = {
         input: args.input,
       });
 
-      return {
-        success: false,
-        workOrder: null,
-        errors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "Work order update via GraphQL is not yet implemented",
-          },
-        ],
-      };
+      try {
+        await connectToDatabase();
+        const db = await getDatabase();
+
+        // Validate ObjectId format
+        if (!Types.ObjectId.isValid(args.id)) {
+          return {
+            success: false,
+            workOrder: null,
+            errors: [{ code: "INVALID_ID", message: "Invalid work order ID format" }],
+          };
+        }
+
+        // Require tenant context
+        if (!ctx.orgId) {
+          return {
+            success: false,
+            workOrder: null,
+            errors: [{ code: "TENANT_REQUIRED", message: "Organization context required" }],
+          };
+        }
+
+        // Build tenant-scoped query with soft-delete guard
+        const scopedQuery = {
+          _id: new Types.ObjectId(args.id),
+          orgId: ctx.orgId,
+          deletedAt: null, // Exclude soft-deleted work orders
+        };
+
+        // Sanitize input - only allow specific fields
+        const allowedFields = ["title", "description", "priority", "status", "assignedTo", "dueDate", "notes", "category", "location"];
+        const sanitizedInput: Record<string, unknown> = {};
+        for (const key of allowedFields) {
+          if (key in args.input) {
+            sanitizedInput[key] = args.input[key];
+          }
+        }
+
+        // Apply update
+        const result = await db.collection(COLLECTIONS.WORK_ORDERS).findOneAndUpdate(
+          scopedQuery,
+          { $set: { ...sanitizedInput, updatedAt: new Date() } },
+          { returnDocument: "after" }
+        );
+
+        if (!result) {
+          return {
+            success: false,
+            workOrder: null,
+            errors: [{ code: "NOT_FOUND", message: "Work order not found or access denied" }],
+          };
+        }
+
+        logger.info("[GraphQL] Work order updated successfully", {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+
+        return {
+          success: true,
+          workOrder: mapWorkOrderDocument(result as Record<string, unknown>),
+          errors: [],
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to update work order", error as Error, {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+        return {
+          success: false,
+          workOrder: null,
+          errors: [{ code: "INTERNAL_ERROR", message: "Failed to update work order" }],
+        };
+      }
     },
 
     // Delete work order
@@ -1175,15 +1241,66 @@ export const resolvers = {
         id: args.id,
       });
 
-      return {
-        success: false,
-        errors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "Work order deletion via GraphQL is not yet implemented",
-          },
-        ],
-      };
+      try {
+        await connectToDatabase();
+        const db = await getDatabase();
+
+        // Validate ObjectId format
+        if (!Types.ObjectId.isValid(args.id)) {
+          return {
+            success: false,
+            errors: [{ code: "INVALID_ID", message: "Invalid work order ID format" }],
+          };
+        }
+
+        // Require tenant context
+        if (!ctx.orgId) {
+          return {
+            success: false,
+            errors: [{ code: "TENANT_REQUIRED", message: "Organization context required" }],
+          };
+        }
+
+        // Build tenant-scoped query with soft-delete guard
+        const scopedQuery = {
+          _id: new Types.ObjectId(args.id),
+          orgId: ctx.orgId,
+          deletedAt: null, // Only allow deleting non-deleted work orders
+        };
+
+        // Soft delete: set deletedAt timestamp
+        const result = await db.collection(COLLECTIONS.WORK_ORDERS).findOneAndUpdate(
+          scopedQuery,
+          { $set: { deletedAt: new Date(), updatedAt: new Date() } },
+          { returnDocument: "after" }
+        );
+
+        if (!result) {
+          return {
+            success: false,
+            errors: [{ code: "NOT_FOUND", message: "Work order not found or access denied" }],
+          };
+        }
+
+        logger.info("[GraphQL] Work order deleted successfully", {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+
+        return {
+          success: true,
+          errors: [],
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to delete work order", error as Error, {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+        return {
+          success: false,
+          errors: [{ code: "INTERNAL_ERROR", message: "Failed to delete work order" }],
+        };
+      }
     },
 
     // Assign work order
@@ -1200,15 +1317,73 @@ export const resolvers = {
         vendorId: args.vendorId,
       });
 
-      return {
-        success: false,
-        errors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "Work order assignment via GraphQL is not yet implemented",
-          },
-        ],
-      };
+      try {
+        await connectToDatabase();
+
+        // Validate ObjectId formats
+        if (!Types.ObjectId.isValid(args.id)) {
+          return {
+            success: false,
+            errors: [{ code: "INVALID_ID", message: "Invalid work order ID format" }],
+          };
+        }
+        if (!Types.ObjectId.isValid(args.vendorId)) {
+          return {
+            success: false,
+            errors: [{ code: "INVALID_ID", message: "Invalid vendor ID format" }],
+          };
+        }
+
+        // Require user and tenant context
+        if (!ctx.userId || !ctx.orgId) {
+          return {
+            success: false,
+            errors: [{ code: "AUTH_REQUIRED", message: "User and organization context required" }],
+          };
+        }
+
+        // Use WorkOrderService for assignment with FSM validation
+        const result = await WorkOrderService.assignWorkOrder({
+          workOrderId: args.id,
+          assigneeId: args.vendorId,
+          assigneeType: "vendor",
+          assignedBy: ctx.userId,
+          orgId: ctx.orgId,
+          notes: "Assigned via GraphQL API",
+        });
+
+        if (!result.success) {
+          logger.warn("[GraphQL] Work order assignment failed", {
+            userId: ctx.userId,
+            workOrderId: args.id,
+            error: result.error,
+          });
+          return {
+            success: false,
+            errors: [{ code: "ASSIGNMENT_FAILED", message: result.error || "Assignment failed" }],
+          };
+        }
+
+        logger.info("[GraphQL] Work order assigned successfully", {
+          userId: ctx.userId,
+          workOrderId: args.id,
+          vendorId: args.vendorId,
+        });
+
+        return {
+          success: true,
+          errors: [],
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to assign work order", error as Error, {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+        return {
+          success: false,
+          errors: [{ code: "INTERNAL_ERROR", message: "Failed to assign work order" }],
+        };
+      }
     },
 
     // Complete work order
@@ -1226,15 +1401,83 @@ export const resolvers = {
         actualCost: args.actualCost,
       });
 
-      return {
-        success: false,
-        errors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "Work order completion via GraphQL is not yet implemented",
-          },
-        ],
-      };
+      try {
+        await connectToDatabase();
+
+        // Validate ObjectId format
+        if (!Types.ObjectId.isValid(args.id)) {
+          return {
+            success: false,
+            errors: [{ code: "INVALID_ID", message: "Invalid work order ID format" }],
+          };
+        }
+
+        // Require user and tenant context
+        if (!ctx.userId || !ctx.orgId) {
+          return {
+            success: false,
+            errors: [{ code: "AUTH_REQUIRED", message: "User and organization context required" }],
+          };
+        }
+
+        // Use WorkOrderService for status transition with FSM validation
+        // Transition to WORK_COMPLETE status
+        // Derive caller role from context (default to TECHNICIAN if not available)
+        const callerRoles = ctx.roles ?? [];
+        const primaryRole = callerRoles[0];
+        const resolvedRole = (primaryRole && Object.values(Role).includes(primaryRole as Role))
+          ? (primaryRole as Role)
+          : Role.TECHNICIAN; // Safe fallback for completion action
+
+        const result = await WorkOrderService.transitionStatus(
+          args.id,
+          WOStatus.WORK_COMPLETE,
+          ctx.userId,
+          ctx.orgId,
+          resolvedRole,
+          args.notes || "Completed via GraphQL API"
+        );
+
+        if (!result.success) {
+          logger.warn("[GraphQL] Work order completion failed", {
+            userId: ctx.userId,
+            workOrderId: args.id,
+            error: result.error,
+          });
+          return {
+            success: false,
+            errors: [{ code: "TRANSITION_FAILED", message: result.error || "Completion failed" }],
+          };
+        }
+
+        // If actualCost provided, update it separately (with tenant scoping)
+        if (args.actualCost !== undefined) {
+          const db = await getDatabase();
+          await db.collection(COLLECTIONS.WORK_ORDERS).updateOne(
+            { _id: new Types.ObjectId(args.id), orgId: ctx.orgId },
+            { $set: { actualCost: args.actualCost, updatedAt: new Date() } }
+          );
+        }
+
+        logger.info("[GraphQL] Work order completed successfully", {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+
+        return {
+          success: true,
+          errors: [],
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to complete work order", error as Error, {
+          userId: ctx.userId,
+          workOrderId: args.id,
+        });
+        return {
+          success: false,
+          errors: [{ code: "INTERNAL_ERROR", message: "Failed to complete work order" }],
+        };
+      }
     },
   },
 };

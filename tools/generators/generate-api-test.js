@@ -124,7 +124,7 @@ describe('${moduleName.toUpperCase()} ${resourceName} API', () => {
       const request = new NextRequest(baseUrl);
       const response = await GET(request${hasIdParam ? ', { params: Promise.resolve({ id: "test-id" }) }' : ''});
       
-      // TODO: Mock the model to return test data
+      // CUSTOMIZE: Mock the model to return test data
       expect([200, 404, 500]).toContain(response.status);
     });
 
@@ -199,7 +199,7 @@ ${hasZod ? `
         role: 'ADMIN',
       } as never);
       
-      // TODO: Add valid request body for this endpoint
+      // CUSTOMIZE: Add valid request body for this endpoint
       const validBody = {};
       
       const request = new NextRequest(baseUrl, {
@@ -209,7 +209,7 @@ ${hasZod ? `
       });
       const response = await POST(request${hasIdParam ? ', { params: Promise.resolve({ id: "test-id" }) }' : ''});
       
-      // TODO: Mock the model to verify creation
+      // CUSTOMIZE: Mock the model to verify creation
       expect([200, 201, 400, 500]).toContain(response.status);
     });
   });
@@ -241,7 +241,7 @@ ${hasZod ? `
         role: 'ADMIN',
       } as never);
       
-      // TODO: Add valid update body for this endpoint
+      // CUSTOMIZE: Add valid update body for this endpoint
       const updateBody = {};
       
       const request = new NextRequest(baseUrl, {

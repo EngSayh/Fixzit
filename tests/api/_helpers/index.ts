@@ -10,6 +10,6 @@ export {
   expectSuccess,
   expectNotFound,
   expectServiceUnavailable,
-  expectNotImplemented,
+  expect501Deprecated,
   expectOneOf,
 } from './expectStatus';

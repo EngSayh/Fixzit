@@ -127,6 +127,7 @@ let failures = [];
       "jobs",
       "server",
       "lib",
+      "issue-tracker",  // CLI tool, not frontend
     ]);
     const skipFiles = new Set(["setup.js", "vitest.setup.ts", "jest.setup.ts"]);
     for (const file of walk(ROOT)) {
@@ -136,6 +137,8 @@ let failures = [];
       const fileName = path.basename(rel).toLowerCase();
       if (skipDirs.has(head) || skipFiles.has(fileName)) continue; // Focus on frontend app/components only
       const txt = fs.readFileSync(file, "utf8");
+      // Skip if file has eslint-disable comment for no-console (intentional debugging)
+      if (/eslint-disable[^*]*no-console/.test(txt)) continue;
       if (rx.test(txt)) offenders.push(rel);
       if (offenders.length > 200) break;
     }
@@ -157,10 +160,15 @@ let failures = [];
     "modules",
     "services",
   ]);
+  // Files that are intentionally duplicated per route segment (Next.js convention)
+  const allowedDuplicates = new Set(["error.tsx", "loading.tsx", "not-found.tsx"]);
   for (const abs of walk(ROOT)) {
     const rel = path.relative(ROOT, abs);
     const head = rel.split(path.sep)[0].toLowerCase();
     if (!primaryDirs.has(head)) continue; // Only check primary app directories
+    // Skip intentionally duplicated Next.js route segment files
+    const fileName = path.basename(rel);
+    if (allowedDuplicates.has(fileName)) continue;
     // Only hash medium-sized text files quickly; skip >2MB to avoid noise
     try {
       const stat = fs.statSync(abs);

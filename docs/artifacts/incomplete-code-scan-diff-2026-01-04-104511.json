@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-01-04T10:45:11+03:00",
+  "baseline": "docs\\artifacts\\incomplete-code-scan-2026-01-04.json",
+  "current": "docs\\artifacts\\incomplete-code-scan-2026-01-04-104511.json",
+  "summary": {
+    "added": 0,
+    "resolved": 6,
+    "current": 18,
+    "baseline": 23
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/owner/statements/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "owner-statements-export-endpoint-not-implemented-feature-app-api-owner-statement",
+          "title": "Owner statements export endpoint not implemented",
+          "location": "app/api/owner/statements/route.ts:379"
+        }
+      ]
+    },
+    {
+      "file": "jobs/export-worker.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "implement-proper-xlsx-export-using-exceljs-sheetjs-when-needed-feature-jobs-expo",
+          "title": "Implement proper XLSX export using exceljs/sheetjs when needed.",
+          "location": "jobs/export-worker.ts:42"
+        }
+      ]
+    },
+    {
+      "file": "lib/graphql/index.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1158",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1158"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1182",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1182"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1207",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1207"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1233",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1233"
+        }
+      ]
+    }
+  ]
+}

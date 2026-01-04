@@ -122,15 +122,17 @@ export async function sendEmail(
   },
 ): Promise<EmailResult> {
   const maskedTo = maskEmailAddress(to);
-  if (!process.env.SENDGRID_API_KEY) {
-    const error = "SendGrid not configured. Missing SENDGRID_API_KEY";
+  // Support both new (SENDGRID_API_KEY) and legacy (SEND_GRID) variable names
+  const sendgridApiKey = process.env.SENDGRID_API_KEY || process.env.SEND_GRID;
+  if (!sendgridApiKey) {
+    const error = "SendGrid not configured. Set SENDGRID_API_KEY or SEND_GRID environment variable.";
     logger.warn("[Email] Configuration missing", { to: maskedTo });
     return { success: false, error };
   }
 
   try {
     const sgMail = (await import("@sendgrid/mail")).default;
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sgMail.setApiKey(sendgridApiKey);
 
     // Use circuit breaker to protect against SendGrid failures
     const result = await sendgridBreaker.run(async () => sgMail.send({

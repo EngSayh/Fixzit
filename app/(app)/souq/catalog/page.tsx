@@ -7,8 +7,6 @@ import {
   ShoppingCart,
   Heart,
   Star,
-  User,
-  LogIn,
 } from "@/components/ui/icons";
 import Link from "next/link";
 import Image from "next/image";
@@ -177,22 +175,7 @@ export default function CatalogPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Link
-                href="/login"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:text-success"
-              >
-                <User className="w-4 h-4" />
-                {t("common.signIn", "Sign In")}
-              </Link>
-              <Link
-                href="/login"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-success text-white rounded-2xl hover:bg-success/90"
-              >
-                <LogIn className="w-4 h-4" />
-                {t("common.signUp", "Sign Up")}
-              </Link>
-            </div>
+            {/* Sign In/Sign Up removed - already in TopBar */}
           </div>
         </div>
       </div>

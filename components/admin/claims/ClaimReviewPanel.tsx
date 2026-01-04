@@ -527,8 +527,8 @@ export default function ClaimReviewPanel() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="الحالة">
-              <SelectTrigger className="w-full md:w-[200px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="الحالة" className="w-full md:w-[200px]">
+              <SelectTrigger>
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
                 </div>
@@ -541,8 +541,8 @@ export default function ClaimReviewPanel() {
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="الأولوية">
-              <SelectTrigger className="w-full md:w-[200px]">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="الأولوية" className="w-full md:w-[200px]">
+              <SelectTrigger>
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
                 </div>

@@ -133,7 +133,7 @@ export default function OtherOffersTab({
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortOption)}
-          className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
+          className="h-8 px-3 py-1.5 border border-border rounded-md text-sm bg-background text-foreground"
         >
           <option value="price">
             {auto("Sort by: Price (Low to High)", "sort.price")}
@@ -252,7 +252,7 @@ export default function OtherOffersTab({
                     onChange={(e) =>
                       handleQuantityChange(offer._id, Number(e.target.value))
                     }
-                    className="w-16 px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
+                    className="w-16 h-8 px-2 py-1.5 border border-border rounded-md text-sm bg-background text-foreground"
                     disabled={offer.availableQuantity === 0}
                   >
                     {[...Array(Math.min(10, offer.availableQuantity))].map(

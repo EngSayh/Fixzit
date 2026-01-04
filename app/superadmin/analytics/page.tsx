@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, Users, 
@@ -120,8 +120,9 @@ export default function SuperadminAnalyticsPage() {
           <p className="text-muted-foreground">System-wide analytics and business intelligence</p>
         </div>
         <div className="flex gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange} placeholder="Time Range">
+          <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[120px] bg-muted border-input text-foreground">
+              <SelectValue placeholder="Time Range" />
             </SelectTrigger>
             <SelectContent className="bg-muted border-input">
               <SelectItem value="24h">Last 24h</SelectItem>

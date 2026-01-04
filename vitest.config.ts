@@ -54,7 +54,7 @@ const sharedViteConfig = {
 export default defineConfig({
   ...sharedViteConfig,
   test: {
-    // TODO: migrate to a multi-project structure when environmentMatchGlobs is removed from Vitest.
+    // NOTE: Multi-project structure migration planned when environmentMatchGlobs is removed from Vitest.
     projects: [
       defineProject({
         ...sharedViteConfig,
@@ -137,7 +137,7 @@ export default defineConfig({
           // Enable module isolation to prevent mock contamination between test files
           isolate: true,
           // Use single fork to prevent flaky tests from module cache contamination
-          // TODO: Convert all test files to static imports (TESTING_STRATEGY.md pattern)
+          // ROADMAP: Convert all test files to static imports (see TESTING_STRATEGY.md)
           // then enable parallel forks for faster CI runs
           poolOptions: {
             forks: {

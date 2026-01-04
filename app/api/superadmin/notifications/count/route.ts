@@ -5,7 +5,7 @@
  * @access Private - Superadmin session required
  * 
  * @feature Superadmin Notification Badge
- * @issue TODO: Notification count badge for superadmin header
+ * @status IMPLEMENTED - Badge count returns unread notifications
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Count MFA approvals pending (important security items)
-    const mfaApprovalsCount = await db.collection("mfa_approvals").countDocuments({
+    const mfaApprovalsCount = await db.collection(COLLECTIONS.MFA_APPROVALS).countDocuments({
       status: "pending",
     }).catch(() => 0); // MFA collection may not exist
 

@@ -152,13 +152,7 @@ export default function LandingPage() {
               >
                 {translate("Book a Demo", "hero.actions.bookDemo")}
               </Link>
-              <Link
-                href="/login"
-                className="text-white/90 hover:text-white underline-offset-4 hover:underline text-base font-medium transition-colors"
-                aria-label={translate("Sign in to your account", "hero.actions.signInLabel")}
-              >
-                {translate("Sign in", "hero.actions.signIn")}
-              </Link>
+              {/* Sign In removed - already in TopBar */}
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
               {heroHighlights.map((highlight) => (

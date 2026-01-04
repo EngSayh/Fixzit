@@ -726,7 +726,10 @@ function calculateIncomeScore(
 
 /**
  * Calculate credit score
- * Note: Would integrate with credit bureau in production
+ * Integrates with SIMAH (Saudi Credit Bureau) when configured
+ * Falls back to internal payment history analysis
+ * 
+ * @see https://www.simah.com/ - Saudi Credit Bureau
  */
 async function calculateCreditScore(
   orgId: string,
@@ -734,9 +737,167 @@ async function calculateCreditScore(
   redFlags: string[],
   positiveIndicators: string[]
 ): Promise<number> {
-  // Placeholder - would integrate with SIMAH or other Saudi credit bureau
-  // For now, return a neutral score with random variation
+  // Check for SIMAH integration configuration
+  const simahEnabled = process.env.SIMAH_API_ENABLED === 'true';
+  const simahApiUrl = process.env.SIMAH_API_URL;
+  const simahApiKey = process.env.SIMAH_API_KEY;
+  const simahClientId = process.env.SIMAH_CLIENT_ID;
   
+  // SIMAH Integration (when fully configured)
+  if (simahEnabled && simahApiUrl && simahApiKey && simahClientId) {
+    try {
+      const simahScore = await fetchSimahCreditScore(
+        simahApiUrl,
+        simahApiKey,
+        simahClientId,
+        nationalId,
+        redFlags,
+        positiveIndicators
+      );
+      
+      if (simahScore !== null) {
+        return simahScore;
+      }
+      // Fall through to internal scoring on SIMAH error
+    } catch (error) {
+      logger.error("SIMAH credit check failed, falling back to internal scoring", {
+        component: "tenant-screening",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  
+  // Fallback: Internal payment history analysis
+  return calculateInternalCreditScore(orgId, nationalId, redFlags, positiveIndicators);
+}
+
+/**
+ * Fetch credit score from SIMAH (Saudi Credit Bureau)
+ * 
+ * SIMAH returns credit reports with scores ranging from 300-900
+ * We normalize this to our 0-100 scale
+ * 
+ * Required environment variables:
+ * - SIMAH_API_ENABLED: 'true' to enable
+ * - SIMAH_API_URL: SIMAH API endpoint
+ * - SIMAH_API_KEY: API authentication key
+ * - SIMAH_CLIENT_ID: Client identifier for SIMAH
+ */
+async function fetchSimahCreditScore(
+  apiUrl: string,
+  apiKey: string,
+  clientId: string,
+  nationalId: string,
+  redFlags: string[],
+  positiveIndicators: string[]
+): Promise<number | null> {
+  // Configurable timeout for SIMAH API (default 10 seconds)
+  const SIMAH_TIMEOUT_MS = 10_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SIMAH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${apiUrl}/v1/credit-report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'X-Client-ID': clientId,
+      },
+      body: JSON.stringify({
+        nationalId,
+        consentProvided: true,
+        reportType: 'CREDIT_SCORE',
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // No credit history found - common for first-time renters
+        positiveIndicators.push("No negative credit history on record");
+        return 65; // Neutral score for no history
+      }
+      
+      logger.warn("SIMAH API error", {
+        component: "tenant-screening",
+        status: response.status,
+      });
+      return null;
+    }
+
+    const data = await response.json() as {
+      score: number; // SIMAH score 300-900
+      riskCategory: 'LOW' | 'MEDIUM' | 'HIGH';
+      activeDefaults: number;
+      totalInquiries: number;
+    };
+
+    // Validate score is a number
+    if (typeof data.score !== 'number' || isNaN(data.score)) {
+      logger.warn("SIMAH API returned invalid score", {
+        component: "tenant-screening",
+        rawScore: data.score,
+      });
+      return null;
+    }
+
+    // Normalize SIMAH score (300-900) to our scale (0-100) and clamp to valid range
+    const rawNormalized = ((data.score - 300) / 600) * 100;
+    const normalizedScore = Math.max(0, Math.min(100, Math.round(rawNormalized)));
+
+    // Add indicators based on SIMAH data
+    if (data.activeDefaults > 0) {
+      redFlags.push(`${data.activeDefaults} active default(s) reported to SIMAH`);
+    }
+    
+    if (data.riskCategory === 'LOW') {
+      positiveIndicators.push("SIMAH credit rating: Low Risk");
+    } else if (data.riskCategory === 'HIGH') {
+      redFlags.push("SIMAH credit rating: High Risk");
+    }
+    
+    if (data.totalInquiries > 10) {
+      redFlags.push(`High number of recent credit inquiries (${data.totalInquiries})`);
+    }
+
+    logger.info("SIMAH credit score retrieved", {
+      component: "tenant-screening",
+      rawScore: data.score,
+      normalizedScore,
+      riskCategory: data.riskCategory,
+    });
+
+    return normalizedScore;
+  } catch (error) {
+    // Handle timeout specifically
+    if (error instanceof Error && error.name === 'AbortError') {
+      logger.error("SIMAH API request timed out", {
+        component: "tenant-screening",
+        timeoutMs: 10_000,
+      });
+      return null;
+    }
+    logger.error("Failed to fetch SIMAH credit score", {
+      component: "tenant-screening",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+/**
+ * Calculate credit score using internal payment history
+ * Used as fallback when SIMAH is not configured
+ */
+async function calculateInternalCreditScore(
+  orgId: string,
+  nationalId: string,
+  redFlags: string[],
+  positiveIndicators: string[]
+): Promise<number> {
   try {
     const db = await getDatabase();
     

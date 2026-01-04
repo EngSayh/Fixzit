@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-01-04T14:03:04+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-04-131727.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-04-140147.json",
+  "summary": {
+    "added": 0,
+    "resolved": 3,
+    "current": 18,
+    "baseline": 21
+  },
+  "fileChanges": [
+    {
+      "file": "jobs/onboarding-ocr-worker.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "onboarding-ocr-worker-uses-simulated-placeholder-feature-jobs-onboarding-ocr-wor",
+          "title": "Onboarding OCR worker uses simulated placeholder",
+          "location": "jobs/onboarding-ocr-worker.ts:137"
+        }
+      ]
+    },
+    {
+      "file": "server/models/souq/ClaimsOrder.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "claimsorder-schema-follow-up-todo-2-refactor-server-models-souq-claimsorder-ts",
+          "title": "ClaimsOrder schema follow-up TODO-2",
+          "location": "server/models/souq/ClaimsOrder.ts:32"
+        }
+      ]
+    },
+    {
+      "file": "services/aqar/tenant-screening.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "tenant-screening-credit-bureau-integration-placeholder-feature-services-aqar-ten",
+          "title": "Tenant screening credit bureau integration placeholder",
+          "location": "services/aqar/tenant-screening.ts:737"
+        }
+      ]
+    }
+  ]
+}

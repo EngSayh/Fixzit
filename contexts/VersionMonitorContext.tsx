@@ -1,0 +1,401 @@
+"use client";
+
+/**
+ * Version Monitor Context
+ * 
+ * Provides system-wide auto-reload capability with draft save functionality.
+ * Detects when a new version is deployed (via build ID comparison) and:
+ * 1. Saves current work as draft to localStorage
+ * 2. Forces a reload to get the latest version
+ * 
+ * Works across all environments: localhost, production, preview, development
+ * 
+ * @module contexts/VersionMonitorContext
+ */
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  ReactNode,
+} from "react";
+import { logger } from "@/lib/logger";
+
+// Storage key prefix for drafts
+const DRAFT_STORAGE_PREFIX = "fixzit:draft:";
+const VERSION_STORAGE_KEY = "fixzit:build-version";
+const DRAFT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Check interval for version updates (30 seconds in dev, 60 seconds in prod)
+const VERSION_CHECK_INTERVAL_MS = 
+  process.env.NODE_ENV === "development" ? 30_000 : 60_000;
+
+export interface DraftData {
+  id: string;
+  path: string;
+  timestamp: number;
+  expiresAt: number;
+  data: Record<string, unknown>;
+  formState?: Record<string, unknown>;
+}
+
+export interface VersionInfo {
+  buildId: string;
+  deployedAt: string;
+  environment: string;
+  gitCommit?: string;
+}
+
+export interface VersionMonitorContextValue {
+  /** Current build version info */
+  currentVersion: VersionInfo | null;
+  
+  /** Whether a new version is available */
+  newVersionAvailable: boolean;
+  
+  /** Whether auto-reload is enabled */
+  autoReloadEnabled: boolean;
+  
+  /** Toggle auto-reload behavior */
+  setAutoReloadEnabled: (enabled: boolean) => void;
+  
+  /** Manually check for version updates */
+  checkForUpdates: () => Promise<boolean>;
+  
+  /** Force reload to get new version (saves drafts first) */
+  forceReload: () => Promise<void>;
+  
+  /** Save current page state as draft */
+  saveDraft: (pageId: string, data: Record<string, unknown>) => void;
+  
+  /** Load draft for current page */
+  loadDraft: (pageId: string) => DraftData | null;
+  
+  /** Clear draft for current page */
+  clearDraft: (pageId: string) => void;
+  
+  /** Clear all drafts */
+  clearAllDrafts: () => void;
+  
+  /** Get all saved drafts */
+  getAllDrafts: () => DraftData[];
+  
+  /** Whether draft exists for current page */
+  hasDraft: (pageId: string) => boolean;
+  
+  /** Subscribe to version change events */
+  onVersionChange: (callback: (newVersion: VersionInfo) => void) => () => void;
+}
+
+const VersionMonitorContext = createContext<VersionMonitorContextValue | undefined>(undefined);
+
+export function useVersionMonitor(): VersionMonitorContextValue {
+  const ctx = useContext(VersionMonitorContext);
+  if (!ctx) {
+    throw new Error("useVersionMonitor must be used within a VersionMonitorProvider");
+  }
+  return ctx;
+}
+
+// Safe localStorage access
+function safeGetItem(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(key: string, value: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeRemoveItem(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+interface ProviderProps {
+  children: ReactNode;
+  /** Initial build ID from server (if available) */
+  initialBuildId?: string;
+}
+
+export function VersionMonitorProvider({ children, initialBuildId }: ProviderProps) {
+  const [currentVersion, setCurrentVersion] = useState<VersionInfo | null>(null);
+  const [newVersionAvailable, setNewVersionAvailable] = useState(false);
+  const [autoReloadEnabled, setAutoReloadEnabled] = useState(true);
+  
+  const versionListeners = useRef<Set<(v: VersionInfo) => void>>(new Set());
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isCheckingRef = useRef(false);
+  
+  // Initialize from stored version
+  useEffect(() => {
+    const storedVersion = safeGetItem(VERSION_STORAGE_KEY);
+    if (storedVersion) {
+      try {
+        const parsed = JSON.parse(storedVersion) as VersionInfo;
+        setCurrentVersion(parsed);
+      } catch {
+        // Invalid stored version, clear it
+        safeRemoveItem(VERSION_STORAGE_KEY);
+      }
+    }
+    
+    // Set initial version if provided
+    if (initialBuildId && !storedVersion) {
+      const initial: VersionInfo = {
+        buildId: initialBuildId,
+        deployedAt: new Date().toISOString(),
+        environment: process.env.NODE_ENV || "development",
+      };
+      setCurrentVersion(initial);
+      safeSetItem(VERSION_STORAGE_KEY, JSON.stringify(initial));
+    }
+  }, [initialBuildId]);
+  
+  // Check for version updates
+  const checkForUpdates = useCallback(async (): Promise<boolean> => {
+    if (isCheckingRef.current) return false;
+    isCheckingRef.current = true;
+    
+    try {
+      const response = await fetch("/api/system/version", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      
+      if (!response.ok) {
+        logger.warn("[VersionMonitor] Failed to check version", { status: response.status });
+        return false;
+      }
+      
+      const newVersion = await response.json() as VersionInfo;
+      
+      // Compare with current version
+      if (currentVersion && newVersion.buildId !== currentVersion.buildId) {
+        logger.info("[VersionMonitor] New version detected", {
+          current: currentVersion.buildId,
+          new: newVersion.buildId,
+        });
+        
+        setNewVersionAvailable(true);
+        
+        // Notify listeners
+        versionListeners.current.forEach((listener) => {
+          try {
+            listener(newVersion);
+          } catch (error) {
+            logger.error("[VersionMonitor] Listener error", { error });
+          }
+        });
+        
+        // Dispatch custom event
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("fixzit:version-update", {
+            detail: newVersion,
+          }));
+        }
+        
+        return true;
+      }
+      
+      // Update current version if first check
+      if (!currentVersion) {
+        setCurrentVersion(newVersion);
+        safeSetItem(VERSION_STORAGE_KEY, JSON.stringify(newVersion));
+      }
+      
+      return false;
+    } catch (error) {
+      logger.error("[VersionMonitor] Check failed", { error });
+      return false;
+    } finally {
+      isCheckingRef.current = false;
+    }
+  }, [currentVersion]);
+  
+  // Force reload with draft save
+  const forceReload = useCallback(async () => {
+    // Dispatch event to allow pages to save their state
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("fixzit:force-reload"));
+      
+      // Small delay to allow handlers to save
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Reload the page
+      window.location.reload();
+    }
+  }, []);
+  
+  // Draft management
+  const saveDraft = useCallback((pageId: string, data: Record<string, unknown>) => {
+    const draft: DraftData = {
+      id: pageId,
+      path: typeof window !== "undefined" ? window.location.pathname : "",
+      timestamp: Date.now(),
+      expiresAt: Date.now() + DRAFT_EXPIRY_MS,
+      data,
+    };
+    
+    safeSetItem(`${DRAFT_STORAGE_PREFIX}${pageId}`, JSON.stringify(draft));
+    logger.debug("[VersionMonitor] Draft saved", { pageId });
+  }, []);
+  
+  const loadDraft = useCallback((pageId: string): DraftData | null => {
+    const stored = safeGetItem(`${DRAFT_STORAGE_PREFIX}${pageId}`);
+    if (!stored) return null;
+    
+    try {
+      const draft = JSON.parse(stored) as DraftData;
+      
+      // Check if expired
+      if (draft.expiresAt < Date.now()) {
+        safeRemoveItem(`${DRAFT_STORAGE_PREFIX}${pageId}`);
+        return null;
+      }
+      
+      return draft;
+    } catch {
+      return null;
+    }
+  }, []);
+  
+  const clearDraft = useCallback((pageId: string) => {
+    safeRemoveItem(`${DRAFT_STORAGE_PREFIX}${pageId}`);
+    logger.debug("[VersionMonitor] Draft cleared", { pageId });
+  }, []);
+  
+  const clearAllDrafts = useCallback(() => {
+    if (typeof window === "undefined") return;
+    
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(DRAFT_STORAGE_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(safeRemoveItem);
+    logger.info("[VersionMonitor] All drafts cleared", { count: keysToRemove.length });
+  }, []);
+  
+  const getAllDrafts = useCallback((): DraftData[] => {
+    if (typeof window === "undefined") return [];
+    
+    const drafts: DraftData[] = [];
+    const now = Date.now();
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(DRAFT_STORAGE_PREFIX)) {
+        const stored = safeGetItem(key);
+        if (stored) {
+          try {
+            const draft = JSON.parse(stored) as DraftData;
+            if (draft.expiresAt > now) {
+              drafts.push(draft);
+            }
+          } catch {
+            // Invalid draft, skip
+          }
+        }
+      }
+    }
+    
+    return drafts.sort((a, b) => b.timestamp - a.timestamp);
+  }, []);
+  
+  const hasDraft = useCallback((pageId: string): boolean => {
+    return loadDraft(pageId) !== null;
+  }, [loadDraft]);
+  
+  const onVersionChange = useCallback((callback: (newVersion: VersionInfo) => void) => {
+    versionListeners.current.add(callback);
+    return () => {
+      versionListeners.current.delete(callback);
+    };
+  }, []);
+  
+  // Start version checking interval
+  useEffect(() => {
+    // Initial check after mount
+    const initialCheckTimeout = setTimeout(() => {
+      checkForUpdates();
+    }, 5000); // Wait 5 seconds before first check
+    
+    // Set up interval
+    checkIntervalRef.current = setInterval(() => {
+      checkForUpdates();
+    }, VERSION_CHECK_INTERVAL_MS);
+    
+    // Check on visibility change (when user returns to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkForUpdates();
+      }
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      clearTimeout(initialCheckTimeout);
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [checkForUpdates]);
+  
+  // Auto-reload when new version is available (if enabled)
+  useEffect(() => {
+    if (newVersionAvailable && autoReloadEnabled) {
+      // Add a small delay to allow UI to show the notification
+      const reloadTimeout = setTimeout(() => {
+        forceReload();
+      }, 3000); // 3 second delay
+      
+      return () => clearTimeout(reloadTimeout);
+    }
+  }, [newVersionAvailable, autoReloadEnabled, forceReload]);
+  
+  const value: VersionMonitorContextValue = {
+    currentVersion,
+    newVersionAvailable,
+    autoReloadEnabled,
+    setAutoReloadEnabled,
+    checkForUpdates,
+    forceReload,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+    clearAllDrafts,
+    getAllDrafts,
+    hasDraft,
+    onVersionChange,
+  };
+  
+  return (
+    <VersionMonitorContext.Provider value={value}>
+      {children}
+    </VersionMonitorContext.Provider>
+  );
+}

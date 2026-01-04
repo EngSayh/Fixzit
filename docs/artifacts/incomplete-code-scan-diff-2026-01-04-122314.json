@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-01-04T12:23:14+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-04-114809.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-04-122314.json",
+  "summary": {
+    "added": 1,
+    "resolved": 5,
+    "current": 23,
+    "baseline": 27
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/aqar/offline/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "aqar-offline-sync-post-is-stubbed-feature-app-api-aqar-offline-route-ts",
+          "title": "Aqar offline sync POST is stubbed",
+          "location": "app/api/aqar/offline/route.ts:83"
+        }
+      ]
+    },
+    {
+      "file": "jobs/onboarding-ocr-worker.ts",
+      "added": [
+        {
+          "key": "onboarding-ocr-integration-pending-feature-jobs-onboarding-ocr-worker-ts",
+          "title": "Onboarding OCR integration pending",
+          "location": "jobs/onboarding-ocr-worker.ts:137"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "onboarding-ocr-worker-uses-simulated-placeholder-feature-jobs-onboarding-ocr-wor",
+          "title": "Onboarding OCR worker uses simulated placeholder",
+          "location": "jobs/onboarding-ocr-worker.ts:23"
+        }
+      ]
+    },
+    {
+      "file": "server/models/souq/ClaimsOrder.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "claimsorder-schema-mismatch-todo-001-refactor-server-models-souq-claimsorder-ts",
+          "title": "ClaimsOrder schema mismatch - TODO-001",
+          "location": "server/models/souq/ClaimsOrder.ts:16"
+        }
+      ]
+    },
+    {
+      "file": "services/souq/settlements/payout-processor.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "sadad-span-live-payout-mode-not-implemented-bug-services-souq-settlements-payout",
+          "title": "SADAD/SPAN live payout mode not implemented",
+          "location": "services/souq/settlements/payout-processor.ts:599"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/api/work-orders/patch.route.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "s3-cleanup-testability-todo-missing-test-tests-unit-api-work-orders-patch-route-",
+          "title": "S3 cleanup testability TODO",
+          "location": "tests/unit/api/work-orders/patch.route.test.ts:275"
+        }
+      ]
+    }
+  ]
+}

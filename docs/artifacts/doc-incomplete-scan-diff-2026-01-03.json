@@ -1,0 +1,1302 @@
+{
+  "generatedAt": "2026-01-03T20:57:10+03:00",
+  "totals": {
+    "todo": 1643,
+    "not_implemented": 289,
+    "placeholder": 185
+  },
+  "baselineDocCount": 3,
+  "currentDocCount": 218,
+  "newDocs": [
+    "AGENTS.md",
+    "BACKLOG_AUDIT.json",
+    "ISSUES_REGISTER.md",
+    "MASTER_PENDING_REPORT.md",
+    "PR_COPILOT_BATCH_SUMMARY.md",
+    "PR_DESCRIPTION_PHASE_1.md",
+    "ai-memory/batches/README.md",
+    "ai-memory/outputs/README.md",
+    "artifacts/audit/2025-12-17/BRANDING_IMPLEMENTATION_REPORT.md",
+    "docs/ACTION_PLAN_2025-12-18.md",
+    "docs/AGENTS.md",
+    "docs/AGENT_FRESH_RUN_REPORT.md",
+    "docs/AGGREGATE_QA_REPORT.md",
+    "docs/AI_IMPROVEMENT_ANALYSIS_REPORT.md",
+    "docs/BACKLOG_AUDIT.md",
+    "docs/COMMIT-AMENDMENT-GUIDE.md",
+    "docs/COMPREHENSIVE_ACTION_PLAN.md",
+    "docs/COMPREHENSIVE_VERIFICATION_REPORT_2025-12-17.md",
+    "docs/FINANCE_PACK_INTEGRATION_TODO.md",
+    "docs/FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md",
+    "docs/I18N_MISSING_KEYS_SUMMARY.md",
+    "docs/KNOWN_ISSUES.md",
+    "docs/PR_SUMMARY.md",
+    "docs/SMS_OTP_LOGIN_GUIDE.md",
+    "docs/TAP_PAYMENTS_INTEGRATION.md",
+    "docs/TEST_FIXES_SUMMARY.md",
+    "docs/TODO_FALSE_POSITIVE_ANALYSIS.md",
+    "docs/UI_UX_ENHANCEMENT_BLUEPRINT_V1.md",
+    "docs/ai-agents/multi-agent-review-instructions.md",
+    "docs/archived/CATEGORIZED_TASKS_LIST.md",
+    "docs/archived/COMPREHENSIVE_PENDING_TASKS_NOV_11-17.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-01-09_phase2-ci-gates-complete.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-06_to_2025-11-11_comprehensive_report.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-10_Comprehensive_5_Day_Status_Report.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-10_Session_Summary.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-11-comprehensive-fixes-pr273-272.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-11_5_Day_Complete_Summary.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_COMPREHENSIVE_SYSTEM_SCAN.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_FINAL_5_DAY_COMPLETION.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_PENDING_TASKS_100_PERCENT.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_WHERE_WE_STOPPED.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-COMPREHENSIVE-SYSTEM-SCAN-BASELINE.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-CONSOLIDATION-COMPLETE.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-FINAL-SESSION-COMPLETE.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-FINAL-quick-wins-complete.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-SESSION-COMPLETE.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-code-scanning-documentation.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-phase-100-percent-completion.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13_ALL_FIXES_COMPLETE.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13_SYSTEM_AUDIT_PENDING_TASKS.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-14-PRODUCTION-READY-PROGRESS.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-14-PRODUCTION-TASKS-COMPLETE.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_1549_SECURITY_AUDIT_PAUSE_REPORT.md",
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_PR380_SECURITY_AUDIT_PROGRESS.md",
+    "docs/archived/FIXZIT_AGENT_COMPLETION_REPORT.md",
+    "docs/archived/HIGH_PRIORITY_COMPLETION_REPORT_INACCURATE.md",
+    "docs/archived/HIGH_PRIORITY_TODOS_CORRECTED_REPORT.md",
+    "docs/archived/HISTORICAL_NOTES_CLEANUP_2025-12-11.md",
+    "docs/archived/PAYTABS_IMPLEMENTATION_COMPLETE.md",
+    "docs/archived/PRIORITY_ITEMS_RESOLVED.md",
+    "docs/archived/RTL_QA_SESSION_NOV_17.md",
+    "docs/archived/SECURITY_FIXES_COMPLETED.md",
+    "docs/archived/TRANSLATION_BACKFILL_NEEDED.md",
+    "docs/archived/TRANSLATION_MIGRATION_GAPS.md",
+    "docs/archived/analysis/analysis/AUDIT_RESPONSE_SUMMARY.md",
+    "docs/archived/analysis/analysis/COMMENTS_ANALYSIS_REPORT.md",
+    "docs/archived/analysis/analysis/COMPREHENSIVE_30_DAY_AUDIT_REPORT.md",
+    "docs/archived/analysis/analysis/CORRECTED_AUDIT_REPORT_NOV_2025.md",
+    "docs/archived/analysis/analysis/DIRTY_TREE_ANALYSIS.md",
+    "docs/archived/analysis/analysis/PROBLEMS_ANALYSIS_REPORT.md",
+    "docs/archived/analysis/analysis/SYSTEM_ANALYSIS_AND_ACTION_PLAN.md",
+    "docs/archived/analysis/analysis/SYSTEM_VERIFICATION_REPORT.md",
+    "docs/archived/analysis/analysis/TECHNICAL_DEBT_TRACKER.md",
+    "docs/archived/analysis/analysis/WORKFLOW_FAILURES_ANALYSIS_20251014.md",
+    "docs/archived/analysis/analysis/closed-pr-comprehensive-analysis.md",
+    "docs/archived/analysis/analysis/system-errors-report.csv",
+    "docs/archived/analysis/analysis/system-wide-issues-analysis.md",
+    "docs/archived/architecture/FM_RBAC_MULTI_TENANCY_FIXES.md",
+    "docs/archived/architecture/MODULAR_ARCHITECTURE.md",
+    "docs/archived/architecture/S3_IMPLEMENTATION_PLAN.md",
+    "docs/archived/audits/POST_STABILIZATION_AUDIT_2025-12-07.md",
+    "docs/archived/audits/POST_STABILIZATION_AUDIT_2025-12-07_v2.md",
+    "docs/archived/coderabbit/CODERABBIT_CURRENT_STATUS.md",
+    "docs/archived/coderabbit/CODERABBIT_TODOS_FIXED.md",
+    "docs/archived/completion/BATCH_2_COMPLETE_SUMMARY.md",
+    "docs/archived/completion/EPIC_E_CLAIMS_SYSTEM_COMPLETE.md",
+    "docs/archived/completion/EPIC_F_ADVERTISING_COMPLETE.md",
+    "docs/archived/completion/EPIC_H_COMPLETION_REPORT.md",
+    "docs/archived/completion/INTEGRATION_WIRING_COMPLETE.md",
+    "docs/archived/completion/TASK_COMPLETION_REPORT_NOV15.md",
+    "docs/archived/completion/TYPESCRIPT_CLEANUP_COMPLETE.md",
+    "docs/archived/legacy-sessions/SESSION_2025-01-07_FINAL_SUMMARY.md",
+    "docs/archived/legacy-sessions/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md",
+    "docs/archived/manual-withdrawal-process.md",
+    "docs/archived/payment-integration-checklist.md",
+    "docs/archived/pending-history/PENDING_ITEMS_REPORT.md",
+    "docs/archived/pending-history/PENDING_TASKS_6_DAYS_SUMMARY.md",
+    "docs/archived/pending-history/PENDING_TASKS_NOV_11-17_UPDATED.md",
+    "docs/archived/pending-history/PENDING_TASKS_NOV_11_17.md",
+    "docs/archived/pending-history/PENDING_TASKS_NOV_11_17_UPDATE.md",
+    "docs/archived/phase-2/PHASE_2_COMPLETE.md",
+    "docs/archived/phase-2/PHASE_2_SESSION_3_COMPLETE.md",
+    "docs/archived/planning/100_PERCENT_COMPLETION_PLAN.md",
+    "docs/archived/planning/IMPLEMENTATION_PLAN.md",
+    "docs/archived/planning/PRIORITY_2_IMPLEMENTATION_PLAN.md",
+    "docs/archived/planning/PR_DESCRIPTION.md",
+    "docs/archived/planning/PR_REVIEW_CHECKLIST_NOV15.md",
+    "docs/archived/planning/TRANSLATION_ACTION_PLAN.md",
+    "docs/archived/progress-reports/FIX_COMPLETION_SUMMARY.md",
+    "docs/archived/progress-reports/OPTION_A_SESSION_COMPLETE.md",
+    "docs/archived/progress-reports/PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md",
+    "docs/archived/progress/BATCH_COMPLETION_PLAN.md",
+    "docs/archived/progress/CONTINUOUS_IMPROVEMENT_SESSION_REPORT.md",
+    "docs/archived/progress/ERROR_FIX_PLAN.md",
+    "docs/archived/progress/MAC_SESSION_STARTUP_SUMMARY.md",
+    "docs/archived/progress/MASSIVE_TYPE_SAFETY_PROGRESS.md",
+    "docs/archived/progress/PHASE5_6_COMPREHENSIVE_PLAN.md",
+    "docs/archived/progress/SESSION_COMPLETE_REPORT.md",
+    "docs/archived/progress/SESSION_COMPLETE_SUMMARY.md",
+    "docs/archived/progress/SYSTEM_PERFECTION_PROGRESS.md",
+    "docs/archived/progress/TEST_FRAMEWORK_STANDARDIZATION_PLAN.md",
+    "docs/archived/progress/TRANSLATION_PROGRESS_SUMMARY.md",
+    "docs/archived/pull-requests/PR_131_FIXES_COMPLETE_2025_10_19.md",
+    "docs/archived/pull-requests/PR_COMMENTS_CHECKLIST.md",
+    "docs/archived/pull-requests/PR_ERRORS_COMMENTS_REPORT.md",
+    "docs/archived/reports/5d_similarity_report.md",
+    "docs/archived/reports/ACCURATE_STATUS_REPORT.md",
+    "docs/archived/reports/CODE_QUALITY_IMPROVEMENTS_REPORT.md",
+    "docs/archived/reports/COMMENTS_VERIFIED.md",
+    "docs/archived/reports/COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md",
+    "docs/archived/reports/COMPREHENSIVE_ERROR_LIST_48H.md",
+    "docs/archived/reports/COMPREHENSIVE_FIXES_COMPLETE.md",
+    "docs/archived/reports/COMPREHENSIVE_FIX_FINAL_REPORT.md",
+    "docs/archived/reports/COMPREHENSIVE_SCAN_FINDINGS.md",
+    "docs/archived/reports/DEPLOYMENT_READINESS_STATUS.md",
+    "docs/archived/reports/DEPLOYMENT_READY_SUMMARY.md",
+    "docs/archived/reports/DUPLICATE_SCAN_REPORT_20251014.md",
+    "docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md",
+    "docs/archived/reports/ESLINT_ELIMINATION_STRATEGY.md",
+    "docs/archived/reports/FINAL_COMPREHENSIVE_FIXES_REPORT.md",
+    "docs/archived/reports/FINAL_COMPREHENSIVE_SUMMARY.md",
+    "docs/archived/reports/FIXES_IMPLEMENTATION_STATUS.md",
+    "docs/archived/reports/FIX_SUMMARY.md",
+    "docs/archived/reports/HEREDOC_SOLUTION.md",
+    "docs/archived/reports/IMPLEMENTATION_AUDIT_REPORT.md",
+    "docs/archived/reports/P0_ISSUE_PR_CLOSURE_COMPLETE.md",
+    "docs/archived/reports/PRODUCTION_READY_FIXES_2025-10-26.md",
+    "docs/archived/reports/PYTHON_SCRIPT_ISSUES_FIXED.md",
+    "docs/archived/reports/SMOKE_TEST_EXECUTION_LOG.md",
+    "docs/archived/reports/STRICT_GOVERNANCE.md",
+    "docs/archived/reports/SYSTEM_ERRORS_DETAILED_REPORT.md",
+    "docs/archived/reports/SYSTEM_ISSUE_RESOLUTION_REPORT.md",
+    "docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE.md",
+    "docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE_REPORT.md",
+    "docs/archived/reports/SYSTEM_ORGANIZATION_AUDIT_NOV14.md",
+    "docs/archived/reports/SYSTEM_SCAN_REPORT_2025-11-14.md",
+    "docs/archived/reports/TEST_STATUS_REPORT.md",
+    "docs/archived/reports/TOPBAR_TRANSLATION_FIX_2025-11-09.md",
+    "docs/archived/reports/TYPESCRIPT_MISSION_COMPLETE.md",
+    "docs/archived/reports/VERIFICATION_REPORT.md",
+    "docs/archived/reports/WORK_STATUS_FINAL.md",
+    "docs/archived/reports/audits/CODE_AUDIT_COMPLETE.md",
+    "docs/archived/reports/audits/COMPLETE_SYSTEM_AUDIT.md",
+    "docs/archived/reports/audits/FM_MODULE_COMPREHENSIVE_AUDIT.md",
+    "docs/archived/reports/fixes_5d.json",
+    "docs/archived/reports/fm-module/FM_SOUQ_STATUS_REPORT.md",
+    "docs/archived/reports/rtl/RTL_IMPLEMENTATION_STATUS.md",
+    "docs/archived/security/NEXTAUTH_V5_PRODUCTION_READINESS.md",
+    "docs/archived/security/SECURITY_FIXES_COMPLETE_2025_10_19.md",
+    "docs/archived/security/SSRF_AUDIT.md",
+    "docs/archived/sessions/FIX_SUMMARY_COMPREHENSIVE_2025_10_19.md",
+    "docs/archived/sessions/FIX_SUMMARY_DOCUMENTATION_CODE_QUALITY_2025_10_19.md",
+    "docs/archived/sessions/SESSION_COMPLETE_2025_10_19.md",
+    "docs/archived/status/ABSOLUTE_FINAL_STATUS.md",
+    "docs/archived/status/FINAL_COMPREHENSIVE_ANALYSIS.md",
+    "docs/archived/status/SYSTEM_100_PERCENT_PERFECT.md",
+    "docs/archived/status/SYSTEM_STATUS.md",
+    "docs/archived/status/TEST_IMPROVEMENTS_COMPLETE.md",
+    "docs/archived/workspace-org/PENDING_TASKS_AND_FILE_ORGANIZATION.md",
+    "docs/artifacts/TODO_SCAN_ACTION_PLAN_2026-01-02.md",
+    "docs/artifacts/doc-incomplete-scan-diff-2026-01-03.json",
+    "docs/artifacts/incomplete-code-scan-2026-01-03.json",
+    "docs/artifacts/incomplete-code-scan-post-patch-2026-01-03.json",
+    "docs/artifacts/todo-scan-2026-01-02.json",
+    "docs/audit/offline-resilience-verification.md",
+    "docs/current/TECHNICAL_DEBT_BACKLOG.md",
+    "docs/development/ENHANCEMENT_ROADMAP.md",
+    "docs/engineering/SYSTEM_WIDE_AUDIT.md",
+    "docs/engineering/SYSTEM_WIDE_TEST_AND_GUARD_AUDIT.md",
+    "docs/engineering/TEST_SKIP_LEDGER.md",
+    "docs/features/FM_NOTIFICATION_ENGINE_IMPLEMENTATION.md",
+    "docs/fixes/COMPREHENSIVE_FIXES_SUMMARY.md",
+    "docs/fixes/FINAL_FIX_REPORT.md",
+    "docs/fixes/POST_STABILIZATION_AUDIT_FIXES.md",
+    "docs/fixes/TODO_FIXES_COMPLETION_REPORT.md",
+    "docs/guides/HEALTH_CHECK_README.md",
+    "docs/guides/NEXTAUTH_V5_PRODUCTION_READINESS.md",
+    "docs/guides/TODO_FEATURES.md",
+    "docs/guides/TYPE_SAFETY_PATTERNS.md",
+    "docs/legacy/copilot-instructions.v5.2.md",
+    "docs/modules/ATS_CAREERS_FINAL_REVIEW.md",
+    "docs/notifications/SMOKE_TEST_STATUS.md",
+    "docs/performance/PERFORMANCE_RESULTS.md",
+    "docs/phases/P72_TODO_FIXME_AUDIT.md",
+    "docs/phases/P91_CODE_QUALITY_SCAN.md",
+    "docs/phases/P94_TECH_DEBT_FUTURE_PROOFING.md",
+    "docs/pr-reviews/PR_313_ACTION_PLAN.md",
+    "docs/requirements/011-blueprint-bible-2025-12-19.md",
+    "i18n/chunks/ar/misc.json",
+    "i18n/chunks/en/misc.json",
+    "i18n/generated/ar.dictionary.json",
+    "i18n/generated/en.dictionary.json",
+    "i18n/sources/admin.translations.json",
+    "i18n/sources/signup.translations.json",
+    "review_pr557.md"
+  ],
+  "resolvedDocs": [],
+  "topDocs": [
+    {
+      "file": "docs/PENDING_MASTER.md",
+      "counts": {
+        "todo": 258,
+        "not_implemented": 11,
+        "placeholder": 44
+      },
+      "total": 313
+    },
+    {
+      "file": "BACKLOG_AUDIT.json",
+      "counts": {
+        "todo": 230,
+        "not_implemented": 4,
+        "placeholder": 16
+      },
+      "total": 250
+    },
+    {
+      "file": "docs/BACKLOG_AUDIT.json",
+      "counts": {
+        "todo": 230,
+        "not_implemented": 4,
+        "placeholder": 16
+      },
+      "total": 250
+    },
+    {
+      "file": "docs/BACKLOG_AUDIT.md",
+      "counts": {
+        "todo": 176,
+        "not_implemented": 1,
+        "placeholder": 4
+      },
+      "total": 181
+    },
+    {
+      "file": "docs/artifacts/doc-incomplete-scan-diff-2026-01-03.json",
+      "counts": {
+        "not_implemented": 72
+      },
+      "total": 72
+    },
+    {
+      "file": "docs/artifacts/todo-scan-2026-01-02.json",
+      "counts": {
+        "todo": 37,
+        "not_implemented": 21,
+        "placeholder": 4
+      },
+      "total": 62
+    },
+    {
+      "file": "docs/SOUQ_IMPLEMENTATION_GAP_ANALYSIS.md",
+      "counts": {
+        "not_implemented": 47
+      },
+      "total": 47
+    },
+    {
+      "file": "docs/archived/HIGH_PRIORITY_TODOS_CORRECTED_REPORT.md",
+      "counts": {
+        "todo": 42
+      },
+      "total": 42
+    },
+    {
+      "file": "docs/AGENTS.md",
+      "counts": {
+        "todo": 33,
+        "placeholder": 1
+      },
+      "total": 34
+    },
+    {
+      "file": "docs/artifacts/incomplete-code-scan-post-patch-2026-01-03.json",
+      "counts": {
+        "todo": 10,
+        "not_implemented": 19
+      },
+      "total": 29
+    },
+    {
+      "file": "docs/artifacts/incomplete-code-scan-2026-01-03.json",
+      "counts": {
+        "todo": 10,
+        "not_implemented": 19
+      },
+      "total": 29
+    },
+    {
+      "file": "docs/artifacts/TODO_SCAN_ACTION_PLAN_2026-01-02.md",
+      "counts": {
+        "todo": 9,
+        "not_implemented": 10,
+        "placeholder": 5
+      },
+      "total": 24
+    },
+    {
+      "file": "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13_SYSTEM_AUDIT_PENDING_TASKS.md",
+      "counts": {
+        "todo": 21
+      },
+      "total": 21
+    },
+    {
+      "file": "docs/archived/CATEGORIZED_TASKS_LIST.md",
+      "counts": {
+        "todo": 19,
+        "placeholder": 1
+      },
+      "total": 20
+    },
+    {
+      "file": "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-SESSION-COMPLETE.md",
+      "counts": {
+        "todo": 19
+      },
+      "total": 19
+    },
+    {
+      "file": "docs/archived/reports/SYSTEM_ERRORS_DETAILED_REPORT.md",
+      "counts": {
+        "todo": 19
+      },
+      "total": 19
+    },
+    {
+      "file": "docs/archived/HIGH_PRIORITY_COMPLETION_REPORT_INACCURATE.md",
+      "counts": {
+        "todo": 18
+      },
+      "total": 18
+    },
+    {
+      "file": "docs/archived/analysis/analysis/CORRECTED_AUDIT_REPORT_NOV_2025.md",
+      "counts": {
+        "todo": 16,
+        "not_implemented": 1
+      },
+      "total": 17
+    },
+    {
+      "file": "docs/archived/pending-history/PENDING_TASKS_6_DAYS_SUMMARY.md",
+      "counts": {
+        "todo": 17
+      },
+      "total": 17
+    },
+    {
+      "file": "docs/archived/analysis/analysis/system-errors-report.csv",
+      "counts": {
+        "todo": 14,
+        "not_implemented": 2
+      },
+      "total": 16
+    },
+    {
+      "file": "docs/archived/analysis/analysis/COMMENTS_ANALYSIS_REPORT.md",
+      "counts": {
+        "todo": 16
+      },
+      "total": 16
+    },
+    {
+      "file": "docs/archived/progress/PHASE5_6_COMPREHENSIVE_PLAN.md",
+      "counts": {
+        "todo": 10,
+        "placeholder": 5
+      },
+      "total": 15
+    },
+    {
+      "file": "docs/archived/planning/IMPLEMENTATION_PLAN.md",
+      "counts": {
+        "todo": 14
+      },
+      "total": 14
+    },
+    {
+      "file": "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-code-scanning-documentation.md",
+      "counts": {
+        "todo": 13
+      },
+      "total": 13
+    },
+    {
+      "file": "docs/fixes/TODO_FIXES_COMPLETION_REPORT.md",
+      "counts": {
+        "todo": 13
+      },
+      "total": 13
+    },
+    {
+      "file": "docs/archived/completion/BATCH_2_COMPLETE_SUMMARY.md",
+      "counts": {
+        "todo": 11,
+        "placeholder": 1
+      },
+      "total": 12
+    },
+    {
+      "file": "docs/archived/reports/COMMENTS_VERIFIED.md",
+      "counts": {
+        "todo": 12
+      },
+      "total": 12
+    },
+    {
+      "file": "docs/archived/reports/IMPLEMENTATION_AUDIT_REPORT.md",
+      "counts": {
+        "todo": 8,
+        "not_implemented": 4
+      },
+      "total": 12
+    },
+    {
+      "file": "docs/development/ENHANCEMENT_ROADMAP.md",
+      "counts": {
+        "not_implemented": 12
+      },
+      "total": 12
+    },
+    {
+      "file": "docs/phases/P72_TODO_FIXME_AUDIT.md",
+      "counts": {
+        "todo": 10,
+        "not_implemented": 1
+      },
+      "total": 11
+    },
+    {
+      "file": "docs/archived/pending-history/PENDING_ITEMS_REPORT.md",
+      "counts": {
+        "todo": 11
+      },
+      "total": 11
+    },
+    {
+      "file": "docs/archived/COMPREHENSIVE_PENDING_TASKS_NOV_11-17.md",
+      "counts": {
+        "todo": 7,
+        "not_implemented": 2,
+        "placeholder": 1
+      },
+      "total": 10
+    },
+    {
+      "file": "docs/archived/pending-history/PENDING_TASKS_NOV_11_17.md",
+      "counts": {
+        "todo": 9,
+        "not_implemented": 1
+      },
+      "total": 10
+    },
+    {
+      "file": "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-11_5_Day_Complete_Summary.md",
+      "counts": {
+        "placeholder": 10
+      },
+      "total": 10
+    },
+    {
+      "file": "docs/archived/progress-reports/OPTION_A_SESSION_COMPLETE.md",
+      "counts": {
+        "todo": 9
+      },
+      "total": 9
+    },
+    {
+      "file": "docs/archived/reports/STRICT_GOVERNANCE.md",
+      "counts": {
+        "todo": 9
+      },
+      "total": 9
+    },
+    {
+      "file": "docs/archived/reports/CODE_QUALITY_IMPROVEMENTS_REPORT.md",
+      "counts": {
+        "placeholder": 9
+      },
+      "total": 9
+    },
+    {
+      "file": "docs/phases/P91_CODE_QUALITY_SCAN.md",
+      "counts": {
+        "todo": 8
+      },
+      "total": 8
+    },
+    {
+      "file": "docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE_REPORT.md",
+      "counts": {
+        "todo": 8
+      },
+      "total": 8
+    },
+    {
+      "file": "ISSUES_REGISTER.md",
+      "counts": {
+        "todo": 6,
+        "placeholder": 2
+      },
+      "total": 8
+    },
+    {
+      "file": "docs/archived/analysis/analysis/SYSTEM_ANALYSIS_AND_ACTION_PLAN.md",
+      "counts": {
+        "todo": 7
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/TODO_FALSE_POSITIVE_ANALYSIS.md",
+      "counts": {
+        "todo": 7
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/archived/TRANSLATION_MIGRATION_GAPS.md",
+      "counts": {
+        "todo": 7
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_PENDING_TASKS_100_PERCENT.md",
+      "counts": {
+        "todo": 7
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/archived/reports/COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md",
+      "counts": {
+        "todo": 6,
+        "not_implemented": 1
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/archived/security/NEXTAUTH_V5_PRODUCTION_READINESS.md",
+      "counts": {
+        "not_implemented": 2,
+        "placeholder": 5
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/engineering/TEST_SKIP_LEDGER.md",
+      "counts": {
+        "placeholder": 7
+      },
+      "total": 7
+    },
+    {
+      "file": "docs/TEST_FIXES_SUMMARY.md",
+      "counts": {
+        "todo": 6
+      },
+      "total": 6
+    },
+    {
+      "file": "docs/guides/TODO_FEATURES.md",
+      "counts": {
+        "todo": 6
+      },
+      "total": 6
+    },
+    {
+      "file": "docs/archived/reports/fm-module/FM_SOUQ_STATUS_REPORT.md",
+      "counts": {
+        "not_implemented": 6
+      },
+      "total": 6
+    }
+  ],
+  "fileCounts": {
+    "AGENTS.md": {
+      "todo": 1
+    },
+    "ai-memory/outputs/README.md": {
+      "todo": 1
+    },
+    "ai-memory/batches/README.md": {
+      "todo": 1
+    },
+    "BACKLOG_AUDIT.json": {
+      "todo": 230,
+      "not_implemented": 4,
+      "placeholder": 16
+    },
+    "artifacts/audit/2025-12-17/BRANDING_IMPLEMENTATION_REPORT.md": {
+      "todo": 1
+    },
+    "docs/ACTION_PLAN_2025-12-18.md": {
+      "todo": 1
+    },
+    "docs/AI_IMPROVEMENT_ANALYSIS_REPORT.md": {
+      "todo": 2
+    },
+    "docs/AGENT_FRESH_RUN_REPORT.md": {
+      "todo": 2
+    },
+    "docs/AGENTS.md": {
+      "todo": 33,
+      "placeholder": 1
+    },
+    "docs/archived/CATEGORIZED_TASKS_LIST.md": {
+      "todo": 19,
+      "placeholder": 1
+    },
+    "docs/archived/audits/POST_STABILIZATION_AUDIT_2025-12-07_v2.md": {
+      "todo": 2
+    },
+    "docs/archived/audits/POST_STABILIZATION_AUDIT_2025-12-07.md": {
+      "todo": 1
+    },
+    "docs/archived/analysis/analysis/TECHNICAL_DEBT_TRACKER.md": {
+      "todo": 3
+    },
+    "docs/archived/analysis/analysis/SYSTEM_ANALYSIS_AND_ACTION_PLAN.md": {
+      "todo": 7
+    },
+    "docs/archived/analysis/analysis/system-errors-report.csv": {
+      "todo": 14,
+      "not_implemented": 2
+    },
+    "docs/archived/architecture/S3_IMPLEMENTATION_PLAN.md": {
+      "todo": 4
+    },
+    "docs/archived/analysis/analysis/PROBLEMS_ANALYSIS_REPORT.md": {
+      "todo": 4
+    },
+    "docs/archived/architecture/FM_RBAC_MULTI_TENANCY_FIXES.md": {
+      "todo": 5
+    },
+    "docs/archived/analysis/analysis/COMMENTS_ANALYSIS_REPORT.md": {
+      "todo": 16
+    },
+    "docs/archived/analysis/analysis/CORRECTED_AUDIT_REPORT_NOV_2025.md": {
+      "todo": 16,
+      "not_implemented": 1
+    },
+    "docs/archived/analysis/analysis/AUDIT_RESPONSE_SUMMARY.md": {
+      "todo": 1
+    },
+    "docs/archived/workspace-org/PENDING_TASKS_AND_FILE_ORGANIZATION.md": {
+      "todo": 3,
+      "placeholder": 1
+    },
+    "docs/archived/analysis/analysis/COMPREHENSIVE_30_DAY_AUDIT_REPORT.md": {
+      "todo": 3
+    },
+    "docs/archived/PAYTABS_IMPLEMENTATION_COMPLETE.md": {
+      "todo": 2
+    },
+    "docs/archived/FIXZIT_AGENT_COMPLETION_REPORT.md": {
+      "todo": 1
+    },
+    "docs/TODO_FALSE_POSITIVE_ANALYSIS.md": {
+      "todo": 7
+    },
+    "docs/archived/TRANSLATION_MIGRATION_GAPS.md": {
+      "todo": 7
+    },
+    "docs/TEST_FIXES_SUMMARY.md": {
+      "todo": 6
+    },
+    "docs/archived/TRANSLATION_BACKFILL_NEEDED.md": {
+      "todo": 3,
+      "placeholder": 1
+    },
+    "docs/TAP_PAYMENTS_INTEGRATION.md": {
+      "todo": 1
+    },
+    "docs/SMS_OTP_LOGIN_GUIDE.md": {
+      "todo": 1
+    },
+    "docs/archived/status/TEST_IMPROVEMENTS_COMPLETE.md": {
+      "todo": 3
+    },
+    "docs/archived/HISTORICAL_NOTES_CLEANUP_2025-12-11.md": {
+      "todo": 1
+    },
+    "docs/archived/status/SYSTEM_STATUS.md": {
+      "todo": 1
+    },
+    "docs/archived/HIGH_PRIORITY_TODOS_CORRECTED_REPORT.md": {
+      "todo": 42
+    },
+    "docs/archived/HIGH_PRIORITY_COMPLETION_REPORT_INACCURATE.md": {
+      "todo": 18
+    },
+    "docs/requirements/011-blueprint-bible-2025-12-19.md": {
+      "todo": 1,
+      "not_implemented": 1
+    },
+    "docs/archived/status/SYSTEM_100_PERCENT_PERFECT.md": {
+      "todo": 2
+    },
+    "docs/archived/RTL_QA_SESSION_NOV_17.md": {
+      "todo": 1
+    },
+    "docs/archived/status/FINAL_COMPREHENSIVE_ANALYSIS.md": {
+      "todo": 2
+    },
+    "docs/archived/status/ABSOLUTE_FINAL_STATUS.md": {
+      "todo": 3
+    },
+    "docs/PR_SUMMARY.md": {
+      "todo": 2
+    },
+    "docs/archived/sessions/SESSION_COMPLETE_2025_10_19.md": {
+      "todo": 2
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_PR380_SECURITY_AUDIT_PROGRESS.md": {
+      "todo": 1
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_1549_SECURITY_AUDIT_PAUSE_REPORT.md": {
+      "todo": 2
+    },
+    "docs/archived/sessions/FIX_SUMMARY_DOCUMENTATION_CODE_QUALITY_2025_10_19.md": {
+      "todo": 3
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-14-PRODUCTION-TASKS-COMPLETE.md": {
+      "todo": 3
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-14-PRODUCTION-READY-PROGRESS.md": {
+      "todo": 3
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13_SYSTEM_AUDIT_PENDING_TASKS.md": {
+      "todo": 21
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13_ALL_FIXES_COMPLETE.md": {
+      "todo": 1
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-SESSION-COMPLETE.md": {
+      "todo": 19
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-phase-100-percent-completion.md": {
+      "todo": 2,
+      "placeholder": 1
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-FINAL-SESSION-COMPLETE.md": {
+      "todo": 3
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-FINAL-quick-wins-complete.md": {
+      "todo": 3
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-CONSOLIDATION-COMPLETE.md": {
+      "todo": 3
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-COMPREHENSIVE-SYSTEM-SCAN-BASELINE.md": {
+      "todo": 2
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-13-code-scanning-documentation.md": {
+      "todo": 13
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_WHERE_WE_STOPPED.md": {
+      "todo": 5
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_PENDING_TASKS_100_PERCENT.md": {
+      "todo": 7
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_FINAL_5_DAY_COMPLETION.md": {
+      "todo": 1
+    },
+    "docs/phases/P94_TECH_DEBT_FUTURE_PROOFING.md": {
+      "todo": 2
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-12_COMPREHENSIVE_SYSTEM_SCAN.md": {
+      "todo": 2
+    },
+    "docs/archived/security/SECURITY_FIXES_COMPLETE_2025_10_19.md": {
+      "todo": 1
+    },
+    "docs/phases/P91_CODE_QUALITY_SCAN.md": {
+      "todo": 8
+    },
+    "docs/phases/P72_TODO_FIXME_AUDIT.md": {
+      "todo": 10,
+      "not_implemented": 1
+    },
+    "docs/performance/PERFORMANCE_RESULTS.md": {
+      "todo": 2
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-11-comprehensive-fixes-pr273-272.md": {
+      "todo": 1
+    },
+    "docs/PENDING_MASTER.md": {
+      "todo": 258,
+      "not_implemented": 11,
+      "placeholder": 44
+    },
+    "docs/fixes/TODO_FIXES_COMPLETION_REPORT.md": {
+      "todo": 13
+    },
+    "docs/fixes/POST_STABILIZATION_AUDIT_FIXES.md": {
+      "todo": 1
+    },
+    "docs/archived/COMPREHENSIVE_PENDING_TASKS_NOV_11-17.md": {
+      "todo": 7,
+      "not_implemented": 2,
+      "placeholder": 1
+    },
+    "docs/fixes/FINAL_FIX_REPORT.md": {
+      "todo": 1
+    },
+    "docs/fixes/COMPREHENSIVE_FIXES_SUMMARY.md": {
+      "todo": 3
+    },
+    "docs/FINANCE_PACK_INTEGRATION_TODO.md": {
+      "todo": 1
+    },
+    "docs/archived/completion/TYPESCRIPT_CLEANUP_COMPLETE.md": {
+      "todo": 5
+    },
+    "docs/archived/completion/TASK_COMPLETION_REPORT_NOV15.md": {
+      "todo": 5
+    },
+    "docs/modules/ATS_CAREERS_FINAL_REVIEW.md": {
+      "todo": 1
+    },
+    "docs/archived/completion/EPIC_F_ADVERTISING_COMPLETE.md": {
+      "todo": 2,
+      "not_implemented": 1
+    },
+    "docs/archived/completion/BATCH_2_COMPLETE_SUMMARY.md": {
+      "todo": 11,
+      "placeholder": 1
+    },
+    "docs/features/FM_NOTIFICATION_ENGINE_IMPLEMENTATION.md": {
+      "todo": 1,
+      "not_implemented": 1
+    },
+    "docs/legacy/copilot-instructions.v5.2.md": {
+      "todo": 1
+    },
+    "docs/KNOWN_ISSUES.md": {
+      "todo": 2
+    },
+    "docs/engineering/SYSTEM_WIDE_TEST_AND_GUARD_AUDIT.md": {
+      "todo": 2
+    },
+    "docs/archived/coderabbit/CODERABBIT_TODOS_FIXED.md": {
+      "todo": 4
+    },
+    "docs/engineering/SYSTEM_WIDE_AUDIT.md": {
+      "todo": 1
+    },
+    "docs/archived/coderabbit/CODERABBIT_CURRENT_STATUS.md": {
+      "todo": 2
+    },
+    "docs/archived/reports/audits/COMPLETE_SYSTEM_AUDIT.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/WORK_STATUS_FINAL.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/5d_similarity_report.md": {
+      "todo": 1
+    },
+    "docs/archived/pull-requests/PR_COMMENTS_CHECKLIST.md": {
+      "todo": 3
+    },
+    "docs/archived/reports/TYPESCRIPT_MISSION_COMPLETE.md": {
+      "todo": 1
+    },
+    "docs/archived/pull-requests/PR_131_FIXES_COMPLETE_2025_10_19.md": {
+      "todo": 1
+    },
+    "docs/guides/TYPE_SAFETY_PATTERNS.md": {
+      "todo": 4
+    },
+    "docs/guides/TODO_FEATURES.md": {
+      "todo": 6
+    },
+    "docs/archived/reports/TEST_STATUS_REPORT.md": {
+      "todo": 4
+    },
+    "docs/current/TECHNICAL_DEBT_BACKLOG.md": {
+      "todo": 1
+    },
+    "docs/COMPREHENSIVE_ACTION_PLAN.md": {
+      "todo": 4
+    },
+    "docs/archived/reports/SYSTEM_SCAN_REPORT_2025-11-14.md": {
+      "todo": 4
+    },
+    "docs/COMMIT-AMENDMENT-GUIDE.md": {
+      "todo": 2
+    },
+    "docs/archived/progress-reports/PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE_REPORT.md": {
+      "todo": 8
+    },
+    "docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE.md": {
+      "todo": 3
+    },
+    "docs/archived/reports/SYSTEM_ISSUE_RESOLUTION_REPORT.md": {
+      "todo": 4,
+      "not_implemented": 1
+    },
+    "docs/archived/progress-reports/OPTION_A_SESSION_COMPLETE.md": {
+      "todo": 9
+    },
+    "docs/guides/HEALTH_CHECK_README.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/SYSTEM_ERRORS_DETAILED_REPORT.md": {
+      "todo": 19
+    },
+    "docs/archived/progress-reports/FIX_COMPLETION_SUMMARY.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/STRICT_GOVERNANCE.md": {
+      "todo": 9
+    },
+    "docs/BACKLOG_AUDIT.md": {
+      "todo": 176,
+      "not_implemented": 1,
+      "placeholder": 4
+    },
+    "docs/FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/rtl/RTL_IMPLEMENTATION_STATUS.md": {
+      "todo": 1
+    },
+    "docs/BACKLOG_AUDIT.json": {
+      "todo": 230,
+      "not_implemented": 4,
+      "placeholder": 16
+    },
+    "docs/archived/reports/PYTHON_SCRIPT_ISSUES_FIXED.md": {
+      "todo": 1
+    },
+    "docs/archived/progress/ERROR_FIX_PLAN.md": {
+      "todo": 1
+    },
+    "docs/archived/progress/CONTINUOUS_IMPROVEMENT_SESSION_REPORT.md": {
+      "todo": 1
+    },
+    "docs/archived/progress/BATCH_COMPLETION_PLAN.md": {
+      "todo": 3
+    },
+    "docs/archived/progress/SYSTEM_PERFECTION_PROGRESS.md": {
+      "todo": 3
+    },
+    "docs/archived/PRIORITY_ITEMS_RESOLVED.md": {
+      "todo": 3
+    },
+    "docs/artifacts/TODO_SCAN_ACTION_PLAN_2026-01-02.md": {
+      "todo": 9,
+      "not_implemented": 10,
+      "placeholder": 5
+    },
+    "docs/artifacts/todo-scan-2026-01-02.json": {
+      "todo": 37,
+      "not_implemented": 21,
+      "placeholder": 4
+    },
+    "docs/archived/progress/SESSION_COMPLETE_SUMMARY.md": {
+      "todo": 1
+    },
+    "docs/artifacts/incomplete-code-scan-post-patch-2026-01-03.json": {
+      "todo": 10,
+      "not_implemented": 19
+    },
+    "docs/artifacts/incomplete-code-scan-2026-01-03.json": {
+      "todo": 10,
+      "not_implemented": 19
+    },
+    "docs/archived/progress/PHASE5_6_COMPREHENSIVE_PLAN.md": {
+      "todo": 10,
+      "placeholder": 5
+    },
+    "docs/archived/progress/MAC_SESSION_STARTUP_SUMMARY.md": {
+      "todo": 2
+    },
+    "docs/archived/planning/TRANSLATION_ACTION_PLAN.md": {
+      "todo": 2
+    },
+    "docs/archived/reports/P0_ISSUE_PR_CLOSURE_COMPLETE.md": {
+      "todo": 1
+    },
+    "docs/archived/planning/PR_REVIEW_CHECKLIST_NOV15.md": {
+      "todo": 1
+    },
+    "docs/archived/planning/PR_DESCRIPTION.md": {
+      "todo": 1
+    },
+    "docs/archived/planning/IMPLEMENTATION_PLAN.md": {
+      "todo": 14
+    },
+    "docs/archived/reports/COMPREHENSIVE_SCAN_FINDINGS.md": {
+      "todo": 1
+    },
+    "MASTER_PENDING_REPORT.md": {
+      "todo": 4
+    },
+    "docs/archived/planning/100_PERCENT_COMPLETION_PLAN.md": {
+      "todo": 5
+    },
+    "docs/archived/reports/COMPREHENSIVE_FIXES_COMPLETE.md": {
+      "todo": 2
+    },
+    "docs/archived/reports/COMPREHENSIVE_ERROR_LIST_48H.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md": {
+      "todo": 6,
+      "not_implemented": 1
+    },
+    "ISSUES_REGISTER.md": {
+      "todo": 6,
+      "placeholder": 2
+    },
+    "docs/archived/phase-2/PHASE_2_SESSION_3_COMPLETE.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/COMMENTS_VERIFIED.md": {
+      "todo": 12
+    },
+    "docs/archived/reports/IMPLEMENTATION_AUDIT_REPORT.md": {
+      "todo": 8,
+      "not_implemented": 4
+    },
+    "docs/archived/reports/ESLINT_ELIMINATION_STRATEGY.md": {
+      "todo": 3
+    },
+    "docs/archived/pending-history/PENDING_ITEMS_REPORT.md": {
+      "todo": 11
+    },
+    "docs/archived/pending-history/PENDING_TASKS_NOV_11-17_UPDATED.md": {
+      "todo": 4
+    },
+    "docs/archived/pending-history/PENDING_TASKS_NOV_11_17_UPDATE.md": {
+      "todo": 5
+    },
+    "docs/archived/pending-history/PENDING_TASKS_6_DAYS_SUMMARY.md": {
+      "todo": 17
+    },
+    "docs/archived/pending-history/PENDING_TASKS_NOV_11_17.md": {
+      "todo": 9,
+      "not_implemented": 1
+    },
+    "docs/archived/reports/DEPLOYMENT_READY_SUMMARY.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/DEPLOYMENT_READINESS_STATUS.md": {
+      "todo": 4
+    },
+    "docs/archived/reports/FIXES_IMPLEMENTATION_STATUS.md": {
+      "todo": 1
+    },
+    "docs/archived/reports/FINAL_COMPREHENSIVE_SUMMARY.md": {
+      "todo": 2
+    },
+    "docs/archived/reports/FIX_SUMMARY.md": {
+      "todo": 2
+    },
+    "docs/archived/reports/fixes_5d.json": {
+      "todo": 1
+    },
+    "i18n/generated/en.dictionary.json": {
+      "todo": 2,
+      "not_implemented": 1
+    },
+    "i18n/generated/ar.dictionary.json": {
+      "todo": 2
+    },
+    "i18n/chunks/en/misc.json": {
+      "todo": 2
+    },
+    "i18n/chunks/ar/misc.json": {
+      "todo": 2
+    },
+    "PR_DESCRIPTION_PHASE_1.md": {
+      "todo": 4
+    },
+    "i18n/sources/signup.translations.json": {
+      "todo": 4
+    },
+    "i18n/sources/admin.translations.json": {
+      "not_implemented": 1
+    },
+    "docs/UI_UX_ENHANCEMENT_BLUEPRINT_V1.md": {
+      "not_implemented": 2
+    },
+    "docs/SOUQ_IMPLEMENTATION_GAP_ANALYSIS.md": {
+      "not_implemented": 47
+    },
+    "docs/COMPREHENSIVE_VERIFICATION_REPORT_2025-12-17.md": {
+      "not_implemented": 1
+    },
+    "docs/ai-agents/multi-agent-review-instructions.md": {
+      "not_implemented": 1
+    },
+    "docs/AGGREGATE_QA_REPORT.md": {
+      "not_implemented": 2
+    },
+    "docs/audit/offline-resilience-verification.md": {
+      "not_implemented": 1
+    },
+    "docs/artifacts/doc-incomplete-scan-diff-2026-01-03.json": {
+      "not_implemented": 72
+    },
+    "docs/development/ENHANCEMENT_ROADMAP.md": {
+      "not_implemented": 12
+    },
+    "docs/notifications/SMOKE_TEST_STATUS.md": {
+      "not_implemented": 1,
+      "placeholder": 3
+    },
+    "docs/archived/sessions/FIX_SUMMARY_COMPREHENSIVE_2025_10_19.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/SECURITY_FIXES_COMPLETED.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/security/SSRF_AUDIT.md": {
+      "not_implemented": 3
+    },
+    "docs/archived/security/NEXTAUTH_V5_PRODUCTION_READINESS.md": {
+      "not_implemented": 2,
+      "placeholder": 5
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-10_Comprehensive_5_Day_Status_Report.md": {
+      "not_implemented": 1,
+      "placeholder": 1
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-01-09_phase2-ci-gates-complete.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/completion/INTEGRATION_WIRING_COMPLETE.md": {
+      "not_implemented": 3
+    },
+    "docs/archived/completion/EPIC_H_COMPLETION_REPORT.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/VERIFICATION_REPORT.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/architecture/MODULAR_ARCHITECTURE.md": {
+      "not_implemented": 4
+    },
+    "docs/archived/reports/ACCURATE_STATUS_REPORT.md": {
+      "not_implemented": 5
+    },
+    "docs/archived/reports/PRODUCTION_READY_FIXES_2025-10-26.md": {
+      "not_implemented": 2
+    },
+    "docs/archived/manual-withdrawal-process.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/DUPLICATE_SCAN_REPORT_20251014.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/HEREDOC_SOLUTION.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/audits/FM_MODULE_COMPREHENSIVE_AUDIT.md": {
+      "not_implemented": 3
+    },
+    "docs/archived/reports/audits/CODE_AUDIT_COMPLETE.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/fm-module/FM_SOUQ_STATUS_REPORT.md": {
+      "not_implemented": 6
+    },
+    "docs/archived/progress/SESSION_COMPLETE_REPORT.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/COMPREHENSIVE_FIX_FINAL_REPORT.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/phase-2/PHASE_2_COMPLETE.md": {
+      "not_implemented": 1
+    },
+    "docs/archived/reports/FINAL_COMPREHENSIVE_FIXES_REPORT.md": {
+      "not_implemented": 1
+    },
+    "docs/pr-reviews/PR_313_ACTION_PLAN.md": {
+      "placeholder": 2
+    },
+    "docs/I18N_MISSING_KEYS_SUMMARY.md": {
+      "placeholder": 3
+    },
+    "docs/guides/NEXTAUTH_V5_PRODUCTION_READINESS.md": {
+      "placeholder": 6
+    },
+    "docs/engineering/TEST_SKIP_LEDGER.md": {
+      "placeholder": 7
+    },
+    "docs/archived/analysis/analysis/WORKFLOW_FAILURES_ANALYSIS_20251014.md": {
+      "placeholder": 3
+    },
+    "docs/archived/analysis/analysis/SYSTEM_VERIFICATION_REPORT.md": {
+      "placeholder": 1
+    },
+    "docs/archived/analysis/analysis/system-wide-issues-analysis.md": {
+      "placeholder": 4
+    },
+    "docs/archived/analysis/analysis/closed-pr-comprehensive-analysis.md": {
+      "placeholder": 1
+    },
+    "docs/archived/analysis/analysis/DIRTY_TREE_ANALYSIS.md": {
+      "placeholder": 1
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-06_to_2025-11-11_comprehensive_report.md": {
+      "placeholder": 1
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-11_5_Day_Complete_Summary.md": {
+      "placeholder": 10
+    },
+    "docs/archived/DAILY_PROGRESS_REPORTS/2025-11-10_Session_Summary.md": {
+      "placeholder": 1
+    },
+    "docs/archived/pull-requests/PR_ERRORS_COMMENTS_REPORT.md": {
+      "placeholder": 1
+    },
+    "docs/archived/completion/EPIC_E_CLAIMS_SYSTEM_COMPLETE.md": {
+      "placeholder": 6
+    },
+    "docs/archived/reports/CODE_QUALITY_IMPROVEMENTS_REPORT.md": {
+      "placeholder": 9
+    },
+    "docs/archived/reports/TOPBAR_TRANSLATION_FIX_2025-11-09.md": {
+      "placeholder": 3
+    },
+    "docs/archived/reports/SYSTEM_ORGANIZATION_AUDIT_NOV14.md": {
+      "placeholder": 1
+    },
+    "docs/archived/reports/SMOKE_TEST_EXECUTION_LOG.md": {
+      "placeholder": 1
+    },
+    "docs/archived/legacy-sessions/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md": {
+      "placeholder": 1
+    },
+    "docs/archived/legacy-sessions/SESSION_2025-01-07_FINAL_SUMMARY.md": {
+      "placeholder": 1
+    },
+    "docs/archived/progress/TRANSLATION_PROGRESS_SUMMARY.md": {
+      "placeholder": 1
+    },
+    "docs/archived/payment-integration-checklist.md": {
+      "placeholder": 1
+    },
+    "docs/archived/progress/TEST_FRAMEWORK_STANDARDIZATION_PLAN.md": {
+      "placeholder": 1
+    },
+    "docs/archived/planning/PRIORITY_2_IMPLEMENTATION_PLAN.md": {
+      "placeholder": 2
+    },
+    "docs/archived/progress/MASSIVE_TYPE_SAFETY_PROGRESS.md": {
+      "placeholder": 1
+    },
+    "PR_COPILOT_BATCH_SUMMARY.md": {
+      "placeholder": 1
+    },
+    "review_pr557.md": {
+      "placeholder": 3
+    }
+  }
+}
