@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-05T12:00:00+03:00
+  Last-Sync: 2026-01-04T18:45:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,62 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 18:45 (Asia/Riyadh) — VERSION MONITOR & SUPERADMIN USER MANAGEMENT [AGENT-0016]
+
+**Agent Token:** [AGENT-0016]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** Complete implementation of version monitoring, draft management, and superadmin user management
+
+#### New Features Implemented
+
+| Feature | Files | Description |
+|---------|-------|-------------|
+| **Version Monitor** | `contexts/VersionMonitorContext.tsx` | System-wide auto-reload with draft save functionality. Detects new version deployments and auto-saves work before reloading. |
+| **Draft Manager Hook** | `hooks/useDraftManager.ts` | Per-page draft management with auto-save on navigation, version update, and periodic intervals (30s) |
+| **Collapsible UI** | `components/ui/collapsible.tsx` | Expandable/collapsible component for nested content (used in permissions) |
+| **RBAC Submodules** | `config/rbac.submodules.ts` | ~80 granular sub-modules for fine-grained permission control |
+| **Superadmin User API** | `app/api/superadmin/users/[id]/route.ts` | GET/PATCH/DELETE endpoints for individual user management |
+| **Superadmin Permissions API** | `app/api/superadmin/users/[id]/permissions/route.ts` | POST/DELETE for user permission overrides |
+| **Enhanced PublicProviders** | `providers/PublicProviders.tsx` | Added VersionMonitorProvider to provider tree |
+
+#### Version Monitor Features
+
+- **Build ID tracking** via `/api/system/version` endpoint
+- **Draft auto-save** before version-triggered reload
+- **Manual draft save** via `saveDraft()` hook method
+- **Draft restoration** with 7-day expiry
+- **Configurable check intervals** (30s dev, 60s prod)
+
+#### Superadmin User Management Features
+
+- **User CRUD**: Create, view, update, delete users
+- **Role management**: Change user roles with validation
+- **Organization assignment**: Assign/reassign users to organizations
+- **Status management**: ACTIVE, INACTIVE, SUSPENDED, PENDING
+- **Super admin flag**: Promote/demote super admin status
+- **Permission overrides**: Grant/revoke granular sub-module permissions
+- **Audit logging**: Track all user changes with timestamps and updatedBy
+
+#### Test Fix (from AGENT-0015)
+
+| Issue | Files | Fix |
+|-------|-------|-----|
+| Claims validation test assertions | `tests/unit/api/souq/claims/claims.route.test.ts`, `tests/api/souq/claims.test.ts` | Updated tests to check `body.details` array for Zod validation errors instead of `body.error` |
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
+- Tests: ✅ 3263 passed, 4 skipped (436 test files)
+
+#### Git Summary
+
+- Branch: `agent/AGENT-0008/type-safety-fixes`
+- Commits ahead of main: 41
+- Latest commit: `1a16984fa feat(superadmin): Add version monitoring with draft save and enhanced user management`
 
 ---
 

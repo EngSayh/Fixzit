@@ -1023,7 +1023,8 @@ async function checkPriceManipulation(
     const manipulated: Array<{ productId: string; changePercent: number }> = [];
     
     for (const product of products) {
-      const history = product.priceHistory || [];
+      // [AGENT-0008] PR Review: Ensure priceHistory is an array before filtering
+      const history = Array.isArray(product.priceHistory) ? product.priceHistory : [];
       // Filter to validated entries using type guard
       const validHistory = history.filter(isPriceHistoryEntry);
       if (validHistory.length < 2) continue;
@@ -1033,7 +1034,8 @@ async function checkPriceManipulation(
         (a, b) => normalizeToTime(b.changedAt) - normalizeToTime(a.changedAt)
       );
       
-      const currentPrice = sorted[0]?.price || product.price;
+      // [AGENT-0008] PR Review: Use ?? to handle price=0 correctly (|| treats 0 as falsy)
+      const currentPrice = sorted[0]?.price ?? product.price;
       const previousPrice = sorted[1]?.price;
       
       if (previousPrice && previousPrice > 0) {

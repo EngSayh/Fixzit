@@ -1097,8 +1097,8 @@ export async function registerWithEjar(
     if (!tenant.nationalId && !tenant.iqamaNumber) {
       validationErrors.push("tenant.nationalId or tenant.iqamaNumber is required");
     }
-    if (!landlord.nationalId && !landlord.iqamaNumber && !landlord.companyId) {
-      validationErrors.push("landlord.nationalId, landlord.iqamaNumber, or landlord.companyId is required");
+    if (!landlord.nationalId && !landlord.iqamaNumber && !landlord.commercialRegistration) {
+      validationErrors.push("landlord.nationalId, landlord.iqamaNumber, or landlord.commercialRegistration is required");
     }
     if (!lease.startDate || !lease.endDate) {
       validationErrors.push("lease.startDate and lease.endDate are required");

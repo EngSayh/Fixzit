@@ -111,12 +111,15 @@ interface BatchPayoutJob {
 
 /**
  * SADAD/SPAN API response (mock interface)
+ * [AGENT-0008] PR Review: Added pendingConfirmation flag for PENDING transfers
+ * PENDING transfers should NOT trigger retry logic - they need webhook confirmation
  */
 interface BankTransferResponse {
   success: boolean;
   transactionId?: string;
   errorCode?: string;
   errorMessage?: string;
+  pendingConfirmation?: boolean; // True when transfer is PENDING webhook confirmation
 }
 
 /**
@@ -339,6 +342,51 @@ export class PayoutProcessorService {
       const transferResult = await this.executeBankTransfer(payout);
 
       if (transferResult.success) {
+        // [AGENT-0008] PR Review: Check if transfer is pending webhook confirmation
+        if (transferResult.pendingConfirmation) {
+          // Transfer initiated but needs webhook confirmation before releasing escrow
+          await payoutsCollection.updateOne(
+            { payoutId, orgId: { $in: orgCandidates } },
+            {
+              $set: {
+                status: "pending_confirmation",
+                transactionReference: transferResult.transactionId,
+                pendingWebhookAt: new Date(),
+              },
+            },
+          );
+          
+          // Mark withdrawal as pending confirmation
+          try {
+            const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+            await withdrawalsCollection.updateOne(
+              { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
+              {
+                $set: {
+                  status: "pending_confirmation",
+                  notes: "Transfer initiated - awaiting webhook confirmation",
+                },
+              },
+            );
+          } catch (_updateError) {
+            logger.warn("[PayoutProcessor] Unable to update withdrawal for pending confirmation", {
+              payoutId: payout.payoutId,
+              error: _updateError,
+            });
+          }
+          
+          logger.info("[PayoutProcessor] Payout awaiting webhook confirmation", {
+            payoutId: payout.payoutId,
+            transactionId: transferResult.transactionId,
+          });
+          
+          return {
+            ...payout,
+            status: "pending_confirmation" as PayoutRequest["status"],
+            transactionReference: transferResult.transactionId,
+          };
+        }
+        
         // Success: Mark as completed - 🔐 STRICT v4.1: Include orgId
         await payoutsCollection.updateOne(
           { payoutId, orgId: { $in: orgCandidates } },
@@ -714,8 +762,8 @@ export class PayoutProcessorService {
         },
       });
 
-      // Check transfer status
-      if (transfer.status === "SUCCEEDED") {
+      // Check transfer status - values per TAP Transfer API docs [AGENT-0008]
+      if (transfer.status === "PAID_OUT") {
         logger.info("TAP transfer completed successfully", {
           transferId: transfer.id,
           amount: payout.amount,
@@ -725,18 +773,18 @@ export class PayoutProcessorService {
           success: true,
           transactionId: transfer.id,
         };
-      } else if (transfer.status === "PENDING") {
-        // Pending transfers need webhook to confirm - do NOT mark as success yet
+      } else if (transfer.status === "PENDING" || transfer.status === "INITIATED") {
+        // [AGENT-0008] PR Review: PENDING transfers should NOT trigger failure/retry logic
+        // Use pendingConfirmation flag to signal caller that this needs webhook, not retry
         logger.info("TAP transfer pending - awaiting webhook confirmation", {
           transferId: transfer.id,
           amount: payout.amount,
           payoutId: payout.payoutId,
         });
         return {
-          success: false,
+          success: true, // Mark as success to prevent retry loop
           transactionId: transfer.id,
-          errorCode: "TRANSFER_PENDING",
-          errorMessage: "Transfer initiated but awaiting webhook confirmation. Do not release escrow until confirmed.",
+          pendingConfirmation: true, // Signal that webhook confirmation is required
         };
       } else {
         // FAILED or CANCELLED

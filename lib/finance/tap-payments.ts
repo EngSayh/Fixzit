@@ -226,7 +226,9 @@ export interface TapTransferResponse {
     id: string;
     object: string;
   };
-  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  // [AGENT-0008] PR Review: Status values per TAP Transfer API docs
+  // @see https://developers.tap.company/reference/retrieve-a-transfer
+  status: "PENDING" | "INITIATED" | "FAILED" | "PAID_OUT";
   description?: string;
   metadata?: TapMetadata;
   response: {
