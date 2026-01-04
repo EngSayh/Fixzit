@@ -231,6 +231,9 @@ interface SelectTriggerProps extends React.HTMLAttributes<HTMLDivElement> {
  * @deprecated This component is provided for backward compatibility only.
  * With the new native select implementation, you don't need SelectTrigger.
  * Just use <Select> with the placeholder prop.
+ * 
+ * Note: This wrapper does nothing - the native Select already handles styling.
+ * Any className passed here is IGNORED. Move classNames to <Select className="...">.
  */
 export const SelectTrigger: React.FC<SelectTriggerProps> = ({ children }) => {
   // This component does nothing - it's just a passthrough for compatibility

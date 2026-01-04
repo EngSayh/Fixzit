@@ -1034,8 +1034,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")}>
-              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[140px] bg-muted border-input text-white">
+              <SelectTrigger>
                 {statusOptions.find(o => o.value === statusFilter)?.label || t("superadmin.issues.filters.status")}
               </SelectTrigger>
               <SelectContent>
@@ -1047,8 +1047,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")}>
-              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[140px] bg-muted border-input text-white">
+              <SelectTrigger>
                 {priorityOptions.find(o => o.value === priorityFilter)?.label || t("superadmin.issues.filters.priority")}
               </SelectTrigger>
               <SelectContent>
@@ -1060,8 +1060,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")}>
-              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[140px] bg-muted border-input text-white">
+              <SelectTrigger>
                 {categoryOptions.find(o => o.value === categoryFilter)?.label || t("superadmin.issues.filters.category")}
               </SelectTrigger>
               <SelectContent>
@@ -1677,8 +1677,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-status">{t("superadmin.issues.form.status", "Status")}</Label>
-                <Select defaultValue={selectedIssue.status}>
-                  <SelectTrigger className="mt-1">
+                <Select defaultValue={selectedIssue.status} className="mt-1">
+                  <SelectTrigger>
                     {getStatusLabel(selectedIssue.status)}
                   </SelectTrigger>
                   <SelectContent>
@@ -1692,8 +1692,8 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-priority">{t("superadmin.issues.form.priority", "Priority")}</Label>
-                <Select defaultValue={selectedIssue.priority}>
-                  <SelectTrigger className="mt-1">
+                <Select defaultValue={selectedIssue.priority} className="mt-1">
+                  <SelectTrigger>
                     {getPriorityLabel(selectedIssue.priority)}
                   </SelectTrigger>
                   <SelectContent>

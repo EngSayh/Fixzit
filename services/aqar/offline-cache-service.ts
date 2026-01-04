@@ -293,6 +293,189 @@ export class AqarOfflineCacheService {
     }
   }
 
+  /**
+   * Sync offline changes from mobile devices
+   * Persists favorites, search history, viewed listings, and draft inquiries
+   */
+  static async syncOfflineChanges(input: {
+    userId: string;
+    orgId?: string;
+    favorites?: Array<{ listingId: string; addedAt?: string; removed?: boolean }>;
+    searchHistory?: Array<{ query: string; timestamp?: string; filters?: Record<string, unknown> }>;
+    viewedListings?: Array<{ listingId: string; viewedAt?: string; duration?: number }>;
+    draftInquiries?: Array<{ listingId: string; message?: string; createdAt?: string }>;
+    lastSyncTimestamp?: string;
+    deviceId?: string;
+  }): Promise<{
+    favorites?: { synced: number; conflicts: number };
+    searchHistory?: { synced: number };
+    viewedListings?: { synced: number };
+    draftInquiries?: { synced: number; created: number };
+  }> {
+    const dbHandle = await connectDb();
+    const db = dbHandle as unknown as Db;
+    const now = new Date();
+    const result: {
+      favorites?: { synced: number; conflicts: number };
+      searchHistory?: { synced: number };
+      viewedListings?: { synced: number };
+      draftInquiries?: { synced: number; created: number };
+    } = {};
+
+    try {
+      // Sync favorites
+      if (input.favorites && input.favorites.length > 0) {
+        const favoritesCollection = db.collection("aqar_user_favorites");
+        let synced = 0;
+        let conflicts = 0;
+
+        for (const fav of input.favorites) {
+          if (fav.removed) {
+            // Remove favorite
+            const deleteResult = await favoritesCollection.deleteOne({
+              userId: input.userId,
+              listingId: fav.listingId,
+            });
+            if (deleteResult.deletedCount > 0) synced++;
+          } else {
+            // Add or update favorite (upsert)
+            const updateResult = await favoritesCollection.updateOne(
+              { userId: input.userId, listingId: fav.listingId },
+              {
+                $setOnInsert: {
+                  userId: input.userId,
+                  listingId: fav.listingId,
+                  orgId: input.orgId,
+                  createdAt: fav.addedAt ? new Date(fav.addedAt) : now,
+                },
+                $set: { updatedAt: now, deviceId: input.deviceId },
+              },
+              { upsert: true },
+            );
+            if (updateResult.upsertedCount > 0 || updateResult.modifiedCount > 0) {
+              synced++;
+            } else {
+              conflicts++;
+            }
+          }
+        }
+        result.favorites = { synced, conflicts };
+      }
+
+      // Sync search history
+      if (input.searchHistory && input.searchHistory.length > 0) {
+        const searchHistoryCollection = db.collection("aqar_search_history");
+        const docs = input.searchHistory.map((sh) => ({
+          userId: input.userId,
+          orgId: input.orgId,
+          query: sh.query,
+          filters: sh.filters ?? {},
+          timestamp: sh.timestamp ? new Date(sh.timestamp) : now,
+          deviceId: input.deviceId,
+          syncedAt: now,
+        }));
+        
+        // Insert search history (don't dedupe, it's a log)
+        const insertResult = await searchHistoryCollection.insertMany(docs);
+        result.searchHistory = { synced: insertResult.insertedCount };
+      }
+
+      // Sync viewed listings
+      if (input.viewedListings && input.viewedListings.length > 0) {
+        const viewedCollection = db.collection("aqar_viewed_listings");
+        let synced = 0;
+
+        for (const view of input.viewedListings) {
+          // Upsert view record, update duration if already exists
+          const updateResult = await viewedCollection.updateOne(
+            { userId: input.userId, listingId: view.listingId },
+            {
+              $setOnInsert: {
+                userId: input.userId,
+                listingId: view.listingId,
+                orgId: input.orgId,
+                firstViewedAt: view.viewedAt ? new Date(view.viewedAt) : now,
+              },
+              $set: {
+                lastViewedAt: view.viewedAt ? new Date(view.viewedAt) : now,
+                deviceId: input.deviceId,
+              },
+              $inc: { viewCount: 1, totalDuration: view.duration ?? 0 },
+            },
+            { upsert: true },
+          );
+          if (updateResult.upsertedCount > 0 || updateResult.modifiedCount > 0) {
+            synced++;
+          }
+        }
+        result.viewedListings = { synced };
+      }
+
+      // Sync draft inquiries
+      if (input.draftInquiries && input.draftInquiries.length > 0) {
+        const inquiriesCollection = db.collection("aqar_inquiries");
+        let synced = 0;
+        let created = 0;
+
+        for (const inquiry of input.draftInquiries) {
+          // Check if inquiry already exists for this user/listing
+          const existing = await inquiriesCollection.findOne({
+            userId: input.userId,
+            listingId: inquiry.listingId,
+            status: "draft",
+          });
+
+          if (existing) {
+            // Update existing draft
+            await inquiriesCollection.updateOne(
+              { _id: existing._id },
+              {
+                $set: {
+                  message: inquiry.message,
+                  updatedAt: now,
+                  deviceId: input.deviceId,
+                },
+              },
+            );
+            synced++;
+          } else {
+            // Create new draft inquiry
+            await inquiriesCollection.insertOne({
+              userId: input.userId,
+              listingId: inquiry.listingId,
+              orgId: input.orgId,
+              message: inquiry.message,
+              status: "draft",
+              createdAt: inquiry.createdAt ? new Date(inquiry.createdAt) : now,
+              updatedAt: now,
+              deviceId: input.deviceId,
+            });
+            created++;
+          }
+        }
+        result.draftInquiries = { synced, created };
+      }
+
+      // Record sync event
+      await db.collection("aqar_sync_log").insertOne({
+        userId: input.userId,
+        orgId: input.orgId,
+        deviceId: input.deviceId,
+        syncedAt: now,
+        lastSyncTimestamp: input.lastSyncTimestamp,
+        result,
+      });
+
+      return result;
+    } catch (error) {
+      logger.error("AQAR_OFFLINE_SYNC_FAILED", {
+        userId: input.userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
   private static async ensureIndexes(
     collection: Collection<OfflineBundleDoc>,
   ): Promise<void> {

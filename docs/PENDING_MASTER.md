@@ -19,6 +19,76 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 13:30 (Asia/Riyadh) — DEEP SCAN IMPLEMENTATION SESSION [AGENT-0014]
+
+**Agent Token:** [AGENT-0014]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** Implementing code from deep scan findings, not just documenting
+
+#### Implementations Completed
+
+| Issue ID | File | Implementation |
+|----------|------|----------------|
+| P2-OFFLINE-001 | `app/api/aqar/offline/route.ts` | **COMPLETE**: POST endpoint now persists favorites, search history, viewed listings, draft inquiries |
+| P2-OFFLINE-001 | `services/aqar/offline-cache-service.ts` | **COMPLETE**: Added `syncOfflineChanges()` method with full persistence to MongoDB |
+| P2-OCR-001 | `jobs/onboarding-ocr-worker.ts` | **COMPLETE**: Added Azure/Google Vision integration structure with env-based provider selection |
+
+#### Aqar Offline Sync Implementation Details
+
+**Before:** POST acknowledged without persistence  
+**After:** Full sync implementation:
+- Favorites sync (add/remove with upsert)
+- Search history logging
+- Viewed listings tracking (with view count, duration)
+- Draft inquiries sync (upsert by user+listing)
+- Sync log for audit trail
+
+**Collections used:**
+- `aqar_user_favorites`
+- `aqar_search_history`
+- `aqar_viewed_listings`
+- `aqar_inquiries`
+- `aqar_sync_log`
+
+#### OCR Worker Implementation Details
+
+**Before:** Simple simulation placeholder  
+**After:** Provider-based OCR integration:
+- `OCR_PROVIDER=azure` - Azure Computer Vision (requires `AZURE_VISION_ENDPOINT`, `AZURE_VISION_KEY`)
+- `OCR_PROVIDER=google` - Google Cloud Vision (requires `GOOGLE_APPLICATION_CREDENTIALS`)
+- `OCR_PROVIDER=simulation` - Default for development
+
+**Features:**
+- Document type-specific field extraction
+- Fallback to simulation on API errors
+- Confidence scoring per provider
+- VerificationLog integration
+
+#### Items Verified as FALSE POSITIVES or INTENTIONAL
+
+| Issue ID | Status | Reason |
+|----------|--------|--------|
+| P0-PAYOUT-001 | FALSE POSITIVE | TAP Transfer fully implemented at lines 645-750 in payout-processor.ts |
+| P1-BILLING-001 | INTENTIONAL | Deprecated endpoint returns 501 by design (Tap uses saved cards) |
+| P1-CLAIMS-001 | RESOLVED | Fixed in AGENT-0013 session (orders → claims_orders) |
+| P2-EMAIL-001 | PROPER GATING | Returns 501 when SendGrid not configured |
+| P2-CREDIT-001 | BLOCKED | Uses internal payment history; SIMAH requires credentials |
+
+#### Items Requiring External Credentials (BLOCKED)
+
+| Issue ID | File | Blocker |
+|----------|------|---------|
+| P1-PROV-001 | `server/services/onboardingEntities.ts` | Requires ZATCA/Ejar API credentials |
+| P2-OCR-001 | `jobs/onboarding-ocr-worker.ts` | Requires Azure/Google Vision keys (simulation mode available) |
+| P2-CREDIT-001 | `services/aqar/tenant-screening.ts` | Requires SIMAH credit bureau credentials |
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
+
+---
+
 ### 2026-01-05 12:30 (Asia/Riyadh) — COLLECTION RENAME & DEEP SCAN COMPLETION [AGENT-0013]
 
 **Agent Token:** [AGENT-0013]  
