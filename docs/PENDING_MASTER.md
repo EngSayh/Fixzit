@@ -40,7 +40,7 @@ Fixed 4 issues: JSON priority counts, GraphQL response normalization, security v
 
 #### Security Audit
 
-```
+```bash
 pnpm audit --prod: No known vulnerabilities found
 ```
 
