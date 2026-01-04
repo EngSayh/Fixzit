@@ -177,14 +177,50 @@ export async function POST(request: NextRequest) {
     });
 
     if (format === "csv") {
-      // For CSV, return a simple acknowledgement (full CSV impl would need streaming)
-      return NextResponse.json(
-        {
-          message: "CSV export not fully implemented - use JSON format",
-          data: exportData,
+      // Generate CSV format - each collection as a separate section
+      const csvParts: string[] = [];
+      
+      for (const [collectionName, docs] of Object.entries(exportData)) {
+        if (!Array.isArray(docs) || docs.length === 0) continue;
+        
+        // Get all unique keys from documents
+        const allKeys = new Set<string>();
+        for (const doc of docs) {
+          if (doc && typeof doc === "object") {
+            Object.keys(doc).forEach((key) => allKeys.add(key));
+          }
+        }
+        const headers = Array.from(allKeys);
+        
+        // CSV header row
+        const headerRow = headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(",");
+        
+        // CSV data rows
+        const dataRows = docs.map((doc) => {
+          return headers.map((header) => {
+            const value = (doc as Record<string, unknown>)[header];
+            if (value === undefined || value === null) return "";
+            if (typeof value === "object") return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+            return `"${String(value).replace(/"/g, '""')}"`;
+          }).join(",");
+        });
+        
+        csvParts.push(`# Collection: ${collectionName}`);
+        csvParts.push(headerRow);
+        csvParts.push(...dataRows);
+        csvParts.push(""); // Empty line between collections
+      }
+      
+      const csvContent = csvParts.join("\n");
+      
+      return new Response(csvContent, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="fixzit-export-${new Date().toISOString().split("T")[0]}.csv"`,
+          ...ROBOTS_HEADER,
         },
-        { headers: ROBOTS_HEADER }
-      );
+      });
     }
 
     return NextResponse.json(
