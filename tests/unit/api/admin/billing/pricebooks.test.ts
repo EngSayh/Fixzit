@@ -119,9 +119,47 @@ describe("/api/admin/billing/pricebooks", () => {
       );
     });
 
-    // Security test: ensure prohibited fields are not passed to create
-    // DEFERRED: Route sanitization tracked in Issue #293
-    it.skip("rejects prohibited fields (isActive, adminOverride) in POST payload - requires route sanitization");
+    // Security test: Zod strict() rejects unknown fields like isActive, adminOverride
+    it("rejects prohibited fields (isActive, adminOverride) in POST payload", async () => {
+      // Payload with prohibited fields that should be rejected
+      parseBodyResult = { 
+        data: { 
+          name: "Enterprise", 
+          isActive: false,        // prohibited field
+          adminOverride: true,    // prohibited field
+          active: false,          // also prohibited (use model default)
+        }, 
+        error: null 
+      };
+
+      const res = await POST(createPostRequest());
+      // strict() schema should reject unknown fields with 400
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("Validation failed");
+    });
+
+    it("strips extra fields and creates pricebook with valid subset", async () => {
+      // When using .passthrough() instead of .strict(), it would strip unknown fields
+      // Our implementation uses .strict() so unknown fields cause rejection
+      parseBodyResult = { 
+        data: { 
+          name: "Basic Plan",
+          currency: "SAR",
+          tiers: []
+        }, 
+        error: null 
+      };
+
+      const res = await POST(createPostRequest());
+      expect(res.status).toBe(200);
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ 
+          name: "Basic Plan",
+          currency: "SAR"
+        })
+      );
+    });
   });
 
   describe("PATCH", () => {

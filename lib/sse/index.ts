@@ -8,11 +8,18 @@
  * Implementation:
  * 1. SSE endpoint: app/api/notifications/stream/route.ts
  * 2. Client hook: hooks/useNotificationStream.ts
- * 3. In-memory pub/sub: Single-instance deployment (Vercel)
+ * 3. Hybrid pub/sub: NATS when configured, in-memory fallback
  * 4. Tenant isolation: All streams scoped by org_id
+ * 
+ * Multi-instance support:
+ * - Set NATS_URL environment variable to enable cross-instance messaging
+ * - Without NATS_URL, notifications only reach subscribers on the same instance
  */
 
 import { Types } from 'mongoose';
+import { getNatsConnection, publish as natsPublish } from '@/lib/nats-client';
+import { JSONCodec, type Subscription } from 'nats';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -61,10 +68,11 @@ export const SSE_CONFIG = {
   RECONNECT_RETRY_MS: 3_000,     // 3 seconds
   MAX_CONNECTIONS_PER_USER: 5,
   CONNECTION_TIMEOUT_MS: 300_000, // 5 minutes
+  NATS_SUBJECT_PREFIX: 'fixzit.notifications', // NATS subject for cross-instance messaging
 } as const;
 
 // ============================================================================
-// SUBSCRIPTION STATE (In-Memory for single-instance deployment)
+// SUBSCRIPTION STATE (Hybrid: In-Memory + NATS for horizontal scaling)
 // ============================================================================
 
 interface InternalSubscription {
@@ -78,6 +86,83 @@ interface InternalSubscription {
 const subscriptions = new Map<string, InternalSubscription>();
 let subscriptionIdCounter = 0;
 let cleanupIntervalId: NodeJS.Timeout | null = null;
+let natsSubscription: Subscription | null = null;
+let natsInitialized = false;
+
+/**
+ * Initialize NATS subscription for cross-instance notification delivery
+ * Called lazily on first subscription
+ */
+async function initNatsSubscription(): Promise<void> {
+  if (natsInitialized) return;
+  natsInitialized = true;
+
+  try {
+    const nc = await getNatsConnection();
+    if (!nc) {
+      logger.info('[SSE] NATS not configured, using in-memory pub/sub only');
+      return;
+    }
+
+    const jc = JSONCodec<{
+      orgId: string;
+      notification: NotificationPayload;
+      targetUserIds?: string[];
+    }>();
+
+    // Subscribe to all notifications on this subject
+    natsSubscription = nc.subscribe(`${SSE_CONFIG.NATS_SUBJECT_PREFIX}.>`);
+    
+    logger.info('[SSE] NATS subscription initialized for horizontal scaling');
+
+    // Process incoming NATS messages
+    (async () => {
+      for await (const msg of natsSubscription!) {
+        try {
+          const data = jc.decode(msg.data);
+          const orgId = new Types.ObjectId(data.orgId);
+          const targetUserIds = data.targetUserIds?.map(id => new Types.ObjectId(id));
+          
+          // Deliver to local subscribers
+          deliverToLocalSubscribers(orgId, data.notification, targetUserIds);
+        } catch (err) {
+          logger.error('[SSE] Error processing NATS message:', err);
+        }
+      }
+    })();
+  } catch (err) {
+    logger.error('[SSE] Failed to initialize NATS subscription:', err);
+    natsInitialized = false; // Allow retry
+  }
+}
+
+/**
+ * Deliver notification to local (in-memory) subscribers only
+ */
+function deliverToLocalSubscribers(
+  orgId: Types.ObjectId,
+  notification: NotificationPayload,
+  targetUserIds?: Types.ObjectId[]
+): void {
+  const now = new Date();
+  for (const sub of subscriptions.values()) {
+    // Tenant isolation check
+    if (!sub.orgId.equals(orgId)) continue;
+    
+    // User targeting check
+    if (targetUserIds && targetUserIds.length > 0) {
+      if (!targetUserIds.some(id => id.equals(sub.userId))) continue;
+    }
+    
+    // Deliver notification
+    try {
+      sub.callback(notification);
+      sub.lastHeartbeat = now;
+    } catch (err) {
+      logger.error('[SSE] Error in subscriber callback:', err);
+    }
+  }
+}
 
 /**
  * Get the number of active connections for a specific user
@@ -128,6 +213,12 @@ export function _resetForTesting(): void {
   subscriptions.clear();
   subscriptionIdCounter = 0;
   stopConnectionCleanup();
+  // Reset NATS state
+  if (natsSubscription) {
+    natsSubscription.unsubscribe();
+    natsSubscription = null;
+  }
+  natsInitialized = false;
 }
 
 /**
@@ -152,7 +243,7 @@ export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
 
 /**
  * Subscribe to tenant-scoped notifications
- * @roadmap PERF-SSE-001: Replace with durable pub/sub for horizontal scaling (Q1 2026)
+ * Supports multi-instance deployments via NATS when NATS_URL is configured
  */
 export function subscribeToNotifications(
   orgId: Types.ObjectId,
@@ -161,8 +252,7 @@ export function subscribeToNotifications(
 ): () => void {
   // Check connection limit
   if (getUserConnectionCount(userId) >= SSE_CONFIG.MAX_CONNECTIONS_PER_USER) {
-    // eslint-disable-next-line no-console -- Intentional: log connection limit errors
-    console.error(`[SSE] User ${userId} exceeded max connections (${SSE_CONFIG.MAX_CONNECTIONS_PER_USER})`);
+    logger.warn(`[SSE] User ${userId} exceeded max connections (${SSE_CONFIG.MAX_CONNECTIONS_PER_USER})`);
     // Return a no-op cleanup to avoid breaking callers
     return () => {};
   }
@@ -181,6 +271,9 @@ export function subscribeToNotifications(
   // Start cleanup if not already running
   startConnectionCleanup();
   
+  // Initialize NATS subscription for cross-instance messaging (fire-and-forget)
+  void initNatsSubscription();
+  
   // Return unsubscribe function
   return () => {
     subscriptions.delete(subscriptionId);
@@ -189,33 +282,34 @@ export function subscribeToNotifications(
 
 /**
  * Publish notification to all subscribers in an org
- * @roadmap PERF-SSE-001: Replace with durable pub/sub for horizontal scaling (Q1 2026)
+ * Uses NATS for cross-instance delivery when configured, falls back to local-only
  */
 export async function publishNotification(
   orgId: Types.ObjectId,
   notification: NotificationPayload,
   targetUserIds?: Types.ObjectId[]
 ): Promise<void> {
-  const now = new Date();
-  for (const sub of subscriptions.values()) {
-    // Tenant isolation check
-    if (!sub.orgId.equals(orgId)) continue;
-    
-    // User targeting check
-    if (targetUserIds && targetUserIds.length > 0) {
-      if (!targetUserIds.some(id => id.equals(sub.userId))) continue;
-    }
-    
-    // Deliver notification
+  // Try to publish via NATS for cross-instance delivery
+  const nc = await getNatsConnection().catch(() => null);
+  
+  if (nc) {
+    // Publish to NATS - all instances will receive and deliver to their local subscribers
     try {
-      sub.callback(notification);
-      // Refresh heartbeat on successful delivery to prevent cleanup eviction
-      sub.lastHeartbeat = now;
+      await natsPublish(`${SSE_CONFIG.NATS_SUBJECT_PREFIX}.${orgId.toString()}`, {
+        orgId: orgId.toString(),
+        notification,
+        targetUserIds: targetUserIds?.map(id => id.toString()),
+      });
+      // NATS subscribers (including this instance) will handle local delivery
+      return;
     } catch (err) {
-      // eslint-disable-next-line no-console -- Intentional: log subscriber callback errors
-      console.error('[SSE] Error in subscriber callback:', err);
+      logger.error('[SSE] NATS publish failed, falling back to local delivery:', err);
+      // Fall through to local-only delivery
     }
   }
+  
+  // Local-only delivery (NATS not configured or failed)
+  deliverToLocalSubscribers(orgId, notification, targetUserIds);
 }
 
 /**

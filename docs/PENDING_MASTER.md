@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-04T19:00:00+03:00
+  Last-Sync: 2026-01-04T19:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,58 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 19:30 (Asia/Riyadh) — IMPLEMENTATION SESSION [AGENT-0013]
+
+**Agent Token:** [AGENT-0013]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** Actual code implementation of deep scan items (not just marker cleanup)
+
+#### Implementations Completed
+
+##### 1. Pricebooks POST Sanitization (Security)
+**File:** `app/api/admin/billing/pricebooks/route.ts`
+
+Added Zod schema validation with `.strict()` mode:
+- Defines explicit allowed fields: `name`, `currency`, `effective_from`, `tiers`
+- Rejects unknown fields like `isActive`, `adminOverride`
+- Returns 400 with validation errors for invalid payloads
+- Test updated from `it.skip` to real test validating the rejection
+
+##### 2. Multi-Instance SSE Pub/Sub via NATS (PERF-SSE-001)
+**Files:** `lib/sse/index.ts`, `app/api/notifications/stream/route.ts`
+
+Implemented hybrid pub/sub architecture:
+- **NATS_URL configured:** Notifications broadcast via NATS to all instances
+- **NATS_URL not set:** Falls back to in-memory (single-instance mode)
+
+Key changes:
+- Added NATS subscription initialization on first subscriber
+- `publishNotification()` now publishes to NATS when available
+- `broadcastNotification()` helper now actually works (was a stub)
+- `_resetForTesting()` cleans up NATS state
+
+##### 3. FilterPresetsDropdown Tests
+**Files:** `ProductsList.query.test.tsx`, `PropertiesList.query.test.tsx`
+
+Added actual tests for FilterPresetsDropdown integration:
+- Verifies correct `entityType` prop passed
+- Verifies `onLoadPreset` callback provided
+- Verifies `currentFilters` object provided
+
+#### Still Blocked (External Dependencies)
+
+| ID | Item | Blocker |
+|----|------|---------|
+| BUG-PAYOUT-001 | SADAD/SPAN live payout mode | Banking credentials |
+| BLOCKED-001 | ClaimsOrder schema migration | Awaiting Eng. Sultan directive |
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
 
 ---
 
