@@ -221,8 +221,8 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
   schema.pre(/^update/, function () {
     const context = getAuditContext();
 
-    if (context.userId) {
-      this.set({ updatedBy: context.userId });
+    if (context.userId && Types.ObjectId.isValid(context.userId)) {
+      this.set({ updatedBy: new Types.ObjectId(context.userId) });
     }
 
     // Increment version
@@ -233,8 +233,8 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
   schema.pre("findOneAndUpdate", function () {
     const context = getAuditContext();
 
-    if (context.userId) {
-      this.set({ updatedBy: context.userId });
+    if (context.userId && Types.ObjectId.isValid(context.userId)) {
+      this.set({ updatedBy: new Types.ObjectId(context.userId) });
     }
 
     // Increment version
