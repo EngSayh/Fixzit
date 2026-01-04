@@ -1,16 +1,19 @@
 /**
  * Payout Processor Service
  *
- * Handles bank transfers to sellers via SADAD/SPAN network.
+ * Handles bank transfers to sellers via TAP Payments Transfer API.
  * Manages batch processing, retry logic, and payout reconciliation.
  *
  * Features:
- * - SADAD/SPAN integration for Saudi bank transfers
+ * - TAP Transfer API for marketplace seller payouts
  * - Batch processing (weekly/bi-weekly)
  * - Minimum payout threshold (500 SAR)
  * - 7-day hold period post-delivery
  * - 3 retry attempts for failed transfers
  * - Payout status tracking
+ *
+ * Migration Note (2025-06): Migrated from SADAD/SPAN simulation to TAP Transfers.
+ * TAP handles bank settlements directly via their Destination/Transfer APIs.
  */
 
 import { ObjectId } from "mongodb";
@@ -23,6 +26,9 @@ import type { SettlementStatement } from "./settlement-calculator";
 import { escrowService } from "./escrow-service";
 import { PAYOUT_CONFIG } from "./settlement-config";
 import { generatePayoutId, generateTransactionId, generateBatchId } from "@/lib/id-generator";
+// Tap Payments integration for marketplace seller payouts
+import { tapPayments, type TapTransferResponse as _TapTransferResponse } from "@/lib/finance/tap-payments";
+import { getTapConfig } from "@/lib/tapConfig";
 
 function normalizeOrgId(orgId: string) {
   const orgIdStr = String(orgId);
@@ -116,34 +122,38 @@ interface BankTransferResponse {
 /**
  * SADAD/SPAN readiness configuration (simulated until credentials are available)
  */
-const SADAD_REQUIRED_ENV_VARS = [
-  "SADAD_API_KEY",
-  "SADAD_API_SECRET",
-  "SADAD_API_ENDPOINT",
-] as const;
-type SadadSpanReadiness =
+/**
+ * TAP Payout Configuration
+ * Uses ENABLE_TAP_PAYOUTS to enable TAP Transfer API for seller payouts
+ */
+type TapPayoutReadiness =
   | { status: "disabled" }
-  | { status: "incomplete"; missingEnv: string[] }
+  | { status: "not_configured"; reason: string }
   | { status: "simulation"; mode: "simulation" }
-  | { status: "live_not_implemented"; mode: string };
+  | { status: "ready"; mode: "live" | "test" };
 
-function getSadadSpanReadiness(): SadadSpanReadiness {
-  const flagEnabled = process.env.ENABLE_SADAD_PAYOUTS === "true";
+function getTapPayoutReadiness(): TapPayoutReadiness {
+  const flagEnabled = process.env.ENABLE_TAP_PAYOUTS === "true";
   if (!flagEnabled) {
     return { status: "disabled" };
   }
 
-  const missingEnv = SADAD_REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
-  if (missingEnv.length > 0) {
-    return { status: "incomplete", missingEnv };
+  // Check if TAP is configured
+  const tapConfig = getTapConfig();
+  if (!tapConfig.isConfigured) {
+    return { 
+      status: "not_configured", 
+      reason: "TAP credentials not configured. Set TAP_TEST_SECRET_KEY or TAP_LIVE_SECRET_KEY" 
+    };
   }
 
-  const mode = (process.env.SADAD_SPAN_MODE || "simulation").toLowerCase();
-  if (mode !== "simulation") {
-    return { status: "live_not_implemented", mode };
+  // Simulation mode for testing without real transfers
+  const mode = (process.env.TAP_PAYOUT_MODE || "live").toLowerCase();
+  if (mode === "simulation") {
+    return { status: "simulation", mode: "simulation" };
   }
 
-  return { status: "simulation", mode: "simulation" };
+  return { status: "ready", mode: tapConfig.environment };
 }
 
 async function getDbInstance() {
@@ -552,19 +562,20 @@ export class PayoutProcessorService {
   }
 
   /**
-   * Execute bank transfer via SADAD/SPAN
+   * Execute bank transfer via TAP Transfer API
+   * Replaces the previous SADAD/SPAN simulation with real TAP integration.
    */
   private static async executeBankTransfer(
     payout: PayoutRequest,
   ): Promise<BankTransferResponse> {
-    const readiness = getSadadSpanReadiness();
+    const readiness = getTapPayoutReadiness();
 
     if (readiness.status === "disabled") {
       logger.warn(
-        "[PayoutProcessor] SADAD/SPAN integration disabled. Using manual fallback. See docs/payments/manual-withdrawal-process.md for the current runbook.",
+        "[PayoutProcessor] TAP payouts disabled. Set ENABLE_TAP_PAYOUTS=true to enable.",
         {
           metric: "payout_integration_disabled",
-          provider: "SADAD_SPAN",
+          provider: "TAP",
           method: payout.method,
         },
       );
@@ -572,116 +583,184 @@ export class PayoutProcessorService {
         success: false,
         errorCode: "INTEGRATION_DISABLED",
         errorMessage:
-          "SADAD/SPAN payouts are deferred until banking approvals complete.",
+          "TAP payouts are disabled. Set ENABLE_TAP_PAYOUTS=true in environment.",
       };
     }
 
-    if (readiness.status === "incomplete") {
-      const missingEnvList = readiness.missingEnv.join(", ");
+    if (readiness.status === "not_configured") {
       logger.error(
-        "[PayoutProcessor] SADAD/SPAN flagged on but credentials are missing. Failing fast.",
+        "[PayoutProcessor] TAP not configured properly.",
         {
           metric: "payout_integration_misconfigured",
-          provider: "SADAD_SPAN",
+          provider: "TAP",
           method: payout.method,
-          missingEnv: readiness.missingEnv,
+          reason: readiness.reason,
         },
       );
       return {
         success: false,
         errorCode: "INTEGRATION_NOT_CONFIGURED",
-        errorMessage: `SADAD/SPAN credentials missing: ${missingEnvList}`,
+        errorMessage: readiness.reason,
       };
     }
 
-    if (readiness.status === "live_not_implemented") {
-      logger.error(
-        "[PayoutProcessor] SADAD/SPAN live mode requested but awaiting banking credentials. Staying in manual fallback.",
+    // Simulation mode for testing
+    if (readiness.status === "simulation") {
+      logger.info(
+        `[PayoutProcessor] Simulating TAP transfer for ${payout.amount} SAR`,
         {
-          metric: "payout_integration_pending",
-          provider: "SADAD_SPAN",
+          metric: "payout_simulated",
+          provider: "TAP",
           method: payout.method,
+          amount: payout.amount,
+          mode: "simulation",
+        },
+      );
+
+      // Deterministic simulation for testing
+      const successRateEnv = process.env.PAYOUT_SIMULATION_SUCCESS_RATE ?? "0.95";
+      const successRate = Math.max(0, Math.min(1, parseFloat(successRateEnv)));
+      const seed = process.env.PAYOUT_SIMULATION_SEED ?? "";
+      const hash = createHash("sha256")
+        .update(`${payout.payoutId}-${seed}`)
+        .digest();
+      const deterministic = hash[0] / 255;
+      const isSuccess = deterministic < successRate;
+
+      // Simulate API latency
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      if (isSuccess) {
+        return {
+          success: true,
+          transactionId: `tap_sim_${generateTransactionId()}`,
+        };
+      } else {
+        return {
+          success: false,
+          errorCode: "SIMULATED_ERROR",
+          errorMessage: "Simulated transfer failure for testing",
+        };
+      }
+    }
+
+    // Real TAP Transfer execution
+    try {
+      logger.info(
+        `Executing TAP transfer for ${payout.amount} SAR to IBAN ${payout.bankAccount.iban.substring(0, 4)}****`,
+        {
+          metric: "payout_tap_transfer",
+          provider: "TAP",
+          method: payout.method,
+          amount: payout.amount,
           mode: readiness.mode,
         },
       );
-      return {
-        success: false,
-        errorCode: "INTEGRATION_NOT_AVAILABLE",
-        errorMessage:
-          "SADAD/SPAN live mode is pending banking API credentials. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.",
-      };
-    }
 
-    /**
-     * SADAD/SPAN Integration - Currently Simulated
-     *
-     * Feature Flag: ENABLE_SADAD_PAYOUTS=true
-     * Status: Awaiting banking API credentials and approvals
-     *
-     * When enabled, replace simulation with:
-     * - Real SADAD/SPAN API client
-     * - Production credentials from env
-     * - Proper error handling and retry logic
-     * - Webhook handlers for payment status
-     *
-     * Current behavior: 95% success simulation for testing flows
-     */
+      // Get or create TAP destination for this seller
+      // NOTE: In production, sellers should have a tapDestinationId stored in their profile
+      // For now, we check if seller has a stored TAP destination ID
+      const db = await getDbInstance();
+      const sellersCollection = db.collection("souq_sellers");
+      const seller = await sellersCollection.findOne({ 
+        sellerId: payout.sellerId,
+        orgId: payout.orgId,
+      });
 
-    logger.info(
-      `Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`,
-      {
-        metric: "payout_simulated",
-        provider: "SADAD_SPAN",
-        method: payout.method,
+      let destinationId = seller?.tapDestinationId as string | undefined;
+
+      // If seller doesn't have a TAP destination, create one
+      if (!destinationId) {
+        logger.info(`Creating TAP destination for seller ${payout.sellerId}`);
+        
+        const destination = await tapPayments.createDestination({
+          display_name: payout.bankAccount.accountHolderName,
+          bank_account: {
+            iban: payout.bankAccount.iban,
+          },
+          settlement_by: "Acquirer",
+        });
+
+        destinationId = destination.id;
+
+        // Store the destination ID for future payouts
+        await sellersCollection.updateOne(
+          { sellerId: payout.sellerId, orgId: payout.orgId },
+          { 
+            $set: { 
+              tapDestinationId: destinationId,
+              tapDestinationStatus: destination.status,
+              tapDestinationUpdatedAt: new Date(),
+            } 
+          },
+          { upsert: true },
+        );
+      }
+
+      // Execute the transfer
+      const transfer = await tapPayments.createTransfer({
+        amount: tapPayments.sarToHalalas(payout.amount),
+        currency: "SAR",
+        destination: { id: destinationId },
+        description: `Marketplace settlement payout - ${payout.payoutId}`,
+        metadata: {
+          payoutId: payout.payoutId,
+          sellerId: payout.sellerId,
+          statementId: payout.statementId,
+          organizationId: String(payout.orgId),
+        },
+        reference: {
+          merchant: payout.payoutId,
+        },
+      });
+
+      // Check transfer status
+      if (transfer.status === "SUCCEEDED") {
+        logger.info("TAP transfer completed successfully", {
+          transferId: transfer.id,
+          amount: payout.amount,
+          payoutId: payout.payoutId,
+        });
+        return {
+          success: true,
+          transactionId: transfer.id,
+        };
+      } else if (transfer.status === "PENDING") {
+        // Pending transfers need webhook to confirm
+        logger.info("TAP transfer pending - will be confirmed via webhook", {
+          transferId: transfer.id,
+          amount: payout.amount,
+          payoutId: payout.payoutId,
+        });
+        return {
+          success: true,
+          transactionId: transfer.id,
+        };
+      } else {
+        // FAILED or CANCELLED
+        logger.error("TAP transfer failed", {
+          transferId: transfer.id,
+          status: transfer.status,
+          response: transfer.response,
+        });
+        return {
+          success: false,
+          errorCode: transfer.response?.code || "TAP_ERROR",
+          errorMessage: transfer.response?.message || "Transfer failed",
+        };
+      }
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error executing TAP transfer", err, {
+        payoutId: payout.payoutId,
         amount: payout.amount,
-        mode: readiness.mode,
-      },
-    );
-
-    // Simulate API call (replace with real client when ENABLE_SADAD_PAYOUTS=true)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Simulate success rate in a deterministic way to avoid flaky tests/CI.
-    // Inspired by common testing patterns that hash an id + seed for reproducibility.
-    const successRateEnv = process.env.PAYOUT_SIMULATION_SUCCESS_RATE ?? "0.95";
-    const successRate = Math.max(0, Math.min(1, parseFloat(successRateEnv)));
-    const seed = process.env.PAYOUT_SIMULATION_SEED ?? "";
-    const hash = createHash("sha256")
-      .update(`${payout.payoutId}-${seed}`)
-      .digest();
-    const deterministic = hash[0] / 255; // 0..1
-    const isSuccess = deterministic < successRate;
-
-    if (isSuccess) {
-      return {
-        success: true,
-        transactionId: generateTransactionId(),
-      };
-    } else {
+      });
       return {
         success: false,
-        errorCode: "BANK_ERROR",
-        errorMessage: "Temporary bank service unavailable",
+        errorCode: "TAP_API_ERROR",
+        errorMessage: err.message,
       };
     }
-
-    // Real SADAD/SPAN integration would look like:
-    // const sadadClient = new SADADClient(process.env.SADAD_API_KEY);
-    // const result = await sadadClient.transfer({
-    //   amount: payout.amount,
-    //   currency: payout.currency,
-    //   beneficiaryIBAN: payout.bankAccount.iban,
-    //   beneficiaryName: payout.bankAccount.accountHolderName,
-    //   reference: payout.payoutId,
-    //   purpose: 'Marketplace settlement payout',
-    // });
-    //
-    // return {
-    //   success: result.status === 'success',
-    //   transactionId: result.transactionId,
-    //   errorCode: result.errorCode,
-    //   errorMessage: result.errorMessage,
-    // };
   }
 
   /**

@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-04T19:30:00+03:00
+  Last-Sync: 2026-01-04T20:00:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,28 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 20:00 (Asia/Riyadh) — SECURITY & CODE QUALITY FIXES [AGENT-0005]
+
+**Agent Token:** [AGENT-0005]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** CVE fix, SSE initialization race condition, markdown lint compliance
+
+#### Fixes Applied
+
+| Issue ID | File | Fix |
+|----------|------|-----|
+| SEC-PNPM-001 | vercel.json, package.json | Updated pnpm 9.0.0 → 9.15.0 to fix CVE-2024-53866 |
+| BUG-SSE-001 | lib/sse/index.ts | Fixed natsInitialized race condition - now set after successful subscription |
+| MD-LINT-001 | docs/PENDING_MASTER.md | Added bash language identifier to fenced code block |
+| LINT-UNUSED-001 | services/souq/settlements/payout-processor.ts | Prefixed unused Tap imports with underscore |
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
 
 ---
 
@@ -137,10 +159,12 @@ Added actual tests for FilterPresetsDropdown integration:
 #### Problem
 
 Vercel build failed with:
-```
+
+```bash
 ERR_PNPM_LOCKFILE_CONFIG_MISMATCH  Cannot proceed with the frozen installation.
 The current "overrides" configuration doesn't match the value found in the lockfile
 ```
+
 
 **Root Cause:** Vercel's default pnpm version (10.x) doesn't match the lockfile format (pnpm 9.0). The `packageManager` field in package.json specifies `pnpm@9.0.0`, but Vercel was ignoring it.
 

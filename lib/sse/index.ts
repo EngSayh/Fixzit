@@ -95,12 +95,12 @@ let natsInitialized = false;
  */
 async function initNatsSubscription(): Promise<void> {
   if (natsInitialized) return;
-  natsInitialized = true;
 
   try {
     const nc = await getNatsConnection();
     if (!nc) {
       logger.info('[SSE] NATS not configured, using in-memory pub/sub only');
+      natsInitialized = true; // Mark as initialized (no NATS available)
       return;
     }
 
@@ -112,6 +112,9 @@ async function initNatsSubscription(): Promise<void> {
 
     // Subscribe to all notifications on this subject
     natsSubscription = nc.subscribe(`${SSE_CONFIG.NATS_SUBJECT_PREFIX}.>`);
+    
+    // Mark as initialized only after successful subscription
+    natsInitialized = true;
     
     logger.info('[SSE] NATS subscription initialized for horizontal scaling');
 
