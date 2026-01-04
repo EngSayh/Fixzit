@@ -116,7 +116,7 @@ export default function VendorCatalogueManager({
               onChange={(event) =>
                 setForm({ ...form, categoryId: event.target.value })
               }
-              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+              className="mt-1 w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
             >
               <option value="">
                 {auto("Select", "form.selectPlaceholder")}

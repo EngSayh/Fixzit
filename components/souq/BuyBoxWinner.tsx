@@ -126,7 +126,7 @@ export default function BuyBoxWinner({
         <select
           value={quantity}
           onChange={(e) => setQuantity(Number(e.target.value))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
         >
           {[...Array(Math.min(10, winner.availableQuantity))].map((_, i) => (
             <option key={i + 1} value={i + 1}>

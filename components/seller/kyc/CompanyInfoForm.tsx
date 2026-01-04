@@ -219,7 +219,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
         <select
           id="businessType"
           {...register("businessType")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
         >
           <option value="individual">
             {auto(

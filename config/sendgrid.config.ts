@@ -39,12 +39,17 @@ export interface SendGridConfig {
 
 /**
  * Get SendGrid configuration from environment variables
+ * 
+ * Supports both new and legacy environment variable names:
+ * - SENDGRID_API_KEY (preferred)
+ * - SEND_GRID (legacy GitHub secret)
  */
 export function getSendGridConfig(): SendGridConfig {
-  const apiKey = process.env.SENDGRID_API_KEY;
+  // Support both new (SENDGRID_API_KEY) and legacy (SEND_GRID) variable names
+  const apiKey = process.env.SENDGRID_API_KEY || process.env.SEND_GRID;
 
   if (!apiKey) {
-    throw new Error("SENDGRID_API_KEY is not configured");
+    throw new Error("SendGrid not configured. Set SENDGRID_API_KEY or SEND_GRID environment variable.");
   }
 
   // Support both new and legacy environment variable names
@@ -103,10 +108,17 @@ export function initializeSendGrid(): void {
 
 /**
  * Check if SendGrid is properly configured
+ * 
+ * Checks for:
+ * - SENDGRID_API_KEY (preferred)
+ * - SEND_GRID (legacy GitHub secret)
+ * - AWS_SES_ACCESS_KEY (alternative email provider)
+ * - EMAIL_SERVICE_ENABLED (manual override)
  */
 export function isSendGridConfigured(): boolean {
   return !!(
     process.env.SENDGRID_API_KEY ||
+    process.env.SEND_GRID ||  // Legacy GitHub secret name
     process.env.AWS_SES_ACCESS_KEY ||
     process.env.EMAIL_SERVICE_ENABLED
   );

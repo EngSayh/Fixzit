@@ -358,7 +358,7 @@ export default function AccountActivityViewer({
             <select
               value={sourceTypeFilter}
               onChange={(e) => setSourceTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-2xl"
+              className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
               disabled={loading}
             >
               <option value="ALL">{t("All Types")}</option>
