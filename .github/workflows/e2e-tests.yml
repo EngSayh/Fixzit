@@ -230,25 +230,14 @@ jobs:
           }
           echo "✅ All 41 RBAC tests passing"
 
-      - name: Build app (for E2E tests)
-        timeout-minutes: 15
-        env:
-          NODE_ENV: test
-          SKIP_ENV_VALIDATION: 'true'
-          # AUDIT-2025-11-30: Build with ALLOW_OFFLINE_MONGODB: 'false'
-          # Next.js embeds env values at build time for Server Components.
-          # Building with 'true' would bake offline paths into the bundle,
-          # making the test-runtime 'false' setting ineffective.
-          ALLOW_OFFLINE_MONGODB: 'false'
+      # Build step REMOVED - Vercel handles production builds
+      # E2E tests should run against Vercel preview deployment instead
+      # See: https://github.com/EngSayh/Fixzit/pull/656 [AGENT-0008]
+      - name: Build app (for E2E tests) - SKIPPED
         run: |
-          echo "Building Next.js app for E2E tests (MongoDB required)..."
-          pnpm build || {
-            echo "❌ Build failed! Checking for common issues..."
-            echo "NODE_ENV: $NODE_ENV"
-            echo "Disk space:"
-            df -h
-            exit 1
-          }
+          echo "::notice::Build step skipped - Vercel handles production builds"
+          echo "E2E tests should run against Vercel preview deployment"
+          echo "Preview URL available from Vercel deployment check"
 
       - name: Ensure Mongo Indexes (idempotent)
         env:
