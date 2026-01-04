@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock all dependencies
-vi.mock("bullmq", () => ({
+vi.mock("@/lib/queue", () => ({
   Queue: vi.fn().mockImplementation(() => ({
     add: vi.fn().mockResolvedValue({ id: "test-job-id" }),
     close: vi.fn().mockResolvedValue(undefined),
@@ -17,10 +17,6 @@ vi.mock("bullmq", () => ({
     close: vi.fn().mockResolvedValue(undefined),
   })),
 }), { virtual: true });
-
-vi.mock("@/lib/redis", () => ({
-  getRedisClient: vi.fn(() => null),
-}));
 
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -53,13 +49,7 @@ describe("SMS Queue", () => {
   describe("SMS Worker Rate Limiting", () => {
     it("uses default 120/min when SMS_WORKER_MAX_PER_MIN is not set", async () => {
       vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "");
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
-      
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
-      }));
-
-      const { Worker } = await import("bullmq");
+      const { Worker } = await import("@/lib/queue");
       const { startSMSWorker } = await import("@/lib/queues/sms-queue");
       
       startSMSWorker();
@@ -74,15 +64,9 @@ describe("SMS Queue", () => {
 
     it("uses parsed value when SMS_WORKER_MAX_PER_MIN is valid number", async () => {
       vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "200");
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
       
       vi.resetModules();
-      
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
-      }));
-
-      const { Worker } = await import("bullmq");
+      const { Worker } = await import("@/lib/queue");
       const { startSMSWorker } = await import("@/lib/queues/sms-queue");
       
       startSMSWorker();
@@ -96,15 +80,9 @@ describe("SMS Queue", () => {
 
     it("uses default when SMS_WORKER_MAX_PER_MIN is NaN", async () => {
       vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "not-a-number");
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
       
       vi.resetModules();
-      
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
-      }));
-
-      const { Worker } = await import("bullmq");
+      const { Worker } = await import("@/lib/queue");
       const { logger } = await import("@/lib/logger");
       const { startSMSWorker } = await import("@/lib/queues/sms-queue");
       
@@ -126,15 +104,9 @@ describe("SMS Queue", () => {
 
     it("uses default when SMS_WORKER_MAX_PER_MIN is negative", async () => {
       vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "-50");
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
       
       vi.resetModules();
-      
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
-      }));
-
-      const { Worker } = await import("bullmq");
+      const { Worker } = await import("@/lib/queue");
       const { startSMSWorker } = await import("@/lib/queues/sms-queue");
       
       startSMSWorker();
@@ -148,15 +120,9 @@ describe("SMS Queue", () => {
 
     it("enforces minimum of 30/min when value is too low", async () => {
       vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "10");
-      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
       
       vi.resetModules();
-      
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
-      }));
-
-      const { Worker } = await import("bullmq");
+      const { Worker } = await import("@/lib/queue");
       const { startSMSWorker } = await import("@/lib/queues/sms-queue");
       
       startSMSWorker();
@@ -168,20 +134,6 @@ describe("SMS Queue", () => {
       }
     });
 
-    it("returns null when Redis is not configured", async () => {
-      vi.stubEnv("REDIS_URL", "");
-      
-      vi.resetModules();
-      
-      vi.doMock("@/lib/redis", () => ({
-        getRedisClient: vi.fn(() => null),
-      }));
-
-      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
-      
-      const worker = startSMSWorker();
-      
-      expect(worker).toBeNull();
-    });
   });
 });
+

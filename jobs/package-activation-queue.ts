@@ -2,15 +2,13 @@
  * Package Activation Retry Queue
  *
  * Handles background retries for failed package activations after payment.
- * Uses BullMQ for reliable job processing with exponential backoff.
- * 
- * SECURITY: This is a critical queue - Redis is REQUIRED (fail-fast on missing config)
- * to ensure activation retries are processed reliably.
+ * Uses an in-memory queue for job processing with exponential backoff semantics.
+ *
+ * NOTE: In-memory queues are single-instance and not durable across restarts.
  */
 
-import { Queue, Worker, Job } from "bullmq";
+import { Queue, Worker, Job } from "@/lib/queue";
 import { logger } from "@/lib/logger";
-import { getRedisClient } from "@/lib/redis";
 import { z } from "zod";
 
 const QUEUE_NAME = "package-activation-retry";
@@ -38,30 +36,11 @@ let queue: ActivationQueue | null = null;
 let activeWorker: ActivationWorker | null = null;
 
 /**
- * Require Redis connection - fail fast if not configured
- * Critical queues MUST have Redis to ensure reliability
- */
-function requireRedisConnection(context: string) {
-  const connection = getRedisClient();
-  if (!connection) {
-    throw new Error(
-      `[ActivationQueue] Redis not configured (${context}). ` +
-      `REDIS_URL or REDIS_KEY is required for activation retries - this is a critical queue.`
-    );
-  }
-  return connection;
-}
-
-/**
  * Get or create the activation retry queue
- * Throws if Redis is not configured (fail-fast for critical queue)
  */
 export function getActivationQueue(): ActivationQueue {
-  const connection = requireRedisConnection("getActivationQueue");
-
   if (!queue) {
     queue = new Queue<ActivationJobData>(QUEUE_NAME, {
-      connection,
       defaultJobOptions: {
         attempts: MAX_ATTEMPTS,
         backoff: {
@@ -145,18 +124,15 @@ export async function enqueueActivationRetry(
 /**
  * Process activation retry jobs
  * Call this from a worker process (e.g., in a separate Node.js process or serverless function)
- * Throws if Redis is not configured (fail-fast for critical queue)
  * 
  * NOTE: This function is async to ensure MongoDB is connected before processing.
  * The Worker is returned after connection is established.
  */
 export async function startActivationWorker(): Promise<ActivationWorker> {
-  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // CRITICAL: Ensure MongoDB is connected before any queue handlers run.
   // In standalone worker processes, mongoose may not be connected yet.
   const { connectToDatabase } = await import("@/lib/mongodb-unified");
   await connectToDatabase();
-
-  const connection = requireRedisConnection("startActivationWorker");
   
   if (activeWorker) {
     logger.warn("[ActivationQueue] Worker already running, returning existing worker");
@@ -267,15 +243,7 @@ export async function startActivationWorker(): Promise<ActivationWorker> {
 
         throw error; // Re-throw to trigger retry
       }
-    },
-    {
-      connection,
-      concurrency: 5,
-      limiter: {
-        max: 10,
-        duration: 60000, // Max 10 jobs per minute
-      },
-    },
+    }
   );
 
   worker.on("completed", (job) => {
@@ -323,9 +291,6 @@ export async function closeActivationQueue(): Promise<void> {
     await queue.close();
     queue = null;
   }
-  
-  // Note: Redis connection is managed by lib/redis singleton
-  // Don't disconnect here as it may be shared with other services
   
   logger.info("[ActivationQueue] Closed");
 }

@@ -8,7 +8,7 @@ import { z } from "zod";
 import type { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import {
-  redisRateLimitStore,
+  otpRateLimitStore,
   MAX_SENDS_PER_WINDOW,
   RATE_LIMIT_WINDOW_MS,
 } from "@/lib/otp-store";
@@ -33,7 +33,7 @@ export function generateOTP(): string {
 }
 
 /**
- * Check rate limit using Redis for distributed limiting
+ * Check rate limit using the in-memory limiter
  * @param identifier - The rate limit key (usually user identifier + org scope)
  * @returns Object with allowed status and remaining count
  */
@@ -41,7 +41,7 @@ export async function checkRateLimit(identifier: string): Promise<{
   allowed: boolean;
   remaining: number;
 }> {
-  return redisRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
+  return otpRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
 }
 
 /**

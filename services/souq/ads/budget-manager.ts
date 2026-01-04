@@ -1,7 +1,7 @@
 /**
  * Budget Manager Service
  *
- * Manages advertising budgets with Redis-based real-time tracking:
+ * Manages advertising budgets with in-memory real-time tracking:
  * - Daily budget caps
  * - Real-time spend tracking
  * - Budget alerts (75%, 90%, 100%)
@@ -10,13 +10,13 @@
  */
 
 import { ObjectId } from "mongodb";
-import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
+import { MemoryKV } from "@/lib/memory-kv";
 
 const DAY_SECONDS = 86400;
-const DAY_MS = DAY_SECONDS * 1000;
+const _DAY_MS = DAY_SECONDS * 1000;
 
 function getKsaDatePartition(): { dateKey: string; secondsToMidnight: number } {
   // Partition budgets by Saudi local day to align with business reporting
@@ -36,47 +36,12 @@ function getKsaDatePartition(): { dateKey: string; secondsToMidnight: number } {
   return { dateKey, secondsToMidnight };
 }
 
-function createRedisClient(): Redis {
-  logger.info("[BudgetManager] Using in-memory budget store (Redis removed)");
-  return new Redis();
+function createBudgetStore(): MemoryKV {
+  logger.info("[BudgetManager] Using in-memory budget store");
+  return new MemoryKV();
 }
 
-const redis = createRedisClient();
-
-type LocalBudgetEntry = { spent: number; expiresAt: number };
-const localBudget = new Map<string, LocalBudgetEntry>();
-const localAlerts = new Map<string, number>();
-
-function getLocalSpend(key: string): number {
-  const entry = localBudget.get(key);
-  if (!entry) return 0;
-  if (entry.expiresAt <= Date.now()) {
-    localBudget.delete(key);
-    return 0;
-  }
-  return entry.spent;
-}
-
-function setLocalSpend(key: string, spent: number, ttlMs: number = DAY_MS) {
-  localBudget.set(key, { spent, expiresAt: Date.now() + ttlMs });
-}
-
-function deleteLocalSpend(key: string) {
-  localBudget.delete(key);
-}
-
-function hasLocalAlert(key: string): boolean {
-  const expiresAt = localAlerts.get(key);
-  if (!expiresAt || expiresAt <= Date.now()) {
-    localAlerts.delete(key);
-    return false;
-  }
-  return true;
-}
-
-function setLocalAlert(key: string, ttlSeconds: number) {
-  localAlerts.set(key, Date.now() + ttlSeconds * 1000);
-}
+const budgetStore = createBudgetStore();
 
 interface BudgetStatus {
   campaignId: string;
@@ -89,7 +54,7 @@ interface BudgetStatus {
 }
 
 export class BudgetManager {
-  private static REDIS_PREFIX = "ad_budget:";
+  private static CACHE_PREFIX = "ad_budget:";
   private static ALERT_THRESHOLDS = [0.75, 0.9, 1.0]; // 75%, 90%, 100%
 
   /**
@@ -154,23 +119,24 @@ export class BudgetManager {
       return false;
     }
 
-    if (redis) {
-      const script = `
-      local spent = redis.call('GET', KEYS[1]) or '0'
+    const script = `
+      local spent = budgetStore.call('GET', KEYS[1]) or '0'
       local spentNum = tonumber(spent)
       local amountNum = tonumber(ARGV[1])
       local budgetNum = tonumber(ARGV[2])
       
       if spentNum + amountNum <= budgetNum then
-        redis.call('INCRBYFLOAT', KEYS[1], amountNum)
-        redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
+        budgetStore.call('INCRBYFLOAT', KEYS[1], amountNum)
+        budgetStore.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
         return 1
       else
         return 0
       end
     `;
 
-      const result = await redis.eval(
+    let success = false;
+    try {
+      const result = await budgetStore.eval(
         script,
         1,
         key,
@@ -178,24 +144,17 @@ export class BudgetManager {
         campaign.dailyBudget.toString(),
         ttlSeconds.toString(),
       );
-
-      const success = result === 1;
-
-      if (success) {
-        await this.checkBudgetThresholds(campaignId, orgKey);
-      }
-
-      return success;
+      success = result === 1;
+    } catch (error) {
+      logger.error("[BudgetManager] Budget charge failed", { campaignId, orgId: orgKey, error });
+      return false;
     }
 
-    const currentSpent = getLocalSpend(key);
-    if (currentSpent + amount <= campaign.dailyBudget) {
-      setLocalSpend(key, currentSpent + amount, ttlSeconds * 1000);
+    if (success) {
       await this.checkBudgetThresholds(campaignId, orgKey);
-      return true;
     }
 
-    return false;
+    return success;
   }
 
   /**
@@ -208,9 +167,7 @@ export class BudgetManager {
     }
     const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
     const { key } = this.getBudgetPartition(campaignId, orgKey);
-    const spentToday = redis
-      ? parseFloat((await redis.get(key)) || "0")
-      : getLocalSpend(key);
+    const spentToday = parseFloat((await budgetStore.get(key)) || "0");
 
     const campaign = await this.fetchCampaign(campaignId, orgCandidates);
 
@@ -268,12 +225,8 @@ export class BudgetManager {
       }
       const { key } = this.getBudgetPartition(campaign.campaignId, campaignOrgKey);
 
-      // Delete Redis key (will start fresh tomorrow)
-      if (redis) {
-        await redis.del(key);
-      } else {
-        deleteLocalSpend(key);
-      }
+      // Delete budget key (will start fresh tomorrow)
+      await budgetStore.del(key);
 
       // Reset spentToday in MongoDB with orgId scoping
       // AUDIT-2025-12-06: Use String orgId to match schema
@@ -307,11 +260,7 @@ export class BudgetManager {
     }
     const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
     const { key } = this.getBudgetPartition(campaignId, orgKey);
-    if (redis) {
-      await redis.del(key);
-    } else {
-      deleteLocalSpend(key);
-    }
+    await budgetStore.del(key);
 
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
@@ -341,20 +290,12 @@ export class BudgetManager {
     // Check if we crossed any threshold
     for (const threshold of this.ALERT_THRESHOLDS) {
       if (percentage >= threshold) {
-        const alertKey = `${this.REDIS_PREFIX}alert:${orgKey}:${campaignId}:${threshold}`;
-        const alreadySent = redis
-          ? await redis.get(alertKey)
-          : hasLocalAlert(alertKey)
-            ? "1"
-            : null;
+        const alertKey = `${this.CACHE_PREFIX}alert:${orgKey}:${campaignId}:${threshold}`;
+        const alreadySent = await budgetStore.get(alertKey);
 
         if (!alreadySent) {
           await this.sendBudgetAlert(campaignId, orgId, threshold);
-          if (redis) {
-            await redis.set(alertKey, "1", "EX", secondsToMidnight); // Don't send again today (KSA midnight aligned)
-          } else {
-            setLocalAlert(alertKey, secondsToMidnight);
-          }
+          await budgetStore.set(alertKey, "1", "EX", secondsToMidnight); // Don't send again today (KSA midnight aligned)
         }
       }
     }
@@ -413,7 +354,7 @@ export class BudgetManager {
     const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
     const campaign = await this.fetchCampaign(campaignId, orgCandidates);
 
-    // 🔐 STRICT v4.1: Include orgId in filter
+    // ???? STRICT v4.1: Include orgId in filter
     await db.collection("souq_campaigns").updateOne(
       { campaignId, orgId: { $in: orgCandidates } },
       {
@@ -442,7 +383,7 @@ export class BudgetManager {
 
   private static async enqueueSellerAlert(params: {
     sellerId: string;
-    orgId: string; // 🔐 STRICT v4.1: orgId is now REQUIRED
+    orgId: string; // ???? STRICT v4.1: orgId is now REQUIRED
     template: string;
     internalAudience: string;
     subject: string;
@@ -450,12 +391,12 @@ export class BudgetManager {
   }): Promise<void> {
     const { sellerId, template, internalAudience, subject, data, orgId: providedOrgId } = params;
 
-    // 🔐 STRICT v4.1: Require orgId to prevent cross-tenant notification leakage
+    // ???? STRICT v4.1: Require orgId to prevent cross-tenant notification leakage
     if (!providedOrgId) {
       throw new Error('orgId is required for enqueueSellerAlert (STRICT v4.1 tenant isolation)');
     }
 
-    // 🔐 STRICT v4.1: Verify seller belongs to this org before sending notifications
+    // ???? STRICT v4.1: Verify seller belongs to this org before sending notifications
     // This prevents cross-tenant metadata leakage and ensures correct branding
     let orgId: string = providedOrgId;
     try {
@@ -464,7 +405,7 @@ export class BudgetManager {
         ? [providedOrgId, new ObjectId(providedOrgId)]
         : [providedOrgId];
       const sellerFilter = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
-      // 🔐 FIX: Use findOne with orgId scoping instead of findById
+      // ???? FIX: Use findOne with orgId scoping instead of findById
       const seller = await SouqSeller.findOne({
         _id: sellerFilter,
         orgId: { $in: orgCandidates },
@@ -490,7 +431,7 @@ export class BudgetManager {
         component: "BudgetManager",
         action: "enqueueSellerAlert",
       });
-      // 🔐 STRICT v4.1: Fail-safe - don't send notification if we can't verify tenant
+      // ???? STRICT v4.1: Fail-safe - don't send notification if we can't verify tenant
       return;
     }
     const orgKey = orgId;
@@ -498,13 +439,13 @@ export class BudgetManager {
     await Promise.all([
       addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: sellerId,
-        orgId: orgKey, // 🔐 Tenant-specific routing for branding/templates
+        orgId: orgKey, // ???? Tenant-specific routing for branding/templates
         template,
         data,
       }),
       addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
         to: internalAudience,
-        orgId: orgKey, // 🔐 Include for audit/routing
+        orgId: orgKey, // ???? Include for audit/routing
         priority: "normal",
         message: subject,
         metadata: data,
@@ -514,7 +455,7 @@ export class BudgetManager {
 
   /**
    * Get budget key and TTL aligned to Saudi midnight
-   * @param orgId - Required for tenant isolation in Redis keys
+   * @param orgId - Required for tenant isolation in budget keys
    */
   private static getBudgetPartition(
     campaignId: string,
@@ -522,7 +463,7 @@ export class BudgetManager {
   ): { key: string; ttlSeconds: number } {
     const { dateKey, secondsToMidnight } = getKsaDatePartition();
     return {
-      key: `${this.REDIS_PREFIX}${orgId}:${campaignId}:${dateKey}`,
+      key: `${this.CACHE_PREFIX}${orgId}:${campaignId}:${dateKey}`,
       ttlSeconds: secondsToMidnight,
     };
   }
@@ -580,7 +521,7 @@ export class BudgetManager {
     pausedCampaigns: number;
     campaigns: BudgetStatus[];
   }> {
-    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    // ???? STRICT v4.1: Require orgId for tenant isolation
     if (!orgId) {
       throw new Error('orgId is required for campaign budget summary (STRICT v4.1 tenant isolation)');
     }
@@ -588,7 +529,7 @@ export class BudgetManager {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    // ???? STRICT v4.1: Include orgId in query for tenant isolation
     const sellerFilter = ObjectId.isValid(sellerId) && typeof sellerId === "string"
       ? { $in: [sellerId, new ObjectId(sellerId)] }
       : sellerId;
@@ -607,21 +548,21 @@ export class BudgetManager {
 
     const budgetStatuses: BudgetStatus[] = [];
 
-    // 🚀 PERF: Batch Redis reads instead of N+1 per-campaign calls
+    // ???? PERF: Batch budget store reads instead of N+1 per-campaign calls
     // Build partition keys for all campaigns at once
     const { dateKey } = getKsaDatePartition();
     type CampaignDoc = { campaignId?: string; status?: string; dailyBudget?: number };
     const partitionKeys = (campaigns as CampaignDoc[]).map(
-      (c) => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`,
+      (c) => `${this.CACHE_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`,
     );
 
-    // Batch fetch all spend values in one Redis call (mget)
+    // Batch fetch all spend values in one store call (mget)
     let spentValues: (string | null)[] = [];
-    if (redis && partitionKeys.length > 0) {
+    if (partitionKeys.length > 0) {
       try {
-        spentValues = await redis.mget(...partitionKeys);
+        spentValues = await budgetStore.mget(...partitionKeys);
       } catch (error) {
-        logger.warn("[BudgetManager] Redis mget failed, falling back to per-campaign fetch", { error });
+        logger.warn("[BudgetManager] Budget store mget failed, falling back to per-campaign fetch", { error });
         // Fallback to individual calls if mget fails
         spentValues = [];
       }
@@ -637,12 +578,10 @@ export class BudgetManager {
       let spentToday: number;
       if (spentValues.length > 0 && spentValues[i] !== null && spentValues[i] !== undefined) {
         spentToday = parseFloat(spentValues[i]!) || 0;
-      } else if (redis) {
-        // Fallback for missing batched values
-        const val = await redis.get(partitionKeys[i]);
-        spentToday = val ? parseFloat(val) : 0;
       } else {
-        spentToday = getLocalSpend(partitionKeys[i]);
+        // Fallback for missing batched values
+        const val = await budgetStore.get(partitionKeys[i]);
+        spentToday = val ? parseFloat(val) : 0;
       }
 
       const remainingBudget = Math.max(0, dailyBudget - spentToday);

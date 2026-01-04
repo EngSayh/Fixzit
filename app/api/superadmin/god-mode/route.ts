@@ -14,6 +14,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { pingDatabase } from "@/lib/mongo";
+import { healthAggregator, HealthStatus } from "@/lib/monitoring/health-aggregator";
 import { createHash } from "crypto";
 import { ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/lib/db/collection-names";
@@ -208,6 +210,35 @@ export async function GET(req: NextRequest) {
       // Collections may not exist yet - use defaults
     }
     
+    // Get real health data from health aggregator and MongoDB ping
+    let mongoDbPing: { ok: boolean; latencyMs: number | null } = { ok: false, latencyMs: null };
+    try {
+      mongoDbPing = await pingDatabase(2000);
+    } catch (pingError) {
+      logger.warn("MongoDB ping failed in God Mode dashboard", {
+        error: pingError instanceof Error ? pingError.message : String(pingError),
+      });
+      // Continue with failed ping status - don't crash the dashboard
+    }
+    const healthSummary = healthAggregator.getSummary();
+    
+    // Map component health to service status
+    const mapComponentToService = (componentName: string, serviceName: string): { 
+      name: string; 
+      status: string; 
+      latency_ms: number | null;
+    } => {
+      const component = healthSummary.components[componentName];
+      if (!component) {
+        return { name: serviceName, status: "unknown", latency_ms: null };
+      }
+      return {
+        name: serviceName,
+        status: component.status,
+        latency_ms: component.latencyMs ?? null,
+      };
+    };
+    
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
@@ -217,22 +248,24 @@ export async function GET(req: NextRequest) {
       operator_id: `sa_${createHash('sha256').update(session.username).digest('hex').slice(0, 12)}`,
       operator_username: session.username, // Only visible to current superadmin
       
-      // System Health - PLACEHOLDER DATA
-      // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data
+      // System Health - REAL DATA from health aggregator and MongoDB ping
       system_health: {
-        placeholder: true,
-        status: "placeholder",
-        note: "PLACEHOLDER DATA - Health checks require monitoring service integration (Datadog/Prometheus/NewRelic)",
-        score: 98,
-        uptime_percent: 99.95,
+        status: healthSummary.overallStatus,
+        score: healthSummary.healthScore,
+        uptime_seconds: healthSummary.uptimeSeconds,
+        error_rate_percent: metrics24h.error_rate_percent,
+        last_updated: healthSummary.lastUpdated.toISOString(),
         services: [
-          { name: "API Gateway", status: "placeholder", latency_ms: 45 },
-          { name: "MongoDB Atlas", status: "placeholder", latency_ms: 12 },
-          { name: "Redis Cache", status: "placeholder", latency_ms: 3 },
-          { name: "File Storage (S3)", status: "placeholder", latency_ms: 85 },
-          { name: "Payment Gateway (TAP)", status: "placeholder", latency_ms: 230 },
-          { name: "SMS Gateway (Taqnyat)", status: "placeholder", latency_ms: 180 },
-          { name: "ZATCA API", status: "placeholder", latency_ms: 350 },
+          { name: "API Gateway", status: healthSummary.overallStatus, latency_ms: null },
+          { 
+            name: "MongoDB Atlas", 
+            status: mongoDbPing.ok ? HealthStatus.HEALTHY : HealthStatus.UNHEALTHY, 
+            latency_ms: mongoDbPing.latencyMs 
+          },
+          mapComponentToService("s3", "File Storage (S3)"),
+          mapComponentToService("payment_gateway", "Payment Gateway (TAP)"),
+          mapComponentToService("sms", "SMS Gateway (Taqnyat)"),
+          mapComponentToService("zatca", "ZATCA API"),
         ],
       },
       

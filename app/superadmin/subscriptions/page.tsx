@@ -89,7 +89,7 @@ const STATUS_COLORS: Record<string, string> = {
   trial: "bg-blue-500/20 text-blue-400",
   past_due: "bg-yellow-500/20 text-yellow-400",
   cancelled: "bg-red-500/20 text-red-400",
-  expired: "bg-gray-500/20 text-gray-400",
+  expired: "bg-muted text-muted-foreground",
 };
 
 // Helper function to get default tiers for fallback
@@ -622,7 +622,7 @@ export default function SuperadminSubscriptionsPage() {
                         <TableCell className="text-muted-foreground capitalize">{sub.billingCycle}</TableCell>
                         <TableCell className="text-foreground">{formatCurrency(sub.amount, sub.currency)}</TableCell>
                         <TableCell>
-                          <Badge className={STATUS_COLORS[sub.status] || "bg-gray-500/20 text-gray-400"}>
+                          <Badge className={STATUS_COLORS[sub.status] || "bg-muted text-muted-foreground"}>
                             {sub.status.replace("_", " ")}
                           </Badge>
                         </TableCell>
@@ -690,7 +690,7 @@ export default function SuperadminSubscriptionsPage() {
                       )}
                     </ul>
                     <div className="flex items-center justify-between pt-2">
-                      <Badge variant="outline" className={tier.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                      <Badge variant="outline" className={tier.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>
                         {tier.isActive ? "Active" : "Inactive"}
                       </Badge>
                       <div className="flex items-center gap-1">

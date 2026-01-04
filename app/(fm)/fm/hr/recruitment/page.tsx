@@ -263,7 +263,7 @@ export default function AtsJobsPage() {
         locationModeLabels.onsite.fallback,
       );
     }
-    return locationString || t("hr.ats.jobs.location.unspecified", "TBD");
+    return locationString || t("hr.ats.jobs.location.unspecified", "Not specified");
   };
 
   if (!hasOrgContext || !orgId) {

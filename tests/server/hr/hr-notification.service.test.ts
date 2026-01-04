@@ -39,7 +39,7 @@ describe("HrNotificationService", () => {
   });
 
   it("swallows queue errors when emitting attendance alerts", async () => {
-    addJobMock.mockRejectedValueOnce(new Error("redis offline"));
+    addJobMock.mockRejectedValueOnce(new Error("queue offline"));
 
     await expect(
       HrNotificationService.queueAttendanceAlert({

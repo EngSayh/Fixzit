@@ -82,7 +82,7 @@ function formatDuration(seconds: number | null): string {
 function StatusBadge({ status }: { status: ImpersonationSession["status"] }) {
   const config = {
     active: { variant: "default" as const, label: "Active", color: "bg-green-500" },
-    ended: { variant: "secondary" as const, label: "Ended", color: "bg-gray-500" },
+    ended: { variant: "secondary" as const, label: "Ended", color: "bg-muted" },
     expired: { variant: "outline" as const, label: "Expired", color: "bg-yellow-500" },
   };
   

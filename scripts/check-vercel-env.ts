@@ -69,10 +69,6 @@ const envVars: Record<string, boolean> = {
   PUBLIC_BASE_URL: !!process.env.PUBLIC_BASE_URL,
   APP_URL: !!process.env.APP_URL,
 
-  // Redis
-  REDIS_URL: !!process.env.REDIS_URL,
-  REDIS_PASSWORD: !!process.env.REDIS_PASSWORD,
-
   // Feature Flags
   ATS_ENABLED: !!process.env.ATS_ENABLED,
   MARKETPLACE_ENABLED: !!process.env.MARKETPLACE_ENABLED,
@@ -159,7 +155,6 @@ const categories = {
   "🤖 AI": ["OPENAI_API_KEY", "COPILOT_MODEL"],
   "🗺️ Maps": ["GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"],
   "🌍 URLs": ["NEXT_PUBLIC_APP_URL", "BASE_URL", "PUBLIC_BASE_URL", "APP_URL"],
-  "⚡ Redis": ["REDIS_URL", "REDIS_PASSWORD"],
   "🎚️ Feature Flags": ["ATS_ENABLED", "MARKETPLACE_ENABLED", "WO_ENABLED"],
   "🏢 Organization": ["PUBLIC_ORG_ID", "TEST_ORG_ID", "DEFAULT_ORG_ID"],
   "🔥 Firebase": [
@@ -212,3 +207,5 @@ console.log(
 if (totalMissing > 0) {
   console.log("⚠️  Missing variables may cause features to fail!");
 }
+
+

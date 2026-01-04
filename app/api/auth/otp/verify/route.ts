@@ -39,8 +39,8 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import {
-  redisOtpStore,
-  redisOtpSessionStore,
+  otpStore,
+  otpSessionStore,
   MAX_ATTEMPTS,
   OTP_SESSION_EXPIRY_MS,
 } from "@/lib/otp-store";
@@ -221,12 +221,12 @@ export async function POST(request: NextRequest) {
     
     // Check if this is a bypass verification
     const bypassOtpKey = `otp:bypass:${loginIdentifier.toLowerCase()}`;
-    const bypassData = await redisOtpStore.get(bypassOtpKey);
+    const bypassData = await otpStore.get(bypassOtpKey);
     
     // Allow bypass if:
     // 1. Regular bypass: bypassData exists with __bypassed flag AND otp matches bypassCode
     // 2. Direct superadmin bypass: superadmin email AND otp matches bypassCode (no prior send required)
-    //    This handles serverless stateless environment where Redis isn't configured
+    //    This handles serverless stateless environment where in-memory store isn't shared
     const isRegularBypass = bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode;
     const isDirectSuperadminBypass = bypassEnabled && isSuperadminEmail && otp === bypassCode;
     
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
           userStatus: bypassUser?.status,
           clientIp,
         });
-        await redisOtpStore.delete(bypassOtpKey);
+        await otpStore.delete(bypassOtpKey);
         return NextResponse.json(
           { success: false, error: "Invalid credentials" },
           { status: 401 },
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
           requestedOrgId: orgScopeId,
           clientIp,
         });
-        await redisOtpStore.delete(bypassOtpKey);
+        await otpStore.delete(bypassOtpKey);
         return NextResponse.json(
           { success: false, error: "Invalid credentials" },
           { status: 401 },
@@ -279,12 +279,12 @@ export async function POST(request: NextRequest) {
       });
       
       // Clean up bypass OTP
-      await redisOtpStore.delete(bypassOtpKey);
+      await otpStore.delete(bypassOtpKey);
       
       // Generate temporary OTP login session token
       // SECURITY: Use validated user data from database, not from bypassData (CodeRabbit critical fix)
       const sessionToken = randomBytes(32).toString("hex");
-      await redisOtpSessionStore.set(sessionToken, {
+      await otpSessionStore.set(sessionToken, {
         userId: bypassUser._id.toString(),
         identifier: loginIdentifier,
         orgId: bypassUser.orgId?.toString() || orgScopeId,
@@ -303,8 +303,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. Retrieve OTP data from store (ASYNC for multi-instance Redis support)
-    const otpData = await redisOtpStore.get(otpKey);
+    // 3. Retrieve OTP data from store (async, in-memory)
+    const otpData = await otpStore.get(otpKey);
 
     if (!otpData) {
       logger.warn("[OTP] No OTP found for identifier", {
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
         storedOrgId: otpData.orgId,
         requestedOrgId: orgScopeId,
       });
-      await redisOtpStore.delete(otpKey);
+      await otpStore.delete(otpKey);
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
         { status: 401 },
@@ -335,7 +335,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Check if OTP expired
     if (Date.now() > otpData.expiresAt) {
-      await redisOtpStore.delete(otpKey);
+      await otpStore.delete(otpKey);
       logger.warn("[OTP] OTP expired", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
@@ -348,7 +348,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Check attempts limit
     if (otpData.attempts >= MAX_ATTEMPTS) {
-      await redisOtpStore.delete(otpKey);
+      await otpStore.delete(otpKey);
       logger.warn("[OTP] Too many attempts", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
@@ -362,8 +362,8 @@ export async function POST(request: NextRequest) {
     // 6. Verify OTP
     if (otp !== otpData.otp) {
       otpData.attempts += 1;
-      // STRICT v4.1: Persist attempt increment to Redis for multi-instance consistency
-      await redisOtpStore.update(otpKey, otpData);
+      // STRICT v4.1: Persist attempt increment to in-memory store
+      await otpStore.update(otpKey, otpData);
       const remainingAttempts = MAX_ATTEMPTS - otpData.attempts;
 
       logger.warn("[OTP] Incorrect OTP", {
@@ -390,12 +390,12 @@ export async function POST(request: NextRequest) {
     });
 
     // 8. Clean up OTP from store
-    await redisOtpStore.delete(otpKey);
+    await otpStore.delete(otpKey);
 
     // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
     // SECURITY: Include orgId and companyCode for tenant isolation (SEC-BLOCKER-001)
     const sessionToken = randomBytes(32).toString("hex");
-    await redisOtpSessionStore.set(sessionToken, {
+    await otpSessionStore.set(sessionToken, {
       userId: otpData.userId,
       identifier: otpKey,
       orgId: otpData.orgId || orgScopeId,

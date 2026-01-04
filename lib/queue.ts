@@ -21,16 +21,15 @@ export class Job<T = unknown, R = unknown> {
   }
 
   async remove(): Promise<void> {
-    // No-op; removal handled by queue
+    // Removal handled by queue cleanup.
   }
 
   async updateProgress(progress: number | object): Promise<void> {
-    // No-op stub for progress tracking
     void progress;
   }
 }
 
-type Processor<T = unknown, R = unknown> = (job: Job<T, R>) => Promise<R> | R;
+export type Processor<T = unknown, R = unknown> = (job: Job<T, R>) => Promise<R> | R;
 
 const queues = new Map<string, Queue>();
 const workerRegistry = new Map<string, Worker>();
@@ -43,7 +42,6 @@ export class Queue<T = unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(name: string, _options?: any) {
     this.name = name;
-    // Ensure singleton per queue name to share jobs between producers/consumers
     const existing = queues.get(name);
     if (existing) {
       return existing as Queue<T>;
@@ -72,14 +70,18 @@ export class Queue<T = unknown> {
     }
   }
 
-  async add(name: string, data: T, options?: { 
-    delay?: number; 
-    jobId?: string; 
-    priority?: number; 
-    attempts?: number;
-    repeat?: unknown;
-    backoff?: unknown;
-  }): Promise<Job<T>> {
+  async add(
+    name: string,
+    data: T,
+    options?: {
+      delay?: number;
+      jobId?: string;
+      priority?: number;
+      attempts?: number;
+      repeat?: unknown;
+      backoff?: unknown;
+    }
+  ): Promise<Job<T>> {
     const job = new Job<T>(name, data, options?.jobId);
     this.jobs.push(job);
 
@@ -94,7 +96,9 @@ export class Queue<T = unknown> {
     return job;
   }
 
-  async getJobs(types: Array<JobStatus> = ["waiting", "active", "completed", "failed", "delayed"]): Promise<Array<Job<T>>> {
+  async getJobs(
+    types: Array<JobStatus> = ["waiting", "active", "completed", "failed", "delayed"],
+  ): Promise<Array<Job<T>>> {
     return this.jobs.filter((job) => types.includes(job.status));
   }
 
@@ -165,7 +169,6 @@ export class Queue<T = unknown> {
     return;
   }
 
-  // Internal helper for Worker registration (accepts any Worker type)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setWorker(worker: Worker<any, any>): void {
     workerRegistry.set(this.name, worker as Worker);
@@ -180,9 +183,7 @@ export class QueueEvents {
   constructor(_name: string, _options?: any) {}
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(_event: string, _handler: (...args: any[]) => void): void {
-    // No-op placeholder to keep API compatibility
-  }
+  on(_event: string, _handler: (...args: any[]) => void): void {}
 
   async close(): Promise<void> {
     this.listeners.clear();
@@ -202,7 +203,6 @@ export class Worker<T = unknown, R = unknown> {
     this.queue.setWorker(this);
   }
 
-  // Exposed for Queue dispatch
   async process(job: Job<T, R>): Promise<R> {
     return this.processor(job);
   }
@@ -223,5 +223,3 @@ export class Worker<T = unknown, R = unknown> {
     this.listeners.clear();
   }
 }
-
-export type { Processor };

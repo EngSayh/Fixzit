@@ -38,7 +38,7 @@ interface Product {
 
 const CATEGORIES = ["SPARE_PARTS", "TOOLS", "EQUIPMENT", "CONSUMABLES", "SAFETY", "ELECTRICAL", "PLUMBING"];
 const __BUSINESS_MODELS = ["B2B", "B2C", "BOTH"]; // Reserved for filter UI
-const STATUS_COLORS: Record<string, string> = { ACTIVE: "bg-green-500/20 text-green-400", INACTIVE: "bg-gray-500/20 text-gray-400", OUT_OF_STOCK: "bg-red-500/20 text-red-400", PENDING: "bg-yellow-500/20 text-yellow-400" };
+const STATUS_COLORS: Record<string, string> = { ACTIVE: "bg-green-500/20 text-green-400", INACTIVE: "bg-muted text-muted-foreground", OUT_OF_STOCK: "bg-red-500/20 text-red-400", PENDING: "bg-yellow-500/20 text-yellow-400" };
 const BUSINESS_MODEL_COLORS: Record<string, string> = { B2B: "bg-blue-500/20 text-blue-500", B2C: "bg-green-500/20 text-green-500", BOTH: "bg-purple-500/20 text-purple-500" };
 
 export default function SuperadminCatalogPage() {

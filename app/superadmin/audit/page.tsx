@@ -64,7 +64,7 @@ const ACTION_COLORS: Record<string, string> = {
   UPDATE: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   DELETE: "bg-red-500/20 text-red-400 border-red-500/30",
   LOGIN: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  LOGOUT: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  LOGOUT: "bg-muted text-muted-foreground border-border",
   EXPORT: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   IMPORT: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
   APPROVE: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",

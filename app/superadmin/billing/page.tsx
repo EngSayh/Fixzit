@@ -217,7 +217,7 @@ export default function SuperadminBillingPage() {
                         <TableCell className="text-muted-foreground">{pb.currency || "SAR"}</TableCell>
                         <TableCell className="text-muted-foreground">{pb.modules?.length || 0} modules</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={pb.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                          <Badge variant="outline" className={pb.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>
                             {pb.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
@@ -293,7 +293,7 @@ export default function SuperadminBillingPage() {
                   {annualDiscount?.enabled ? (
                     <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
                   ) : (
-                    <Badge className="bg-gray-500/20 text-gray-400">Disabled</Badge>
+                    <Badge className="bg-muted text-muted-foreground">Disabled</Badge>
                   )}
                 </div>
               </div>

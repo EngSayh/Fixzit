@@ -15,7 +15,7 @@ export type ExportJobMessage = {
 };
 
 /**
-  * Enqueue an export job to BullMQ. The worker can hydrate filters/ids
+  * Enqueue an export job to the in-memory queue. The worker can hydrate filters/ids
   * and stream CSV/XLS output asynchronously.
   */
 export async function enqueueExportJob(message: ExportJobMessage) {

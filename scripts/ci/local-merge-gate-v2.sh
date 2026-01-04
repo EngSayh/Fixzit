@@ -140,12 +140,12 @@ rg -n "@vitest-environment node" tests -g "*.ts" -g "*.tsx" \
   | tee .artifacts/scan/env-node.full.txt > /dev/null || true
 
 echo "  • Scan B: Client-side server-only imports (app/**/*.tsx ONLY)"
-rg -n "from ['\"](mongoose|mongodb|bullmq|ioredis)['\"]|require\(['\"](mongoose|mongodb|bullmq|ioredis)['\"]\)" \
+rg -n "from ['\"](mongoose|mongodb)['\"]|require\(['\"](mongoose|mongodb)['\"]\)" \
   app -g "*.tsx" \
   | tee .artifacts/scan/server-only-imports.app-tsx.txt > /dev/null || true
 
 echo "  • Scan C: All server-only module references"
-rg -n "bullmq|ioredis|mongodb|mongoose" tests app lib server -g "*.ts" -g "*.tsx" \
+rg -n "mongodb|mongoose" tests app lib server -g "*.ts" -g "*.tsx" \
   | tee .artifacts/scan/server-only-imports.full.txt > /dev/null || true
 
 echo "  • Scan D: Dynamic imports in tests"
@@ -192,3 +192,4 @@ echo ""
 
 echo "✅ ALL GATES PASSED - MERGE READY"
 exit 0
+

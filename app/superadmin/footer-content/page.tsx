@@ -714,7 +714,7 @@ export default function SuperadminFooterContentPage() {
                           <TableCell className="text-muted-foreground">v{policy.version}</TableCell>
                           <TableCell className="text-muted-foreground">{formatDate(policy.lastUpdated)}</TableCell>
                           <TableCell>
-                            <Badge className={policy.isPublished ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                            <Badge className={policy.isPublished ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>
                               {policy.isPublished ? "Published" : "Draft"}
                             </Badge>
                           </TableCell>

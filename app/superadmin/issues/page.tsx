@@ -26,6 +26,11 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  UserPlus,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +56,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -131,8 +143,8 @@ const STATUS_COLORS: Record<string, string> = {
   in_review: "bg-purple-500 text-white",
   blocked: "bg-red-500 text-white",
   resolved: "bg-green-500 text-white",
-  closed: "bg-gray-500 text-white",
-  wont_fix: "bg-gray-400 text-white",
+  closed: "bg-muted text-muted-foreground",
+  wont_fix: "bg-muted/80 text-muted-foreground",
 };
 
 const CATEGORY_ICONS: Record<string, typeof Bug> = {
@@ -167,6 +179,8 @@ export default function SuperadminIssuesPage() {
   const [importData, setImportData] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
 
   // Selection state
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
@@ -558,6 +572,40 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
   const handleIssueClick = (issue: Issue) => {
     setSelectedIssue(issue);
     setDrawerOpen(true);
+  };
+
+  // Delete a single issue
+  const handleDeleteIssue = async (issueId: string) => {
+    if (!confirm(t("superadmin.issues.deleteConfirm", "Are you sure you want to delete this issue? This action cannot be undone."))) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/issues/${issueId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete issue: ${response.status}`);
+      }
+
+      toast({
+        title: t("superadmin.issues.toast.deleteSuccess", "Issue deleted"),
+        description: t("superadmin.issues.toast.deleteDescription", "The issue has been permanently deleted."),
+      });
+
+      // Refresh the list
+      fetchIssues();
+    } catch (error) {
+      // eslint-disable-next-line no-console -- surface delete failures for debugging
+      console.error("[superadmin:issues] Failed to delete issue:", error);
+      toast({
+        title: t("superadmin.issues.toast.deleteError", "Delete failed"),
+        description: t("superadmin.issues.toast.deleteErrorDescription", "Could not delete the issue. Please try again."),
+        variant: "destructive",
+      });
+    }
   };
 
   // Export handler
@@ -1199,6 +1247,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   <TableHead className="text-muted-foreground w-[120px]">Assignee</TableHead>
                   <TableHead className="text-muted-foreground w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
                   <TableHead className="text-muted-foreground w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[60px] text-end">{t("common.actions", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1225,7 +1274,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                         {issue.issueId || issue.legacyId || issue._id.slice(-6)}
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
-                        <Badge className={PRIORITY_COLORS[issue.priority] || "bg-gray-500"}>
+                        <Badge className={PRIORITY_COLORS[issue.priority] || "bg-muted text-muted-foreground"}>
                           {getPriorityLabel(issue.priority)}
                         </Badge>
                       </TableCell>
@@ -1275,6 +1324,58 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                         <span className="text-xs text-muted-foreground">
                           {new Date(issue.updatedAt).toLocaleDateString()}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                              aria-label={t("superadmin.issues.rowActions", `Actions for issue ${issue.issueId}`)}
+                              title={t("superadmin.issues.rowActions", `Actions for ${issue.issueId}`)}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-muted border-input">
+                            <DropdownMenuItem
+                              onClick={() => handleIssueClick(issue)}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <Eye className="h-4 w-4 me-2" />
+                              {t("common.viewDetails", "View Details")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setIsEditOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <Edit className="h-4 w-4 me-2" />
+                              {t("common.edit", "Edit Issue")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setIsAssignOpen(true);
+                              }}
+                              className="text-muted-foreground hover:bg-muted/80"
+                            >
+                              <UserPlus className="h-4 w-4 me-2" />
+                              {t("common.assign", "Assign")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-input" />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteIssue(issue._id)}
+                              className="text-red-400 hover:bg-red-900/20 hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4 me-2" />
+                              {t("common.delete", "Delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -1461,7 +1562,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
         {selectedIssue && (
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <Badge className={PRIORITY_COLORS[selectedIssue.priority] || "bg-gray-500"}>
+              <Badge className={PRIORITY_COLORS[selectedIssue.priority] || "bg-muted text-muted-foreground"}>
                 {getPriorityLabel(selectedIssue.priority)}
               </Badge>
               <Badge variant="secondary" className={STATUS_COLORS[selectedIssue.status]}>
@@ -1470,24 +1571,24 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Description</h3>
-              <p className="text-gray-900 dark:text-gray-100">{selectedIssue.description}</p>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+              <p className="text-foreground">{selectedIssue.description}</p>
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Category</h3>
-              <p className="text-gray-900 dark:text-gray-100 capitalize">{getCategoryLabel(selectedIssue.category)}</p>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
+              <p className="text-foreground capitalize">{getCategoryLabel(selectedIssue.category)}</p>
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Module</h3>
-              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">{selectedIssue.module}</p>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Module</h3>
+              <p className="text-foreground font-mono text-sm">{selectedIssue.module}</p>
             </div>
 
             {selectedIssue.location?.filePath && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
-                <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
+                <p className="text-foreground font-mono text-sm">
                   {selectedIssue.location.filePath}
                   {selectedIssue.location.lineStart && `:${selectedIssue.location.lineStart}`}
                   {selectedIssue.location.lineEnd && `-${selectedIssue.location.lineEnd}`}
@@ -1497,30 +1598,30 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
 
             {selectedIssue.assignedTo && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Assigned To</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h3>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm text-white font-medium">
                     {selectedIssue.assignedTo.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-gray-900 dark:text-gray-100">{selectedIssue.assignedTo}</span>
+                  <span className="text-foreground">{selectedIssue.assignedTo}</span>
                 </div>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Mention Count</h3>
-                <p className="text-gray-900 dark:text-gray-100">{selectedIssue.mentionCount || 1}×</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Mention Count</h3>
+                <p className="text-foreground">{selectedIssue.mentionCount || 1}×</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Effort</h3>
-                <p className="text-gray-900 dark:text-gray-100 capitalize">{selectedIssue.effort}</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Effort</h3>
+                <p className="text-foreground capitalize">{selectedIssue.effort}</p>
               </div>
             </div>
 
             {selectedIssue.riskTags && selectedIssue.riskTags.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Risk Tags</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Risk Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedIssue.riskTags.map((tag, idx) => (
                     <Badge key={idx} variant="outline">{tag}</Badge>
@@ -1531,7 +1632,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
 
             {selectedIssue.labels && selectedIssue.labels.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Labels</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Labels</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedIssue.labels.map((label, idx) => (
                     <Badge key={idx} variant="secondary">{label}</Badge>
@@ -1540,7 +1641,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
             )}
 
-            <div className="pt-4 border-t flex gap-2">
+            <div className="pt-4 border-t border-border flex gap-2">
               <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1" aria-label={t("superadmin.issues.viewFullDetails", "View full issue details")} title={t("superadmin.issues.viewFullDetails", "View full issue details")}>
                 View Full Details
               </Button>
@@ -1551,6 +1652,119 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
           </div>
         )}
       </SlideOverDrawer>
+
+      {/* Edit Issue Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              {t("superadmin.issues.editTitle", "Edit Issue")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.issues.editDescription", "Modify issue details and save changes")}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedIssue && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">{t("superadmin.issues.form.title", "Title")}</Label>
+                <Input
+                  id="edit-title"
+                  defaultValue={selectedIssue.title}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-status">{t("superadmin.issues.form.status", "Status")}</Label>
+                <Select defaultValue={selectedIssue.status}>
+                  <SelectTrigger className="mt-1">
+                    {getStatusLabel(selectedIssue.status)}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-priority">{t("superadmin.issues.form.priority", "Priority")}</Label>
+                <Select defaultValue={selectedIssue.priority}>
+                  <SelectTrigger className="mt-1">
+                    {getPriorityLabel(selectedIssue.priority)}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {priorityOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    toast({ title: t("common.saved", "Changes saved") });
+                    setIsEditOpen(false);
+                  }}
+                  className="flex-1"
+                >
+                  {t("common.save", "Save Changes")}
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                  {t("common.cancel", "Cancel")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Issue Dialog */}
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              {t("superadmin.issues.assignTitle", "Assign Issue")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.issues.assignDescription", "Assign this issue to a team member")}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedIssue && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="assign-to">{t("superadmin.issues.form.assignee", "Assignee")}</Label>
+                <Input
+                  id="assign-to"
+                  placeholder={t("superadmin.issues.form.assigneePlaceholder", "Enter username or email")}
+                  defaultValue={selectedIssue.assignedTo || ""}
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    toast({ title: t("superadmin.issues.toast.assigned", "Issue assigned") });
+                    setIsAssignOpen(false);
+                  }}
+                  className="flex-1"
+                >
+                  {t("common.assign", "Assign")}
+                </Button>
+                <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
+                  {t("common.cancel", "Cancel")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

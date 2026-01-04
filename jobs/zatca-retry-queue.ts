@@ -5,12 +5,11 @@
  * Picks up payments with zatca.complianceStatus = "PENDING_RETRY" and
  * re-attempts clearance with proper tenant scoping.
  *
- * Uses BullMQ for reliable job processing with exponential backoff.
+ * Uses an in-memory queue for job processing with exponential backoff semantics.
  */
 
-import { Queue, Worker, Job } from "bullmq";
+import { Queue, Worker, Job } from "@/lib/queue";
 import { logger } from "@/lib/logger";
-import { getRedisClient } from "@/lib/redis";
 import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
 import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 import { z } from "zod";
@@ -39,31 +38,11 @@ let queue: Queue<ZatcaRetryJobData> | null = null;
 let activeWorker: Worker<ZatcaRetryJobData, any> | null = null;
 
 /**
- * Require Redis connection - fail fast if not configured.
- * ZATCA is a critical compliance queue - silently disabling could cause
- * regulatory violations (invoices not being cleared with tax authority).
- */
-function requireRedisConnection(context: string) {
-  const connection = getRedisClient();
-  if (!connection) {
-    throw new Error(
-      `[ZatcaRetryQueue] Redis not configured (${context}). ` +
-      `REDIS_URL or REDIS_KEY is required for ZATCA clearance retries - this is a critical compliance queue.`
-    );
-  }
-  return connection;
-}
-
-/**
  * Get or create the ZATCA retry queue
- * Throws if Redis is not configured (fail-fast for critical compliance queue)
  */
 export function getZatcaRetryQueue(): Queue {
-  const connection = requireRedisConnection("getZatcaRetryQueue");
-
   if (!queue) {
     queue = new Queue(QUEUE_NAME, {
-      connection,
       defaultJobOptions: {
         attempts: MAX_ATTEMPTS,
         backoff: {
@@ -113,7 +92,6 @@ export async function enqueueZatcaRetry(
   }
 
   const zatcaQueue = getZatcaRetryQueue();
-  // getZatcaRetryQueue throws if Redis not configured, so queue is always valid here
 
   try {
     const job = await zatcaQueue.add(
@@ -232,21 +210,16 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
 /**
  * Process ZATCA retry jobs.
  * Call this from a worker process.
- * Throws if Redis is not configured (fail-fast for critical compliance queue)
  * 
  * NOTE: This function is async to ensure MongoDB is connected before processing.
  * The Worker is returned after connection is established.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function startZatcaRetryWorker(): Promise<Worker<any, any>> {
-  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // CRITICAL: Ensure MongoDB is connected before any queue handlers run.
   // In standalone worker processes, mongoose may not be connected yet.
   const { connectToDatabase } = await import("@/lib/mongodb-unified");
   await connectToDatabase();
-
-  // SECURITY: requireRedisConnection throws if Redis not configured
-  // to ensure ZATCA compliance queue cannot be silently disabled
-  const connection = requireRedisConnection("startZatcaRetryWorker");
 
   if (activeWorker) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -428,15 +401,7 @@ export async function startZatcaRetryWorker(): Promise<Worker<any, any>> {
 
         throw error; // Re-throw to trigger retry
       }
-    },
-    {
-      connection,
-      concurrency: 2, // Lower concurrency for ZATCA rate limits
-      limiter: {
-        max: 5,
-        duration: 60000, // Max 5 jobs per minute
-      },
-    },
+    }
   );
 
   worker.on("completed", (job) => {
@@ -471,8 +436,7 @@ export async function stopZatcaRetryWorker(): Promise<void> {
 }
 
 /**
- * Graceful shutdown - closes worker, queue, and connection
- * Note: Redis connection is managed by shared singleton, not disconnected here
+ * Graceful shutdown - closes worker and queue
  */
 export async function closeZatcaRetryQueue(): Promise<void> {
   // Stop worker first
@@ -484,7 +448,5 @@ export async function closeZatcaRetryQueue(): Promise<void> {
     queue = null;
   }
   
-  // Redis connection is managed by shared singleton in @/lib/redis
-  // Do not disconnect here - other parts of the app may still need it
   logger.info("[ZatcaRetryQueue] Closed");
 }

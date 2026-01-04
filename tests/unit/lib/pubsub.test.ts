@@ -1,6 +1,6 @@
 /**
- * @module tests/unit/lib/redis-pubsub.test.ts
- * @description Unit tests for Redis pub/sub functionality (FEAT-0034)
+ * @module tests/unit/lib/pubsub.test.ts
+ * @description Unit tests for in-memory pub/sub functionality (FEAT-0034)
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -11,9 +11,9 @@ import {
   unsubscribe,
   punsubscribe,
   PubSubChannels,
-} from "@/lib/redis";
+} from "@/lib/pubsub";
 
-describe("Redis Pub/Sub (FEAT-0034)", () => {
+describe("Pub/Sub (FEAT-0034)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

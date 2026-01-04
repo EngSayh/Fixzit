@@ -56,12 +56,7 @@
       "@/app/fm/*": [
         "./app/(fm)/fm/*"
       ],
-      "ioredis": [
-        "./lib/stubs/ioredis"
-      ],
-      "bullmq": [
-        "./lib/stubs/bullmq"
-      ]
+      
     }
   },
   "include": [

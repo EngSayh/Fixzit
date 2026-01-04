@@ -1,24 +1,13 @@
-import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import { Queue } from '@/lib/queue';
 import { Types } from 'mongoose';
 import { logger } from '@/lib/logger';
 
 const OCR_QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
 const EXPIRY_QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
 
-// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
-const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const connection = redisUrl
-  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
-  : null;
 
-function buildQueue(name: string): Queue | null {
-  if (!connection) {
-    logger.warn(`[OnboardingQueue] Redis not configured, queue "${name}" disabled`);
-    return null;
-  }
+function buildQueue(name: string): Queue {
   return new Queue(name, {
-    connection,
     defaultJobOptions: {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5_000 },
@@ -84,3 +73,4 @@ export async function enqueueOnboardingExpiry(data: ExpiryJob): Promise<string |
     return null;
   }
 }
+

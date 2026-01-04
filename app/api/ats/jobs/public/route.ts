@@ -2,7 +2,7 @@
  * @fileoverview Public Job Listings
  * @description Provides publicly accessible job listings with search, filtering, and pagination support. Results are cached for performance.
  * @route GET /api/ats/jobs/public - Retrieve public job postings
- * @access Public - Rate-limited endpoint with Redis caching
+ * @access Public - Rate-limited endpoint with in-memory caching
  * @module ats
  */
 
@@ -12,11 +12,11 @@ import { Job } from "@/server/models/Job";
 import { logger } from "@/lib/logger";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { getCached, CacheTTL } from "@/lib/redis";
+import { getCached, CacheTTL } from "@/lib/cache";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
-const MAX_CACHE_KEY_SEGMENT = 64; // Limit cache key segment length to prevent Redis key bloat
+const MAX_CACHE_KEY_SEGMENT = 64; // Limit cache key segment length to prevent key bloat
 
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // CACHE KEY: Use normalized (lowercased, clamped to 64 chars) segments to prevent Redis key bloat
+    // CACHE KEY: Use normalized (lowercased, clamped to 64 chars) segments to prevent key bloat
     // QUERY: Use sanitized but unclamped original input to preserve search fidelity
     // This ensures cache correctness while not truncating user's actual search terms
     const cacheSearch = normalizeCacheKeySegment(search);
@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
     const queryLocation = location.slice(0, MAX_QUERY_LENGTH);
     const queryJobType = jobType.slice(0, MAX_QUERY_LENGTH);
 
-    // Cache key with normalized segments to prevent Redis key bloat from unbounded user input
+    // Cache key with normalized segments to prevent key bloat from unbounded user input
     // Security: Clamp search/filter lengths to prevent cache churn attacks
     const cacheKey = `public-jobs:${orgId}:${cacheSearch}:${cacheDepartment}:${cacheLocation}:${cacheJobType}:${page}:${limit}`;
 

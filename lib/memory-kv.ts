@@ -9,10 +9,10 @@ function wildcardToRegExp(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
-class RedisMulti {
+export class MemoryMulti {
   private ops: Array<() => Promise<unknown>> = [];
 
-  constructor(private client: Redis) {}
+  constructor(private client: MemoryKV) {}
 
   incr(key: string): this {
     this.ops.push(() => this.client.incr(key));
@@ -38,17 +38,18 @@ class RedisMulti {
   }
 }
 
-export default class Redis {
-  status: string = "ready";
+export class MemoryKV {
+  status = "ready";
 
   private store = new Map<string, StoredValue>();
   private listeners = new Map<string, Set<(...args: unknown[]) => void>>();
-  
-  // Pub/Sub channel subscriptions
   private subscriptions = new Map<string, Set<(message: string, channel: string) => void>>();
-  private patternSubscriptions = new Map<string, Set<(message: string, channel: string, pattern: string) => void>>();
+  private patternSubscriptions = new Map<
+    string,
+    Set<(message: string, channel: string, pattern: string) => void>
+  >();
 
-  // Accept any constructor signature to remain drop-in compatible
+  // Accept any constructor signature to remain drop-in compatible with queue/cache usage.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(_url?: any, _options?: any) {}
 
@@ -206,12 +207,19 @@ export default class Redis {
     return next;
   }
 
-  multi(): RedisMulti {
-    return new RedisMulti(this);
+  multi(): MemoryMulti {
+    return new MemoryMulti(this);
   }
 
   // Lua eval stub tailored for the existing budget script pattern
-  async eval(_script: string, _numKeys: number, key: string, amount?: string, budget?: string, ttlSeconds?: string): Promise<number> {
+  async eval(
+    _script: string,
+    _numKeys: number,
+    key: string,
+    amount?: string,
+    budget?: string,
+    ttlSeconds?: string
+  ): Promise<number> {
     const amountNum = Number(amount ?? 0);
     const budgetNum = Number(budget ?? 0);
     const current = Number((await this.get(key)) ?? "0");
@@ -240,44 +248,30 @@ export default class Redis {
     return iterator();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PUB/SUB METHODS (FEAT-0034: Redis pub/sub scaling)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Publish a message to a channel
-   * @returns Number of subscribers that received the message
-   */
   async publish(channel: string, message: string): Promise<number> {
     let count = 0;
-    
-    // Direct channel subscriptions
+
     const handlers = this.subscriptions.get(channel);
     if (handlers) {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         handler(message, channel);
         count++;
       });
     }
-    
-    // Pattern subscriptions (e.g., 'events:*' matches 'events:user:created')
+
     for (const [pattern, patternHandlers] of this.patternSubscriptions) {
       const regex = wildcardToRegExp(pattern);
       if (regex.test(channel)) {
-        patternHandlers.forEach(handler => {
+        patternHandlers.forEach((handler) => {
           handler(message, channel, pattern);
           count++;
         });
       }
     }
-    
+
     return count;
   }
 
-  /**
-   * Subscribe to a channel
-   * In real Redis this would block, but in stub we just register handler
-   */
   async subscribe(channel: string, handler?: (message: string, channel: string) => void): Promise<void> {
     if (!this.subscriptions.has(channel)) {
       this.subscriptions.set(channel, new Set());
@@ -288,18 +282,12 @@ export default class Redis {
     this.emit("subscribe", channel, this.subscriptions.size);
   }
 
-  /**
-   * Subscribe to multiple channels
-   */
   async subscribeMany(...channels: string[]): Promise<void> {
     for (const channel of channels) {
       await this.subscribe(channel);
     }
   }
 
-  /**
-   * Unsubscribe from a channel
-   */
   async unsubscribe(channel?: string): Promise<void> {
     if (channel) {
       this.subscriptions.delete(channel);
@@ -310,10 +298,10 @@ export default class Redis {
     }
   }
 
-  /**
-   * Subscribe to a pattern (e.g., 'events:*')
-   */
-  async psubscribe(pattern: string, handler?: (message: string, channel: string, pattern: string) => void): Promise<void> {
+  async psubscribe(
+    pattern: string,
+    handler?: (message: string, channel: string, pattern: string) => void
+  ): Promise<void> {
     if (!this.patternSubscriptions.has(pattern)) {
       this.patternSubscriptions.set(pattern, new Set());
     }
@@ -323,9 +311,6 @@ export default class Redis {
     this.emit("psubscribe", pattern, this.patternSubscriptions.size);
   }
 
-  /**
-   * Unsubscribe from a pattern
-   */
   async punsubscribe(pattern?: string): Promise<void> {
     if (pattern) {
       this.patternSubscriptions.delete(pattern);
@@ -336,19 +321,12 @@ export default class Redis {
     }
   }
 
-  /**
-   * Get number of active subscriptions
-   */
   getSubscriptionCount(): number {
     return this.subscriptions.size + this.patternSubscriptions.size;
   }
 
-  /**
-   * Duplicate the client for pub/sub (required by ioredis pattern)
-   * In real Redis, you need separate connections for pub/sub
-   */
-  duplicate(): Redis {
-    const dup = new Redis();
+  duplicate(): MemoryKV {
+    const dup = new MemoryKV();
     dup.status = this.status;
     return dup;
   }

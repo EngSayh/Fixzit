@@ -55,7 +55,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Finance: "bg-green-500/20 text-green-400",
   Operations: "bg-purple-500/20 text-purple-400",
   Compliance: "bg-yellow-500/20 text-yellow-400",
-  Admin: "bg-gray-500/20 text-gray-400",
+  Admin: "bg-muted text-muted-foreground",
 };
 
 export default function SuperadminReportsPage() {

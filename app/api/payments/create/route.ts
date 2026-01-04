@@ -97,7 +97,7 @@ import { joinUrl } from "@/lib/utils/url";
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 10 req/5min (300000ms) for payment creation (high sensitivity)
-    // SECURITY: In-memory limiter (Redis removed)
+    // SECURITY: In-memory limiter
     const user = await getSessionUser(req);
     const rl = await smartRateLimit(`payment-create:${user.id}`, 10, 300000); // 5 minutes = 300,000ms
     if (!rl.allowed) {

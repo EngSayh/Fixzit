@@ -1,7 +1,7 @@
 /**
  * @description Sends OTP code via SMS or Email for passwordless authentication.
  * Supports email, employee ID, or phone number identification.
- * Implements rate limiting and Redis-backed OTP storage with expiry.
+ * Implements rate limiting and in-memory OTP storage with expiry.
  * @route POST /api/auth/otp/send
  * @access Public - Rate limited to prevent abuse
  * @param {Object} body - identifier (email/phone/employeeId), companyCode (optional), deliveryMethod ('sms' | 'email')
@@ -24,8 +24,8 @@ import {
 import { sendEmail } from "@/lib/email";
 import { logCommunication } from "@/lib/communication-logger";
 import {
-  redisOtpStore,
-  redisRateLimitStore,
+  otpStore,
+  otpRateLimitStore,
   OTP_EXPIRY_MS,
   MAX_ATTEMPTS,
   RATE_LIMIT_WINDOW_MS,
@@ -307,13 +307,13 @@ async function resolveOrgIdFromCompanyCode(
   }
 }
 
-// Check rate limit (ASYNC for multi-instance Redis support)
+// Check rate limit (async store for single-instance memory)
 async function checkRateLimit(identifier: string): Promise<{
   allowed: boolean;
   remaining: number;
 }> {
-  // Use atomic Redis increment for distributed rate limiting
-  return redisRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
+  // Use atomic increment in the in-memory rate limiter
+  return otpRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
 }
 
 /**
@@ -343,7 +343,7 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ||
     request.headers.get("x-forwarded-for") ||
     "otp-ip";
-  // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+  // SECURITY: Use rate limiting to prevent bypass within this instance
   const rl = await smartRateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
   if (!rl.allowed) {
     return NextResponse.json(
@@ -502,9 +502,9 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Store bypass OTP in Redis so verify endpoint can validate it
+      // Store bypass OTP so verify endpoint can validate it
       const bypassOtpKey = `otp:bypass:${normalizedIdForCheck}`;
-      await redisOtpStore.set(bypassOtpKey, {
+      await otpStore.set(bypassOtpKey, {
         otp: bypassCode,
         expiresAt: Date.now() + OTP_EXPIRY_MS,
         attempts: 0,
@@ -907,9 +907,9 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
-    // 11. Store OTP in Redis for multi-instance support
+    // 11. Store OTP in-memory with TTL
     // SECURITY: Include orgId in payload for tenant validation during verify (SEC-BLOCKER-001)
-    await redisOtpStore.set(otpKey, {
+    await otpStore.set(otpKey, {
       otp,
       expiresAt,
       attempts: 0,
@@ -930,7 +930,7 @@ export async function POST(request: NextRequest) {
       // Email delivery
       const userEmail = user.email;
       if (!userEmail) {
-        await redisOtpStore.delete(otpKey);
+        await otpStore.delete(otpKey);
         logger.error("[OTP] User has no email address", {
           userId: user._id?.toString?.() || loginIdentifier,
         });
@@ -1014,7 +1014,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!deliveryResult.success) {
-      await redisOtpStore.delete(otpKey);
+      await otpStore.delete(otpKey);
       logger.error(`[OTP] Failed to send ${deliveryMethod.toUpperCase()}`, {
         userId: user._id?.toString?.() || loginIdentifier,
         error: deliveryResult.error,

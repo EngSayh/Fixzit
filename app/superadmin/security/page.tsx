@@ -129,8 +129,8 @@ export default function SuperadminSecurityPage() {
             <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${metrics.distributed.enabled ? "bg-green-500/20" : "bg-gray-500/20"}`}>
-                    <Server className={`h-5 w-5 ${metrics.distributed.enabled ? "text-green-400" : "text-gray-400"}`} />
+                  <div className={`p-2 rounded-lg ${metrics.distributed.enabled ? "bg-green-500/20" : "bg-muted"}`}>
+                    <Server className={`h-5 w-5 ${metrics.distributed.enabled ? "text-green-400" : "text-muted-foreground"}`} />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{metrics.distributed.enabled ? "ON" : "OFF"}</p>

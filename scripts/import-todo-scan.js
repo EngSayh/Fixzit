@@ -194,17 +194,17 @@ const issues = [
   },
   // P3 Low
   {
-    title: "Redis pub/sub scaling not implemented",
-    description: "route.ts line 133 TODO to publish events to Redis for horizontal scaling.",
+    title: "Pub/sub scaling not implemented",
+    description: "route.ts line 133 TODO to publish events to shared pub/sub for horizontal scaling.",
     category: "feature",
     priority: "P3",
     effort: "M",
     location: { filePath: "app/api/route.ts", lineStart: 133 },
     module: "infrastructure",
-    action: "Implement Redis pub/sub for event distribution",
-    definitionOfDone: "Events distributed across instances via Redis",
+    action: "Implement shared pub/sub for event distribution",
+    definitionOfDone: "Events distributed across instances via shared pub/sub",
     riskTags: ["PERFORMANCE"],
-    labels: ["redis", "scaling", "infrastructure"],
+    labels: ["scaling", "infrastructure"],
     source: "automated_scan"
   },
   {

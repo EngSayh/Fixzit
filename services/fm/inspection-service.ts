@@ -17,6 +17,8 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
+import { sendNotification, NotificationCategory, NotificationChannel, NotificationPriority } from "@/services/admin/notification-engine";
 
 // ============================================================================
 // Types & Interfaces
@@ -197,6 +199,10 @@ export interface InspectionRecord {
   syncedFromOffline: boolean;
   offlineId?: string;
   lastSyncAt?: Date;
+  // Report generation fields
+  reportStatus?: "generating" | "ready" | "failed";
+  reportRequestedBy?: string;
+  reportRequestedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -501,11 +507,67 @@ export async function scheduleInspection(
     
     const result = await db.collection(INSPECTIONS_COLLECTION).insertOne(inspection);
     
-    // TODO: Send notification to tenant if requested
-    if (request.notifyTenant) {
-      logger.info("TODO: Send tenant inspection notification", {
-        component: "inspection-service",
-      });
+    // Send notification to tenant if requested
+    if (request.notifyTenant && request.unitId) {
+      try {
+        // Lookup tenant from unit - normalize unitId to ObjectId
+        // MongoDB's _id field requires ObjectId, so validate and convert
+        if (!ObjectId.isValid(request.unitId)) {
+          logger.warn("Invalid unitId format for tenant lookup", {
+            component: "inspection-service",
+            unitId: request.unitId,
+          });
+        } else {
+          const unitObjectId = new ObjectId(request.unitId);
+          const unit = await db.collection(COLLECTIONS.UNITS).findOne({
+            _id: unitObjectId,
+            orgId: request.orgId,
+          });
+        
+          if (unit?.currentTenantId) {
+            // Convert ObjectId to string for notification
+            const tenantIdStr = typeof unit.currentTenantId === "object" && unit.currentTenantId !== null
+              ? unit.currentTenantId.toString()
+              : String(unit.currentTenantId);
+            
+            const scheduledDate = request.scheduledDate instanceof Date 
+              ? request.scheduledDate.toLocaleDateString("en-SA")
+              : new Date(request.scheduledDate).toLocaleDateString("en-SA");
+            const timeSlot = request.scheduledTimeSlot 
+              ? `${request.scheduledTimeSlot.start} - ${request.scheduledTimeSlot.end}`
+              : "Time to be confirmed";
+            
+            await sendNotification({
+              orgId: request.orgId,
+              userId: tenantIdStr,
+            category: NotificationCategory.WORK_ORDER,
+            channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+            priority: NotificationPriority.NORMAL,
+            subject: "Scheduled Inspection",
+            subjectAr: "تفتيش مجدول",
+            body: `An inspection has been scheduled for ${scheduledDate} (${timeSlot}). Inspector: ${request.inspectorName}.`,
+            bodyAr: `تم جدولة تفتيش في ${scheduledDate} (${timeSlot}). المفتش: ${request.inspectorName}.`,
+            metadata: {
+              source: "inspection-service",
+              sourceId: result.insertedId.toString(),
+              tags: ["inspection", request.propertyId, request.unitId],
+            }
+          });
+          
+          logger.info("Tenant inspection notification sent", {
+            component: "inspection-service",
+            action: "scheduleInspection",
+            tenantId: unit.currentTenantId,
+          });
+        }
+        }
+      } catch (notificationError) {
+        // Log but don't fail the scheduling if notification fails
+        logger.warn("Failed to send tenant inspection notification", {
+          component: "inspection-service",
+          error: notificationError,
+        });
+      }
     }
     
     logger.info("Inspection scheduled", {
@@ -750,8 +812,15 @@ export async function approveInspection(
       return { success: false, error: "Inspection not found or not pending review" };
     }
     
-    // Generate report URL (placeholder)
-    // TODO: Integrate with report generation service
+    // Trigger async report generation (fire-and-forget with error logging)
+    // Report will be linked to inspection once generated via webhook/callback
+    generateInspectionReportAsync(inspectionId, orgId, approvedBy).catch(err => {
+      logger.error("Failed to trigger inspection report generation", {
+        component: "inspection-service",
+        inspectionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
     
     return { success: true };
   } catch (_error) {
@@ -1298,6 +1367,138 @@ function calculateInspectionScore(completedItems: CompletedItem[]): {
   else overallCondition = ConditionRating.CRITICAL;
   
   return { overallCondition, score };
+}
+
+// ============================================================================
+// Report Generation Integration
+// ============================================================================
+
+/**
+ * Async helper to trigger inspection report generation via automated-reports service
+ * Called fire-and-forget after inspection approval
+ */
+async function generateInspectionReportAsync(
+  inspectionId: string,
+  orgId: string,
+  approvedBy: string
+): Promise<void> {
+  const db = await getDatabase();
+  
+  // Get inspection details for report
+  const inspection = await db.collection(INSPECTIONS_COLLECTION).findOne({
+    _id: new ObjectId(inspectionId),
+    orgId,
+  });
+  
+  if (!inspection) {
+    throw new Error(`Inspection ${inspectionId} not found`);
+  }
+  
+  // Update inspection with report generation status
+  await db.collection(INSPECTIONS_COLLECTION).updateOne(
+    { _id: new ObjectId(inspectionId) },
+    {
+      $set: {
+        reportStatus: "generating",
+        reportRequestedBy: approvedBy,
+        reportRequestedAt: new Date(),
+      },
+    }
+  );
+  
+  logger.info("Inspection report generation triggered", {
+    component: "inspection-service",
+    action: "generateInspectionReportAsync",
+    inspectionId,
+    orgId,
+  });
+  
+  // Find or create report config for inspection reports
+  const { listReportConfigs, generateReport, ReportType } = await import("@/services/reports/automated-reports");
+  
+  const inspectionReportConfigs = await listReportConfigs(orgId, { 
+    type: ReportType.INSPECTION_REPORT,
+    isActive: true,
+  });
+  
+  // If no config exists, the org hasn't set up inspection reports yet
+  if (inspectionReportConfigs.length === 0) {
+    logger.warn("No inspection report config found for org", {
+      component: "inspection-service",
+      action: "generateInspectionReportAsync",
+      orgId,
+      inspectionId,
+    });
+    
+    // Mark inspection as needing manual report config
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId) },
+      {
+        $set: {
+          reportStatus: "config_required",
+          reportError: "Inspection report template not configured. Please set up a report configuration.",
+        },
+      }
+    );
+    return;
+  }
+  
+  // Use the first active inspection report config
+  const reportConfig = inspectionReportConfigs[0];
+  
+  // Generate report using the automated-reports service
+  const result = await generateReport({
+    orgId,
+    configId: reportConfig._id!.toString(),
+    parameters: {
+      inspectionId,
+      inspectionType: inspection.type,
+      propertyId: inspection.propertyId,
+      unitId: inspection.unitId,
+      completedAt: inspection.completedAt,
+      findings: inspection.findings || [],
+      overallCondition: inspection.overallCondition,
+    },
+    requestedBy: approvedBy,
+    immediate: true,
+  });
+  
+  if (result.success) {
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId) },
+      {
+        $set: {
+          reportStatus: "completed",
+          reportInstanceId: result.instanceId,
+          reportGeneratedAt: new Date(),
+        },
+      }
+    );
+    
+    logger.info("Inspection report generated successfully", {
+      component: "inspection-service",
+      action: "generateInspectionReportAsync",
+      inspectionId,
+      reportInstanceId: result.instanceId,
+    });
+  } else {
+    await db.collection(INSPECTIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(inspectionId) },
+      {
+        $set: {
+          reportStatus: "failed",
+          reportError: result.error,
+        },
+      }
+    );
+    
+    logger.error("Inspection report generation failed", {
+      component: "inspection-service",
+      action: "generateInspectionReportAsync",
+      inspectionId,
+      error: result.error,
+    });
+  }
 }
 
 // ============================================================================

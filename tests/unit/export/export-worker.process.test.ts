@@ -3,16 +3,17 @@ import { processExportJob } from "@/jobs/export-worker";
 
 const saveMock = vi.fn();
 
-// Store original env and set mock REDIS_URL for CI check
+// Store original env for cleanup
 const originalEnv = { ...process.env };
 
-beforeAll(() => {
-  // Set mock REDIS_URL to bypass CI Redis check in export-worker
-  process.env.REDIS_URL = "redis://mock-redis:6379";
-});
-
 afterAll(() => {
-  process.env = originalEnv;
+  // Restore original env values (proper method that preserves object reference)
+  Object.keys(process.env).forEach(key => {
+    if (!(key in originalEnv)) {
+      delete process.env[key];
+    }
+  });
+  Object.assign(process.env, originalEnv);
 });
 
 vi.mock("@/lib/storage/s3-config", () => ({

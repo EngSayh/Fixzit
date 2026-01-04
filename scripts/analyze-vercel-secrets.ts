@@ -160,11 +160,6 @@ const requiredSecrets = {
       note: "App URL",
       howToGet: "Set to: https://fixzit.co",
     },
-    REDIS_URL: {
-      status: "missing",
-      note: "Caching, rate limiting",
-      howToGet: "Use Upstash Redis or disable",
-    },
     CRON_SECRET: {
       status: "missing",
       note: "Background jobs",

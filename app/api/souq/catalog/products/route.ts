@@ -19,7 +19,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { Types } from "mongoose";
 import { parseBodySafe } from "@/lib/api/parse-body";
-import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/redis";
+import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/cache";
 import { applyCacheHeaders } from "@/lib/api/cache-headers";
 
 interface LocalizedField {

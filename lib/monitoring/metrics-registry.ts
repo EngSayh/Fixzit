@@ -34,7 +34,7 @@ export const healthScoreGauge = new client.Gauge({
 
 /**
  * Component health status gauge
- * Labels: component (mongodb, redis, sms, email, etc.)
+ * Labels: component (mongodb, cache, sms, email, etc.)
  * Values: 1 = healthy, 0.5 = degraded, 0 = unhealthy
  */
 export const componentHealthGauge = new client.Gauge({

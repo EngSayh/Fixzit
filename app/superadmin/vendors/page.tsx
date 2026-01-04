@@ -45,7 +45,7 @@ const VENDOR_TYPES = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: "bg-green-500/20 text-green-400",
-  INACTIVE: "bg-gray-500/20 text-gray-400",
+  INACTIVE: "bg-muted text-muted-foreground",
   SUSPENDED: "bg-red-500/20 text-red-400",
   PENDING: "bg-yellow-500/20 text-yellow-400",
 };

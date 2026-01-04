@@ -24,8 +24,95 @@ export async function GET(request: NextRequest) {
     const superadminSession = !session?.user ? await getSuperadminSession(request) : null;
     const isSuperadmin = !!superadminSession;
     
-    // Require authentication
-    if (!session?.user && !isSuperadmin) {
+    // Demo mode check - allow unauthenticated access with demo data
+    const isDemoMode = process.env.ENABLE_DEMO_MODE === "true";
+    const isAuthenticated = !!session?.user || isSuperadmin;
+    
+    // Handle demo mode for unauthenticated users
+    if (!isAuthenticated) {
+      if (isDemoMode) {
+        // Return demo analytics data - structure matches real response
+        return NextResponse.json({
+          is_demo: true,
+          orgId: "demo",
+          generated_at: new Date().toISOString(),
+          
+          // Anomaly Detection (matches real structure)
+          anomalies: {
+            active_count: 3,
+            resolved_24h: 2,
+            items: [
+              {
+                id: "ANO-001",
+                type: "asset_health",
+                severity: "high",
+                description: "Demo: HVAC unit showing critical health score of 15%",
+                detected_at: new Date().toISOString(),
+                asset_id: "demo-asset-001",
+                score: 0.85,
+              },
+              {
+                id: "ANO-002",
+                type: "asset_health",
+                severity: "medium",
+                description: "Demo: Elevator motor requires attention",
+                detected_at: new Date().toISOString(),
+                asset_id: "demo-asset-002",
+                score: 0.55,
+              },
+            ],
+          },
+          
+          // Churn Prediction (matches real structure)
+          churn: {
+            at_risk_tenants: 5,
+            healthy_tenants: 145,
+            predictions: [
+              {
+                tenant_name: "Demo Tenant A",
+                risk_level: "medium",
+                probability: 0.65,
+                primary_factor: "Low activity in last 30 days",
+                recommended_action: "Schedule customer success call",
+                predicted_churn_date: null,
+              },
+            ],
+          },
+          
+          // Asset Health (matches real structure)
+          asset_health: {
+            total_assets: 150,
+            excellent: 75,
+            good: 50,
+            fair: 15,
+            poor: 7,
+            critical: 3,
+            critical_assets: [
+              {
+                asset_id: "demo-asset-001",
+                name: "Demo HVAC Unit",
+                health_score: 15,
+                rul_days: 5,
+                failure_probability_30d: 0.85,
+                recommended_action: "Immediate replacement required",
+                estimated_cost_preventive: 5000,
+                estimated_cost_reactive: 25000,
+              },
+            ],
+          },
+          
+          // Summary Insights
+          insights: [
+            {
+              type: "cost_saving",
+              title: "Preventive Maintenance Opportunity",
+              description: "3 critical asset(s) need immediate attention",
+              priority: "high",
+              action_url: "/fm/assets?filter=critical",
+            },
+          ],
+        });
+      }
       return NextResponse.json(
         { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
         { status: 401 }
@@ -159,6 +246,7 @@ export async function GET(request: NextRequest) {
     
     // AI Analytics from real data
     const analytics = {
+      is_demo: false,
       orgId,
       generated_at: now.toISOString(),
       

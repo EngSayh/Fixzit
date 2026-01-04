@@ -53,7 +53,7 @@ type _ForgotPasswordBody = z.infer<typeof ForgotPasswordSchema>;
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 requests per 15 minutes per IP
-    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    // SECURITY: Use rate limiting to prevent cross-instance bypass
     const clientIp = getClientIP(req);
     const rl = await smartRateLimit(`forgot-password:${clientIp}`, 5, 15 * 60 * 1000);
     if (!rl.allowed) {

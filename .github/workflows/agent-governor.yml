@@ -98,15 +98,9 @@ jobs:
 
       # Note: E2E tests are expensive and run separately in e2e-tests.yml workflow
 
-      - name: Build project
-        env:
-          MONGODB_URI: ${{ secrets['MONGODB_URI'] }}
-          NEXTAUTH_SECRET: ${{ secrets['NEXTAUTH_SECRET'] }}
-          NEXTAUTH_URL: "http://localhost:3000"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          DISABLE_MONGODB_FOR_BUILD: "true"
-          SKIP_ENV_VALIDATION: "true"
-        run: pnpm run build
+      # Build step REMOVED - Vercel handles production builds
+      # This workflow now only validates code quality (lint, typecheck, RBAC tests)
+      # See: https://github.com/EngSayh/Fixzit/pull/656 [AGENT-0008]
 
       - name: Upload inventory artifacts
         uses: actions/upload-artifact@v4

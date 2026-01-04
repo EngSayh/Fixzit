@@ -182,8 +182,8 @@ export default function SuperadminFMDashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="text-gray-600 dark:text-gray-400">Loading FM Dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          <p className="text-muted-foreground">Loading FM Dashboard...</p>
         </div>
       </div>
     );
@@ -292,7 +292,7 @@ export default function SuperadminFMDashboardPage() {
               <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             {providers?.active_bids?.total ?? 0} active bids
           </p>
         </div>
@@ -301,14 +301,14 @@ export default function SuperadminFMDashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Compliance Status */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Saudi Compliance Status
           </h2>
           <div className="space-y-3">
             {/* ZATCA */}
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="p-3 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">ZATCA Phase 2</span>
                 <span className={`px-2 py-0.5 text-xs rounded-full ${
@@ -319,33 +319,33 @@ export default function SuperadminFMDashboardPage() {
                   {compliance?.zatca?.status ?? "Loading..."}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span>{compliance?.zatca?.invoice_count_30d ?? 0} invoices (30d)</span>
                 <span>{((compliance?.zatca?.clearance_rate ?? 0) * 100).toFixed(0)}% clearance</span>
               </div>
             </div>
             
             {/* NCA */}
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="p-3 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">NCA ECC-2:2024</span>
-                <span className="text-sm font-semibold text-blue-600">
+                <span className="text-sm font-semibold text-primary">
                   {compliance?.nca?.overall_score ?? 0}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+              <div className="w-full bg-muted-foreground/20 rounded-full h-1.5">
                 <div 
-                  className="bg-blue-600 h-1.5 rounded-full transition-all"
+                  className="bg-primary h-1.5 rounded-full transition-all"
                   style={{ width: `${compliance?.nca?.overall_score ?? 0}%` }}
                 />
               </div>
             </div>
             
             {/* PDPL */}
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="p-3 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">PDPL Compliance</span>
-                <span className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {compliance?.pdpl?.compliance_score ?? 0}% compliance score
                 </span>
               </div>
@@ -362,15 +362,15 @@ export default function SuperadminFMDashboardPage() {
         </div>
 
         {/* AI Insights */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Brain className="h-5 w-5" />
             AI Insights
           </h2>
           <div className="space-y-3">
             {/* Anomalies */}
             {analytics?.anomalies?.items?.map((anomaly) => (
-              <div key={anomaly.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div key={anomaly.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                 <AlertTriangle className={`h-4 w-4 mt-0.5 ${
                   anomaly.severity === "critical" ? "text-pink-600" :
                   anomaly.severity === "high" ? "text-red-500" : 
@@ -378,7 +378,7 @@ export default function SuperadminFMDashboardPage() {
                 }`} />
                 <div>
                   <p className="font-medium text-sm">{anomaly.type}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">{anomaly.description}</p>
+                  <p className="text-xs text-muted-foreground">{anomaly.description}</p>
                 </div>
               </div>
             ))}
@@ -403,55 +403,55 @@ export default function SuperadminFMDashboardPage() {
         </div>
 
         {/* Security Overview */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Shield className="h-5 w-5" />
             Security Posture
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-blue-600">
+            <div className="p-3 bg-muted rounded-lg text-center">
+              <p className="text-2xl font-bold text-primary">
                 {security?.zero_trust?.score ?? 0}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Zero Trust Score</p>
+              <p className="text-xs text-muted-foreground">Zero Trust Score</p>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+            <div className="p-3 bg-muted rounded-lg text-center">
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {security?.authentication?.mfa_enrollment_rate ?? 0}%
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">MFA Enrolled</p>
+              <p className="text-xs text-muted-foreground">MFA Enrolled</p>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+            <div className="p-3 bg-muted rounded-lg text-center">
               <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {security?.authentication?.webauthn_enrolled_users ?? 0}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">WebAuthn Users</p>
+              <p className="text-xs text-muted-foreground">WebAuthn Users</p>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+            <div className="p-3 bg-muted rounded-lg text-center">
               <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {security?.threats?.severity_high ?? 0}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">High Threats</p>
+              <p className="text-xs text-muted-foreground">High Threats</p>
             </div>
           </div>
         </div>
 
         {/* Provider Network */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl shadow-sm p-5 border border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Users className="h-5 w-5" />
             Provider Network
           </h2>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div>
                 <p className="font-medium text-sm">Total Providers</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xl font-bold text-foreground">
                   {providers?.statistics?.total_providers ?? 0}
                 </p>
               </div>
               <div className="text-end">
-                <p className="text-xs text-gray-600 dark:text-gray-400">Verified</p>
+                <p className="text-xs text-muted-foreground">Verified</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
                   {providers?.statistics?.verified_providers ?? 0}
                 </p>
@@ -467,7 +467,7 @@ export default function SuperadminFMDashboardPage() {
                 <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                   {providers?.active_bids?.total ?? 0}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   {providers?.active_bids?.pending_review ?? 0} pending review
                 </p>
               </div>

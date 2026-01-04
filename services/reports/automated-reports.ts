@@ -59,6 +59,7 @@ export enum ReportType {
   MAINTENANCE_COST = "maintenance_cost",
   VENDOR_PERFORMANCE = "vendor_performance",
   SLA_COMPLIANCE = "sla_compliance",
+  INSPECTION_REPORT = "inspection_report",
   
   // HR
   EMPLOYEE_ROSTER = "employee_roster",
@@ -1147,6 +1148,7 @@ export function getStandardTemplates(): Record<ReportType, ReportTemplate> {
     [ReportType.MAINTENANCE_COST]: createOperationsTemplate("maintenance_cost"),
     [ReportType.VENDOR_PERFORMANCE]: createOperationsTemplate("vendor"),
     [ReportType.SLA_COMPLIANCE]: createOperationsTemplate("sla"),
+    [ReportType.INSPECTION_REPORT]: createOperationsTemplate("inspection"),
     [ReportType.EMPLOYEE_ROSTER]: createHRTemplate("roster"),
     [ReportType.ATTENDANCE_REPORT]: createHRTemplate("attendance"),
     [ReportType.PAYROLL_SUMMARY]: createHRTemplate("payroll"),

@@ -181,7 +181,6 @@ describe("Health Aggregator (FEAT-0035)", () => {
   describe("HealthComponents", () => {
     it("should have standard component names", () => {
       expect(HealthComponents.MONGODB).toBe("mongodb");
-      expect(HealthComponents.REDIS).toBe("redis");
       expect(HealthComponents.SMS).toBe("sms");
       expect(HealthComponents.EMAIL).toBe("email");
       expect(HealthComponents.S3).toBe("s3");

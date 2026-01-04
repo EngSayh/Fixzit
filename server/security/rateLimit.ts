@@ -1,7 +1,5 @@
 import { LRUCache } from "lru-cache";
-import { getRedisClient } from "@/lib/redis";
-import { logger } from "@/lib/logger";
-import { redactRateLimitKey } from "./rateLimitKey";
+import { redactRateLimitKey as _redactRateLimitKey } from "./rateLimitKey";
 import {
   applyReputationToLimit,
   recordReputationSignal,
@@ -9,19 +7,14 @@ import {
 import type { IpReputationResult } from "@/lib/security/ip-reputation";
 
 /**
- * In-memory LRU cache for rate limiting (fallback when Redis unavailable)
- * 
+ * In-memory LRU cache for rate limiting (single-instance).
+ *
  * LIMITATION: In-memory rate limiting is NOT distributed - each serverless
- * instance has its own cache. For production multi-instance deployments,
- * configure REDIS_URL to enable distributed rate limiting.
+ * instance has its own cache.
  */
 const memoryCache = new LRUCache<string, { count: number; resetAt: number }>({
   max: 5000,
 });
-
-// Track whether we've already warned about Redis unavailability
-// to avoid log spam on every request
-let warnedNoRedis = false;
 
 const ipv4Pattern = /(\d{1,3}(?:\.\d{1,3}){3})/;
 
@@ -48,10 +41,7 @@ interface RateLimitResult {
 }
 
 /**
- * Rate limit using Redis (distributed) with LRU fallback (in-memory)
- * 
- * SECURITY: Uses Redis for distributed rate limiting across serverless instances.
- * Falls back to in-memory LRU cache when Redis is unavailable.
+ * Rate limit using in-memory LRU cache.
  * 
  * @param key - Unique identifier for rate limiting (should include orgId for tenant awareness)
  * @param limit - Maximum requests allowed in window
@@ -82,121 +72,11 @@ export function rateLimit(key: string, limit = 60, windowMs = 60_000): RateLimit
   };
 }
 
-/**
- * Distributed rate limiting using Redis token bucket algorithm
- * 
- * SECURITY FIX: Redis-based rate limiting for horizontal scaling.
- * Each key is unique per org+IP+path to prevent:
- * - Cross-instance bypass (hitting different servers)
- * - Noisy neighbor attacks (one tenant exhausting limits)
- * 
- * @param key - Unique identifier (should include orgId for tenant isolation)
- * @param limit - Maximum requests allowed in window
- * @param windowMs - Time window in milliseconds
- * @returns Rate limit result
- * 
- * @example
- * // Org-aware distributed rate limiting
- * const { allowed } = await redisRateLimit(`ats:${orgId}:${clientIp}`, 60, 60_000);
- * if (!allowed) return rateLimitError();
- */
-export async function redisRateLimit(
-  key: string, 
-  limit = 60, 
-  windowMs = 60_000
-): Promise<RateLimitResult> {
-  const client = getRedisClient();
-  
-  // Fall back to in-memory if Redis unavailable
-  if (!client) {
-    // Only warn once to avoid log spam
-    if (!warnedNoRedis) {
-      logger.warn('[RateLimit] Redis unavailable, falling back to in-memory rate limiting (this message will not repeat)');
-      warnedNoRedis = true;
-    }
-    return rateLimit(key, limit, windowMs);
-  }
-
-  const now = Date.now();
-  const windowKey = `ratelimit:${key}`;
-  const windowSeconds = Math.ceil(windowMs / 1000);
-
-  try {
-    // Use Redis MULTI for atomic operations
-    const multi = client.multi();
-    
-    // Increment counter
-    multi.incr(windowKey);
-    // Set expiry on first request (SETNX pattern via EXPIRE)
-    multi.expire(windowKey, windowSeconds, 'NX');
-    // Get current TTL for reset time
-    multi.ttl(windowKey);
-    
-    const results = await multi.exec();
-    
-    if (!results || results.length < 3) {
-      // Redis transaction failed, fall back to memory
-      if (!warnedNoRedis) {
-        logger.warn('[RateLimit] Redis transaction returned unexpected results, falling back');
-        warnedNoRedis = true;
-      }
-      return rateLimit(key, limit, windowMs);
-    }
-
-    const [countResult, , ttlResult] = results;
-    const count = (countResult?.[1] as number) || 0;
-    
-    // SECURITY FIX: Redis TTL returns:
-    //   -2 = key doesn't exist (shouldn't happen after INCR, but handle gracefully)
-    //   -1 = key exists but has no expiry (can cause perma-ban!)
-    //   >0 = seconds until expiry
-    // We MUST coerce negative values to prevent indefinite blocks
-    const ttlValue = (ttlResult?.[1] as number) ?? -1;
-    let effectiveTtl = ttlValue > 0 ? ttlValue : windowSeconds;
-    
-    // If TTL is negative, the key has no expiry - forcibly set one to prevent perma-ban
-    if (ttlValue <= 0) {
-      try {
-        await client.expire(windowKey, windowSeconds);
-        effectiveTtl = windowSeconds;
-      } catch {
-        // If expire fails, log but continue - memory fallback will handle eventually
-        logger.warn('[RateLimit] Failed to set expiry on key with no TTL', {
-          key: redactRateLimitKey(key),
-          ttlValue,
-        });
-      }
-    }
-    
-    const resetAt = now + (effectiveTtl * 1000);
-
-    // CRITICAL FIX: Use >= to match in-memory behavior (both block at limit, not limit+1)
-    if (count >= limit) {
-      // SECURITY: Use redactRateLimitKey to mask org IDs, paths with entity IDs, and IPs
-      logger.warn('[RateLimit] Rate limit exceeded', { 
-        key: redactRateLimitKey(key),
-        count, 
-        limit 
-      });
-      return { allowed: false, remaining: 0, resetAt, effectiveLimit: limit };
-    }
-
-    return { 
-      allowed: true, 
-      remaining: Math.max(0, limit - count), 
-      resetAt,
-      effectiveLimit: limit,
-    };
-  } catch (error) {
-    // Redis error - fall back to in-memory
-    if (!warnedNoRedis) {
-      logger.error('[RateLimit] Redis error, falling back to in-memory', { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      warnedNoRedis = true;
-    }
-    return rateLimit(key, limit, windowMs);
-  }
+export function getRateLimitMetrics(): { entries: number; maxEntries: number } {
+  return {
+    entries: memoryCache.size,
+    maxEntries: memoryCache.max,
+  };
 }
 
 // Re-export key builders from rateLimitKey.ts
@@ -207,13 +87,7 @@ export async function redisRateLimit(
 export { buildRateLimitKey, buildOrgAwareRateLimitKey, safeGetClientIp, redactRateLimitKey } from './rateLimitKey';
 
 /**
- * Smart rate limiting that automatically uses Redis when available.
- * 
- * This is the RECOMMENDED rate limiting function for all new endpoints.
- * It provides:
- * - Distributed rate limiting via Redis (when REDIS_URL is configured)
- * - Automatic fallback to in-memory LRU cache
- * - Consistent behavior across both paths
+ * Smart rate limiting that applies reputation hints and uses in-memory storage.
  * 
  * @param key - Rate limit key (use buildRateLimitKey for org-aware keys)
  * @param limit - Maximum requests allowed in window
@@ -259,7 +133,7 @@ export async function smartRateLimit(
     };
   }
 
-  const result = await redisRateLimit(key, applied.limit, windowMs);
+  const result = rateLimit(key, applied.limit, windowMs);
 
   if (!result.allowed && ip) {
     recordReputationSignal({

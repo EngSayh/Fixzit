@@ -95,7 +95,7 @@ export interface LeaseDocument {
     contractNumber: string;
     registeredAt: Date;
     expiresAt: Date;
-    status: "pending" | "registered" | "expired" | "cancelled";
+    status: "pending" | "pending_verification" | "registered" | "expired" | "cancelled";
   };
   
   // Tenant info snapshot (at lease signing)
@@ -1001,8 +1001,10 @@ export async function getRentOptimization(
 /**
  * Register lease with Ejar (Saudi housing ministry portal)
  * 
- * Note: This is a placeholder for actual Ejar API integration
- * Real implementation would require Ejar API credentials and endpoints
+ * Integrates with the comprehensive Ejar service to register contracts
+ * with the Saudi Ministry of Housing's Ejar platform.
+ * 
+ * @see services/compliance/ejar-service.ts for the core Ejar integration
  */
 export async function registerWithEjar(
   orgId: string,
@@ -1011,6 +1013,7 @@ export async function registerWithEjar(
   try {
     const db = await getDatabase();
     
+    // Fetch lease with full details
     const lease = await db.collection("leases").findOne({
       _id: new ObjectId(leaseId),
       orgId,
@@ -1025,32 +1028,189 @@ export async function registerWithEjar(
       return { success: false, error: "Lease already registered with Ejar" };
     }
     
-    // TODO: Implement actual Ejar API call
-    // For now, simulate successful registration
-    const contractNumber = `EJAR-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    // Parallelize database fetches for better performance [PR Review Fix]
+    const [property, unit, tenant, landlord] = await Promise.all([
+      // Fetch property details
+      db.collection("properties").findOne({
+        _id: new ObjectId(lease.propertyId),
+        orgId,
+      }),
+      // Fetch unit details if applicable
+      lease.unitId 
+        ? db.collection("units").findOne({
+            _id: new ObjectId(lease.unitId),
+            propertyId: lease.propertyId,
+          })
+        : Promise.resolve(null),
+      // Fetch tenant details
+      db.collection("tenants").findOne({
+        _id: new ObjectId(lease.tenantId),
+        orgId,
+      }),
+      // Fetch landlord/owner - use lease.landlordId if available (deterministic) [PR Review Fix]
+      // Otherwise fall back to property owner, not an arbitrary admin
+      lease.landlordId
+        ? db.collection("users").findOne({
+            _id: new ObjectId(lease.landlordId),
+            orgId,
+          })
+        : (async () => {
+            const prop = await db.collection("properties").findOne({
+              _id: new ObjectId(lease.propertyId),
+              orgId,
+            });
+            if (prop?.ownerId) {
+              return db.collection("users").findOne({
+                _id: new ObjectId(prop.ownerId as string),
+                orgId,
+              });
+            }
+            return null;
+          })(),
+    ]);
     
+    if (!property) {
+      return { success: false, error: "Property not found for lease" };
+    }
+    
+    if (!tenant) {
+      return { success: false, error: "Tenant not found for lease" };
+    }
+    
+    if (!landlord) {
+      return { success: false, error: "Landlord/owner not found - ensure lease.landlordId or property.ownerId is set" };
+    }
+    
+    // Import and call the comprehensive Ejar service
+    const { registerContract, EjarPropertyType } = await import("@/services/compliance/ejar-service");
+    
+    // Map property type to Ejar enum
+    const ejarPropertyType = mapPropertyTypeToEjar(property.type, EjarPropertyType);
+    
+    // Build the Ejar registration request from fetched data
+    const result = await registerContract({
+      orgId,
+      leaseId,
+      property: {
+        propertyId: lease.propertyId,
+        unitId: lease.unitId,
+        type: ejarPropertyType,
+        address: {
+          streetAddress: property.address || "",
+          streetAddressAr: property.addressAr || property.address || "",
+          district: property.district || "",
+          districtAr: property.districtAr || property.district || "",
+          city: property.city || "",
+          cityAr: property.cityAr || property.city || "",
+          postalCode: property.postalCode,
+          buildingNumber: property.buildingNumber,
+          nationalAddress: property.nationalAddress,
+        },
+        area: unit?.area || property.area || 0,
+        bedrooms: unit?.bedrooms || property.bedrooms,
+        bathrooms: unit?.bathrooms || property.bathrooms,
+        amenities: property.amenities,
+        deedNumber: property.deedNumber,
+        // Fix: Validate yearBuilt is numeric before computing age [PR Review Fix]
+        buildingAge: (() => {
+          if (!property.yearBuilt) return undefined;
+          const yearStr = String(property.yearBuilt).trim();
+          if (yearStr === "") return undefined;
+          const numericYear = parseInt(yearStr, 10);
+          if (!Number.isFinite(numericYear) || Number.isNaN(numericYear)) return undefined;
+          const age = new Date().getFullYear() - numericYear;
+          return age >= 0 ? age : undefined;
+        })(),
+      },
+      landlord: {
+        userId: landlord._id.toString(),
+        type: landlord.companyId ? "company" : "individual",
+        nationalId: landlord.nationalId,
+        iqamaNumber: landlord.iqamaNumber,
+        commercialRegistration: landlord.commercialRegistration,
+        unifiedNumber: landlord.unifiedNumber,
+        name: landlord.name || `${landlord.firstName || ""} ${landlord.lastName || ""}`.trim(),
+        nameAr: landlord.nameAr || landlord.name || "",
+        email: landlord.email || "",
+        phone: landlord.phone || "",
+        nationality: landlord.nationality,
+        verified: !!landlord.verifiedAt,
+        verifiedAt: landlord.verifiedAt,
+      },
+      tenant: {
+        userId: tenant._id.toString(),
+        type: tenant.companyId ? "company" : "individual",
+        nationalId: tenant.nationalId,
+        iqamaNumber: tenant.iqamaNumber,
+        commercialRegistration: tenant.commercialRegistration,
+        name: tenant.name || `${tenant.firstName || ""} ${tenant.lastName || ""}`.trim(),
+        nameAr: tenant.nameAr || tenant.name || "",
+        email: tenant.email || "",
+        phone: tenant.phone || "",
+        nationality: tenant.nationality,
+        verified: !!tenant.verifiedAt,
+        verifiedAt: tenant.verifiedAt,
+      },
+      terms: {
+        startDate: lease.startDate,
+        endDate: lease.endDate,
+        durationMonths: calculateMonthsDuration(lease.startDate, lease.endDate),
+        purpose: property.type?.toLowerCase().includes("commercial") ? "commercial" : "residential",
+        furnishingStatus: "unfurnished", // Not in LeaseDocument - use default
+        allowSubletting: false, // Not in LeaseDocument - use default
+        autoRenew: lease.autoRenew || false,
+        // Fix: Use correct field from lease.terms [PR Review Fix]
+        renewalNoticeDays: lease.terms?.noticePeriodDays || 30,
+        specialConditions: undefined, // Not in LeaseDocument
+      },
+      financial: {
+        annualRent: calculateAnnualRent(lease.monthlyRent, lease.paymentFrequency),
+        monthlyRent: calculateMonthlyRent(lease.monthlyRent, lease.paymentFrequency),
+        securityDeposit: lease.securityDeposit || 0,
+        paymentFrequency: mapPaymentFrequency(lease.paymentFrequency),
+        paymentMethod: "bank_transfer", // Not in LeaseDocument - use default
+        utilities: {
+          electricity: "tenant", // Default - not directly in LeaseDocument
+          water: "tenant",
+          gas: "tenant",
+        },
+        maintenanceResponsibility: lease.terms?.maintenanceResponsibilities || "landlord",
+        lateFee: lease.lateFeePercentage,
+        lateFeeType: "percentage", // Derived from lateFeePercentage
+        currency: "SAR",
+      },
+    });
+    
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+    
+    // Update the lease with Ejar registration info
     await db.collection("leases").updateOne(
       { _id: new ObjectId(leaseId), orgId },
       {
         $set: {
           ejarRegistration: {
-            contractNumber,
+            contractId: result.contractId,
+            // [PR Review Fix] Use contractId as fallback if ejarNumber not yet assigned
+            contractNumber: result.ejarNumber || result.contractId,
             registeredAt: new Date(),
             expiresAt: lease.endDate,
-            status: "registered",
+            // [PR Review Fix] Use "pending" - valid enum value per LeaseDocument type
+            status: "pending",
           },
           updatedAt: new Date(),
         },
       }
     );
     
-    logger.info("Lease registered with Ejar", {
+    logger.info("Lease registered with Ejar service", {
       leaseId,
-      contractNumber,
+      contractId: result.contractId,
       orgId,
     });
     
-    return { success: true, contractNumber };
+    return { success: true, contractNumber: result.ejarNumber || result.contractId };
   } catch (error) {
     logger.error("Failed to register with Ejar", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -1058,6 +1218,89 @@ export async function registerWithEjar(
     });
     return { success: false, error: "Failed to register with Ejar" };
   }
+}
+
+/**
+ * Map internal property type to Ejar property type enum
+ */
+function mapPropertyTypeToEjar(
+  type: string | undefined, 
+  EjarPropertyType: typeof import("@/services/compliance/ejar-service").EjarPropertyType
+): import("@/services/compliance/ejar-service").EjarPropertyType {
+  const typeMap: Record<string, import("@/services/compliance/ejar-service").EjarPropertyType> = {
+    apartment: EjarPropertyType.RESIDENTIAL_APARTMENT,
+    villa: EjarPropertyType.RESIDENTIAL_VILLA,
+    duplex: EjarPropertyType.RESIDENTIAL_DUPLEX,
+    office: EjarPropertyType.COMMERCIAL_OFFICE,
+    shop: EjarPropertyType.COMMERCIAL_SHOP,
+    retail: EjarPropertyType.COMMERCIAL_SHOP,
+    warehouse: EjarPropertyType.COMMERCIAL_WAREHOUSE,
+    land: EjarPropertyType.LAND,
+    residential: EjarPropertyType.RESIDENTIAL_APARTMENT,
+    commercial: EjarPropertyType.COMMERCIAL_OFFICE,
+  };
+  return typeMap[(type || "").toLowerCase()] || EjarPropertyType.RESIDENTIAL_APARTMENT;
+}
+
+/**
+ * Calculate duration in months between two dates
+ */
+function calculateMonthsDuration(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
+}
+
+/**
+ * Calculate annual rent from amount and frequency
+ * [PR Review Fix] Added guard for undefined/NaN values
+ */
+function calculateAnnualRent(amount: number, frequency?: string): number {
+  // Guard against undefined/null/NaN - return 0 instead of NaN
+  if (amount === undefined || amount === null || Number.isNaN(amount)) {
+    return 0;
+  }
+  const multipliers: Record<string, number> = {
+    monthly: 12, quarterly: 4, semi_annually: 2, annually: 1, yearly: 1,
+  };
+  return amount * (multipliers[(frequency || "monthly").toLowerCase()] || 12);
+}
+
+/**
+ * Calculate monthly rent from amount and frequency
+ * [PR Review Fix] Added guard for undefined/NaN values
+ */
+function calculateMonthlyRent(amount: number, frequency?: string): number {
+  // Guard against undefined/null/NaN - return 0 instead of NaN
+  if (amount === undefined || amount === null || Number.isNaN(amount)) {
+    return 0;
+  }
+  const divisors: Record<string, number> = {
+    monthly: 1, quarterly: 3, semi_annually: 6, annually: 12, yearly: 12,
+  };
+  return amount / (divisors[(frequency || "monthly").toLowerCase()] || 1);
+}
+
+/**
+ * Map internal payment frequency to Ejar format
+ */
+function mapPaymentFrequency(frequency?: string): "monthly" | "quarterly" | "semi_annually" | "annually" {
+  const freqMap: Record<string, "monthly" | "quarterly" | "semi_annually" | "annually"> = {
+    monthly: "monthly", quarterly: "quarterly", semi_annually: "semi_annually",
+    semiannual: "semi_annually", annual: "annually", annually: "annually", yearly: "annually",
+  };
+  return freqMap[(frequency || "monthly").toLowerCase()] || "monthly";
+}
+
+/**
+ * Map internal payment method to Ejar format
+ */
+function _mapPaymentMethod(method?: string): "bank_transfer" | "check" | "cash" | "online" {
+  const methodMap: Record<string, "bank_transfer" | "check" | "cash" | "online"> = {
+    bank_transfer: "bank_transfer", bank: "bank_transfer", transfer: "bank_transfer",
+    check: "check", cheque: "check", cash: "cash", online: "online", card: "online",
+  };
+  return methodMap[(method || "bank_transfer").toLowerCase()] || "bank_transfer";
 }
 
 // ============================================================================

@@ -34,7 +34,7 @@ import {
   createCacheKey,
   CACHE_DURATIONS,
 } from "@/lib/api/cache-headers";
-import { getCache, setCache } from "@/lib/redis";
+import { getCache, setCache } from "@/lib/cache";
 
 const QuerySchema = z.object({
   q: z.string().optional(),

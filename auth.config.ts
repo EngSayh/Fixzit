@@ -8,9 +8,8 @@ import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { DEMO_EMAILS, DEMO_EMPLOYEE_IDS } from '@/lib/config/demo-users';
-// CRITICAL FIX: Removed static import of redisOtpSessionStore to avoid bundling ioredis into Edge Runtime
+// NOTE: OTP session store is dynamically imported inside authorize() to keep auth config lean for edge bundles
 // See: https://nextjs.org/docs/messages/edge-dynamic-code-evaluation
-// The OTP session store is now dynamically imported inside authorize() where it's actually used
 import type { UserRoleType } from '@/types/user';
 import type { SubscriptionPlan } from '@/config/navigation';
 // CRITICAL FIX: Use auth-specific types to prevent mongoose from bundling into client
@@ -605,10 +604,9 @@ export const authConfig = {
               return null;
             }
 
-            // STRICT v4.1: Use async Redis store for multi-instance OTP session validation
-            // CRITICAL FIX: Dynamic import to avoid bundling ioredis into Edge Runtime
-            const { redisOtpSessionStore } = await import('@/lib/otp-store');
-            const session = await redisOtpSessionStore.get(otpToken!);
+            // STRICT v4.1: Use async OTP session store for session validation
+            const { otpSessionStore } = await import('@/lib/otp-store');
+            const session = await otpSessionStore.get(otpToken!);
             if (!session) {
               logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
@@ -616,7 +614,7 @@ export const authConfig = {
 
             const now = Date.now();
             if (now > session.expiresAt) {
-              await redisOtpSessionStore.delete(otpToken!);
+              await otpSessionStore.delete(otpToken!);
               logger.warn('[NextAuth] OTP session expired', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
@@ -625,7 +623,7 @@ export const authConfig = {
               session.userId !== user._id.toString() ||
               session.identifier !== otpIdentifier
             ) {
-              await redisOtpSessionStore.delete(otpToken!);
+              await otpSessionStore.delete(otpToken!);
               logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
                 loginIdentifier: redactIdentifier(loginIdentifier),
                 sessionIdentifier: redactIdentifier(session.identifier),
@@ -633,7 +631,7 @@ export const authConfig = {
               return null;
             }
 
-            await redisOtpSessionStore.delete(otpToken!);
+            await otpSessionStore.delete(otpToken!);
           } else if (bypassOTP) {
             logger.info('[NextAuth] OTP bypassed for super admin (dev mode only)', { loginIdentifier: redactIdentifier(loginIdentifier) });
           }

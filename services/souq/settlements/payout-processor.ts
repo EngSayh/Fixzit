@@ -532,7 +532,7 @@ export class PayoutProcessorService {
         },
       );
 
-      // Schedule retry job (via BullMQ or cron)
+      // Schedule retry job (via background queue or cron)
       const retryDelay =
         PAYOUT_CONFIG.retryDelayMinutes *
         60 *

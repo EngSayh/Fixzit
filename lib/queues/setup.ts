@@ -1,12 +1,10 @@
 /**
- * BullMQ Queue Setup - Background job processing
+ * In-memory Queue Setup - Background job processing
  * @module lib/queues/setup
  */
 
-import { Queue, Worker, QueueEvents, type Job, type Processor } from 'bullmq';
-import type Redis from 'ioredis';
-import { getRedisClient } from '@/lib/redis';
-import { logger } from '@/lib/logger';
+import { Queue, Worker, QueueEvents, type Job, type Processor } from "@/lib/queue";
+import { logger } from "@/lib/logger";
 
 // Queue names
 export const QUEUE_NAMES = {
@@ -32,23 +30,12 @@ const queues = new Map<QueueName, Queue<any>>();
 const workers = new Map<QueueName, Worker<any, any>>();
 const queueEvents = new Map<QueueName, QueueEvents>();
 
-function requireRedisConnection(context: string): Redis {
-  const connection = getRedisClient();
-  if (!connection) {
-    throw new Error(`[Queues] Redis not configured (${context}). Set REDIS_URL or REDIS_KEY to enable BullMQ queues.`);
-  }
-  return connection;
-}
-
 /**
  * Get or create a queue instance
  */
 export function getQueue(name: QueueName): Queue {
   if (!queues.has(name)) {
-    const connection = requireRedisConnection(`queue:${name}`);
-    
     const queue = new Queue(name, {
-      connection,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -86,10 +73,7 @@ export function createWorker<T = unknown, R = unknown>(
     return workers.get(name)! as Worker<T, R>;
   }
 
-  const connection = requireRedisConnection(`worker:${name}`);
-
   const worker = new Worker<T, R>(name, processor, {
-    connection,
     concurrency,
     limiter: {
       max: 10, // Max 10 jobs per duration
@@ -139,9 +123,7 @@ export function createQueueEvents(name: QueueName): QueueEvents {
     return queueEvents.get(name)!;
   }
 
-  const connection = requireRedisConnection(`events:${name}`);
-
-  const events = new QueueEvents(name, { connection });
+  const events = new QueueEvents(name);
 
   events.on('waiting', ({ jobId }) => {
     logger.debug(`Job waiting`, { queue: name, jobId });
@@ -300,7 +282,7 @@ export async function closeAllQueues(): Promise<void> {
  * Initialize all queues (call on app startup)
  */
 export async function initializeQueues(): Promise<void> {
-  logger.info('🚀 Initializing BullMQ queues...');
+  logger.info("Initializing in-memory queues...");
 
   // Create all queues
   Object.values(QUEUE_NAMES).forEach((name) => {

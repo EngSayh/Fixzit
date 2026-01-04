@@ -13,7 +13,9 @@
  */
 
 import { logger } from "@/lib/logger";
-import type { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // =============================================================================
 // TYPES
@@ -596,4 +598,198 @@ export function calculateSlaCompliance(
   });
   
   return metrics;
+}
+
+// =============================================================================
+// DATABASE QUERY FUNCTIONS
+// =============================================================================
+
+/**
+ * Provider statistics result
+ */
+export interface ProviderStatistics {
+  total_providers: number;
+  verified_providers: number;
+  active_this_month: number;
+  avg_rating: number;
+  avg_response_time_min: number;
+  categories: Array<{ name: string; count: number; avg_rating: number }>;
+}
+
+/**
+ * Get provider statistics for an organization
+ */
+export async function getProviderStatistics(orgId: string): Promise<ProviderStatistics> {
+  try {
+    const db = await getDatabase();
+    const collection = db.collection(COLLECTIONS.FM_SERVICE_PROVIDERS);
+    
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    // Convert string orgId to ObjectId for matching
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
+    // Aggregate statistics
+    // Note: avgResponseTime uses service_areas.response_time_hours (converted to minutes)
+    const stats = await collection.aggregate([
+      { $match: { org_id: orgObjectId } },
+      {
+        $facet: {
+          totals: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                verified: { $sum: { $cond: [{ $eq: ["$verification_status", "verified"] }, 1, 0] } },
+                active: { $sum: { $cond: [{ $gte: ["$updated_at", thirtyDaysAgo] }, 1, 0] } },
+                avgRating: { $avg: "$average_rating" },
+              }
+            }
+          ],
+          // Calculate avg response time from service_areas (hours -> minutes)
+          responseTime: [
+            { $unwind: { path: "$service_areas", preserveNullAndEmptyArrays: false } },
+            {
+              $group: {
+                _id: null,
+                avgResponseTimeHours: { $avg: "$service_areas.response_time_hours" },
+              }
+            }
+          ],
+          byCategory: [
+            { $unwind: "$capabilities" },
+            {
+              $group: {
+                _id: "$capabilities.category",
+                count: { $sum: 1 },
+                avgRating: { $avg: "$average_rating" },
+              }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+          ]
+        }
+      }
+    ]).toArray();
+    
+    const result = stats[0] as { 
+      totals: Array<{ total?: number; verified?: number; active?: number; avgRating?: number }>; 
+      responseTime: Array<{ avgResponseTimeHours?: number }>;
+      byCategory: Array<{ _id: string; count: number; avgRating: number }> 
+    } | undefined;
+    const totals = result?.totals?.[0] || {};
+    const responseTimeHours = result?.responseTime?.[0]?.avgResponseTimeHours ?? 0;
+    const categories = (result?.byCategory || []).map((c) => ({
+      name: c._id || "Other",
+      count: c.count,
+      avg_rating: Math.round((c.avgRating || 0) * 10) / 10,
+    }));
+    
+    return {
+      total_providers: totals.total || 0,
+      verified_providers: totals.verified || 0,
+      active_this_month: totals.active || 0,
+      avg_rating: Math.round((totals.avgRating || 0) * 10) / 10,
+      // Convert hours to minutes
+      avg_response_time_min: Math.round(responseTimeHours * 60),
+      categories,
+    };
+  } catch (error) {
+    logger.error("Failed to get provider statistics", { orgId, error });
+    // Return empty stats on error
+    return {
+      total_providers: 0,
+      verified_providers: 0,
+      active_this_month: 0,
+      avg_rating: 0,
+      avg_response_time_min: 0,
+      categories: [],
+    };
+  }
+}
+
+/**
+ * Get featured providers for an organization
+ */
+export async function getFeaturedProviders(
+  orgId: string,
+  limit: number = 5
+): Promise<ServiceProvider[]> {
+  try {
+    const db = await getDatabase();
+    const collection = db.collection(COLLECTIONS.FM_SERVICE_PROVIDERS);
+    
+    // Convert string orgId to ObjectId for matching
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
+    const providers = await collection.find({
+      org_id: orgObjectId,
+      status: "active",
+      verification_status: "verified",
+    })
+    .sort({ performance_score: -1, average_rating: -1 })
+    .limit(limit)
+    .toArray();
+    
+    return providers as unknown as ServiceProvider[];
+  } catch (error) {
+    logger.error("Failed to get featured providers", { orgId, error });
+    return [];
+  }
+}
+
+/**
+ * Search providers with filters
+ */
+export async function searchProviders(
+  orgId: string,
+  filters: {
+    category?: string;
+    city?: string;
+    verified_only?: boolean;
+    min_rating?: number;
+  },
+  pagination: { page: number; limit: number } = { page: 1, limit: 20 }
+): Promise<{ providers: ServiceProvider[]; total: number }> {
+  try {
+    const db = await getDatabase();
+    const collection = db.collection(COLLECTIONS.FM_SERVICE_PROVIDERS);
+    
+    // Convert string orgId to ObjectId for matching
+    const orgObjectId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : orgId;
+    
+    const query: Record<string, unknown> = { org_id: orgObjectId, status: "active" };
+    
+    if (filters.category) {
+      query["capabilities.category"] = filters.category.toLowerCase();
+    }
+    if (filters.city) {
+      query["service_areas.city"] = { $regex: filters.city, $options: "i" };
+    }
+    if (filters.verified_only) {
+      query.verification_status = "verified";
+    }
+    if (filters.min_rating) {
+      query.average_rating = { $gte: filters.min_rating };
+    }
+    
+    const skip = (pagination.page - 1) * pagination.limit;
+    
+    const [providers, total] = await Promise.all([
+      collection.find(query)
+        .sort({ performance_score: -1 })
+        .skip(skip)
+        .limit(pagination.limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+    
+    return {
+      providers: providers as unknown as ServiceProvider[],
+      total,
+    };
+  } catch (error) {
+    logger.error("Failed to search providers", { orgId, filters, error });
+    return { providers: [], total: 0 };
+  }
 }

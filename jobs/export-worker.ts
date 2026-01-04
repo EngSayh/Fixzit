@@ -36,6 +36,11 @@ type ExportJobPayload = {
   orgId: string;
   userId: string;
   entityType: string;
+  /**
+   * Export format - currently only "csv" is fully implemented.
+   * "xlsx" is accepted for API compatibility but outputs CSV format.
+   * TODO: Implement proper XLSX export using exceljs/sheetjs when needed.
+   */
   format: "csv" | "xlsx";
   filters?: Record<string, unknown>;
   search?: string;
@@ -126,10 +131,6 @@ async function processExportJob(payload: ExportJobPayload) {
   await markJob(exportJob, { status: "processing" });
 
   try {
-    if (process.env.CI === "true" && !process.env.REDIS_URL && !process.env.REDIS_KEY) {
-      throw new Error("Redis not configured (REDIS_URL/REDIS_KEY required in CI)");
-    }
-
     const config = assertS3Configured(); // Throws when missing
 
     const safeFilters = sanitizeFilters(exportJob.filters as Record<string, unknown>);

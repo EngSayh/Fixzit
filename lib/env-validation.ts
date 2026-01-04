@@ -180,8 +180,7 @@ export function validateDatabaseConfig(options: ValidationOptions = {}): EnvVali
     }
   }
 
-  // NOTE: Redis has been intentionally removed from the codebase.
-  // The system now uses in-memory fallback for all Redis-related functionality.
+  // NOTE: Cache and queue features use in-memory stores only.
 
   return {
     valid: errors.length === 0,
@@ -303,11 +302,6 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
     },
     mongodb: {
       configured: Boolean(getEnv("MONGODB_URI")),
-    },
-    redis: {
-      configured: Boolean(
-        process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
-      ),
     },
     cronSecret: {
       configured: Boolean(process.env.CRON_SECRET),

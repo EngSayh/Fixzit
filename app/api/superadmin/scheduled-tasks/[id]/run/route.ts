@@ -123,7 +123,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     
     try {
       // Simulate job execution (in production, this would call the actual handler)
-      // The actual handler would be invoked via a job queue like Bull/BullMQ
+      // The actual handler would be invoked via a background job queue
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const duration = Date.now() - startTime;

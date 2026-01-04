@@ -6,7 +6,7 @@
  * FEAT-0035: Health monitoring integration
  * 
  * @features
- * - Track health status of multiple components (db, redis, sms, email)
+ * - Track health status of multiple components (db, sms, email)
  * - Compute aggregate health score
  * - Track health history for trend analysis
  * - Emit events on status changes for alerting
@@ -302,7 +302,6 @@ export const healthAggregator = new HealthAggregator();
 
 export const HealthComponents = {
   MONGODB: "mongodb",
-  REDIS: "redis",
   SMS: "sms",
   EMAIL: "email",
   S3: "s3",

@@ -21,7 +21,7 @@ import {
   createCacheKey,
   CACHE_DURATIONS,
 } from "@/lib/api/cache-headers";
-import { getCache, setCache } from "@/lib/redis";
+import { getCache, setCache } from "@/lib/cache";
 import { isMarketplaceEnabled, isPlaywrightTests } from "@/lib/marketplace/flags";
 
 export const dynamic = "force-dynamic";

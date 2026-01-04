@@ -319,7 +319,7 @@ function StatusBadge({ status }: { status: ScheduledTask["lastStatus"] }) {
     success: { color: "bg-green-500/10 text-green-500", icon: CheckCircle, label: "Success" },
     failed: { color: "bg-red-500/10 text-red-500", icon: XCircle, label: "Failed" },
     running: { color: "bg-blue-500/10 text-blue-500", icon: RefreshCw, label: "Running" },
-    never: { color: "bg-gray-500/10 text-gray-500", icon: Clock, label: "Never Run" },
+    never: { color: "bg-muted text-muted-foreground", icon: Clock, label: "Never Run" },
   };
   const { color, icon: Icon, label } = config[status];
   return (

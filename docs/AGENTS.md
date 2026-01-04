@@ -1172,6 +1172,7 @@ No static override codes or secrets may be stored in the repo.
 │ The dev server on localhost:3000 MUST be running at ALL times.         │
 │ It auto-starts when VS Code opens the workspace.                       │
 │ Only ONE instance should ever exist (no duplicates).                   │
+│ Terminal MUST be named: "Fixzit Local" for easy identification.        │
 └─────────────────────────────────────────────────────────────────────────┘
 
 **Dev Server Rules:**
@@ -1180,7 +1181,8 @@ No static override codes or secrets may be stored in the repo.
 |------|-------------|
 | **Auto-Start** | Dev server starts automatically when workspace opens |
 | **Single Instance** | Only ONE dev server terminal can exist at a time |
-| **Never Kill** | Agents MUST NEVER kill the `Dev: Start Server` terminal |
+| **Terminal Name** | Dev server terminal MUST be named **"Fixzit Local"** |
+| **Never Kill** | Agents MUST NEVER kill the `Fixzit Local` terminal |
 | **Dedicated Panel** | Dev server runs in its own dedicated panel |
 | **Always Alive** | If crashed, manually restart via `Dev: Restart Server` task |
 
@@ -1202,17 +1204,60 @@ No static override codes or secrets may be stored in the repo.
 - ❌ Creating duplicate dev server instances
 - ❌ Using the dev server terminal for other commands
 
-#### 5.8.1 Terminal Isolation Rules
+#### 5.8.1 Terminal Naming Convention (MANDATORY)
+
+**All terminals MUST be named for easy identification and tracking.**
+
+| Terminal Type | Naming Pattern | Example |
+|--------------|----------------|---------|
+| **Dev Server** | `Fixzit Local` | `Fixzit Local` |
+| **Agent Work** | `[AGENT-XXXX]` | `[AGENT-0008]` |
+| **Agent + Context** | `[AGENT-XXXX] Context` | `[AGENT-0008] TypeCheck` |
+| **Background Task** | `[AGENT-XXXX] bg: Task` | `[AGENT-0008] bg: Tests` |
+
+**Terminal Naming Rules:**
+
+1. **Dev Server Terminal:** Always named `Fixzit Local`
+2. **Agent Terminals:** Must include agent token `[AGENT-XXXX]`
+3. **Visibility:** Named terminals appear in VS Code terminal dropdown
+4. **Tracking:** Named terminals enable quick identification of ownership
+
+**At Session Start (MANDATORY):**
+```powershell
+# Agent MUST rename their terminal immediately after creation
+$host.UI.RawUI.WindowTitle = "[AGENT-XXXX]"
+# OR use VS Code terminal API to set name
+```
+
+**Benefits:**
+- ✅ Easy identification of which agent owns which terminal
+- ✅ Quick cleanup of orphaned terminals by token
+- ✅ Dev server always visible as "Fixzit Local"
+- ✅ Terminals appear in VS Code dropdown for user visibility
+
+#### 5.8.2 Terminal Isolation Rules
 
 | Rule | Requirement |
 |------|-------------|
 | **Dedicated Terminal** | Each agent session MUST create and use a NEW terminal instance |
 | **No Terminal Reuse** | NEVER reuse an existing terminal that may be owned by another agent/extension |
-| **Naming Convention** | Name terminals with agent token: `[AGENT-001-A] Task Name` |
+| **No Cross-Agent Terminal Use** | NEVER use a terminal created by another agent — results may be corrupted/interleaved |
+| **Naming Required** | Name terminals with agent token: `[AGENT-XXXX]` or `[AGENT-XXXX] Task Name` |
 | **Orphan Cleanup** | Kill all orphaned terminals created by this agent upon task completion |
 | **Max Terminals** | Limit to 3 concurrent terminals per agent session |
 
-#### 5.8.2 Terminal Lifecycle
+**⚠️ CRITICAL: Terminal Non-Sharing Rule**
+
+Agents MUST NOT use terminals created by other agents because:
+- Terminal output may be interleaved with another agent's commands
+- Environment variables may differ between agent sessions
+- Working directory may have been changed by another agent
+- Command history and context will be corrupted
+- CI/CD checks may fail due to mixed output
+
+**Detection:** If a terminal name contains a different agent token (e.g., `[AGENT-0005]` when you are `[AGENT-0008]`), **DO NOT USE IT**. Create a new terminal instead.
+
+#### 5.8.3 Terminal Lifecycle
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1220,26 +1265,29 @@ No static override codes or secrets may be stored in the repo.
 ├─────────────────────────────────────────────────────────────────┤
 │ 1. CLAIM PHASE                                                  │
 │    → Create NEW dedicated terminal for agent work               │
+│    → Name terminal with agent token: [AGENT-XXXX]               │
 │    → Never attach to existing/shared terminals                  │
 │                                                                 │
 │ 2. WORK PHASE                                                   │
 │    → Use only self-created terminals                            │
 │    → Track terminal PIDs for cleanup                            │
+│    → Dev server terminal named "Fixzit Local" is READ-ONLY      │
 │                                                                 │
 │ 3. COMPLETION PHASE (MANDATORY)                                 │
-│    → Kill all terminals created during this session             │
+│    → Kill all terminals matching [AGENT-XXXX] pattern           │
+│    → NEVER kill "Fixzit Local" terminal                         │
 │    → Verify no orphaned processes remain                        │
 │    → Report cleanup in task handoff                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### 5.8.3 Cleanup Commands (PROTECT DEV SERVER)
+#### 5.8.4 Cleanup Commands (PROTECT DEV SERVER)
 
-**⚠️ IMPORTANT: These commands must NOT kill the dev server terminal!**
+**⚠️ IMPORTANT: These commands must NOT kill the "Fixzit Local" dev server terminal!**
 
 **PowerShell (Windows) — Agent Terminal Cleanup:**
 ```powershell
-# Kill orphaned PowerShell terminals (keep current AND dev server)
+# Kill orphaned PowerShell terminals (keep current AND dev server "Fixzit Local")
 # First, identify dev server terminal by checking port 3000
 $devServerPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess
 Get-Process powershell | Where-Object { 
@@ -1247,12 +1295,12 @@ Get-Process powershell | Where-Object {
 } | Stop-Process -Force
 ```
 
-**Verify Dev Server Still Running:**
+**Verify Dev Server "Fixzit Local" Still Running:**
 ```powershell
 # After cleanup, ALWAYS verify dev server is alive
 $portCheck = Test-NetConnection -ComputerName localhost -Port 3000 -WarningAction SilentlyContinue
 if (-not $portCheck.TcpTestSucceeded) {
-    Write-Host "⚠️ Dev server not running! Restarting..."
+    Write-Host "⚠️ Fixzit Local dev server not running! Restarting..."
     # Trigger VS Code task or manual restart
 }
 ```
@@ -1263,17 +1311,18 @@ if (-not $portCheck.TcpTestSucceeded) {
 ps aux | grep -E 'bash|zsh|sh' | grep -v grep | grep -v node
 ```
 
-#### 5.8.4 Forbidden Terminal Actions
+#### 5.8.5 Forbidden Terminal Actions
 
-- ❌ Killing the `Dev: Start Server` terminal
+- ❌ Killing the `Fixzit Local` dev server terminal
 - ❌ Killing node processes running on port 3000
 - ❌ Sharing terminals between concurrent agents
 - ❌ Leaving orphaned terminals after task completion
-- ❌ Running commands in the Dev Server terminal
+- ❌ Running commands in the `Fixzit Local` terminal
 - ❌ Killing terminals owned by other agents/extensions
 - ❌ Exceeding 3 concurrent terminals per agent
+- ❌ Creating terminals without agent token naming
 
-#### 5.8.5 Multi-Agent Terminal Etiquette
+#### 5.8.6 Multi-Agent Terminal Etiquette
 
 When multiple agents operate in the same workspace:
 

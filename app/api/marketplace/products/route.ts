@@ -25,7 +25,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   applyCacheHeaders,
 } from "@/lib/api/cache-headers";
-import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/redis";
+import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/cache";
 import { isMarketplaceEnabled } from "@/lib/marketplace/flags";
 
 const ADMIN_ROLES = new Set([

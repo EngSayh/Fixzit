@@ -7,7 +7,6 @@ import { z } from "zod";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import {
@@ -122,43 +121,6 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) {
     return rateLimitError();
   }
-  // Distributed rate limiting using Redis singleton for multi-instance environments
-  // PERFORMANCE FIX: Use singleton connection instead of new Redis() per request
-  // Historical context: Creating new connection + quit() per request exhausted pool
-  const { getRedisClient } = await import("@/lib/redis");
-  const redis = getRedisClient();
-  const ip = getClientIP(req);
-  // SECURITY: Include tenant scope in rate limit key to prevent cross-tenant interference (STRICT v4.1)
-  const rateLimitTenantScope = sessionUser?.orgId ?? "anonymous";
-  const rateKey = `incidents:rate:${rateLimitTenantScope}:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
-  const windowSecs = 30; // 30s window
-  const maxRequests = 3;
-
-  if (redis) {
-    try {
-      // Use Redis INCR with TTL for atomic rate limiting
-      const count = await redis.incr(rateKey);
-      if (count === 1) {
-        await redis.expire(rateKey, windowSecs);
-      }
-
-      if (count > maxRequests) {
-        // NOTE: Do NOT call redis.quit() - singleton connection is reused
-        return new NextResponse(null, { status: 429 });
-      }
-    } catch (error) {
-      // Fallback: if Redis operation fails, allow the request but log the error
-      logger.error(
-        "[Incidents] Rate limiting failed:",
-        error instanceof Error ? error.message : "Unknown error",
-      );
-    }
-    // NOTE: Do NOT call redis.quit() in finally block - connection is reused
-  } else {
-    // Redis unavailable - allow request (fail open for better UX)
-    logger.warn("[Incidents] Redis unavailable, rate limiting disabled");
-  }
-
   // SECURITY: Determine tenant scope from authenticated session ONLY
   // Historical context: PR reviews flagged tenant isolation bypass where
   // tenantScope fell back to req.headers.get('x-org-id') (client-controlled)

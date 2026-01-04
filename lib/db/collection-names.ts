@@ -97,6 +97,7 @@ export const COLLECTIONS = {
   
   // Approvals / Assets / SLA / Agent audit
   FM_APPROVALS: "fm_approvals",
+  FM_SERVICE_PROVIDERS: "fm_service_providers",
   ASSETS: "assets",
   SLAS: "slas",
   AGENT_AUDIT_LOGS: "agent_audit_logs",

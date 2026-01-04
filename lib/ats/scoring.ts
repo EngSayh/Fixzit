@@ -46,7 +46,6 @@ const KNOWN_SKILLS = new Set([
   "mongodb",
   "postgresql",
   "mysql",
-  "redis",
   "graphql",
   "rest",
   "git",

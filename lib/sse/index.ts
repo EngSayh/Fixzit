@@ -1,14 +1,14 @@
 /**
  * FEATURE-001: Server-Sent Events (SSE) Module
  * 
- * @status SCAFFOLDING - Q1 2026
+ * @status IMPLEMENTED
  * @adr ADR-001-real-time-notifications.md
  * @decision SSE over WebSocket (see ADR-001)
  * 
- * Implementation Plan:
+ * Implementation:
  * 1. SSE endpoint: app/api/notifications/stream/route.ts
  * 2. Client hook: hooks/useNotificationStream.ts
- * 3. Redis pub/sub: For horizontal scaling across Vercel instances
+ * 3. In-memory pub/sub: Single-instance deployment (Vercel)
  * 4. Tenant isolation: All streams scoped by org_id
  */
 
@@ -64,7 +64,7 @@ export const SSE_CONFIG = {
 } as const;
 
 // ============================================================================
-// SUBSCRIPTION STATE (In-Memory - will be replaced with Redis)
+// SUBSCRIPTION STATE (In-Memory for single-instance deployment)
 // ============================================================================
 
 interface InternalSubscription {
@@ -152,7 +152,7 @@ export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
 
 /**
  * Subscribe to tenant-scoped notifications
- * @todo Implement with Redis pub/sub for horizontal scaling
+ * @todo Replace with durable pub/sub for horizontal scaling
  */
 export function subscribeToNotifications(
   orgId: Types.ObjectId,
@@ -189,7 +189,7 @@ export function subscribeToNotifications(
 
 /**
  * Publish notification to all subscribers in an org
- * @todo Implement with Redis pub/sub for horizontal scaling
+ * @todo Replace with durable pub/sub for horizontal scaling
  */
 export async function publishNotification(
   orgId: Types.ObjectId,

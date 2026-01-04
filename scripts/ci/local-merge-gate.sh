@@ -88,7 +88,7 @@ rg -n "@vitest-environment node" tests -g "*.ts" -g "*.tsx" \
   | tee .artifacts/scan/env-node.full.txt || true
 
 # Server-only import leak into app/**/*.tsx must be zero
-rg -n "from ['\"](mongoose|mongodb|bullmq|ioredis)['\"]|require\(['\"](mongoose|mongodb|bullmq|ioredis)['\"]\)" app -g "*.tsx" \
+rg -n "from ['\"](mongoose|mongodb)['\"]|require\(['\"](mongoose|mongodb)['\"]\)" app -g "*.tsx" \
   | tee .artifacts/scan/server-only-imports.app-tsx.txt || true
 if [[ -s .artifacts/scan/server-only-imports.app-tsx.txt ]]; then
   echo "❌ Server-only imports detected in app/**/*.tsx (client leak risk)."
@@ -108,3 +108,4 @@ wc -l .artifacts/scan/*.txt | tee .artifacts/scan/counts.txt || true
 
 echo "✅ MERGE GATE PASSED"
 echo "Artifacts: .artifacts/test + .artifacts/scan"
+

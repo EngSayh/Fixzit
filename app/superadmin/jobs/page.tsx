@@ -53,7 +53,7 @@ const STATUS_COLORS: Record<string, string> = {
   processing: "bg-blue-500/20 text-blue-400",
   completed: "bg-green-500/20 text-green-400",
   failed: "bg-red-500/20 text-red-400",
-  paused: "bg-gray-500/20 text-gray-400",
+  paused: "bg-muted text-muted-foreground",
 };
 
 export default function SuperadminJobsPage() {

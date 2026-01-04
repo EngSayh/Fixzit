@@ -307,20 +307,27 @@ export default function AdminIssueDetailPage({
       });
 
       if (!response.ok) {
-        // Comments endpoint might not exist yet - show info
+        const data = await response.json().catch(() => ({}));
+        const errorMsg = data.error || `Error ${response.status}`;
         toast({
-          title: t("common.note", "Note"),
-          description: t("issues.comments.apiMissing", "Comments API not implemented yet"),
+          title: t("common.error", "Error"),
+          description: errorMsg,
+          variant: "destructive",
         });
         return;
       }
 
       setNewComment("");
       fetchIssue();
+      toast({
+        title: t("common.success", "Success"),
+        description: t("issues.comments.added", "Comment added"),
+      });
     } catch (_error) {
       toast({
-        title: t("common.note", "Note"),
-        description: t("issues.comments.comingSoon", "Comments feature coming soon"),
+        title: t("common.error", "Error"),
+        description: t("issues.comments.networkError", "Failed to add comment"),
+        variant: "destructive",
       });
     }
   };

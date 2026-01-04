@@ -175,7 +175,7 @@ export async function getSessionOrNull(
  *
  * Infrastructure errors include:
  * - Database connection failures
- * - Redis/cache failures
+ * - Cache/store failures
  * - Network timeouts
  * - Internal server errors from auth service
  *
@@ -201,7 +201,6 @@ function isAuthInfrastructureError(err: unknown): boolean {
     "network error",
     "socket hang up",
     "mongo",
-    "redis",
     "database",
     "db connection",
     "internal server error",
@@ -223,14 +222,34 @@ function isAuthInfrastructureError(err: unknown): boolean {
     "MongoNetworkError",
     "MongoServerError",
     "MongoTimeoutError",
-    "RedisError",
     "FetchError",
     "AbortError",
-    "TypeError", // Often from network issues
   ];
 
   if (infraErrorTypes.includes(name)) {
     return true;
+  }
+  
+  // Handle TypeError specially - only treat as infra if message matches network patterns
+  if (name === "TypeError") {
+    const networkPatterns = [
+      "network",
+      "fetch",
+      "timeout",
+      "failed to fetch",
+      "econn",
+      "enotfound",
+      "eai_again",
+      "aborted",
+      "socket",
+      "connection",
+    ];
+    const lowerMessage = message.toLowerCase();
+    if (networkPatterns.some((pattern) => lowerMessage.includes(pattern))) {
+      return true;
+    }
+    // Non-network TypeError is likely an application bug, not infra
+    return false;
   }
 
   // Check for specific error codes

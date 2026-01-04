@@ -40,7 +40,7 @@ import { getClientIP } from "@/server/security/headers";
  * - limit: Number of results (default 50, max 500)
  * - skip: Skip for pagination
  * - includeStats: Include aggregate statistics
- * - includeQueueStats: Include BullMQ queue statistics
+ * - includeQueueStats: Include queue statistics
  */
 export async function GET(request: NextRequest) {
   try {
@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // 🚫 FIXED: Remove all pending BullMQ jobs to prevent post-cancel delivery
+        // 🚫 FIXED: Remove all pending queue jobs to prevent post-cancel delivery
         const removedJobs = await removePendingSMSJobs(messageId);
 
         // Set expiresAt to now to ensure date-based expiry covers edge cases

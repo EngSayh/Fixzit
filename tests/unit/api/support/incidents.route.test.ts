@@ -66,16 +66,6 @@ vi.mock('@/server/middleware/withAuthRbac', () => ({
   getSessionUser: getSessionUserMock,
 }));
 
-const redisIncrMock = vi.fn();
-const redisExpireMock = vi.fn();
-
-vi.mock('@/lib/redis', () => ({
-  getRedisClient: () => ({
-    incr: redisIncrMock,
-    expire: redisExpireMock,
-  }),
-}));
-
 vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: vi.fn(() => ({ allowed: true })),
   smartRateLimit: vi.fn(async () => ({ allowed: true })),
@@ -142,10 +132,6 @@ describe('POST /api/support/incidents', () => {
       role: 'ADMIN',
       orgId: 'org-1',
     });
-    redisIncrMock.mockReset();
-    redisIncrMock.mockResolvedValue(1);
-    redisExpireMock.mockReset();
-    redisExpireMock.mockResolvedValue(undefined);
     delete process.env.SUPPORT_PUBLIC_ORG_ID;
     delete process.env.ENABLE_ANONYMOUS_INCIDENTS;
   });

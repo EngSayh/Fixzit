@@ -5,8 +5,8 @@ import {
   getSecurityMetrics,
   getRateLimitBreakdown,
 } from "@/lib/security/monitoring";
-import { getRedisClient, getRedisMetrics } from "@/lib/redis";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { getRateLimitMetrics } from "@/server/security/rateLimit";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN"]);
 
@@ -36,8 +36,7 @@ export async function GET(request: NextRequest) {
     const metrics = getSecurityMetrics();
     const breakdown = getRateLimitBreakdown();
 
-    const redis = getRedisClient();
-    const redisMetrics = getRedisMetrics();
+    const rateLimitMetrics = getRateLimitMetrics();
 
     const loginWindowMs =
       Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 60_000;
@@ -53,12 +52,10 @@ export async function GET(request: NextRequest) {
         windowMs: loginWindowMs,
         maxAttempts: loginMaxAttempts,
       },
-      distributed: {
-        enabled: Boolean(redis),
-        status: redisMetrics.currentStatus,
-        lastConnectedAt: redisMetrics.lastConnectedAt,
-        lastErrorAt: redisMetrics.lastErrorAt,
-        lastError: redisMetrics.lastError,
+      store: {
+        type: "memory",
+        entries: rateLimitMetrics.entries,
+        maxEntries: rateLimitMetrics.maxEntries,
       },
       generatedAt: new Date().toISOString(),
     });

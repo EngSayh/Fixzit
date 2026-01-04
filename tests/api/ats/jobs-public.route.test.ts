@@ -52,8 +52,8 @@ vi.mock('@/server/security/headers', () => ({
   getClientIP: vi.fn().mockReturnValue('127.0.0.1'),
 }));
 
-// Mock Redis to bypass cache for testing query logic
-vi.mock('@/lib/redis', () => ({
+// Mock cache to bypass cache for testing query logic
+vi.mock('@/lib/cache', () => ({
   getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {
     return fn();
   }),
@@ -436,7 +436,7 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       }));
       vi.doMock('@/server/utils/errorResponses', () => ({ rateLimitError: vi.fn() }));
       vi.doMock('@/server/security/headers', () => ({ getClientIP: vi.fn().mockReturnValue('127.0.0.1') }));
-      vi.doMock('@/lib/redis', () => ({ getCached: vi.fn(), CacheTTL: { FIFTEEN_MINUTES: 900 } }));
+      vi.doMock('@/lib/cache', () => ({ getCached: vi.fn(), CacheTTL: { FIFTEEN_MINUTES: 900 } }));
       vi.doMock('@/server/models/Job', () => ({ Job: JobMock }));
       
       const { GET: GET2 } = await import('@/app/api/ats/jobs/public/route');
@@ -466,7 +466,7 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
       smartRateLimit: vi.fn(async () => ({ allowed: true })),
       buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
     }));
-    vi.doMock('@/lib/redis', () => ({
+    vi.doMock('@/lib/cache', () => ({
       getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {
         return fn();
       }),
@@ -489,7 +489,7 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
   };
 
   it('generates cache keys independent of search case', async () => {
-    const { getCached } = await import('@/lib/redis');
+    const { getCached } = await import('@/lib/cache');
     
     await callGET('?search=Engineer');
     const firstCacheKey = (getCached as ReturnType<typeof vi.fn>).mock.calls[0][0];
@@ -505,7 +505,7 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
   });
 
   it('clamps cache key segments to 64 chars while preserving query fidelity', async () => {
-    const { getCached } = await import('@/lib/redis');
+    const { getCached } = await import('@/lib/cache');
     const longSearch = 'a'.repeat(100);
     
     await callGET(`?search=${encodeURIComponent(longSearch)}`);
@@ -528,3 +528,4 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, stale-while-revalidate=600');
   });
 });
+

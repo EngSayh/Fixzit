@@ -36,16 +36,6 @@ vi.mock("@/lib/mongodb-unified", () => ({
   }),
 }));
 
-// Mock Redis
-vi.mock("ioredis", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn().mockResolvedValue("OK"),
-    incr: vi.fn().mockResolvedValue(1),
-    expire: vi.fn().mockResolvedValue(1),
-  })),
-}));
-
 // Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -273,8 +263,8 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      // Help should be available to non-authenticated users
-      expect([200, 201, 401]).toContain(response.status);
+      // Help should be available to non-authenticated users (public endpoint)
+      expect([200, 201]).toContain(response.status);
     });
   });
 });

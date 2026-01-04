@@ -18,7 +18,6 @@ vi.mock("@/lib/logger", () => ({
 
 vi.mock("@/server/security/rateLimit", () => ({
   smartRateLimit: (...args: unknown[]) => mockSmartRateLimit(...args),
-  redisRateLimit: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock("@/server/security/headers", () => ({

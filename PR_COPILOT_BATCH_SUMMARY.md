@@ -1,6 +1,7 @@
 # Fixizit PR Copilot — Batch Summary
 
-**Execution Date:** December 31, 2025  
+**Execution Date:** January 3, 2026  
+**Agent Token:** [AGENT-0008]  
 **Package Manager:** pnpm  
 **Repository Merge Methods:** All enabled (squash ✓, rebase ✓, merge commit ✓)
 
@@ -8,16 +9,17 @@
 
 ## Batch Results
 
-**PRs Discovered (targeting main):** 3  
-**PRs Processed:** 3/3  
-**PRs Merged:** 0 (pending CI)  
-**PRs Blocked:** 0
+**PRs Discovered (targeting main):** 2  
+**PRs Processed:** 1/2 (PR #656)  
+**PRs Merged:** 0  
+**PRs Blocked:** 1 (Heap OOM)  
+**PRs Skipped:** 1 (PR #657 - depends on #656)
 
 ---
 
 ## PR Status Details
 
-### PR #621 - feat(superadmin): footer-links, chatbot, company routes
+### PR #656 - agent/AGENT-0008/RUNTIME-STUBS/fraud-ejar-integration
 | Field | Value |
 |-------|-------|
 | Status | 🟡 Pending CI |

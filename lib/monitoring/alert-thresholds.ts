@@ -211,16 +211,6 @@ export const ALERT_THRESHOLDS = {
   // Infrastructure thresholds
   infrastructure: [
     {
-      name: 'Redis Connection Lost',
-      metric: 'redis.connected',
-      operator: 'eq' as const,
-      value: 0,
-      unit: 'boolean',
-      severity: 'critical' as const,
-      description: 'Redis connection lost',
-      runbook: 'docs/runbooks/redis-down.md',
-    },
-    {
       name: 'Health Check Failing',
       metric: 'health.ready',
       operator: 'eq' as const,

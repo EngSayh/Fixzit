@@ -23,7 +23,6 @@ PATTERNS=(
   "postgres://.*@"
   "mysql://.*@"
   "amqp://.*@"
-  "redis://.*@"
   "smtps?://.*@"
   # Cloud/provider keys
   "AKIA[0-9A-Z]{16}"

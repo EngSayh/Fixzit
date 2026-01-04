@@ -1,6 +1,6 @@
 /**
- * @fileoverview Unit tests for Redis OTP store
- * Tests async Redis-backed OTP storage with in-memory fallback.
+ * @fileoverview Unit tests for OTP store
+ * Tests async in-memory OTP storage.
  *
  * CRITICAL: These tests verify the fix for the multi-instance OTP verification
  * race condition where sync wrappers caused OTP verification failures in
@@ -9,9 +9,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  redisOtpStore,
-  redisRateLimitStore,
-  redisOtpSessionStore,
+  otpStore,
+  otpRateLimitStore,
+  otpSessionStore,
   OTP_LENGTH,
   OTP_EXPIRY_MS,
   MAX_ATTEMPTS,
@@ -23,13 +23,7 @@ import {
   type OTPLoginSession,
 } from "@/lib/otp-store";
 
-// Mock Redis module to test both Redis and fallback scenarios
-vi.mock("@/lib/redis", () => ({
-  getRedisClient: vi.fn(() => null),
-  safeRedisOp: vi.fn(),
-}));
-
-describe("OTP Store Redis", () => {
+describe("OTP Store", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -49,7 +43,7 @@ describe("OTP Store Redis", () => {
     });
   });
 
-  describe("redisOtpStore", () => {
+  describe("otpStore", () => {
     const testIdentifier = "test@example.com";
     const createTestOtpData = (): OTPData => ({
       otp: "123456",
@@ -62,8 +56,8 @@ describe("OTP Store Redis", () => {
     describe("Basic Operations (Memory Fallback)", () => {
       it("should set and get OTP data", async () => {
         const testOtpData = createTestOtpData();
-        await redisOtpStore.set(testIdentifier, testOtpData);
-        const result = await redisOtpStore.get(testIdentifier);
+        await otpStore.set(testIdentifier, testOtpData);
+        const result = await otpStore.get(testIdentifier);
 
         expect(result).toBeDefined();
         expect(result?.otp).toBe(testOtpData.otp);
@@ -71,27 +65,27 @@ describe("OTP Store Redis", () => {
       });
 
       it("should return undefined for non-existent identifier", async () => {
-        const result = await redisOtpStore.get("non-existent@example.com");
+        const result = await otpStore.get("non-existent@example.com");
         expect(result).toBeUndefined();
       });
 
       it("should delete OTP data", async () => {
         const testOtpData = createTestOtpData();
-        await redisOtpStore.set(testIdentifier, testOtpData);
-        await redisOtpStore.delete(testIdentifier);
-        const result = await redisOtpStore.get(testIdentifier);
+        await otpStore.set(testIdentifier, testOtpData);
+        await otpStore.delete(testIdentifier);
+        const result = await otpStore.get(testIdentifier);
 
         expect(result).toBeUndefined();
       });
 
       it("should update OTP data", async () => {
         const testOtpData = createTestOtpData();
-        await redisOtpStore.set(testIdentifier, testOtpData);
+        await otpStore.set(testIdentifier, testOtpData);
 
         const updatedData: OTPData = { ...testOtpData, attempts: 1 };
-        await redisOtpStore.update(testIdentifier, updatedData);
+        await otpStore.update(testIdentifier, updatedData);
 
-        const result = await redisOtpStore.get(testIdentifier);
+        const result = await otpStore.get(testIdentifier);
         expect(result?.attempts).toBe(1);
         expect(result?.otp).toBe(testOtpData.otp);
       });
@@ -107,8 +101,8 @@ describe("OTP Store Redis", () => {
           phone: "+96812345678",
         };
 
-        await redisOtpStore.set("expired@example.com", expiredOtpData);
-        const result = await redisOtpStore.get("expired@example.com");
+        await otpStore.set("expired@example.com", expiredOtpData);
+        const result = await otpStore.get("expired@example.com");
 
         expect(result).toBeUndefined();
       });
@@ -124,10 +118,10 @@ describe("OTP Store Redis", () => {
           phone: "+96812345678",
         };
 
-        await redisOtpStore.set(identifier, nearFutureOtp);
+        await otpStore.set(identifier, nearFutureOtp);
 
         // Verify it's accessible immediately
-        const resultBefore = await redisOtpStore.get(identifier);
+        const resultBefore = await otpStore.get(identifier);
         expect(resultBefore).toBeDefined();
 
         // Mock Date.now to simulate time passing
@@ -135,7 +129,7 @@ describe("OTP Store Redis", () => {
         vi.spyOn(Date, "now").mockReturnValue(now + 200); // 200ms later
 
         // Should be undefined after expiry
-        const resultAfter = await redisOtpStore.get(identifier);
+        const resultAfter = await otpStore.get(identifier);
         expect(resultAfter).toBeUndefined();
 
         // Restore Date.now
@@ -158,27 +152,27 @@ describe("OTP Store Redis", () => {
           phone: "+96899988877",
         };
 
-        await redisOtpStore.set(identifier, otpData);
+        await otpStore.set(identifier, otpData);
 
         // Instance B: Verify OTP (get, update, delete)
-        // In real scenario, this would be a different server reading from Redis
-        const fetchedOtp = await redisOtpStore.get(identifier);
+        // In real scenario, this would be a different server reading from the store
+        const fetchedOtp = await otpStore.get(identifier);
         expect(fetchedOtp).toBeDefined();
         expect(fetchedOtp?.otp).toBe("999888");
 
         // Simulate failed attempt
         const updatedData: OTPData = { ...otpData, attempts: 1 };
-        await redisOtpStore.update(identifier, updatedData);
+        await otpStore.update(identifier, updatedData);
 
         // Verify attempt count persisted
-        const afterAttempt = await redisOtpStore.get(identifier);
+        const afterAttempt = await otpStore.get(identifier);
         expect(afterAttempt?.attempts).toBe(1);
 
         // Simulate successful verification - delete OTP
-        await redisOtpStore.delete(identifier);
+        await otpStore.delete(identifier);
 
         // Verify OTP is gone
-        const afterDelete = await redisOtpStore.get(identifier);
+        const afterDelete = await otpStore.get(identifier);
         expect(afterDelete).toBeUndefined();
       });
 
@@ -192,19 +186,19 @@ describe("OTP Store Redis", () => {
           phone: "+96877766655",
         };
 
-        await redisOtpStore.set(identifier, otpData);
+        await otpStore.set(identifier, otpData);
 
         // Update attempts
         const updated = { ...otpData, attempts: 1 };
-        await redisOtpStore.update(identifier, updated);
+        await otpStore.update(identifier, updated);
 
-        const result = await redisOtpStore.get(identifier);
+        const result = await otpStore.get(identifier);
         expect(result?.attempts).toBe(1);
       });
     });
   });
 
-  describe("redisRateLimitStore", () => {
+  describe("otpRateLimitStore", () => {
     const testIdentifier = "ratelimit:test@example.com";
 
     describe("Basic Operations", () => {
@@ -214,15 +208,15 @@ describe("OTP Store Redis", () => {
           resetAt: Date.now() + RATE_LIMIT_WINDOW_MS,
         };
 
-        await redisRateLimitStore.set(testIdentifier, rateLimitData);
-        const result = await redisRateLimitStore.get(testIdentifier);
+        await otpRateLimitStore.set(testIdentifier, rateLimitData);
+        const result = await otpRateLimitStore.get(testIdentifier);
 
         expect(result).toBeDefined();
         expect(result?.count).toBe(1);
       });
 
       it("should return undefined for non-existent identifier", async () => {
-        const result = await redisRateLimitStore.get("non-existent-rate");
+        const result = await otpRateLimitStore.get("non-existent-rate");
         expect(result).toBeUndefined();
       });
 
@@ -232,7 +226,7 @@ describe("OTP Store Redis", () => {
         const maxCount = MAX_SENDS_PER_WINDOW;
 
         // First increment
-        const result1 = await redisRateLimitStore.increment(
+        const result1 = await otpRateLimitStore.increment(
           identifier,
           maxCount,
           windowMs
@@ -241,7 +235,7 @@ describe("OTP Store Redis", () => {
         expect(result1.allowed).toBe(true);
 
         // Second increment
-        const result2 = await redisRateLimitStore.increment(
+        const result2 = await otpRateLimitStore.increment(
           identifier,
           maxCount,
           windowMs
@@ -257,7 +251,7 @@ describe("OTP Store Redis", () => {
 
         // Fill up the limit
         for (let i = 0; i < maxCount; i++) {
-          const result = await redisRateLimitStore.increment(
+          const result = await otpRateLimitStore.increment(
             identifier,
             maxCount,
             windowMs
@@ -267,7 +261,7 @@ describe("OTP Store Redis", () => {
         }
 
         // Next request should be rate limited
-        const limitedResult = await redisRateLimitStore.increment(
+        const limitedResult = await otpRateLimitStore.increment(
           identifier,
           maxCount,
           windowMs
@@ -284,15 +278,15 @@ describe("OTP Store Redis", () => {
           resetAt: Date.now() - 1000, // Already expired
         };
 
-        await redisRateLimitStore.set("expired-rate", expiredData);
-        const result = await redisRateLimitStore.get("expired-rate");
+        await otpRateLimitStore.set("expired-rate", expiredData);
+        const result = await otpRateLimitStore.get("expired-rate");
 
         expect(result).toBeUndefined();
       });
     });
   });
 
-  describe("redisOtpSessionStore", () => {
+  describe("otpSessionStore", () => {
     const testToken = "test-session-token-abc123";
 
     describe("Basic Operations", () => {
@@ -303,15 +297,15 @@ describe("OTP Store Redis", () => {
           expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
         };
 
-        await redisOtpSessionStore.set(testToken, sessionData);
-        const result = await redisOtpSessionStore.get(testToken);
+        await otpSessionStore.set(testToken, sessionData);
+        const result = await otpSessionStore.get(testToken);
 
         expect(result).toBeDefined();
         expect(result?.userId).toBe("user-session");
       });
 
       it("should return undefined for non-existent token", async () => {
-        const result = await redisOtpSessionStore.get("non-existent-token");
+        const result = await otpSessionStore.get("non-existent-token");
         expect(result).toBeUndefined();
       });
 
@@ -323,9 +317,9 @@ describe("OTP Store Redis", () => {
           expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
         };
 
-        await redisOtpSessionStore.set(token, sessionData);
-        await redisOtpSessionStore.delete(token);
-        const result = await redisOtpSessionStore.get(token);
+        await otpSessionStore.set(token, sessionData);
+        await otpSessionStore.delete(token);
+        const result = await otpSessionStore.get(token);
 
         expect(result).toBeUndefined();
       });
@@ -344,18 +338,18 @@ describe("OTP Store Redis", () => {
           expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
         };
 
-        await redisOtpSessionStore.set(token, initialSession);
+        await otpSessionStore.set(token, initialSession);
 
         // Step 2: Auth system retrieves session
-        const fetchedSession = await redisOtpSessionStore.get(token);
+        const fetchedSession = await otpSessionStore.get(token);
         expect(fetchedSession).toBeDefined();
         expect(fetchedSession?.identifier).toBe(identifier);
 
         // Step 3: After successful login, session is consumed (deleted)
-        await redisOtpSessionStore.delete(token);
+        await otpSessionStore.delete(token);
 
         // Step 4: Verify token cannot be reused
-        const reusedSession = await redisOtpSessionStore.get(token);
+        const reusedSession = await otpSessionStore.get(token);
         expect(reusedSession).toBeUndefined();
       });
     });
@@ -368,8 +362,8 @@ describe("OTP Store Redis", () => {
           expiresAt: Date.now() - 1000, // Already expired
         };
 
-        await redisOtpSessionStore.set("expired-session", expiredSession);
-        const result = await redisOtpSessionStore.get("expired-session");
+        await otpSessionStore.set("expired-session", expiredSession);
+        const result = await otpSessionStore.get("expired-session");
 
         expect(result).toBeUndefined();
       });
@@ -377,7 +371,7 @@ describe("OTP Store Redis", () => {
   });
 
   describe("Async Store Interface Compliance", () => {
-    it("redisOtpStore should have async interface", () => {
+    it("otpStore should have async interface", () => {
       const testOtp: OTPData = {
         otp: "123456",
         attempts: 0,
@@ -386,28 +380,28 @@ describe("OTP Store Redis", () => {
         phone: "+968",
       };
       // Verify all methods return promises
-      expect(redisOtpStore.get("test")).toBeInstanceOf(Promise);
-      expect(redisOtpStore.set("test", testOtp)).toBeInstanceOf(Promise);
-      expect(redisOtpStore.delete("test")).toBeInstanceOf(Promise);
-      expect(redisOtpStore.update("test", testOtp)).toBeInstanceOf(Promise);
+      expect(otpStore.get("test")).toBeInstanceOf(Promise);
+      expect(otpStore.set("test", testOtp)).toBeInstanceOf(Promise);
+      expect(otpStore.delete("test")).toBeInstanceOf(Promise);
+      expect(otpStore.update("test", testOtp)).toBeInstanceOf(Promise);
     });
 
-    it("redisRateLimitStore should have async interface", () => {
+    it("otpRateLimitStore should have async interface", () => {
       const testRate: RateLimitData = { count: 0, resetAt: Date.now() };
-      expect(redisRateLimitStore.get("test")).toBeInstanceOf(Promise);
-      expect(redisRateLimitStore.set("test", testRate)).toBeInstanceOf(Promise);
-      expect(redisRateLimitStore.increment("test", 1000, 5)).toBeInstanceOf(Promise);
+      expect(otpRateLimitStore.get("test")).toBeInstanceOf(Promise);
+      expect(otpRateLimitStore.set("test", testRate)).toBeInstanceOf(Promise);
+      expect(otpRateLimitStore.increment("test", 1000, 5)).toBeInstanceOf(Promise);
     });
 
-    it("redisOtpSessionStore should have async interface", () => {
+    it("otpSessionStore should have async interface", () => {
       const testSession: OTPLoginSession = {
         userId: "test",
         identifier: "test",
         expiresAt: Date.now(),
       };
-      expect(redisOtpSessionStore.get("test")).toBeInstanceOf(Promise);
-      expect(redisOtpSessionStore.set("test", testSession)).toBeInstanceOf(Promise);
-      expect(redisOtpSessionStore.delete("test")).toBeInstanceOf(Promise);
+      expect(otpSessionStore.get("test")).toBeInstanceOf(Promise);
+      expect(otpSessionStore.set("test", testSession)).toBeInstanceOf(Promise);
+      expect(otpSessionStore.delete("test")).toBeInstanceOf(Promise);
     });
   });
 
@@ -415,11 +409,11 @@ describe("OTP Store Redis", () => {
     describe("Multi-Instance OTP Verification (PR #400 Fix)", () => {
       /**
        * This test verifies the fix for the critical race condition where:
-       * 1. Instance A sends OTP (stores in Redis)
+       * 1. Instance A sends OTP (stores in-memory)
        * 2. Instance B receives verification request (sync wrapper returns undefined)
-       * 3. Verification fails even though OTP is valid in Redis
+       * 3. Verification fails even though OTP is valid in-memory
        *
-       * The fix: All routes now use async Redis stores directly
+       * The fix: All routes now use async in-memory stores directly
        */
       it("should verify OTP across async operations", async () => {
         const identifier = "regression-test@example.com";
@@ -433,10 +427,10 @@ describe("OTP Store Redis", () => {
           userId: "user-regression",
           phone: "+96855544433",
         };
-        await redisOtpStore.set(identifier, otpData);
+        await otpStore.set(identifier, otpData);
 
         // Instance B: Verify OTP (this is what the old sync wrapper failed at)
-        const storedOtp = await redisOtpStore.get(identifier);
+        const storedOtp = await otpStore.get(identifier);
 
         // CRITICAL: This should NOT be undefined
         expect(storedOtp).toBeDefined();
@@ -449,11 +443,11 @@ describe("OTP Store Redis", () => {
 
         // On success, delete OTP
         if (isValid) {
-          await redisOtpStore.delete(identifier);
+          await otpStore.delete(identifier);
         }
 
         // Verify OTP is consumed
-        const afterVerify = await redisOtpStore.get(identifier);
+        const afterVerify = await otpStore.get(identifier);
         expect(afterVerify).toBeUndefined();
       });
 
@@ -467,25 +461,25 @@ describe("OTP Store Redis", () => {
           userId: "user-attempts",
           phone: "+96833322211",
         };
-        await redisOtpStore.set(identifier, baseOtpData);
+        await otpStore.set(identifier, baseOtpData);
 
         // First failed attempt
-        await redisOtpStore.update(identifier, { ...baseOtpData, attempts: 1 });
+        await otpStore.update(identifier, { ...baseOtpData, attempts: 1 });
 
         // Verify attempt was persisted (this failed with sync wrappers)
-        let stored = await redisOtpStore.get(identifier);
+        let stored = await otpStore.get(identifier);
         expect(stored?.attempts).toBe(1);
 
         // Second failed attempt
-        await redisOtpStore.update(identifier, { ...baseOtpData, attempts: 2 });
+        await otpStore.update(identifier, { ...baseOtpData, attempts: 2 });
 
-        stored = await redisOtpStore.get(identifier);
+        stored = await otpStore.get(identifier);
         expect(stored?.attempts).toBe(2);
 
         // Third failed attempt - should lock out
-        await redisOtpStore.update(identifier, { ...baseOtpData, attempts: 3 });
+        await otpStore.update(identifier, { ...baseOtpData, attempts: 3 });
 
-        stored = await redisOtpStore.get(identifier);
+        stored = await otpStore.get(identifier);
         expect(stored?.attempts).toBe(3);
         expect(stored!.attempts >= MAX_ATTEMPTS).toBe(true);
       });
@@ -494,7 +488,7 @@ describe("OTP Store Redis", () => {
         const identifier = "rate-test@example.com";
 
         // Instance A: User sends first OTP request
-        const result1 = await redisRateLimitStore.increment(
+        const result1 = await otpRateLimitStore.increment(
           identifier,
           MAX_SENDS_PER_WINDOW,
           RATE_LIMIT_WINDOW_MS
@@ -502,7 +496,7 @@ describe("OTP Store Redis", () => {
         expect(result1.count).toBe(1);
 
         // Instance B: Same user, different instance
-        const result2 = await redisRateLimitStore.increment(
+        const result2 = await otpRateLimitStore.increment(
           identifier,
           MAX_SENDS_PER_WINDOW,
           RATE_LIMIT_WINDOW_MS
@@ -512,7 +506,7 @@ describe("OTP Store Redis", () => {
 
         // Continue until rate limited
         for (let i = 3; i <= MAX_SENDS_PER_WINDOW; i++) {
-          await redisRateLimitStore.increment(
+          await otpRateLimitStore.increment(
             identifier,
             MAX_SENDS_PER_WINDOW,
             RATE_LIMIT_WINDOW_MS
@@ -520,7 +514,7 @@ describe("OTP Store Redis", () => {
         }
 
         // Next request should be rate limited
-        const limitedResult = await redisRateLimitStore.increment(
+        const limitedResult = await otpRateLimitStore.increment(
           identifier,
           MAX_SENDS_PER_WINDOW,
           RATE_LIMIT_WINDOW_MS
@@ -530,3 +524,4 @@ describe("OTP Store Redis", () => {
     });
   });
 });
+

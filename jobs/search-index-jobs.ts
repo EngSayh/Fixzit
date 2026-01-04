@@ -1,17 +1,13 @@
-import { Queue, Worker, Job } from "bullmq";
+import { Queue, Worker, Job } from "@/lib/queue";
 import { SearchIndexerService } from "@/services/souq/search-indexer-service";
-import Redis from "ioredis";
 import { logger } from "@/lib/logger";
+import * as cron from "node-cron";
 
-// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
-const bullRedisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const bullRedisHost = process.env.BULLMQ_REDIS_HOST;
-const bullRedisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
-const bullRedisPassword =
-  process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
-const hasBullRedisConfig = Boolean(bullRedisUrl || bullRedisHost);
 const DEFAULT_SEARCH_ORG_ID =
   process.env.DEFAULT_ORG_ID || process.env.PUBLIC_ORG_ID;
+
+// Track if scheduler has been initialized to prevent duplicates
+let schedulerInitialized = false;
 
 const resolveOrgId = (orgId?: string): string => {
   const effectiveOrgId = orgId || DEFAULT_SEARCH_ORG_ID;
@@ -23,34 +19,11 @@ const resolveOrgId = (orgId?: string): string => {
   return effectiveOrgId;
 };
 
-const connection = hasBullRedisConfig
-  ? bullRedisUrl
-    ? new Redis(bullRedisUrl, { maxRetriesPerRequest: null })
-    : new Redis({
-        host: bullRedisHost!,
-        port: bullRedisPort,
-        password: bullRedisPassword,
-        maxRetriesPerRequest: null,
-      })
-  : null;
-
-if (!connection) {
-  logger.warn(
-    "[SearchIndex] Redis not configured. Search indexing queue is disabled.",
-  );
-} else {
-  connection.on("error", (error) => {
-    logger.error("[SearchIndex] Redis connection error", { error });
-  });
-}
-
 // ============================================================================
 // QUEUE DEFINITIONS
 // ============================================================================
 
-export const searchIndexQueue = connection
-  ? new Queue("search-indexing", { connection })
-  : null;
+export const searchIndexQueue = new Queue("search-indexing");
 
 // ============================================================================
 // JOB TYPES
@@ -88,14 +61,9 @@ type SearchIndexJobData =
 /**
  * Schedule daily full reindex
  * Runs at 2:00 AM Saudi time (UTC+3)
+ * Uses node-cron since lib/queue.ts doesn't support repeat scheduling
  */
 export async function scheduleFullReindex() {
-  if (!searchIndexQueue) {
-    logger.warn(
-      "[SearchIndex] Cannot schedule full reindex - Redis not configured",
-    );
-    return;
-  }
   const defaultOrgId = DEFAULT_SEARCH_ORG_ID;
   if (!defaultOrgId) {
     logger.warn(
@@ -103,23 +71,37 @@ export async function scheduleFullReindex() {
     );
     return;
   }
-  await searchIndexQueue.add(
-    "full_reindex",
-    {
-      type: "full_reindex",
-      target: "all",
-      orgId: defaultOrgId,
-    } as FullReindexJob,
-    {
-      repeat: {
-        pattern: "0 2 * * *", // 2 AM daily
-        tz: "Asia/Riyadh",
-      },
-      jobId: "full_reindex_daily",
-    },
-  );
+  
+  // Prevent duplicate schedulers
+  if (schedulerInitialized) {
+    logger.debug("[SearchIndex] Scheduler already initialized, skipping");
+    return;
+  }
+  schedulerInitialized = true;
+  
+  // Schedule using node-cron (2:00 AM daily in Asia/Riyadh timezone)
+  // Note: node-cron uses system timezone, so we schedule for 2:00 AM
+  // In production, ensure server timezone is set to Asia/Riyadh or adjust accordingly
+  cron.schedule("0 2 * * *", async () => {
+    logger.info("[SearchIndex] Running scheduled daily full reindex");
+    try {
+      await searchIndexQueue.add(
+        "full_reindex",
+        {
+          type: "full_reindex",
+          target: "all",
+          orgId: defaultOrgId,
+        } as FullReindexJob,
+        {
+          jobId: `full_reindex_daily_${Date.now()}`,
+        },
+      );
+    } catch (error) {
+      logger.error("[SearchIndex] Failed to queue scheduled reindex", { error });
+    }
+  });
 
-  logger.info("[SearchIndex] Scheduled daily full reindex at 2:00 AM");
+  logger.info("[SearchIndex] Scheduled daily full reindex at 2:00 AM (Asia/Riyadh) using node-cron");
 }
 
 /**
@@ -129,10 +111,6 @@ export async function triggerFullReindex(
   target: "products" | "sellers" | "all" = "all",
   orgId?: string,
 ) {
-  if (!searchIndexQueue) {
-    logger.warn("[SearchIndex] Cannot trigger reindex - Redis not configured");
-    return null;
-  }
   const resolvedOrgId = resolveOrgId(orgId);
   const job = await searchIndexQueue.add(
     "full_reindex",
@@ -158,12 +136,6 @@ export async function triggerIncrementalUpdate(
   id: string,
   orgId: string,
 ) {
-  if (!searchIndexQueue) {
-    logger.warn(
-      "[SearchIndex] Cannot queue incremental update - Redis not configured",
-    );
-    return null;
-  }
   const job = await searchIndexQueue.add(
     "incremental_update",
     {
@@ -194,10 +166,6 @@ export async function triggerDeleteFromIndex(
   id: string,
   orgId: string,
 ) {
-  if (!searchIndexQueue) {
-    logger.warn("[SearchIndex] Cannot queue delete - Redis not configured");
-    return null;
-  }
   const job = await searchIndexQueue.add(
     "delete",
     {
@@ -294,7 +262,7 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     logger.error("[SearchIndex] Job failed", { jobId: job.id, error });
-    throw error; // Let BullMQ handle retries
+    throw error; // Let queue handle failure state
   }
 }
 
@@ -309,23 +277,12 @@ let worker: Worker<any, any> | null = null;
  * Start the search indexing worker
  */
 export function startSearchIndexWorker() {
-  if (!connection) {
-    logger.warn("[SearchIndex] Worker disabled - Redis not configured");
-    return null;
-  }
   if (worker) {
     logger.warn("[SearchIndex] Worker already running");
     return worker;
   }
 
-  worker = new Worker("search-indexing", processSearchIndexJob, {
-    connection,
-    concurrency: 2, // Process 2 jobs in parallel
-    limiter: {
-      max: 10, // Max 10 jobs per interval
-      duration: 60000, // 1 minute
-    },
-  });
+  worker = new Worker("search-indexing", processSearchIndexJob);
 
   worker.on("completed", (job: Job) => {
     logger.info(`[SearchIndex] Job ${job.id} completed successfully`);

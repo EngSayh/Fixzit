@@ -63,39 +63,5 @@ describe("Environment Validation", () => {
       });
     });
 
-    describe("Redis configuration", () => {
-      it("returns configured: true when REDIS_URL is set", async () => {
-        vi.stubEnv("REDIS_URL", "redis://localhost:6379");
-        vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-        
-        vi.resetModules();
-        const { getConfigStatus } = await import("@/lib/env-validation");
-        const status = getConfigStatus();
-        
-        expect(status.redis.configured).toBe(true);
-      });
-
-      it("returns configured: true when UPSTASH_REDIS_REST_URL is set", async () => {
-        vi.stubEnv("REDIS_URL", "");
-        vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://upstash-url");
-        
-        vi.resetModules();
-        const { getConfigStatus } = await import("@/lib/env-validation");
-        const status = getConfigStatus();
-        
-        expect(status.redis.configured).toBe(true);
-      });
-
-      it("returns configured: false when neither Redis env is set", async () => {
-        vi.stubEnv("REDIS_URL", "");
-        vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-        
-        vi.resetModules();
-        const { getConfigStatus } = await import("@/lib/env-validation");
-        const status = getConfigStatus();
-        
-        expect(status.redis.configured).toBe(false);
-      });
-    });
   });
 });
