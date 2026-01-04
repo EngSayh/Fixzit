@@ -436,7 +436,11 @@ async function upsertTransactionFromCharge(
     });
     return null;
   }
-  const transactionFilter = { chargeId: charge.id, orgId: orgIdFromCharge };
+  // Use $eq operator to prevent NoSQL injection from user-controlled metadata
+  const transactionFilter = {
+    chargeId: { $eq: charge.id },
+    orgId: { $eq: orgIdFromCharge },
+  };
   // NO_LEAN: needs Mongoose document for updates.
   // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .save()
   let transaction = await TapTransaction.findOne(transactionFilter);
@@ -707,7 +711,11 @@ async function updateRefundRecord(
     });
     return;
   }
-  const refundFilter = { chargeId: refund.charge, orgId: orgIdFromRefund };
+  // Use $eq operator to prevent NoSQL injection from user-controlled metadata
+  const refundFilter = {
+    chargeId: { $eq: refund.charge },
+    orgId: { $eq: orgIdFromRefund },
+  };
   // NO_LEAN: needs Mongoose document for updates.
   // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .save()
   const transaction = await TapTransaction.findOne(refundFilter);

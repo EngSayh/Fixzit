@@ -58,10 +58,29 @@ const hasKeys = (
   obj?: Record<string, unknown> | null,
 ): obj is Record<string, unknown> => Boolean(obj && Object.keys(obj).length);
 
+/**
+ * Sanitize log message to prevent log injection attacks.
+ * Removes control characters and newlines that could manipulate log output.
+ * @param message - The message to sanitize
+ * @returns Sanitized message safe for logging
+ */
+function sanitizeLogMessage(message: string): string {
+  if (!message || typeof message !== "string") return "";
+  // Remove control characters (0x00-0x1F except tab, newline, carriage return)
+  // Replace newlines with space to prevent log forging
+  return message
+    // eslint-disable-next-line no-control-regex -- Intentionally matching control chars for sanitization
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "") // Remove control chars
+    .replace(/[\r\n]+/g, " ") // Replace newlines with space
+    .substring(0, 2000); // Limit length to prevent log flooding
+}
+
 function deriveModule(context?: LogContext, message?: string): ModuleKey {
   const path = (context?.path || context?.route || "") as string;
   const endpoint = (context?.endpoint || "") as string;
-  const source = `${path} ${endpoint} ${message ?? ""}`.toLowerCase();
+  // Sanitize message before using in module detection to prevent log injection
+  const safeMessage = message ? sanitizeLogMessage(message) : "";
+  const source = `${path} ${endpoint} ${safeMessage}`.toLowerCase();
 
   if (
     context?.module &&
@@ -155,10 +174,12 @@ class Logger {
     context?: LogContext,
     extra?: unknown,
   ): void {
-    const moduleKey = deriveModule(context, message);
+    // Sanitize message to prevent log injection attacks (SEC-LOG-001)
+    const safeMessage = sanitizeLogMessage(message);
+    const moduleKey = deriveModule(context, safeMessage);
     const payload = this.buildStructuredPayload(
       level,
-      message,
+      safeMessage,
       moduleKey,
       context,
       extra,
@@ -328,12 +349,15 @@ class Logger {
       }
 
       // Store a lightweight copy in session for browser debugging
+      // SECURITY: Use sanitized message and context to prevent storing sensitive data (SEC-STORE-001)
       if (typeof window !== "undefined" && window.sessionStorage) {
+        const safeMessage = sanitizeLogMessage(message);
+        const safeContext = this.sanitizeContext(context);
         const payload = this.buildStructuredPayload(
           level,
-          message,
+          safeMessage,
           moduleKey,
-          context,
+          safeContext,
         );
         const logs = JSON.parse(sessionStorage.getItem("app_logs") || "[]");
         logs.push(payload);

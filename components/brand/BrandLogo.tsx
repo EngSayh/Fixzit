@@ -5,6 +5,37 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 /**
+ * Validates and sanitizes a URL to prevent XSS through javascript: or data: URLs
+ * Only allows http(s), blob:, and relative paths
+ */
+function sanitizeImageUrl(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim().toLowerCase();
+  // Allow http/https URLs
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return url;
+  }
+  // Allow blob URLs (for local file previews)
+  if (trimmed.startsWith('blob:')) {
+    return url;
+  }
+  // Allow relative paths (start with / but not //)
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return url;
+  }
+  // Block dangerous protocols (javascript:, data:, vbscript:)
+  if (
+    trimmed.startsWith('javascript:') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('vbscript:')
+  ) {
+    return null;
+  }
+  // Allow other relative paths
+  return url;
+}
+
+/**
  * Fetches organization settings including logo URL
  */
 async function fetchOrgLogo(): Promise<string | null> {
@@ -138,7 +169,9 @@ export function BrandLogo({
   onError,
   'data-testid': testId = 'brand-logo',
 }: BrandLogoProps) {
-  const [logoSrc, setLogoSrc] = useState<string>(customLogoUrl || DEFAULT_LOGO);
+  // Sanitize custom URL to prevent XSS attacks
+  const sanitizedCustomUrl = customLogoUrl ? sanitizeImageUrl(customLogoUrl) : null;
+  const [logoSrc, setLogoSrc] = useState<string>(sanitizedCustomUrl || DEFAULT_LOGO);
   const [hasError, setHasError] = useState(false);
   
   // Get dimensions from size preset or custom values
@@ -148,22 +181,24 @@ export function BrandLogo({
   
   // Fetch org logo if enabled and no custom URL provided
   useEffect(() => {
-    if (shouldFetchOrgLogo && !customLogoUrl) {
+    if (shouldFetchOrgLogo && !sanitizedCustomUrl) {
       fetchOrgLogo().then((orgLogo) => {
-        if (orgLogo) {
-          setLogoSrc(orgLogo);
+        // Sanitize the fetched URL as well
+        const safeOrgLogo = orgLogo ? sanitizeImageUrl(orgLogo) : null;
+        if (safeOrgLogo) {
+          setLogoSrc(safeOrgLogo);
         }
       });
     }
-  }, [shouldFetchOrgLogo, customLogoUrl]);
+  }, [shouldFetchOrgLogo, sanitizedCustomUrl]);
   
   // Reset on custom URL change
   useEffect(() => {
-    if (customLogoUrl) {
-      setLogoSrc(customLogoUrl);
+    if (sanitizedCustomUrl) {
+      setLogoSrc(sanitizedCustomUrl);
       setHasError(false);
     }
-  }, [customLogoUrl]);
+  }, [sanitizedCustomUrl]);
   
   const handleError = () => {
     setHasError(true);
