@@ -17,6 +17,7 @@ import { PayoutProcessorService } from "@/services/souq/settlements/payout-proce
 import { connectDb } from "@/lib/mongodb-unified";
 import { Role, SubRole } from "@/lib/rbac/client-roles";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // 🔐 STRICT v4.1: Roles allowed to request payouts for others
 const PAYOUT_ADMIN_ROLES: readonly string[] = [
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
         bankAccount,
       );
 
-      await db.collection("souq_withdrawal_requests").updateOne(
+      await db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS).updateOne(
         { requestId: withdrawalRequest.requestId, orgId: { $in: orgCandidates } },
         {
           $set: {
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
 
       if (withdrawalRequest) {
         try {
-          await db.collection("souq_withdrawal_requests").updateOne(
+          await db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS).updateOne(
             { requestId: withdrawalRequest.requestId, orgId: { $in: orgCandidates } },
             {
               $set: {

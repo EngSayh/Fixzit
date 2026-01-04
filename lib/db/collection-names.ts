@@ -118,6 +118,16 @@ export const COLLECTIONS = {
   
   // Subscription/billing collections
   SUBSCRIPTION_INVOICES: "subscriptioninvoices",
+  
+  // Superadmin / System collections
+  TRIAL_REQUESTS: "trial_requests",
+  MFA_APPROVALS: "mfa_approvals",
+  KILL_SWITCH_EVENTS: "kill_switch_events",
+  TENANT_SNAPSHOTS: "tenant_snapshots",
+  GHOST_SESSIONS: "ghost_sessions",
+  
+  // Issue tracker (SSOT)
+  ISSUES: "issues",
 } as const;
 
 // Type for collection names

@@ -41,6 +41,7 @@ import {
 } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { health503 } from "@/lib/api/health";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const db = await getDatabase();
-    await db.collection("trial_requests").insertOne({
+    await db.collection(COLLECTIONS.TRIAL_REQUESTS).insertOne({
       name,
       email,
       company,

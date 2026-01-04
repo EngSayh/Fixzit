@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Count MFA approvals pending (important security items)
-    const mfaApprovalsCount = await db.collection("mfa_approvals").countDocuments({
+    const mfaApprovalsCount = await db.collection(COLLECTIONS.MFA_APPROVALS).countDocuments({
       status: "pending",
     }).catch(() => 0); // MFA collection may not exist
 
