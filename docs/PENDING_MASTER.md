@@ -52,16 +52,17 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | **P2-SECURITY** | js/incomplete-multi-character-sanitization | 12 | warning | ⏳ PENDING |
 | **P2-SECURITY** | js/insecure-randomness | 10 | warning | ⏳ PENDING |
 | **P2-SECURITY** | js/indirect-command-line-injection | 10 | warning | ⏳ PENDING |
-| **P2-SECURITY** | js/missing-rate-limiting | 8 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/missing-rate-limiting | 8 | warning | ⚠️ DEV SCRIPTS |
 | **P2-SECURITY** | js/incomplete-sanitization | 8 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/insecure-randomness | 10 | warning | ✅ FIXED |
 | **P3-OTHER** | js/regex/missing-regexp-anchor | 8 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/use-before-declaration | 8 | warning | ⏳ PENDING |
-| **P3-OTHER** | js/shell-command-injection-from-environment | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/shell-command-injection-from-environment | 6 | warning | ⚠️ DEV SCRIPTS |
 | **P3-OTHER** | js/bad-tag-filter | 6 | warning | ⏳ PENDING |
-| **P3-OTHER** | js/prototype-pollution-utility | 6 | warning | ⏳ PENDING |
-| **P3-OTHER** | js/insecure-temporary-file | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/prototype-pollution-utility | 6 | warning | ✅ FIXED |
+| **P3-OTHER** | js/insecure-temporary-file | 6 | warning | ⚠️ DEV SCRIPTS |
 | **P3-OTHER** | js/incomplete-url-scheme-check | 6 | warning | ⏳ PENDING |
-| **P3-OTHER** | js/polynomial-redos | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/polynomial-redos | 4 | warning | ✅ FIXED |
 | **P3-OTHER** | js/automatic-semicolon-insertion | 4 | note | ✅ FIXED |
 | **P3-OTHER** | js/unused-loop-variable | 4 | error | ⏳ PENDING |
 | **P3-OTHER** | js/useless-comparison-test | 4 | warning | ⏳ PENDING |
@@ -71,14 +72,14 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | **P3-OTHER** | js/property-access-on-non-object | 4 | error | ⏳ PENDING |
 | **P3-OTHER** | js/http-to-file-access | 4 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/react/unused-or-undefined-state-property | 4 | warning | ⏳ PENDING |
-| **P3-OTHER** | js/missing-origin-check | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/missing-origin-check | 4 | warning | ✅ FIXED |
 | **P3-OTHER** | js/file-access-to-http | 4 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/unreachable-statement | 2 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/implicit-operand-conversion | 2 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/missing-await | 2 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/redundant-operation | 2 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/assignment-to-constant | 2 | error | ⏳ PENDING |
-| **P3-OTHER** | js/remote-property-injection | 2 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/remote-property-injection | 2 | warning | ✅ SAFE (allowlist) |
 | **P3-OTHER** | js/redundant-assignment | 2 | warning | ⏳ PENDING |
 
 #### Current Session Fixes (AGENT-0021)
@@ -118,15 +119,41 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 6. **Unused Variables (test files) - Batch 3**
    - tests/unit/export/export-worker.process.test.ts: Removed beforeAll
    - tests/unit/contexts/TranslationContext.test.tsx: Removed static import
+   - tests/test_zatca.js: Removed crypto import, base64Data variable
+   - tests/smoke/rtl-dashboard-system.smoke.spec.ts: Removed hasAdminState import
 
 7. **Generated Files (.gitignore)**
    - Added `/qa/qa/artifacts/` to .gitignore (Playwright reports with 43+ alerts)
+   - Removed qa/qa/artifacts from git tracking (83,374 lines deleted)
+
+8. **Log Injection + SSRF Prevention**
+   - SEC-SSRF-005: scripts/serve-frontend.js - Sanitize URL path in proxy
+   - SEC-LOG-002 to 005: Added safeLog function to test scripts
+   - scripts/testing/test-simple.mjs, test-system-e2e.js, e2e-all-users-all-pages.js
+
+9. **Insecure Randomness**
+   - SEC-RAND-001: lib/ats/ics-generator.ts - Use crypto.randomBytes instead of Math.random
+
+10. **Polynomial ReDoS Prevention**
+    - SEC-REDOS-003: app/api/issues/import/route.ts - Split alternation in slugify regex
+    - SEC-REDOS-004: issue-tracker/app/api/issues/import/route.ts - Use negated char class
+
+11. **Prototype Pollution Prevention**
+    - SEC-PROTO-001: server/plugins/encryptionPlugin.ts - Block dangerous keys
+    - SEC-PROTO-002: scripts/migrate-encrypt-finance-pii.ts - Block dangerous keys
+    - SEC-PROTO-003: scripts/migrate-encrypt-pii.ts - Block dangerous keys
+
+12. **Missing Origin Check**
+    - SEC-ORIGIN-001: public/sw.js - Validate message source in service worker
 
 **False Positives Identified:**
 - js/user-controlled-bypass: Checking env vars (NODE_ENV, VERCEL) is secure
-- js/insufficient-password-hash: Using bcrypt with proper cost factor
+- js/insufficient-password-hash: Using bcrypt with proper cost factor; HMAC for tokens
 - js/client-side-request-forgery: In qa/qa/artifacts (generated Playwright files)
 - js/superfluous-trailing-arguments: In qa/qa/artifacts (generated Playwright files)
+- js/sql-injection: Already using $eq operator (stale alerts)
+- js/regex-injection: Already using safeExactMatchRegex/safeContainsRegex
+- js/remote-property-injection: Already using allowlist validation
 
 **Verification:**
 - ✅ `pnpm typecheck` - 0 errors

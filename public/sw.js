@@ -681,8 +681,18 @@ self.addEventListener("notificationclick", (event) => {
 
 // Saudi-specific network optimizations
 self.addEventListener("message", (event) => {
+  // SEC-ORIGIN-001: Validate message origin to prevent cross-origin attacks
+  // Only accept messages from same-origin clients
+  if (!event.source || event.source.type !== "window") {
+    return;
+  }
+  
   if (event.data && event.data.type === "LANGUAGE_CHANGED") {
     const language = event.data.language;
+    // Validate language is a safe string before caching
+    if (typeof language !== "string" || language.length > 10) {
+      return;
+    }
     // Cache language preference
     caches.open(DYNAMIC_CACHE).then((cache) => {
       cache.put("/language-preference", new Response(language));
