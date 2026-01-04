@@ -424,7 +424,8 @@ jobs:
 
                   # Fallback: try to parse individual LHR JSON files
                   lhr_dir=$(dirname "$lhci_path")
-                  if ls "$lhr_dir"/*.json 2>/dev/null | head -1 | grep -v manifest.json > /dev/null; then
+                  # shellcheck disable=SC2012 -- find alternative is more complex; ls is safe here with 2>/dev/null
+                  if find "$lhr_dir" -maxdepth 1 -name "*.json" 2>/dev/null | head -1 | grep -v manifest.json > /dev/null; then
                     for lhr_file in "$lhr_dir"/*.json; do
                       if [ "$lhr_file" != "$lhci_path" ]; then
                         lhr_score=$(jq -r '.categories.performance.score // 0' "$lhr_file" 2>/dev/null || echo "0")
@@ -469,7 +470,7 @@ jobs:
               echo "ℹ️ Consider running 'pnpm lighthouse' locally before merging"
               perf_score=0
               # Set output for branch protection rules
-              echo "LIGHTHOUSE_MISSING=true" >> $GITHUB_OUTPUT
+              echo "LIGHTHOUSE_MISSING=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -631,7 +632,7 @@ jobs:
 
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
