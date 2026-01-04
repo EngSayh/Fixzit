@@ -6,7 +6,7 @@
  * @module components/superadmin/settings/BrandingSettingsForm
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ChangeEvent } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ export function BrandingSettingsForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   
   const [formData, setFormData] = useState<BrandingData>({
     logoUrl: "/img/fixzit-logo.png",
@@ -145,6 +146,57 @@ export function BrandingSettingsForm() {
     setError(null);
     setSuccess(null);
   };
+
+  const handleLogoUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const payload = new FormData();
+      payload.append("logo", file);
+
+      const response = await fetch("/api/superadmin/branding/logo", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload logo");
+      }
+
+      const result = await response.json();
+      const logoUrl = result?.data?.logoUrl;
+      if (!logoUrl) {
+        throw new Error("Logo upload did not return a URL");
+      }
+
+      setFormData((prev) => ({ ...prev, logoUrl }));
+      setOriginalData((prev) => ({ ...prev, logoUrl }));
+      if (result?.data?.updatedAt || result?.data?.updatedBy) {
+        setLastAudit({
+          updatedAt: result.data.updatedAt,
+          updatedBy: result.data.updatedBy,
+        });
+      }
+      setSuccess("Logo uploaded successfully!");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logger.error("Failed to upload logo", {
+        error: errorMessage,
+        errorType: err instanceof Error ? err.name : typeof err,
+      });
+      setError(`Failed to upload logo: ${errorMessage}`);
+    } finally {
+      setUploading(false);
+      input.value = "";
+    }
+  }, []);
 
   const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
 
@@ -272,6 +324,27 @@ export function BrandingSettingsForm() {
             </p>
           </div>
 
+          {/* Logo Upload */}
+          <div className="space-y-2">
+            <Label htmlFor="logoUpload" className="text-slate-200">
+              Upload Logo
+            </Label>
+            <Input
+              id="logoUpload"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+              onChange={handleLogoUpload}
+              disabled={uploading}
+              className="bg-slate-800 border-slate-700 text-white file:text-slate-200"
+            />
+            <p className="text-xs text-slate-400">
+              PNG, SVG, WebP, or JPEG up to 2MB. Upload saves immediately.
+            </p>
+            {uploading && (
+              <p className="text-xs text-slate-400">Uploading logo...</p>
+            )}
+          </div>
+
           {/* Brand Name */}
           <div className="space-y-2">
             <Label htmlFor="brandName" className="text-slate-200">
@@ -352,11 +425,10 @@ export function BrandingSettingsForm() {
 
           {/* Upload Note */}
           <Alert className="bg-slate-800 border-slate-700">
-            <Upload className="h-4 w-4 text-slate-400" />
-            <AlertDescription className="text-slate-400">
-              <strong className="text-slate-200">Note:</strong> Logo upload via file picker
-              will be implemented in Phase 2. For now, upload your logo to cloud storage
-              (S3, Cloudinary, Vercel Blob) and paste the public URL above.
+            <Upload className="h-4 w-4 text-slate-300" />
+            <AlertDescription className="text-slate-300">
+              <strong className="text-slate-100">Tip:</strong> Upload a logo file here or
+              paste a public URL above if you prefer to host it elsewhere.
             </AlertDescription>
           </Alert>
         </CardContent>
