@@ -148,7 +148,8 @@ describe("POST /api/souq/claims", () => {
       );
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toContain("orderId");
+      expect(body.error).toBe("Validation failed");
+      expect(body.details?.some((d: string) => d.includes("orderId"))).toBe(true);
     });
 
     it("returns 400 when reason missing", async () => {
@@ -162,7 +163,8 @@ describe("POST /api/souq/claims", () => {
       );
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toContain("reason");
+      expect(body.error).toBe("Validation failed");
+      expect(body.details?.some((d: string) => d.includes("reason"))).toBe(true);
     });
 
     it("returns 400 when description missing", async () => {
@@ -176,7 +178,8 @@ describe("POST /api/souq/claims", () => {
       );
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toContain("description");
+      expect(body.error).toBe("Validation failed");
+      expect(body.details?.some((d: string) => d.includes("description"))).toBe(true);
     });
 
     it("returns 400 for invalid orderId format", async () => {
@@ -191,7 +194,9 @@ describe("POST /api/souq/claims", () => {
       );
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toContain("Invalid orderId");
+      // Zod validates format first - returns "Validation failed" with details
+      expect(body.error).toBe("Validation failed");
+      expect(body.details?.some((d: string) => d.toLowerCase().includes("order"))).toBe(true);
     });
   });
 

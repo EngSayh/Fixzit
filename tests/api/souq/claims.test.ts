@@ -147,7 +147,9 @@ describe("Claims API - Core Functionality", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("reason");
+      // Zod validation returns { error: "Validation failed", details: [...] }
+      expect(data.error).toBe("Validation failed");
+      expect(data.details?.some((d: string) => d.includes("reason"))).toBe(true);
     });
 
     it("should reject claim after deadline (30 days)", async () => {
