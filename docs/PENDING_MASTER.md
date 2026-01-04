@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-03T20:00:00+03:00
+  Last-Sync: 2026-01-04T08:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -19,10 +19,43 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 08:30 (Asia/Riyadh) — TYPE SAFETY FIXES: Fraud Detection & Ejar Integration [AGENT-0008]
+
+**Agent Token:** [AGENT-0008]  
+**PR:** [#658](https://github.com/EngSayh/Fixzit/pull/658)  
+**Session:** Type Safety Implementation (supersedes draft PR #657)
+
+#### Summary
+
+Applied type safety and validation improvements from PR #657 code review findings. Clean implementation on main branch without merge conflicts.
+
+#### Changes Made
+
+| File | Fix | Description |
+|------|-----|-------------|
+| vendor-intelligence.ts | `isPriceHistoryEntry` type guard | Validates price history entries handle Date/string/number |
+| vendor-intelligence.ts | `normalizeToTime` helper | Safe conversion for sorting price history |
+| vendor-intelligence.ts | Division-by-zero protection | `Math.max(dailyBaseline, 0.001)` |
+| lease-service.ts | Multi-tenancy typing | Explicit type cast for `property.ownerId` lookup |
+| lease-service.ts | Pre-flight validation | Validates required fields before Ejar API calls |
+
+#### PR Actions
+
+- **#657**: CLOSED (superseded by #658 - had merge conflicts)
+- **#658**: OPEN (clean implementation of same fixes)
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
+- Pre-commit hooks: ✅ All pass
+
+---
+
 ### 2026-01-03 20:00 (Asia/Riyadh) — DEEP SCAN VERIFICATION: All Runtime Stubs Confirmed [AGENT-0008]
 
 **Agent Token:** [AGENT-0008]  
-**PR:** [#656](https://github.com/EngSayh/Fixzit/pull/656)  
+**PR:** [#656](https://github.com/EngSayh/Fixzit/pull/656) — **MERGED**  
 **Session:** Deep Scan Verification (`incomplete-code-scan-2026-01-03.json`)
 
 #### Summary
