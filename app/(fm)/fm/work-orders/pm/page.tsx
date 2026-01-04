@@ -208,7 +208,7 @@ export default function PreventiveMaintenancePage() {
               )}
               className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-            <select className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+            <select className="h-8 px-3 py-1.5 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
               {propertyFilterOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {t(option.key, option.fallback)}
