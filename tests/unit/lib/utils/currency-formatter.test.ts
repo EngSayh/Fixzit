@@ -2,7 +2,7 @@
  * Tests for currency formatter utility
  * @module tests/unit/lib/utils/currency-formatter.test
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   formatCurrency,
   formatCurrencyAr,

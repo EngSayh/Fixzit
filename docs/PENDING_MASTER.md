@@ -29,20 +29,20 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 | Priority | Category | Count | Severity | Status |
 |----------|----------|-------|----------|--------|
-| **P0-SECURITY** | js/clear-text-logging | 16 | error | 🔄 IN-PROGRESS |
-| **P0-SECURITY** | js/log-injection | 12 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/clear-text-logging | 16 | error | ✅ FIXED |
+| **P0-SECURITY** | js/log-injection | 12 | error | ✅ FIXED |
 | **P0-SECURITY** | js/sql-injection | 8 | error | ✅ FIXED (prev session) |
 | **P0-SECURITY** | js/regex-injection | 10 | error | ✅ FIXED (prev session) |
-| **P0-SECURITY** | js/user-controlled-bypass | 12 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/user-controlled-bypass | 12 | error | ⚠️ FALSE POSITIVES (env vars) |
 | **P0-SECURITY** | js/xss-through-dom | 4 | warning | ✅ FIXED (prev session) |
-| **P0-SECURITY** | js/request-forgery | 4 | error | ⏳ PENDING |
-| **P0-SECURITY** | js/client-side-request-forgery | 2 | error | ⏳ PENDING |
-| **P0-SECURITY** | js/clear-text-storage-of-sensitive-data | 2 | error | ⏳ PENDING |
-| **P0-SECURITY** | js/insufficient-password-hash | 2 | warning | ⏳ PENDING |
-| **P0-SECURITY** | js/redos | 2 | error | ⏳ PENDING |
-| **P1-QUALITY** | js/unused-local-variable | 560 | note | ⏳ PENDING |
+| **P0-SECURITY** | js/request-forgery | 4 | error | ✅ FIXED |
+| **P0-SECURITY** | js/client-side-request-forgery | 2 | error | ⚠️ GENERATED FILES |
+| **P0-SECURITY** | js/clear-text-storage-of-sensitive-data | 2 | error | ✅ FIXED |
+| **P0-SECURITY** | js/insufficient-password-hash | 2 | warning | ⚠️ FALSE POSITIVE (bcrypt) |
+| **P0-SECURITY** | js/redos | 2 | error | ✅ FIXED |
+| **P1-QUALITY** | js/unused-local-variable | 560 | note | 🔄 IN-PROGRESS |
 | **P1-QUALITY** | js/trivial-conditional | 106 | warning | ⏳ PENDING |
-| **P1-QUALITY** | js/superfluous-trailing-arguments | 86 | warning | ⏳ PENDING |
+| **P1-QUALITY** | js/superfluous-trailing-arguments | 86 | warning | ⚠️ GENERATED FILES |
 | **P1-QUALITY** | js/useless-assignment-to-local | 78 | warning | ⏳ PENDING |
 | **P2-SECURITY** | js/file-system-race | 48 | warning | ⏳ PENDING |
 | **P2-QUALITY** | js/duplicate-property | 34 | warning | ⏳ PENDING |
@@ -62,7 +62,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | **P3-OTHER** | js/insecure-temporary-file | 6 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/incomplete-url-scheme-check | 6 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/polynomial-redos | 4 | warning | ⏳ PENDING |
-| **P3-OTHER** | js/automatic-semicolon-insertion | 4 | note | ⏳ PENDING |
+| **P3-OTHER** | js/automatic-semicolon-insertion | 4 | note | ✅ FIXED |
 | **P3-OTHER** | js/unused-loop-variable | 4 | error | ⏳ PENDING |
 | **P3-OTHER** | js/useless-comparison-test | 4 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/overwritten-property | 4 | error | ⏳ PENDING |
@@ -80,6 +80,41 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | **P3-OTHER** | js/assignment-to-constant | 2 | error | ⏳ PENDING |
 | **P3-OTHER** | js/remote-property-injection | 2 | warning | ⏳ PENDING |
 | **P3-OTHER** | js/redundant-assignment | 2 | warning | ⏳ PENDING |
+
+#### Current Session Fixes (AGENT-0021)
+
+**Security Fixes Applied:**
+
+1. **SSRF Prevention (lib/finance/tap-payments.ts)**
+   - SEC-SSRF-001: Added chargeId format validation (`^chg_[a-zA-Z0-9_]+$`)
+   - SEC-SSRF-002: Added refundId format validation (`^re[fp]_[a-zA-Z0-9_]+$`)
+   - SEC-SSRF-003: Added transferId format validation (`^tr_[a-zA-Z0-9_]+$`)
+   - SEC-SSRF-004: Added destinationId format validation (`^dst_[a-zA-Z0-9_]+$`)
+
+2. **ReDoS Prevention (scripts/fix-en-duplicates.js)**
+   - SEC-REDOS-001: Removed nested quantifier in export pattern
+   - SEC-REDOS-002: Simplified whitespace/comment check pattern
+
+3. **Automatic Semicolon (next.config.js)**
+   - Added missing semicolons on lines 609 and 611
+
+4. **Unused Variables (test files)**
+   - tests/unit/lib/__tests__/audit.test.ts: Removed unused afterEach import
+   - tests/unit/lib/__tests__/audit.test.ts: Removed 6 unused helper functions
+   - tests/unit/parseCartAmount.test.ts: Removed unused describe import
+
+5. **Generated Files (.gitignore)**
+   - Added `/qa/qa/artifacts/` to .gitignore (Playwright reports with 43+ alerts)
+
+**False Positives Identified:**
+- js/user-controlled-bypass: Checking env vars (NODE_ENV, VERCEL) is secure
+- js/insufficient-password-hash: Using bcrypt with proper cost factor
+- js/client-side-request-forgery: In qa/qa/artifacts (generated Playwright files)
+- js/superfluous-trailing-arguments: In qa/qa/artifacts (generated Playwright files)
+
+**Verification:**
+- ✅ `pnpm typecheck` - 0 errors
+- ✅ `pnpm lint` - 0 errors
 
 #### Previous Session Fixes (AGENT-0020)
 
