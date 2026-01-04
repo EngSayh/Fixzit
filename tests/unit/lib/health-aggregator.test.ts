@@ -39,13 +39,13 @@ describe("Health Aggregator (FEAT-0035)", () => {
     });
 
     it("should track consecutive failures", () => {
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.UNHEALTHY, {
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.UNHEALTHY, {
         errorMessage: "Connection refused",
       });
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.UNHEALTHY);
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.UNHEALTHY);
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.UNHEALTHY);
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.UNHEALTHY);
 
-      const component = healthAggregator.getComponent(HealthComponents.REDIS);
+      const component = healthAggregator.getComponent(HealthComponents.JOB_QUEUE);
       expect(component?.consecutiveFailures).toBe(3);
       expect(component?.consecutiveSuccesses).toBe(0);
     });
@@ -70,7 +70,7 @@ describe("Health Aggregator (FEAT-0035)", () => {
 
     it("should return healthy when all components are healthy", () => {
       healthAggregator.report(HealthComponents.MONGODB, HealthStatus.HEALTHY);
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.HEALTHY);
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.HEALTHY);
       healthAggregator.report(HealthComponents.SMS, HealthStatus.HEALTHY);
 
       const summary = healthAggregator.getSummary();
@@ -80,7 +80,7 @@ describe("Health Aggregator (FEAT-0035)", () => {
 
     it("should return degraded when any component is degraded", () => {
       healthAggregator.report(HealthComponents.MONGODB, HealthStatus.HEALTHY);
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.DEGRADED);
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.DEGRADED);
 
       const summary = healthAggregator.getSummary();
       expect(summary.overallStatus).toBe(HealthStatus.DEGRADED);
@@ -89,7 +89,7 @@ describe("Health Aggregator (FEAT-0035)", () => {
 
     it("should return unhealthy when any component is unhealthy", () => {
       healthAggregator.report(HealthComponents.MONGODB, HealthStatus.HEALTHY);
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.UNHEALTHY);
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.UNHEALTHY);
 
       const summary = healthAggregator.getSummary();
       expect(summary.overallStatus).toBe(HealthStatus.UNHEALTHY);
@@ -117,7 +117,7 @@ describe("Health Aggregator (FEAT-0035)", () => {
   describe("getHistory()", () => {
     it("should record history entries on each report", () => {
       healthAggregator.report(HealthComponents.MONGODB, HealthStatus.HEALTHY);
-      healthAggregator.report(HealthComponents.REDIS, HealthStatus.HEALTHY);
+      healthAggregator.report(HealthComponents.JOB_QUEUE, HealthStatus.HEALTHY);
       healthAggregator.report(HealthComponents.SMS, HealthStatus.DEGRADED);
 
       const history = healthAggregator.getHistory();

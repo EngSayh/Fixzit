@@ -124,8 +124,8 @@ export function createCacheKey(
 }
 
 /**
- * In-memory cache store for development/edge cases
- * Production should use Redis or similar
+ * In-memory cache store for single-instance deployments.
+ * For multi-instance scaling, consider MongoDB-backed cache or Vercel KV.
  */
 const memoryCache = new Map<
   string,
