@@ -24,7 +24,8 @@ describe("COLLECTIONS constant", () => {
     expect(COLLECTIONS.SUBSCRIPTION_INVOICES).toBe("subscriptioninvoices");
     expect(COLLECTIONS.VENDORS).toBe("vendors");
     expect(COLLECTIONS.PRODUCTS).toBe("products");
-    expect(COLLECTIONS.ORDERS).toBe("orders");
+    expect(COLLECTIONS.ORDERS).toBe("orders"); // Legacy, kept for backward compatibility
+    expect(COLLECTIONS.CLAIMS_ORDERS).toBe("claims_orders"); // Claims module orders
 
     // Additional collections
     expect(COLLECTIONS.UNITS).toBe("units");

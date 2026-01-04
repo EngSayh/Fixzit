@@ -95,7 +95,7 @@ export function AtsJobsTab({
           })}
         </h2>
         <div className="flex gap-2">
-          <select className="px-3 py-2 border rounded-md text-sm">
+          <select className="h-8 px-3 py-1.5 border rounded-md text-sm">
             <option value="all">{auto("All Status", "jobs.filters.all")}</option>
             <option value="published">
               {auto("Published", "jobs.filters.published")}

@@ -16,7 +16,8 @@ export const COLLECTIONS = {
   VENDORS: "vendors",
   PRODUCTS: "products",
   CARTS: "carts",
-  ORDERS: "orders",
+  ORDERS: "orders", // Legacy - kept for backward compatibility
+  CLAIMS_ORDERS: "claims_orders", // Claims module orders (renamed from 'orders')
   INVOICES: "invoices",
   RFQS: "rfqs",
   PROJECT_BIDS: "projectbids",

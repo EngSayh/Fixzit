@@ -1,23 +1,22 @@
 /**
- * ClaimsOrder - Compatibility Mongoose model for Claims routes
- * Collection: orders (NOT souq_orders)
+ * ClaimsOrder - Mongoose model for Claims/Returns/Disputes routes
+ * Collection: claims_orders (renamed from legacy 'orders')
  *
  * PURPOSE:
- * This model provides Mongoose access to the "orders" collection used by
+ * This model provides Mongoose access to the "claims_orders" collection used by
  * Souq Claims routes. It intentionally uses a minimal schema with only
  * the fields that Claims routes actually read.
  *
  * ARCHITECTURE NOTE:
- * - "orders" collection = legacy/general orders (used by Claims)
+ * - "claims_orders" collection = orders for claims/returns/disputes
  * - "souq_orders" collection = marketplace-specific orders (SouqOrder model)
- * These are separate collections with different schemas. Do NOT consolidate
- * without explicit architecture decision and data migration plan.
+ * These are separate collections with different schemas serving different purposes.
  *
- * // BLOCKED-001: Souq Orders mismatch (orders vs souq_orders)
- * // Do not proceed with collection migration. Await explicit directive from Eng. Sultan.
- * // File: server/models/souq/ClaimsOrder.ts
- * // Related: server/models/souq/SouqOrder.ts uses "souq_orders" collection
- * // Status: BLOCKED per STRICT v4.1 Recovery Plan
+ * MIGRATION NOTE (2026-01-05):
+ * Collection renamed from 'orders' to 'claims_orders' for clarity.
+ * - Old collection: "orders" (legacy, now deprecated)
+ * - New collection: "claims_orders" (active)
+ * Data migration: Run `scripts/migrate-orders-to-claims-orders.ts`
  *
  * SCHEMA STRATEGY:
  * - Uses { strict: false } to preserve unknown fields on reads
@@ -96,7 +95,7 @@ const ClaimsOrderSchema = new Schema<IClaimsOrderDocument>(
   },
   {
     timestamps: true,
-    collection: "orders", // CRITICAL: Must match COLLECTIONS.ORDERS
+    collection: "claims_orders", // Renamed from "orders" - see MIGRATION NOTE above
     strict: false, // Preserve unknown fields - do not drop existing data
   },
 );

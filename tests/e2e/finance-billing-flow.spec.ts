@@ -321,7 +321,8 @@ test.describe("Finance - ZATCA Compliance", () => {
       failOnStatusCode: false,
     });
 
-    // Accept 200, 404 (endpoint may be disabled), or auth errors
+    // ZATCA QR generation is Phase 2 (Q2 2026) - endpoint may be disabled
+    // Accept any non-500 response; will be tightened to require 200 post-implementation
     expect(response.status()).toBeLessThan(500);
   });
 });
