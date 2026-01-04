@@ -77,7 +77,7 @@ async function migrate() {
       console.log("🔍 DRY RUN - The following actions would be performed:");
       console.log(`   1. Create collection '${NEW_COLLECTION}'`);
       console.log(`   2. Copy ${oldCount} documents from '${OLD_COLLECTION}' to '${NEW_COLLECTION}'`);
-      console.log("   3. Create indexes on '${NEW_COLLECTION}':");
+      console.log(`   3. Create indexes on '${NEW_COLLECTION}':`);
       console.log("      - { orgId: 1, _id: 1 }");
       console.log("      - { orgId: 1, orderId: 1 }");
       console.log("      - { orgId: 1, buyerId: 1 }");

@@ -1420,12 +1420,19 @@ export const resolvers = {
 
         // Use WorkOrderService for status transition with FSM validation
         // Transition to WORK_COMPLETE status
+        // Derive caller role from context (default to TECHNICIAN if not available)
+        const callerRoles = ctx.roles ?? [];
+        const primaryRole = callerRoles[0];
+        const resolvedRole = (primaryRole && Object.values(Role).includes(primaryRole as Role))
+          ? (primaryRole as Role)
+          : Role.TECHNICIAN; // Safe fallback for completion action
+
         const result = await WorkOrderService.transitionStatus(
           args.id,
           WOStatus.WORK_COMPLETE,
           ctx.userId,
           ctx.orgId,
-          Role.TECHNICIAN, // Technicians complete work
+          resolvedRole,
           args.notes || "Completed via GraphQL API"
         );
 

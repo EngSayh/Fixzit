@@ -93,6 +93,13 @@ export const COLLECTIONS = {
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
   
+  // Aqar offline/user data collections
+  AQAR_USER_FAVORITES: "aqar_user_favorites",
+  AQAR_SEARCH_HISTORY: "aqar_search_history",
+  AQAR_VIEWED_LISTINGS: "aqar_viewed_listings",
+  AQAR_INQUIRIES: "aqar_inquiries",
+  AQAR_SYNC_LOG: "aqar_sync_log",
+  
   // Errors / telemetry
   ERROR_EVENTS: "error_events",
   

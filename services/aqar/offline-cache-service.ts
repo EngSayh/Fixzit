@@ -14,6 +14,7 @@ import {
 } from "@/server/models/aqar/Listing";
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // AqarListing is already typed as Model<IListing> from the import
 const listingModel = AqarListing;
@@ -325,7 +326,7 @@ export class AqarOfflineCacheService {
     try {
       // Sync favorites
       if (input.favorites && input.favorites.length > 0) {
-        const favoritesCollection = db.collection("aqar_user_favorites");
+        const favoritesCollection = db.collection(COLLECTIONS.AQAR_USER_FAVORITES);
         let synced = 0;
         let conflicts = 0;
 
@@ -364,7 +365,7 @@ export class AqarOfflineCacheService {
 
       // Sync search history
       if (input.searchHistory && input.searchHistory.length > 0) {
-        const searchHistoryCollection = db.collection("aqar_search_history");
+        const searchHistoryCollection = db.collection(COLLECTIONS.AQAR_SEARCH_HISTORY);
         const docs = input.searchHistory.map((sh) => ({
           userId: input.userId,
           orgId: input.orgId,
@@ -382,7 +383,7 @@ export class AqarOfflineCacheService {
 
       // Sync viewed listings
       if (input.viewedListings && input.viewedListings.length > 0) {
-        const viewedCollection = db.collection("aqar_viewed_listings");
+        const viewedCollection = db.collection(COLLECTIONS.AQAR_VIEWED_LISTINGS);
         let synced = 0;
 
         for (const view of input.viewedListings) {
@@ -413,7 +414,7 @@ export class AqarOfflineCacheService {
 
       // Sync draft inquiries
       if (input.draftInquiries && input.draftInquiries.length > 0) {
-        const inquiriesCollection = db.collection("aqar_inquiries");
+        const inquiriesCollection = db.collection(COLLECTIONS.AQAR_INQUIRIES);
         let synced = 0;
         let created = 0;
 
@@ -457,7 +458,7 @@ export class AqarOfflineCacheService {
       }
 
       // Record sync event
-      await db.collection("aqar_sync_log").insertOne({
+      await db.collection(COLLECTIONS.AQAR_SYNC_LOG).insertOne({
         userId: input.userId,
         orgId: input.orgId,
         deviceId: input.deviceId,

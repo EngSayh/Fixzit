@@ -105,6 +105,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | `scripts/migrate-orders-to-claims-orders.ts` | **NEW**: Migration script for DB collection rename |
 
 **Migration Script Usage:**
+
 ```bash
 # Preview changes (dry run)
 pnpm tsx scripts/migrate-orders-to-claims-orders.ts --dry-run
@@ -203,6 +204,7 @@ Dropdowns across the codebase had inconsistent heights:
 - Simulation mode: `TAP_PAYOUT_MODE=simulation` for testing
 
 **Environment Variables:**
+
 ```bash
 # Enable TAP payouts
 ENABLE_TAP_PAYOUTS=true
