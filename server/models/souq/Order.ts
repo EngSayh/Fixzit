@@ -57,7 +57,7 @@
  */
 
 import mongoose, { Schema, type Document } from "mongoose";
-import { getModel, MModel } from "@/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import {
   EscrowState,
   type EscrowStateValue,

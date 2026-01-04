@@ -1,5 +1,5 @@
 import { Schema, InferSchemaType, model, models } from "mongoose";
-import { getModel, MModel } from "@/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 /**
  * Permission Model

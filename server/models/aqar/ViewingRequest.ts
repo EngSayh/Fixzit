@@ -39,7 +39,7 @@
  * - Feedback submittedAt timestamp
  */
 import { Schema, model, models, Types } from "mongoose";
-import { getModel, MModel } from "@/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 

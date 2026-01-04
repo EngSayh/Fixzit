@@ -131,7 +131,7 @@ async function main() {
     lowerMap.get(lower).push(rel);
   }
 
-  for (const [lower, originals] of lowerMap.entries()) {
+  for (const [, originals] of lowerMap.entries()) {
     const uniq = [...new Set(originals)];
     if (uniq.length > 1) {
       errors.push(`[CASE_COLLISION] These paths collide on case-insensitive FS:\n  - ${uniq.join("\n  - ")}`);

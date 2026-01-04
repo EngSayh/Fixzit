@@ -12,6 +12,8 @@ const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'prev
 
 // Tap: Use standardized env var names with environment-aware key selection
 const tapEnvIsLive = env.TAP_ENVIRONMENT === 'live' || env.VERCEL_ENV === 'production';
+// Secret key resolved for documentation but not used directly (webhook validation uses raw env)
+// eslint-disable-next-line no-unused-vars -- Documented pattern for env key resolution
 const _tapSecretKey = tapEnvIsLive ? env.TAP_LIVE_SECRET_KEY : env.TAP_TEST_SECRET_KEY;
 const tapPublicKey = tapEnvIsLive ? env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY : env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
 const tapConfigured = Boolean(tapPublicKey) && Boolean(env.TAP_WEBHOOK_SECRET);
@@ -77,6 +79,12 @@ requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be fal
       : 'NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY, TAP_TEST_SECRET_KEY';
     warnings.push(
       `Tap is not configured: set ${tapKeys} and TAP_WEBHOOK_SECRET. Current TAP_ENVIRONMENT: ${tapEnvType}`,
+    );
+  }
+
+  if (!zatcaConfigured) {
+    warnings.push(
+      'ZATCA e-invoicing is not configured: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS for Saudi compliance.',
     );
   }
 

@@ -1,5 +1,5 @@
 import { Schema, model, models, Model, Document } from "mongoose";
-import { getModel, MModel } from "@/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 interface IPlan {
   name?: string;

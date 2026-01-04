@@ -58,7 +58,7 @@
  * - Approval history tracked in approvalHistory array
  */
 import { Schema, model, models, Types, Document } from "mongoose";
-import { getModel, MModel } from "@/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { ensureMongoConnection } from "@/server/lib/db";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";

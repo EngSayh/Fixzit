@@ -6,7 +6,7 @@
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";
-import { getModel, MModel } from "@/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum ProjectStatus {
