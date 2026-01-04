@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-01-04T13:31:36+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-04-114809.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-04-131727.json",
+  "summary": {
+    "added": 0,
+    "resolved": 6,
+    "current": 21,
+    "baseline": 27
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/aqar/offline/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "aqar-offline-sync-post-is-stubbed-feature-app-api-aqar-offline-route-ts",
+          "title": "Aqar offline sync POST is stubbed",
+          "location": "app/api/aqar/offline/route.ts:83"
+        }
+      ]
+    },
+    {
+      "file": "app/api/copilot/chat/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "copilot-negative-sentiment-escalation-workflow-deferred-feature-app-api-copilot-",
+          "title": "Copilot negative sentiment escalation workflow deferred",
+          "location": "app/api/copilot/chat/route.ts:295"
+        }
+      ]
+    },
+    {
+      "file": "server/copilot/apartmentSearch.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "apartment-search-agent-name-uses-placeholder-feature-server-copilot-apartmentsea",
+          "title": "Apartment search agent name uses placeholder",
+          "location": "server/copilot/apartmentSearch.ts:253"
+        }
+      ]
+    },
+    {
+      "file": "server/models/souq/ClaimsOrder.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "claimsorder-schema-mismatch-todo-001-refactor-server-models-souq-claimsorder-ts",
+          "title": "ClaimsOrder schema mismatch - TODO-001",
+          "location": "server/models/souq/ClaimsOrder.ts:16"
+        }
+      ]
+    },
+    {
+      "file": "services/souq/settlements/payout-processor.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "sadad-span-live-payout-mode-not-implemented-bug-services-souq-settlements-payout",
+          "title": "SADAD/SPAN live payout mode not implemented",
+          "location": "services/souq/settlements/payout-processor.ts:599"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/api/work-orders/patch.route.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "s3-cleanup-testability-todo-missing-test-tests-unit-api-work-orders-patch-route-",
+          "title": "S3 cleanup testability TODO",
+          "location": "tests/unit/api/work-orders/patch.route.test.ts:275"
+        }
+      ]
+    }
+  ]
+}
