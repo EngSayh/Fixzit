@@ -129,16 +129,107 @@ async function performAzureOcr(documentUrl: string, documentType: string): Promi
 
 /**
  * Google Cloud Vision OCR
- * BLOCKED: Requires GOOGLE_APPLICATION_CREDENTIALS
+ * Requires: GOOGLE_APPLICATION_CREDENTIALS (path to service account JSON)
+ * 
+ * @see https://cloud.google.com/vision/docs/ocr
  */
 async function performGoogleOcr(documentUrl: string, documentType: string): Promise<OcrResult> {
-  // Google Cloud Vision requires the @google-cloud/vision package
-  // For now, return simulation result with a note
-  logger.warn('[OnboardingOCR] Google Vision integration pending - using simulation', {
-    documentType,
-    note: 'Install @google-cloud/vision and configure GOOGLE_APPLICATION_CREDENTIALS',
-  });
-  return performSimulatedOcr(documentType);
+  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  
+  if (!credentialsPath) {
+    logger.warn('[OnboardingOCR] Google Vision credentials not configured - falling back to simulation', {
+      documentType,
+      hint: 'Set GOOGLE_APPLICATION_CREDENTIALS to path of service account JSON',
+    });
+    return performSimulatedOcr(documentType);
+  }
+
+  try {
+    // Dynamic import to avoid requiring the package at startup if not used
+    // Types are not available without installing the package
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+    const vision = require('@google-cloud/vision') as any;
+    const client = new vision.ImageAnnotatorClient();
+
+    // Google Vision can handle URLs directly
+    const [result] = await client.textDetection(documentUrl);
+    const detections = result?.textAnnotations as Array<{ description?: string }> | undefined;
+    
+    if (!detections || detections.length === 0) {
+      logger.warn('[OnboardingOCR] Google Vision returned no text', { documentType });
+      return {
+        extractedText: '',
+        fields: {},
+        confidence: 0,
+        provider: 'google',
+      };
+    }
+
+    // First annotation contains the full extracted text
+    const extractedText = detections[0]?.description || '';
+    
+    // Calculate confidence from individual word confidences (if available)
+    // Use type-safe extraction with proper null checks
+    const fullTextAnnotation = result?.fullTextAnnotation as {
+      pages?: Array<{
+        blocks?: Array<{
+          paragraphs?: Array<{
+            words?: Array<{ confidence?: number }>;
+          }>;
+        }>;
+      }>;
+    } | undefined;
+    
+    const confidences: number[] = [];
+    if (fullTextAnnotation?.pages) {
+      for (const page of fullTextAnnotation.pages) {
+        for (const block of page.blocks || []) {
+          for (const para of block.paragraphs || []) {
+            for (const word of para.words || []) {
+              if (typeof word.confidence === 'number') {
+                confidences.push(word.confidence);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    const avgConfidence = confidences.length > 0 
+      ? confidences.reduce((sum, c) => sum + c, 0) / confidences.length 
+      : 0.85; // Default confidence if not available
+
+    logger.info('[OnboardingOCR] Google Vision OCR completed', {
+      documentType,
+      textLength: extractedText.length,
+      confidence: avgConfidence,
+    });
+
+    return {
+      extractedText,
+      fields: extractFieldsFromText(extractedText, documentType),
+      confidence: avgConfidence,
+      provider: 'google',
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Check if it's a missing module error
+    if (errorMessage.includes("Cannot find module '@google-cloud/vision'")) {
+      logger.error('[OnboardingOCR] @google-cloud/vision package not installed', {
+        documentType,
+        action: 'Run: pnpm add @google-cloud/vision',
+      });
+    } else {
+      logger.error('[OnboardingOCR] Google Vision OCR failed', {
+        error: errorMessage,
+        documentType,
+      });
+    }
+    
+    // Fall back to simulation on any error
+    return performSimulatedOcr(documentType);
+  }
 }
 
 /**

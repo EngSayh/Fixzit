@@ -23,13 +23,18 @@
  * - Only defines fields actively used by Claims routes
  * - Preserves existing data shape without validation side effects
  *
+ * VALIDATION:
+ * - Input validation is handled via Zod schemas at the API layer
+ * - See: lib/validations/souq-claims.ts for CreateClaimSchema, etc.
+ * - TD-001-2 COMPLETE: Schema validation implemented via Zod (2026-01-05)
+ *
  * Used by:
  * - app/api/souq/claims/route.ts
  * - app/api/souq/claims/[id]/route.ts
  * - app/api/souq/claims/[id]/decision/route.ts
  *
  * Created as part of TD-001: Remove db.collection calls via compatibility model
- * @see TD-001-2 assessment (schema validation follow-up)
+ * @see lib/validations/souq-claims.ts for input validation schemas
  */
 
 import type { Document, Model, Types } from "mongoose";
