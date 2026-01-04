@@ -1165,16 +1165,34 @@ export const resolvers = {
           };
         }
 
+        // Require tenant context
+        if (!ctx.orgId) {
+          return {
+            success: false,
+            workOrder: null,
+            errors: [{ code: "TENANT_REQUIRED", message: "Organization context required" }],
+          };
+        }
+
         // Build tenant-scoped query
         const scopedQuery = {
           _id: new Types.ObjectId(args.id),
-          ...(ctx.orgId ? { orgId: ctx.orgId } : {}),
+          orgId: ctx.orgId,
         };
+
+        // Sanitize input - only allow specific fields
+        const allowedFields = ["title", "description", "priority", "status", "assignedTo", "dueDate", "notes", "category", "location"];
+        const sanitizedInput: Record<string, unknown> = {};
+        for (const key of allowedFields) {
+          if (key in args.input) {
+            sanitizedInput[key] = args.input[key];
+          }
+        }
 
         // Apply update
         const result = await db.collection(COLLECTIONS.WORK_ORDERS).findOneAndUpdate(
           scopedQuery,
-          { $set: { ...args.input, updatedAt: new Date() } },
+          { $set: { ...sanitizedInput, updatedAt: new Date() } },
           { returnDocument: "after" }
         );
 
@@ -1234,10 +1252,18 @@ export const resolvers = {
           };
         }
 
+        // Require tenant context
+        if (!ctx.orgId) {
+          return {
+            success: false,
+            errors: [{ code: "TENANT_REQUIRED", message: "Organization context required" }],
+          };
+        }
+
         // Build tenant-scoped query
         const scopedQuery = {
           _id: new Types.ObjectId(args.id),
-          ...(ctx.orgId ? { orgId: ctx.orgId } : {}),
+          orgId: ctx.orgId,
         };
 
         // Soft delete: set deletedAt timestamp
@@ -1306,13 +1332,21 @@ export const resolvers = {
           };
         }
 
+        // Require user and tenant context
+        if (!ctx.userId || !ctx.orgId) {
+          return {
+            success: false,
+            errors: [{ code: "AUTH_REQUIRED", message: "User and organization context required" }],
+          };
+        }
+
         // Use WorkOrderService for assignment with FSM validation
         const result = await WorkOrderService.assignWorkOrder({
           workOrderId: args.id,
           assigneeId: args.vendorId,
           assigneeType: "vendor",
-          assignedBy: ctx.userId!,
-          orgId: ctx.orgId!,
+          assignedBy: ctx.userId,
+          orgId: ctx.orgId,
           notes: "Assigned via GraphQL API",
         });
 
@@ -1376,13 +1410,21 @@ export const resolvers = {
           };
         }
 
+        // Require user and tenant context
+        if (!ctx.userId || !ctx.orgId) {
+          return {
+            success: false,
+            errors: [{ code: "AUTH_REQUIRED", message: "User and organization context required" }],
+          };
+        }
+
         // Use WorkOrderService for status transition with FSM validation
         // Transition to WORK_COMPLETE status
         const result = await WorkOrderService.transitionStatus(
           args.id,
           WOStatus.WORK_COMPLETE,
-          ctx.userId!,
-          ctx.orgId!,
+          ctx.userId,
+          ctx.orgId,
           Role.TECHNICIAN, // Technicians complete work
           args.notes || "Completed via GraphQL API"
         );
@@ -1399,11 +1441,11 @@ export const resolvers = {
           };
         }
 
-        // If actualCost provided, update it separately
+        // If actualCost provided, update it separately (with tenant scoping)
         if (args.actualCost !== undefined) {
           const db = await getDatabase();
           await db.collection(COLLECTIONS.WORK_ORDERS).updateOne(
-            { _id: new Types.ObjectId(args.id) },
+            { _id: new Types.ObjectId(args.id), orgId: ctx.orgId },
             { $set: { actualCost: args.actualCost, updatedAt: new Date() } }
           );
         }

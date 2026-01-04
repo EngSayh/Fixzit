@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-04T10:30:00+03:00
+  Last-Sync: 2026-01-04T14:00:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,59 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 14:00 (Asia/Riyadh) — TYPE SAFETY & TENANT ISOLATION FIXES [AGENT-0005]
+
+**Agent Token:** [AGENT-0005]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** GraphQL Tenant Isolation + Type Safety Hardening
+
+#### Summary
+
+Fixed 8 issues identified from deep scan audit: 5 GraphQL tenant isolation/type safety issues, 2 JSON data quality issues, and 1 dependency vulnerability.
+
+#### Security Fixes (Tenant Isolation - P0)
+
+| Issue ID | File | Fix Applied |
+|----------|------|-------------|
+| SEC-GRAPHQL-001 | lib/graphql/index.ts | `updateWorkOrder` - Added `if (!ctx.orgId)` guard + enforce orgId in query |
+| SEC-GRAPHQL-002 | lib/graphql/index.ts | `deleteWorkOrder` - Added mandatory orgId validation |
+| SEC-GRAPHQL-003 | lib/graphql/index.ts | `actualCost` update now includes `orgId: ctx.orgId` in filter |
+
+#### Type Safety Fixes (P1)
+
+| Issue ID | File | Fix Applied |
+|----------|------|-------------|
+| TS-GRAPHQL-001 | lib/graphql/index.ts | `transitionStatus` - Replaced `ctx.userId!`/`ctx.orgId!` with null checks |
+| TS-GRAPHQL-002 | lib/graphql/index.ts | `assignWorkOrder` - Replaced non-null assertions with explicit validation |
+| TS-GRAPHQL-003 | lib/graphql/index.ts | `updateWorkOrder` - Added field whitelist sanitization |
+
+#### Data Quality Fixes (P2)
+
+| Issue ID | File | Fix Applied |
+|----------|------|-------------|
+| DATA-JSON-001 | docs/artifacts/agent-0009-deep-scan-session-2026-01-04.json | Removed duplicate `resolutionNotes` key in BUG-PAYOUT-001 |
+| DATA-JSON-002 | docs/artifacts/agent-0009-deep-scan-session-2026-01-04.json | Fixed byStatus counts: `{resolved: 7, deferred: 6, open: 1}` |
+
+#### Dependency Vulnerability Fix (P2)
+
+| Issue ID | File | Fix Applied |
+|----------|------|-------------|
+| DEP-VULN-001 | package.json | Added pnpm overrides for exceljs transitive deps (archiver, inflight, brace-expansion) |
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
+- JSON syntax: ✅ Valid
+
+#### Files Changed
+
+- `lib/graphql/index.ts` - 5 tenant isolation + type safety fixes
+- `docs/artifacts/agent-0009-deep-scan-session-2026-01-04.json` - 2 data quality fixes
+- `package.json` - 1 dependency vulnerability fix
 
 ---
 

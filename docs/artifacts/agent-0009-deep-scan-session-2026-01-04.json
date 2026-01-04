@@ -55,7 +55,6 @@
       "status": "deferred",
       "resolution": "BLOCKED_EXTERNAL",
       "resolutionNotes": "Investigated payout-processor.ts - SADAD/SPAN live mode is INTENTIONALLY gated behind SADAD_SPAN_MODE=simulation. Code awaits real banking API credentials, KYC approvals, and SAMA certification. Simulation mode works correctly. Cannot implement without external banking credentials.",
-      "resolutionNotes": "Investigated payout-processor.ts - SADAD/SPAN live mode is INTENTIONALLY gated behind SADAD_SPAN_MODE=simulation. Code awaits real banking API credentials, KYC approvals, and SAMA certification. Simulation mode works correctly. Cannot implement without external banking credentials.",
       "effort": "XL",
       "location": "services/souq/settlements/payout-processor.ts:599,611",
       "sourcePath": "deep-scan",
@@ -92,14 +91,14 @@
       "priority": "P1",
       "status": "resolved",
       "resolution": "IMPLEMENTED",
-      "resolutionNotes": "Implemented all 4 GraphQL mutations in lib/graphql/index.ts: updateWorkOrder (tenant-scoped update), deleteWorkOrder (soft delete), assignWorkOrder (uses WorkOrderService.assignWorkOrder with FSM), completeWorkOrder (uses WorkOrderService.transitionStatus to WORK_COMPLETE). TypeCheck and lint pass.",
+      "resolutionNotes": "Implemented all 4 GraphQL mutations in lib/graphql/index.ts: updateWorkOrder (tenant-scoped update with field whitelist), deleteWorkOrder (soft delete with mandatory orgId), assignWorkOrder (uses WorkOrderService.assignWorkOrder with FSM), completeWorkOrder (uses WorkOrderService.transitionStatus to WORK_COMPLETE). Security hardening by [AGENT-0005]: Added mandatory ctx.orgId validation, removed non-null assertions with explicit null checks, added input field sanitization whitelist, added orgId to actualCost update filter.",
       "effort": "L",
       "location": "lib/graphql/index.ts:1158,1182,1207,1233",
       "sourcePath": "deep-scan",
       "sourceRef": "scan:incomplete-code:2026-01-04 [AGENT-0009]",
       "evidenceSnippet": "code: \"NOT_IMPLEMENTED\",",
       "description": "Four GraphQL mutations (updateWorkOrder, deleteWorkOrder, assignWorkOrder, completeWorkOrder) return NOT_IMPLEMENTED. Mobile app work-order management blocked.",
-      "action": "COMPLETED - All 4 mutations implemented",
+      "action": "COMPLETED - All 4 mutations implemented with tenant isolation hardening",
       "definitionOfDone": "All 4 mutations working; mobile app can manage work orders via GraphQL"
     },
     {
@@ -311,8 +310,9 @@
       "P3": 6
     },
     "byStatus": {
-      "open": 10,
-      "deferred": 6
+      "resolved": 7,
+      "deferred": 6,
+      "open": 1
     },
     "criticalItems": [
       "SEC-PII-001: PII encryption not implemented (PDPL/GDPR risk)",
