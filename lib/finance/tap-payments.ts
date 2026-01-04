@@ -195,6 +195,75 @@ export interface TapError {
 }
 
 // ============================================================================
+// TAP Transfer API (for marketplace seller payouts)
+// ============================================================================
+
+/**
+ * Transfer request for marketplace payouts
+ * @see https://developers.tap.company/reference/create-a-transfer
+ */
+export interface TapTransferRequest {
+  amount: number; // Amount in smallest currency unit (halalas)
+  currency: string; // "SAR"
+  destination: {
+    id: string; // Destination ID (merchant/seller ID in TAP)
+  };
+  description?: string;
+  metadata?: TapMetadata;
+  reference?: {
+    merchant?: string; // Your internal reference
+  };
+}
+
+export interface TapTransferResponse {
+  id: string; // Transfer ID (tr_xxxx)
+  object: "transfer";
+  live_mode: boolean;
+  api_version: string;
+  amount: number;
+  currency: string;
+  destination: {
+    id: string;
+    object: string;
+  };
+  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  description?: string;
+  metadata?: TapMetadata;
+  response: {
+    code: string;
+    message: string;
+  };
+  created: string;
+}
+
+/**
+ * Destination (seller) registration request
+ * @see https://developers.tap.company/docs/destinations
+ */
+export interface TapDestinationRequest {
+  display_name: string;
+  bank_account: {
+    iban: string;
+  };
+  settlement_by?: "Acquirer" | "Merchant";
+}
+
+export interface TapDestinationResponse {
+  id: string; // Destination ID for transfers
+  status: "Active" | "Inactive" | "Pending";
+  created: number;
+  object: "merchant";
+  live_mode: boolean;
+  display_name: string;
+  bank_account: {
+    id: string;
+    status: string;
+    iban: string;
+  };
+  settlement_by: string;
+}
+
+// ============================================================================
 // Tap Payments Client
 // ============================================================================
 
@@ -571,6 +640,191 @@ class TapPaymentsClient {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amountSAR);
+  }
+
+  // =========================================================================
+  // TAP Transfer API (for marketplace seller payouts)
+  // =========================================================================
+
+  /**
+   * Create a transfer to a destination (seller payout)
+   * @param request - Transfer parameters
+   * @returns Transfer response
+   */
+  async createTransfer(request: TapTransferRequest): Promise<TapTransferResponse> {
+    this.ensureConfigured("create transfer");
+    try {
+      logger.info("Creating TAP transfer (seller payout)", {
+        amount: request.amount,
+        currency: request.currency,
+        destinationId: request.destination.id,
+        reference: request.reference?.merchant,
+      });
+
+      const response = await fetch(`${this.baseUrl}/transfers`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "TAP API error creating transfer",
+          new Error(JSON.stringify(error)),
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to create transfer",
+        );
+      }
+
+      logger.info("TAP transfer created successfully", {
+        transferId: data.id,
+        status: data.status,
+        amount: data.amount,
+      });
+
+      return data as TapTransferResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error creating TAP transfer", error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve a transfer by ID
+   * @param transferId - Transfer ID (tr_xxxx)
+   * @returns Transfer details
+   */
+  async getTransfer(transferId: string): Promise<TapTransferResponse> {
+    this.ensureConfigured("get transfer");
+    try {
+      const response = await fetch(`${this.baseUrl}/transfers/${transferId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.config.secretKey}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "TAP API error retrieving transfer",
+          new Error(JSON.stringify(error)),
+          { transferId },
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to retrieve transfer",
+        );
+      }
+
+      return data as TapTransferResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error retrieving TAP transfer", error as Error, { transferId });
+      throw error;
+    }
+  }
+
+  /**
+   * Create or register a destination (seller) for receiving transfers
+   * @param request - Destination parameters
+   * @returns Destination details with ID for transfers
+   */
+  async createDestination(request: TapDestinationRequest): Promise<TapDestinationResponse> {
+    this.ensureConfigured("create destination");
+    try {
+      logger.info("Creating TAP destination (seller registration)", {
+        displayName: request.display_name,
+        iban: request.bank_account.iban.substring(0, 4) + "****",
+      });
+
+      const response = await fetch(`${this.baseUrl}/destinations`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "TAP API error creating destination",
+          new Error(JSON.stringify(error)),
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to create destination",
+        );
+      }
+
+      logger.info("TAP destination created successfully", {
+        destinationId: data.id,
+        status: data.status,
+      });
+
+      return data as TapDestinationResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error creating TAP destination", error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve a destination by ID
+   * @param destinationId - Destination ID
+   * @returns Destination details
+   */
+  async getDestination(destinationId: string): Promise<TapDestinationResponse> {
+    this.ensureConfigured("get destination");
+    try {
+      const response = await fetch(`${this.baseUrl}/destinations/${destinationId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.config.secretKey}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "TAP API error retrieving destination",
+          new Error(JSON.stringify(error)),
+          { destinationId },
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to retrieve destination",
+        );
+      }
+
+      return data as TapDestinationResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error retrieving TAP destination", error as Error, { destinationId });
+      throw error;
+    }
   }
 }
 

@@ -24,6 +24,7 @@ import { deleteObject } from "@/lib/storage/s3";
 import { getClientIP } from "@/server/security/headers";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
+import { logger } from "@/lib/logger";
 
 const attachmentInputSchema = z.object({
   key: z.string(),
@@ -244,7 +245,6 @@ export async function PATCH(
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   if (removedKeys.length) {
-    const { logger } = await import('@/lib/logger');
     // Delete removed attachments from S3 with observability
     const deleteResults = await Promise.allSettled(
       removedKeys.map((key) => deleteObject(key))

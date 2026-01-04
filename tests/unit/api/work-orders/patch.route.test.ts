@@ -270,10 +270,8 @@ describe('PATCH /api/work-orders/[id]', () => {
   });
 
   describe('S3 cleanup observability', () => {
-    // Skip: These tests have timing issues due to async S3 cleanup operations
-    // The actual S3 cleanup is fire-and-forget and logging assertions are flaky
-    // NOTE: Consider refactoring route to make S3 cleanup testable via dependency injection
-    it.skip('logs S3 delete failures for monitoring', async () => {
+    // Tests for S3 cleanup logging - now using static logger import for testability
+    it('logs S3 delete failures for monitoring', async () => {
       const mockFindOneWithAttachments = {
         select: vi.fn().mockReturnThis(),
         lean: vi.fn().mockResolvedValue({
@@ -321,8 +319,8 @@ describe('PATCH /api/work-orders/[id]', () => {
       }, { timeout: 1000 });
     }, 10000); // 10s timeout
 
-    // Skip: Same timing issue as above - async S3 cleanup is fire-and-forget
-    it.skip('cleans up removed attachments successfully', async () => {
+    // Test for successful S3 cleanup with proper logging
+    it('cleans up removed attachments successfully', async () => {
       const mockFindOneWithAttachments = {
         select: vi.fn().mockReturnThis(),
         lean: vi.fn().mockResolvedValue({
