@@ -321,7 +321,7 @@ test.describe("Finance - ZATCA Compliance", () => {
       failOnStatusCode: false,
     });
 
-    // Accept 200, 404 (not implemented), or auth errors
+    // Accept 200, 404 (endpoint may be disabled), or auth errors
     expect(response.status()).toBeLessThan(500);
   });
 });

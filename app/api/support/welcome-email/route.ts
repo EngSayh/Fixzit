@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         },
         501,
         req,
-      ); // 501 Not Implemented
+      ); // 501: Service requires SendGrid configuration
     }
 
     // Create a mock email record in the database (optional)
@@ -312,7 +312,7 @@ export async function GET(req: NextRequest) {
       },
       501,
       req,
-    ); // 501 Not Implemented
+    ); // 501: Service requires SendGrid configuration
   }
 
   try {

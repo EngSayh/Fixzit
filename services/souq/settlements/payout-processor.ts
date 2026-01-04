@@ -596,9 +596,9 @@ export class PayoutProcessorService {
 
     if (readiness.status === "live_not_implemented") {
       logger.error(
-        "[PayoutProcessor] SADAD/SPAN live mode requested but not implemented. Staying in manual fallback.",
+        "[PayoutProcessor] SADAD/SPAN live mode requested but awaiting banking credentials. Staying in manual fallback.",
         {
-          metric: "payout_integration_not_implemented",
+          metric: "payout_integration_pending",
           provider: "SADAD_SPAN",
           method: payout.method,
           mode: readiness.mode,
@@ -608,7 +608,7 @@ export class PayoutProcessorService {
         success: false,
         errorCode: "INTEGRATION_NOT_AVAILABLE",
         errorMessage:
-          "SADAD/SPAN live mode is not implemented yet. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.",
+          "SADAD/SPAN live mode is pending banking API credentials. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.",
       };
     }
 

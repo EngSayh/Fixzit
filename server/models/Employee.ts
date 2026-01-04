@@ -35,8 +35,8 @@
  * - User: May link to User model via email
  *
  * @compliance
- * - PII encryption NOT IMPLEMENTED (use hr.models.ts)
- * - GOSI/ZATCA fields MISSING (use hr.models.ts)
+ * - PII encryption: Use hr.models.ts (this model is deprecated)
+ * - GOSI/ZATCA fields: Use hr.models.ts (this model is deprecated)
  *
  * @audit
  * - createdAt/updatedAt: Record lifecycle

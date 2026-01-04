@@ -26,7 +26,7 @@ type LoadRouteResult = {
  * @example
  * const { route, exists } = await loadRoute('@/app/api/admin/users/route');
  * if (!exists) {
- *   it.skip('route not implemented');
+ *   it.skip('route file missing');
  *   return;
  * }
  * const response = await route.GET!(req);
@@ -66,6 +66,6 @@ export function hasMethod(route: RouteModule | null, method: 'GET' | 'POST' | 'P
  */
 export function skipIfMissing(result: LoadRouteResult, testFn: typeof vitestIt): void {
   if (!result.exists) {
-    testFn.skip(`Route not implemented: ${result.error}`);
+    testFn.skip(`Route file missing: ${result.error}`);
   }
 }

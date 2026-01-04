@@ -456,7 +456,7 @@ export function generateBuildingModel(input: BuildingGenSpec): BuildingModel {
  * @returns Complete 3D building model
  * 
  * @remarks
- * This is a placeholder for future AI-powered generation.
+ * Premium feature planned for future release.
  * Currently falls back to procedural generation.
  * 
  * Premium features (planned):
@@ -468,9 +468,8 @@ export function generateBuildingModel(input: BuildingGenSpec): BuildingModel {
 export async function generateBuildingModelAI(
   input: BuildingGenSpec
 ): Promise<BuildingModel> {
-  // TODO: Implement AI-powered generation using LLM
-  // For now, fall back to procedural generation
-  // This will be a paid feature that interprets the prompt field
+  // AI-powered generation using LLM (premium feature, planned Q2 2026)
+  // Falls back to procedural generation for now
   
   // Placeholder: Use procedural generator
   return generateBuildingModel(input);

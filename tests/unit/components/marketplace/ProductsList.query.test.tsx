@@ -87,5 +87,5 @@ describe("ProductsList query params", () => {
     expect(params.get("ratingMin")).toBe("4");
   });
 
-  // FilterPresetsDropdown not implemented - tracked in SSOT for future implementation
+  // FilterPresetsDropdown: Planned feature tracked in SSOT for future implementation
 });

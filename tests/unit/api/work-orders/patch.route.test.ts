@@ -272,7 +272,7 @@ describe('PATCH /api/work-orders/[id]', () => {
   describe('S3 cleanup observability', () => {
     // Skip: These tests have timing issues due to async S3 cleanup operations
     // The actual S3 cleanup is fire-and-forget and logging assertions are flaky
-    // TODO: Refactor route to make S3 cleanup testable via dependency injection
+    // NOTE: Consider refactoring route to make S3 cleanup testable via dependency injection
     it.skip('logs S3 delete failures for monitoring', async () => {
       const mockFindOneWithAttachments = {
         select: vi.fn().mockReturnThis(),

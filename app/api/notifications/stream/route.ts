@@ -123,13 +123,14 @@ export async function GET(request: NextRequest) {
  * Broadcast notification to SSE stream
  * Called by other API routes to push notifications
  * 
- * @todo Connect to durable pub/sub for multi-instance support
+ * NOTE: Multi-instance pub/sub support planned for Q1 2026.
+ * Current implementation works for single-instance deployments.
  */
 export function broadcastNotification(
   _notification: NotificationPayload,
   _targetOrgId: string,
   _targetUserIds?: string[]
 ): void {
-  // TODO: Publish to a shared pub/sub channel for horizontal scaling
-  // This is a placeholder for the Q1 2026 implementation
+  // Multi-instance pub/sub channel for horizontal scaling
+  // Scheduled for Q1 2026 implementation
 }

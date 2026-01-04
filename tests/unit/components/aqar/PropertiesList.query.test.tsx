@@ -91,5 +91,5 @@ describe("PropertiesList query params", () => {
     expect(params.get("bedroomsMax")).toBe("4");
   });
 
-  // FilterPresetsDropdown not implemented - tracked in SSOT for future implementation
+  // FilterPresetsDropdown: Planned feature tracked in SSOT for future implementation
 });

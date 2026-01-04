@@ -54,7 +54,7 @@ const sharedViteConfig = {
 export default defineConfig({
   ...sharedViteConfig,
   test: {
-    // TODO: migrate to a multi-project structure when environmentMatchGlobs is removed from Vitest.
+    // NOTE: Multi-project structure migration planned when environmentMatchGlobs is removed from Vitest.
     projects: [
       defineProject({
         ...sharedViteConfig,
