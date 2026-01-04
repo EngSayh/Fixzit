@@ -14,7 +14,7 @@
  
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import mongoose from 'mongoose';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
 import { waitForMongoConnection } from '@/tests/utils/mongo-helpers';
 
 // Model will be imported AFTER mongoose connection is ready

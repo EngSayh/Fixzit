@@ -10,14 +10,12 @@
  * - RFQ Publish (idempotency)
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("Enhanced Routes Validation", () => {
   describe("Support Tickets Reply - Atomic Updates", () => {
     it("should use $push for atomic message insertion", () => {
       // This test validates the implementation uses MongoDB $push operator
-      const mockUpdate = vi.fn();
-
       // Simulated atomic update call
       const updateOps = {
         $push: {
@@ -258,11 +256,12 @@ describe("Integration Scenarios", () => {
   });
 
   it("should validate and sanitize user input end-to-end", () => {
-    const userInput = {
-      theme: "dark",
-      notifications: { email: true, invalid: "ignored" },
-      malicious: '<script>alert("xss")</script>',
-    };
+    // User input example:
+    // const userInput = {
+    //   theme: "dark",
+    //   notifications: { email: true, invalid: "ignored" },
+    //   malicious: '<script>alert("xss")</script>',
+    // };
 
     // After validation:
     const sanitized = {

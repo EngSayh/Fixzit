@@ -4,7 +4,6 @@
  */
 
 import { vi, describe, expect, beforeEach, afterEach, test } from "vitest";
-import { createHash } from "crypto";
 
 // Import from the module under test.
 // The implementation resides at server/security/idempotency.ts
@@ -166,9 +165,8 @@ describe("createIdempotencyKey", () => {
     expect(k1.startsWith("prefix:")).toBe(true);
 
     const digest = k1.split(":")[1];
-    const expected = createHash("sha256")
-      .update(JSON.stringify({ a: 1, b: 2 })) // Test canonical form expectation
-      .digest("hex");
+    // Digest should be SHA256 hex (64 chars)
+    // Test canonical form: createHash("sha256").update(JSON.stringify({ a: 1, b: 2 })).digest("hex")
 
     // We cannot rely on private function export; just ensure digest length looks correct.
     expect(digest).toHaveLength(64);
