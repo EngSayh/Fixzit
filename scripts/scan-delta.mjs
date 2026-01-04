@@ -160,10 +160,15 @@ let failures = [];
     "modules",
     "services",
   ]);
+  // Files that are intentionally duplicated per route segment (Next.js convention)
+  const allowedDuplicates = new Set(["error.tsx", "loading.tsx", "not-found.tsx"]);
   for (const abs of walk(ROOT)) {
     const rel = path.relative(ROOT, abs);
     const head = rel.split(path.sep)[0].toLowerCase();
     if (!primaryDirs.has(head)) continue; // Only check primary app directories
+    // Skip intentionally duplicated Next.js route segment files
+    const fileName = path.basename(rel);
+    if (allowedDuplicates.has(fileName)) continue;
     // Only hash medium-sized text files quickly; skip >2MB to avoid noise
     try {
       const stat = fs.statSync(abs);

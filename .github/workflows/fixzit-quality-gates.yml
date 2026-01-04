@@ -424,7 +424,6 @@ jobs:
 
                   # Fallback: try to parse individual LHR JSON files
                   lhr_dir=$(dirname "$lhci_path")
-                  # shellcheck disable=SC2012 -- find alternative is more complex; ls is safe here with 2>/dev/null
                   if find "$lhr_dir" -maxdepth 1 -name "*.json" 2>/dev/null | head -1 | grep -v manifest.json > /dev/null; then
                     for lhr_file in "$lhr_dir"/*.json; do
                       if [ "$lhr_file" != "$lhci_path" ]; then
