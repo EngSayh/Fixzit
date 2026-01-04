@@ -54,13 +54,7 @@ jobs:
       - name: Check translation coverage
         run: pnpm run i18n:coverage
 
-  # RTL smoke tests SKIPPED - require running app build
+  # RTL smoke tests REMOVED - require running app build
   # Vercel handles production builds; these tests should run against Vercel preview
   # See: https://github.com/EngSayh/Fixzit/pull/656 [AGENT-0008]
-  rtl-smoke:
-    needs: route-quality
-    runs-on: ubuntu-latest
-    if: false  # Disabled - requires build output that Vercel provides
-    steps:
-      - name: Notice
-        run: echo "RTL smoke tests disabled - run against Vercel preview instead"
+  # Job removed to fix actionlint error (if: false not allowed)
