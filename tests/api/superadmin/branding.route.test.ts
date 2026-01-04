@@ -105,7 +105,8 @@ describe("Superadmin Branding API", () => {
         updatedBy: "admin",
       };
 
-      vi.mocked(PlatformSettings.findOne).mockResolvedValue(mockSettings as any);
+      // Route uses findOneAndUpdate with upsert (not findOne + create)
+      vi.mocked(PlatformSettings.findOneAndUpdate).mockResolvedValue(mockSettings as any);
 
       const request = new NextRequest("http://localhost/api/superadmin/branding");
       const response = await GET(request);
@@ -124,8 +125,7 @@ describe("Superadmin Branding API", () => {
         role: "superadmin",
       } as any);
 
-      vi.mocked(PlatformSettings.findOne).mockResolvedValue(null);
-
+      // Route uses findOneAndUpdate with upsert + $setOnInsert for defaults
       const mockCreatedSettings = {
         logoUrl: "/img/fixzit-logo.png",
         brandName: "Fixzit Enterprise",
@@ -134,16 +134,23 @@ describe("Superadmin Branding API", () => {
         createdBy: "superadmin",
       };
 
-      vi.mocked(PlatformSettings.create).mockResolvedValue(mockCreatedSettings as any);
+      vi.mocked(PlatformSettings.findOneAndUpdate).mockResolvedValue(mockCreatedSettings as any);
 
       const request = new NextRequest("http://localhost/api/superadmin/branding");
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      expect(PlatformSettings.create).toHaveBeenCalledWith(
+      expect(PlatformSettings.findOneAndUpdate).toHaveBeenCalledWith(
+        { orgId: { $exists: false } },
         expect.objectContaining({
-          logoUrl: "/img/fixzit-logo.png",
-          brandName: "Fixzit Enterprise",
+          $setOnInsert: expect.objectContaining({
+            logoUrl: "/img/fixzit-logo.png",
+            brandName: "Fixzit Enterprise",
+          }),
+        }),
+        expect.objectContaining({
+          new: true,
+          upsert: true,
         })
       );
     });
