@@ -441,7 +441,7 @@ export default function JournalEntryForm({
             <select
               value={sourceType}
               onChange={(e) => setSourceType(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-2xl"
+              className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm"
             >
               <option value="MANUAL">
                 {t("finance.journal.sourceType.manual", "Manual Entry")}
@@ -617,7 +617,7 @@ export default function JournalEntryForm({
                         onChange={(e) =>
                           updateLine(line.id, "accountId", e.target.value)
                         }
-                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? "border-destructive" : "border-border"}`}
+                        className={`w-full h-8 px-2 py-1.5 text-sm border rounded-md ${errors[`line_${index}_account`] ? "border-destructive" : "border-border"}`}
                         disabled={loadingAccounts}
                       >
                         <option value="">

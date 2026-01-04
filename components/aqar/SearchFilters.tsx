@@ -567,7 +567,7 @@ export default function SearchFilters({
                   onChange={(e) =>
                     updateFilters({ city: e.target.value || undefined })
                   }
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                  className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm focus:ring-2 focus:ring-warning focus:border-transparent"
                 >
                   <option value="">
                     {t("aqar.filters.allCities", "All Cities")}
@@ -682,7 +682,7 @@ export default function SearchFilters({
                   sortBy: e.target.value as PropertyFilters["sortBy"],
                 })
               }
-              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+              className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm focus:ring-2 focus:ring-warning focus:border-transparent"
             >
               <option value="DATE_DESC">
                 {t("aqar.filters.newestFirst", "Newest First")}
