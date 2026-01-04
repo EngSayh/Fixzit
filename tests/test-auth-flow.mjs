@@ -74,7 +74,11 @@ async function testAuthFlow() {
       rememberMe: false,
     };
 
-    console.log("📥 Input credentials:", credentials);
+    // Log credentials with masked password for security
+    console.log("📥 Input credentials:", {
+      ...credentials,
+      password: "****" + (credentials.password?.length || 0) + " chars****",
+    });
     console.log("");
 
     // Step 1: Validate schema

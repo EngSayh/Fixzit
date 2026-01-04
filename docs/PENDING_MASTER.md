@@ -19,6 +19,87 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 23:00 (Asia/Riyadh) — GITHUB CODE SCANNING REMEDIATION [AGENT-0021]
+
+**Agent Token:** [AGENT-0021]  
+**Branch:** `fix/dropdown-width-standardization`  
+**Session:** Address ALL 609 GitHub Code Scanning alerts (security + code quality)
+
+#### Alert Summary (51 Categories, 609+ Alerts)
+
+| Priority | Category | Count | Severity | Status |
+|----------|----------|-------|----------|--------|
+| **P0-SECURITY** | js/clear-text-logging | 16 | error | 🔄 IN-PROGRESS |
+| **P0-SECURITY** | js/log-injection | 12 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/sql-injection | 8 | error | ✅ FIXED (prev session) |
+| **P0-SECURITY** | js/regex-injection | 10 | error | ✅ FIXED (prev session) |
+| **P0-SECURITY** | js/user-controlled-bypass | 12 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/xss-through-dom | 4 | warning | ✅ FIXED (prev session) |
+| **P0-SECURITY** | js/request-forgery | 4 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/client-side-request-forgery | 2 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/clear-text-storage-of-sensitive-data | 2 | error | ⏳ PENDING |
+| **P0-SECURITY** | js/insufficient-password-hash | 2 | warning | ⏳ PENDING |
+| **P0-SECURITY** | js/redos | 2 | error | ⏳ PENDING |
+| **P1-QUALITY** | js/unused-local-variable | 560 | note | ⏳ PENDING |
+| **P1-QUALITY** | js/trivial-conditional | 106 | warning | ⏳ PENDING |
+| **P1-QUALITY** | js/superfluous-trailing-arguments | 86 | warning | ⏳ PENDING |
+| **P1-QUALITY** | js/useless-assignment-to-local | 78 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/file-system-race | 48 | warning | ⏳ PENDING |
+| **P2-QUALITY** | js/duplicate-property | 34 | warning | ⏳ PENDING |
+| **P2-QUALITY** | js/unneeded-defensive-code | 30 | note | ⏳ PENDING |
+| **P2-QUALITY** | js/comparison-between-incompatible-types | 20 | warning | ⏳ PENDING |
+| **P2-QUALITY** | js/identity-replacement | 20 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/incomplete-multi-character-sanitization | 12 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/insecure-randomness | 10 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/indirect-command-line-injection | 10 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/missing-rate-limiting | 8 | warning | ⏳ PENDING |
+| **P2-SECURITY** | js/incomplete-sanitization | 8 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/regex/missing-regexp-anchor | 8 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/use-before-declaration | 8 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/shell-command-injection-from-environment | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/bad-tag-filter | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/prototype-pollution-utility | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/insecure-temporary-file | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/incomplete-url-scheme-check | 6 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/polynomial-redos | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/automatic-semicolon-insertion | 4 | note | ⏳ PENDING |
+| **P3-OTHER** | js/unused-loop-variable | 4 | error | ⏳ PENDING |
+| **P3-OTHER** | js/useless-comparison-test | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/overwritten-property | 4 | error | ⏳ PENDING |
+| **P3-OTHER** | js/biased-cryptographic-random | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/regex/duplicate-in-character-class | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/property-access-on-non-object | 4 | error | ⏳ PENDING |
+| **P3-OTHER** | js/http-to-file-access | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/react/unused-or-undefined-state-property | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/missing-origin-check | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/file-access-to-http | 4 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/unreachable-statement | 2 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/implicit-operand-conversion | 2 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/missing-await | 2 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/redundant-operation | 2 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/assignment-to-constant | 2 | error | ⏳ PENDING |
+| **P3-OTHER** | js/remote-property-injection | 2 | warning | ⏳ PENDING |
+| **P3-OTHER** | js/redundant-assignment | 2 | warning | ⏳ PENDING |
+
+#### Previous Session Fixes (AGENT-0020)
+
+- ✅ NoSQL Injection (4 alerts) - Used $eq operator in tap/webhook, persistence.ts
+- ✅ Regex Injection (5 alerts) - Created lib/utils/regex.ts, applied to stats, support-tickets
+- ✅ Clear-text Logging (7+ alerts) - Masked passwords in test files
+- ✅ XSS through DOM (2 alerts) - Added sanitizeImageUrl to BrandLogo.tsx
+
+#### Current Session Plan (AGENT-0021)
+
+1. Export all alerts to CSV for tracking
+2. Fix P0-SECURITY issues first (critical vulnerabilities)
+3. Fix P1-QUALITY issues (unused vars, trivial conditionals)
+4. Fix P2-SECURITY + P2-QUALITY issues
+5. Fix P3-OTHER issues
+6. Verify with `pnpm typecheck && pnpm lint`
+7. Commit with agent token
+
+---
+
 ### 2026-01-04 19:30 (Asia/Riyadh) — ANTI-DEFERRAL UI COMPLETION [AGENT-0016]
 
 **Agent Token:** [AGENT-0016]  

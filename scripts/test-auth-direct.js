@@ -42,10 +42,11 @@ async function testAuth() {
     console.log(`   - ID: ${user._id}`);
     console.log(`   - Role: ${user.role}`);
     console.log(`   - Status: ${user.status}`);
-    console.log(`   - Password hash: ${user.password.substring(0, 20)}...`);
+    // SEC-001: Don't log hash content, only format indicator
+    console.log(`   - Password hash format: ${user.password?.startsWith('$2') ? 'bcrypt' : 'unknown'}`);
 
-    // 4. Verify password
-    console.log(`\n🔐 Testing password: ${testPassword}`);
+    // 4. Verify password (never log actual password value)
+    console.log(`\n🔐 Testing password verification...`);
     const isValid = await bcrypt.compare(testPassword, user.password);
     
     if (!isValid) {

@@ -80,12 +80,24 @@ args.forEach(arg => {
 });
 
 /**
+ * Escape special regex characters in a string to prevent ReDoS attacks
+ * @param {string} str - The string to escape
+ * @returns {string} The escaped string
+ */
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Check if file should be excluded
  */
 function shouldExclude(filePath) {
   return CONFIG.excludePatterns.some(pattern => {
     if (pattern.includes('*')) {
-      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+      // Escape the pattern except for * which we convert to .*
+      // Split on *, escape each part, then rejoin with .*
+      const escapedParts = pattern.split('*').map(part => escapeRegExp(part));
+      const regex = new RegExp(escapedParts.join('.*'));
       return regex.test(filePath);
     }
     return filePath.includes(pattern);
