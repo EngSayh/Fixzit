@@ -343,11 +343,11 @@ function loadEnvOverrides(): void {
   for (const [key, value] of Object.entries(process.env)) {
     if (key.startsWith("FEATURE_")) {
       // Convert FEATURE_CORE_DARK_MODE to core.dark_mode
+      // Underscores become dots (e.g., FEATURE_CORE_DARK_MODE -> core.dark.mode)
       const flagId = key
         .replace("FEATURE_", "")
         .toLowerCase()
-        .replace(/_/g, ".")
-        .replace(/\./, "."); // First underscore is category separator
+        .replace(/_/g, ".");
 
       const boolValue = value?.toLowerCase() === "true";
       envOverrides.set(flagId, boolValue);

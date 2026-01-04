@@ -172,12 +172,25 @@ The Fixzit Enterprise Team
         });
       } else {
         // Use HTML template (legacy/fallback)
+        // Convert HTML to plain text for email fallback (not security-critical sanitization)
+        // This ensures email clients without HTML support can still display content
+        const plainTextContent = _emailTemplate
+          .replace(/<br\s*\/?>/gi, '\n')      // Convert br tags to newlines
+          .replace(/<\/p>/gi, '\n\n')          // Add double newline after paragraphs
+          .replace(/<[^>]*>/g, '')             // Strip remaining HTML tags
+          .replace(/&nbsp;/g, ' ')             // Convert HTML entities
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\n{3,}/g, '\n\n')          // Collapse multiple newlines
+          .trim();
+        
         await sgMail.send({
           ...baseOptions,
           to: body.email,
           subject: body.subject,
           html: _emailTemplate,
-          text: _emailTemplate.replace(/<[^>]*>/g, ""), // Plain text fallback
+          text: plainTextContent,
           customArgs: {
             emailId,
             errorId: body.errorId,
