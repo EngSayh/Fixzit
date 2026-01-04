@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-04T18:45:00+03:00
+  Last-Sync: 2026-01-04T19:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,54 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-04 19:30 (Asia/Riyadh) — ANTI-DEFERRAL UI COMPLETION [AGENT-0016]
+
+**Agent Token:** [AGENT-0016]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** Complete all deferred superadmin dialogs + enforce anti-deferral protocol
+
+#### Completed UI Features (ANTI-DEFERRAL)
+
+| Feature | Files | Description |
+|---------|-------|-------------|
+| **Create User Dialog** | `app/superadmin/users/page.tsx` | Full dialog with email, name, role, organization selection |
+| **Edit Role Dialog** | `app/superadmin/users/page.tsx` | Change user role with current role display |
+| **Edit Permissions Dialog** | `app/superadmin/users/page.tsx` | Collapsible sub-module tree with per-permission checkboxes |
+| **Anti-Deferral Protocol** | `.github/copilot-instructions.md` | Added mandatory anti-deferral rules with 7 forbidden patterns |
+
+#### Create User Dialog Features
+
+- Email input (required)
+- First/Last name fields
+- Role selection from `CANONICAL_ROLES`
+- Organization selection (optional)
+- Loading states with spinner
+- Validation (email + role required)
+
+#### Edit Role Dialog Features
+
+- Displays current role in muted badge
+- Role selection dropdown
+- Loading/saving states
+- API call to `PATCH /api/superadmin/users/[id]`
+
+#### Edit Permissions Dialog Features
+
+- Expandable/collapsible module tree
+- `ChevronDown` / `ChevronRight` indicators
+- Sub-modules from `RBAC_SUBMODULES`
+- Per-permission checkboxes (view/create/edit/delete)
+- API call to `POST /api/superadmin/users/[id]/permissions`
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
+- Git: Clean working tree
+- Commit: `d2b46f04b feat(superadmin): Add Create User, Edit Role, Edit Permissions dialogs [AGENT-0008]`
 
 ---
 
