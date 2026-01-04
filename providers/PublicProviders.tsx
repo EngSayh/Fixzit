@@ -13,6 +13,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ResponsiveProvider } from "@/contexts/ResponsiveContext";
 import { FormStateProvider } from "@/contexts/FormStateContext";
 import { TopBarProvider } from "@/contexts/TopBarContext";
+import { VersionMonitorProvider } from "@/contexts/VersionMonitorContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import type { Locale } from "@/i18n/config";
 
@@ -55,7 +56,10 @@ export default function PublicProviders({
                   <FormStateProvider>
                     {/* Provide translations for public pages (TopBar and other global UI) */}
                     <TranslationProvider initialLanguage={initialLocale}>
-                      <TopBarProvider>{children}</TopBarProvider>
+                      {/* Version monitoring for auto-reload with draft save */}
+                      <VersionMonitorProvider>
+                        <TopBarProvider>{children}</TopBarProvider>
+                      </VersionMonitorProvider>
                     </TranslationProvider>
                   </FormStateProvider>
                 </CurrencyProvider>
