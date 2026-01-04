@@ -19,6 +19,57 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-04 23:30 (Asia/Riyadh) — GITHUB CODE SCANNING CONTINUATION [AGENT-0021]
+
+**Agent Token:** [AGENT-0021]  
+**Branch:** `fix/dropdown-width-standardization`  
+**Commits this session:** c78b2ea9a, cc68e2b11, 1ea753af7, 8e0268d94  
+**Total commits ahead of main:** 30
+
+#### Session Fixes Applied
+
+| Fix Type | File | Description |
+|----------|------|-------------|
+| **SEC-CMD-001** | Incoming/fixzit_ssot_tools/scripts/git-preflight.mjs | Command injection prevention - validate base ref format |
+| **Unused var** | scripts/ci/verify-prod-env.js | Comment out unused warnIfMissing function |
+| **Unused var** | scripts/fix-arabic-translations.mjs | Comment out unused normalizeKey function |
+| **Unused var** | Incoming/fixzit_ssot_tools/scripts/ssot-verify.mjs | Comment out unused get function |
+| **Unused var** | Incoming/fixzit_ssot_tools/scripts/ssot-migrate-v6.mjs | Comment out unused normalizeStatus |
+| **Unused var** | Incoming/fixzit-theme/fonts.config.ts | Comment out unused localFont import |
+| **Unused var** | issue-tracker/app/dashboard/issues/page.tsx | Remove unused searchParams |
+| **Unused var** | public/js/saudi-mobile-optimizations.js | Remove unused supportedMethods array |
+| **Unused var** | tests/test-auth-flow.mjs | Remove unused rememberMe from destructuring |
+| **Unused var** | tests/tools.spec.ts | Remove unused mocks from destructuring |
+
+#### Verified False Positives (No Changes Needed)
+
+| Alert | File | Reason |
+|-------|------|--------|
+| js/unused-local-variable | server/models/* (103 alerts) | MModel already removed in previous commits - STALE |
+| js/sql-injection | tap-webhook/persistence.ts, tap/webhook/route.ts | Already using $eq operator - STALE |
+| js/prototype-pollution | encryptionPlugin.ts, migrate-*.ts | SEC-PROTO guards already in place - STALE |
+| js/polynomial-redos | app/api/issues/import/route.ts | SEC-REDOS-003/004 already applied - STALE |
+| js/request-forgery | tap-payments.ts, serve-frontend.js | SEC-SSRF guards already in place - STALE |
+| js/missing-origin-check | public/sw.js | SEC-ORIGIN-001 already in place - STALE |
+| js/xss-through-dom | BrandLogo.tsx | sanitizeImageUrl already applied - STALE |
+| js/clear-text-logging | test-auth-direct.js | Logs user metadata not passwords - FALSE POSITIVE |
+| js/unused-local-variable | check-repo-portability.mjs | `lower` IS used - FALSE POSITIVE |
+| js/unused-local-variable | useAnimation.ts | `hasAnimated` IS used - FALSE POSITIVE |
+
+#### Session Summary
+
+- **Total production alerts at start:** 296
+- **Fixed this session:** 10 (7 new files + 3 from continuation)
+- **Verified as stale/false positive:** 250+ (will auto-close after GitHub rescan)
+- **Remaining after push:** ~30 (mostly stale, pending rescan)
+
+#### Verification
+- ✅ `pnpm typecheck` - 0 errors
+- ✅ `pnpm lint` - Passed
+- ✅ All pre-commit hooks passed
+
+---
+
 ### 2026-01-04 23:00 (Asia/Riyadh) — GITHUB CODE SCANNING REMEDIATION [AGENT-0021]
 
 **Agent Token:** [AGENT-0021]  
