@@ -541,28 +541,30 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## 🎯 Fixzit Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ **Quality gates completed with warnings or failures.**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Check the job logs above for details on which steps failed." >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Generated Artifacts:" >> $GITHUB_STEP_SUMMARY
-          echo "- **OpenAPI Specification** (if found or generated)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Postman Collection** (exported from OpenAPI)" >> $GITHUB_STEP_SUMMARY
-          echo "- **RBAC Matrix CSV** (role-based access control analysis)" >> $GITHUB_STEP_SUMMARY
-          echo "- **RBAC Parity Tests** (66 tests ensuring client/server alignment)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Lighthouse CI Reports** (performance and accessibility)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Dependency Audit** (security vulnerability scan)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Test Results** (JUnit XML format)" >> $GITHUB_STEP_SUMMARY
-          echo "- **k6 Load Testing Scripts** (smoke test configuration)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Security Scorecard** (comprehensive security assessment)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All artifacts are available for download from the Actions tab." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## 🎯 Fixzit Quality Gates Summary"
+            echo ""
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "✅ **Quality gates completed successfully!**"
+            else
+              echo "⚠️ **Quality gates completed with warnings or failures.**"
+              echo ""
+              echo "Check the job logs above for details on which steps failed."
+            fi
+            echo ""
+            echo "### 📦 Generated Artifacts:"
+            echo "- **OpenAPI Specification** (if found or generated)"
+            echo "- **Postman Collection** (exported from OpenAPI)"
+            echo "- **RBAC Matrix CSV** (role-based access control analysis)"
+            echo "- **RBAC Parity Tests** (66 tests ensuring client/server alignment)"
+            echo "- **Lighthouse CI Reports** (performance and accessibility)"
+            echo "- **Dependency Audit** (security vulnerability scan)"
+            echo "- **Test Results** (JUnit XML format)"
+            echo "- **k6 Load Testing Scripts** (smoke test configuration)"
+            echo "- **Security Scorecard** (comprehensive security assessment)"
+            echo ""
+            echo "All artifacts are available for download from the Actions tab."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # =============================================================================
   # RBAC E2E TESTS - Sub-Role API Access Validation
@@ -758,21 +760,23 @@ jobs:
       - name: RBAC E2E Summary
         if: always()
         run: |
-          echo "## 🔒 RBAC E2E Tests - Sub-Role API Access" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ **All RBAC tests passed!**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Verified:" >> $GITHUB_STEP_SUMMARY
-            echo "- Finance Officer permissions" >> $GITHUB_STEP_SUMMARY
-            echo "- HR Officer permissions" >> $GITHUB_STEP_SUMMARY
-            echo "- Support Agent permissions" >> $GITHUB_STEP_SUMMARY
-            echo "- Operations Manager permissions" >> $GITHUB_STEP_SUMMARY
-            echo "- Admin full access" >> $GITHUB_STEP_SUMMARY
-            echo "- Cross-boundary denials" >> $GITHUB_STEP_SUMMARY
-            echo "- Tenant data isolation" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **RBAC tests failed - review permissions**" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "[Download report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## 🔒 RBAC E2E Tests - Sub-Role API Access"
+            echo ""
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "✅ **All RBAC tests passed!**"
+              echo ""
+              echo "Verified:"
+              echo "- Finance Officer permissions"
+              echo "- HR Officer permissions"
+              echo "- Support Agent permissions"
+              echo "- Operations Manager permissions"
+              echo "- Admin full access"
+              echo "- Cross-boundary denials"
+              echo "- Tenant data isolation"
+            else
+              echo "❌ **RBAC tests failed - review permissions**"
+            fi
+            echo ""
+            echo "[Download report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
+          } >> "$GITHUB_STEP_SUMMARY"
