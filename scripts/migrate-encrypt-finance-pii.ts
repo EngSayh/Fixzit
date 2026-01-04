@@ -224,12 +224,19 @@ function getNested(doc: Record<string, unknown>, path: string): unknown {
   return current;
 }
 
+// SEC-PROTO-002: Protected against prototype pollution
 function setNested(
   doc: Record<string, unknown>,
   path: string,
   value: string,
 ): void {
   const parts = path.split(".");
+  // Block prototype pollution attacks
+  const dangerousKeys = ["__proto__", "constructor", "prototype"];
+  if (parts.some(p => dangerousKeys.includes(p))) {
+    return; // Silently ignore dangerous paths
+  }
+  
   let current: Record<string, unknown> = doc;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];

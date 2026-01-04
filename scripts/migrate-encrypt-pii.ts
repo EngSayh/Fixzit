@@ -42,8 +42,15 @@ const vendorTargets: EncryptTarget[] = [
   { path: "financial.bankDetails.iban", label: "IBAN" },
 ];
 
+// SEC-PROTO-003: Protected against prototype pollution
 function setNested(doc: Record<string, unknown>, path: string, value: string) {
   const parts = path.split(".");
+  // Block prototype pollution attacks
+  const dangerousKeys = ["__proto__", "constructor", "prototype"];
+  if (parts.some(p => dangerousKeys.includes(p))) {
+    return; // Silently ignore dangerous paths
+  }
+  
   let current = doc as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
