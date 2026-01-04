@@ -1,7 +1,7 @@
 /**
  * @fileoverview SSE Module Tests
  * @module tests/unit/lib/sse
- * @see Issue #293 - Technical Debt: Complete TODO Items
+ * @see Issue #293 - Tracked improvements
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

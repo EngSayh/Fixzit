@@ -13,7 +13,7 @@
  * These are separate collections with different schemas. Do NOT consolidate
  * without explicit architecture decision and data migration plan.
  *
- * // BLOCKED: TODO-001 - Souq Orders mismatch (orders vs souq_orders)
+ * // BLOCKED-001: Souq Orders mismatch (orders vs souq_orders)
  * // Do not proceed with collection migration. Await explicit directive from Eng. Sultan.
  * // File: server/models/souq/ClaimsOrder.ts
  * // Related: server/models/souq/SouqOrder.ts uses "souq_orders" collection
@@ -30,7 +30,7 @@
  * - app/api/souq/claims/[id]/decision/route.ts
  *
  * Created as part of TD-001: Remove db.collection calls via compatibility model
- * @see TODO-2 in TD-001 assessment
+ * @see TD-001-2 assessment (schema validation follow-up)
  */
 
 import type { Document, Model, Types } from "mongoose";

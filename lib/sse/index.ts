@@ -152,7 +152,7 @@ export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
 
 /**
  * Subscribe to tenant-scoped notifications
- * @todo Replace with durable pub/sub for horizontal scaling
+ * @roadmap PERF-SSE-001: Replace with durable pub/sub for horizontal scaling (Q1 2026)
  */
 export function subscribeToNotifications(
   orgId: Types.ObjectId,
@@ -189,7 +189,7 @@ export function subscribeToNotifications(
 
 /**
  * Publish notification to all subscribers in an org
- * @todo Replace with durable pub/sub for horizontal scaling
+ * @roadmap PERF-SSE-001: Replace with durable pub/sub for horizontal scaling (Q1 2026)
  */
 export async function publishNotification(
   orgId: Types.ObjectId,

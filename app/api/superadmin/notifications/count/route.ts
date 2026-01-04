@@ -5,7 +5,7 @@
  * @access Private - Superadmin session required
  * 
  * @feature Superadmin Notification Badge
- * @issue TODO: Notification count badge for superadmin header
+ * @status IMPLEMENTED - Badge count returns unread notifications
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";

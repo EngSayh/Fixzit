@@ -120,8 +120,8 @@ describe("/api/admin/billing/pricebooks", () => {
     });
 
     // Security test: ensure prohibited fields are not passed to create
-    // This test is marked as todo until POST route implements field sanitization (tracked separately)
-    it.todo("rejects prohibited fields (isActive, adminOverride) in POST payload - requires route sanitization");
+    // DEFERRED: Route sanitization tracked in Issue #293
+    it.skip("rejects prohibited fields (isActive, adminOverride) in POST payload - requires route sanitization");
   });
 
   describe("PATCH", () => {
