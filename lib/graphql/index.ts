@@ -1211,7 +1211,7 @@ export const resolvers = {
 
         return {
           success: true,
-          workOrder: result,
+          workOrder: mapWorkOrderDocument(result as Record<string, unknown>),
           errors: [],
         };
       } catch (error) {

@@ -1092,7 +1092,7 @@ export async function registerWithEjar(
     // [AGENT-0008] Pre-flight validation before Ejar call - fail fast with actionable errors
     const validationErrors: string[] = [];
     if (!property.address && !property.addressAr) {
-      validationErrors.push("property.address is required for Ejar registration");
+      validationErrors.push("property.address or property.addressAr is required for Ejar registration");
     }
     if (!tenant.nationalId && !tenant.iqamaNumber) {
       validationErrors.push("tenant.nationalId or tenant.iqamaNumber is required");
