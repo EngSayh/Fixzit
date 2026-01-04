@@ -94,7 +94,8 @@ async function testAuthFlow() {
     console.log("   Parsed data:", parsed.data);
     console.log("");
 
-    const { loginIdentifier, loginType, password, rememberMe } = parsed.data;
+    // Note: rememberMe is parsed but not used in this test (session simulation only)
+    const { loginIdentifier, loginType, password } = parsed.data;
 
     // Step 2: Connect to database
     console.log("Step 2: Connecting to MongoDB...");
