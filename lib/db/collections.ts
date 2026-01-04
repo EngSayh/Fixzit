@@ -73,7 +73,7 @@ export async function getCollections() {
     vendors: db.collection<Vendor>(COLLECTIONS.VENDORS),
     products: db.collection<Product>(COLLECTIONS.PRODUCTS),
     carts: db.collection<Cart>(COLLECTIONS.CARTS),
-    orders: db.collection<Order>(COLLECTIONS.ORDERS),
+    orders: db.collection<Order>(COLLECTIONS.CLAIMS_ORDERS), // TD-002: Use claims_orders, not legacy orders
     invoices: db.collection<Invoice>(COLLECTIONS.INVOICES),
     rfqs: db.collection<RFQ>(COLLECTIONS.RFQS),
     reviews: db.collection<Review>(COLLECTIONS.REVIEWS),
@@ -369,9 +369,10 @@ export async function createIndexes() {
       },
     );
 
-  // Orders - STRICT v4.1: orderNumber unique per org
+  // Orders (Claims) - STRICT v4.1: orderNumber unique per org
+  // TD-002: Use CLAIMS_ORDERS collection instead of legacy ORDERS
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex(
       { orgId: 1, orderNumber: 1 },
       {
@@ -382,25 +383,25 @@ export async function createIndexes() {
       },
     );
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex({ orgId: 1, userId: 1 }, { background: true, name: "orders_orgId_userId" });
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex({ orgId: 1, status: 1 }, { background: true, name: "orders_orgId_status" });
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "orders_orgId_createdAt_desc" });
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex({ orgId: 1, buyerUserId: 1, status: 1 }, { background: true, name: "orders_orgId_buyer_status" });
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex({ orgId: 1, vendorId: 1, status: 1 }, { background: true, name: "orders_orgId_vendor_status" });
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex({ orgId: 1, "source.workOrderId": 1 }, { background: true, name: "orders_orgId_source_workOrderId" });
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex(
       { orgId: 1, orderId: 1 },
       {
@@ -1335,9 +1336,10 @@ export async function createIndexes() {
       },
     );
 
-  // Orders text search
+  // Orders (Claims) text search
+  // TD-002: Use CLAIMS_ORDERS collection instead of legacy ORDERS
   await db
-    .collection(COLLECTIONS.ORDERS)
+    .collection(COLLECTIONS.CLAIMS_ORDERS)
     .createIndex(
       { orgId: 1, orderNumber: "text", "customer.name": "text" },
       {

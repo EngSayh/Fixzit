@@ -49,7 +49,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 vi.mock("@/lib/db/collections", () => ({
-  COLLECTIONS: { ORDERS: "orders", CLAIMS: "claims" },
+  COLLECTIONS: { CLAIMS_ORDERS: "claims_orders", CLAIMS: "claims" },
 }));
 
 vi.mock("@/server/models/souq/ClaimsOrder", () => ({

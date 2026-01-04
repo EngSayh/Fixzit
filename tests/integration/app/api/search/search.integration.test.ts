@@ -48,7 +48,7 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
     db = client.db("testdb");
 
     await db.collection(COLLECTIONS.WORK_ORDERS).createIndex({ title: "text" });
-    await db.collection(COLLECTIONS.ORDERS).createIndex({ title: "text" });
+    await db.collection(COLLECTIONS.CLAIMS_ORDERS).createIndex({ title: "text" });
     await db.collection(COLLECTIONS.PROPERTIES).createIndex({ title: "text" });
 
     await db.collection(COLLECTIONS.WORK_ORDERS).insertMany([
@@ -68,7 +68,7 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
       },
     ]);
 
-    await db.collection(COLLECTIONS.ORDERS).insertOne({
+    await db.collection(COLLECTIONS.CLAIMS_ORDERS).insertOne({
       title: "Vendor order",
       orgId,
       vendorId,
