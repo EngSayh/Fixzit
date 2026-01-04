@@ -1,5 +1,6 @@
 import { Schema, Types } from "mongoose";
 import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
 
 // Interface for field change
 interface FieldChange {
@@ -117,17 +118,19 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
 
     // Set createdBy for new documents
     if (this.isNew) {
-      if (context.userId) {
-        this.createdBy = context.userId;
-      } else if (!this.createdBy) {
-        // If no context and no createdBy set, use system
-        this.createdBy = "SYSTEM";
+      if (context.userId && Types.ObjectId.isValid(context.userId)) {
+        this.createdBy = new Types.ObjectId(context.userId);
+      } else if (!this.createdBy && !createdByOptional) {
+        // For models that require createdBy, log warning but don't fail
+        // The model's required validation will catch this if truly required
+        logger.warn('[AuditPlugin] No valid userId in context for new document');
       }
+      // Note: If createdByOptional=true and no userId, createdBy stays undefined (allowed)
       this.version = 1;
     } else {
       // Set updatedBy for existing documents
-      if (context.userId) {
-        this.updatedBy = context.userId;
+      if (context.userId && Types.ObjectId.isValid(context.userId)) {
+        this.updatedBy = new Types.ObjectId(context.userId);
       }
 
       // Increment version
@@ -177,9 +180,18 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
 
         // Add change record if there are actual changes
         if (changes.length > 0) {
+          // Resolve changedBy to a valid ObjectId or undefined
+          let changedById: Types.ObjectId | undefined;
+          if (context.userId && Types.ObjectId.isValid(context.userId)) {
+            changedById = new Types.ObjectId(context.userId);
+          } else if (this.updatedBy instanceof Types.ObjectId) {
+            changedById = this.updatedBy;
+          }
+          // Note: changedBy can be undefined for system operations
+
           const changeRecord = {
             version: this.version,
-            changedBy: context.userId || this.updatedBy || "SYSTEM",
+            changedBy: changedById,
             changedAt: now,
             changes,
             changeReason: context.changeReason || undefined,
