@@ -15,7 +15,8 @@ import {
   Inter,
   Tajawal,
 } from 'next/font/google';
-import localFont from 'next/font/local';
+// Note: localFont available for custom fonts when needed
+// import localFont from 'next/font/local';
 
 // ============================================
 // ARABIC FONTS (Primary for RTL)

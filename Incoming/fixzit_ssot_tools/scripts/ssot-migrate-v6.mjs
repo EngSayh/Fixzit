@@ -32,11 +32,8 @@ const STATUS_MAP = new Map([
   ["fixed", "resolved"],
 ]);
 
-function normalizeStatus(s) {
-  if (!s || typeof s !== "string") return s;
-  const key = s.trim().toLowerCase();
-  return STATUS_MAP.get(key) ?? s;
-}
+// Status normalization utility - preserved for migration use
+// function normalizeStatus(s) { if (!s || typeof s !== "string") return s; return STATUS_MAP.get(s.trim().toLowerCase()) ?? s; }
 
 async function main() {
   await mongoose.connect(uri, dbName ? { dbName } : {});

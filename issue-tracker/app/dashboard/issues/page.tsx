@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // ============================================================================
 // TYPES
@@ -374,7 +374,8 @@ function FilterBar({ filters, onFilterChange }: {
 
 export default function IssueTrackerDashboard() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // searchParams available for URL-based filtering if needed
+  // const searchParams = useSearchParams();
   
   const [stats, setStats] = useState<Stats | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);

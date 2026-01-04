@@ -1914,18 +1914,10 @@ const TRANSLATION_DICTIONARY = {
   "2 F A Desc": "وصف التحقق الثنائي"
 };
 
-/**
- * Normalize English text for matching
- * @param {string} text - Input text
- * @returns {string} - Normalized text
- */
-function normalizeKey(text) {
-  return text
-    .replace(/\[AR\]\s*/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
-}
+// Utility function preserved for future key normalization needs
+// function normalizeKey(text) {
+//   return text.replace(/\[AR\]\s*/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+// }
 
 /**
  * Find best Arabic translation for an English phrase

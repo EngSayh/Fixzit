@@ -32,11 +32,10 @@ function requireFalse(name, msg) {
     violations.push(msg || `${name} must be false in production`);
   }
 }
-function warnIfMissing(name, msg) {
-  if (!env[name]) {
-    warnings.push(msg || `${name} is missing; related features will be disabled`);
-  }
-}
+// Note: warnIfMissing pattern available if needed for future env checks
+// function warnIfMissing(name, msg) {
+//   if (!env[name]) warnings.push(msg || `${name} is missing; related features will be disabled`);
+// }
 
 requireFalse('SKIP_ENV_VALIDATION', 'SKIP_ENV_VALIDATION must be false in production');
 requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be false in production');
