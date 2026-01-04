@@ -146,8 +146,8 @@ export function CompactFilterBar({
           {/* Dropdowns */}
           {dropdowns?.map((dropdown, index) => (
             <React.Fragment key={dropdown.id}>
-              <Select value={dropdown.value} onValueChange={dropdown.onChange}>
-                <SelectTrigger className={cn("h-8 text-xs bg-background border-input", dropdown.width || "w-[110px]")}>
+              <Select value={dropdown.value} onValueChange={dropdown.onChange} className={cn("text-xs bg-background border-input", dropdown.width || "w-[110px]")}>
+                <SelectTrigger>
                   {dropdown.value === "all" ? dropdown.placeholder : dropdown.options.find(o => o.value === dropdown.value)?.label}
                 </SelectTrigger>
                 <SelectContent>
@@ -248,8 +248,8 @@ export function SimpleFilterBar({
 
           {/* Filters */}
           {filters?.map((filter) => (
-            <Select key={filter.id} value={filter.value} onValueChange={filter.onChange}>
-              <SelectTrigger className={cn("h-8 text-xs bg-muted border-input", filter.width || "w-[130px]")}>
+            <Select key={filter.id} value={filter.value} onValueChange={filter.onChange} className={cn("text-xs bg-muted border-input", filter.width || "w-[130px]")}>
+              <SelectTrigger>
                 {filter.value === "all" ? filter.placeholder : filter.options.find(o => o.value === filter.value)?.label}
               </SelectTrigger>
               <SelectContent>

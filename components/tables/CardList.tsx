@@ -189,8 +189,8 @@ export function CardList<TData extends Record<string, unknown>>({
         )}
         
         {sortOptions && sortOptions.length > 0 && (
-          <Select value={currentSort} onValueChange={onSortChange} placeholder="Sort by...">
-            <SelectTrigger className="w-[180px] h-8">
+          <Select value={currentSort} onValueChange={onSortChange} placeholder="Sort by..." className="w-[180px]">
+            <SelectTrigger>
             </SelectTrigger>
             <SelectContent>
               {sortOptions.map((option) => (

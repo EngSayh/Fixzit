@@ -186,8 +186,8 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")}>
-              <SelectTrigger className="w-48">
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")} className="w-48">
+              <SelectTrigger>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">

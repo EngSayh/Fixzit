@@ -281,8 +281,8 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-40">
+            <SelectTrigger>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
