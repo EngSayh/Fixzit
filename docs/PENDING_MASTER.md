@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-05T11:55:00+03:00
+  Last-Sync: 2026-01-05T12:00:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,35 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-05 12:00 (Asia/Riyadh) — DROPDOWN STANDARDIZATION [AGENT-0005]
+
+**Agent Token:** [AGENT-0005]  
+**Branch:** `agent/AGENT-0008/type-safety-fixes`  
+**Session:** Standardize dropdown/select heights across codebase
+
+#### Problem
+
+Dropdowns across the codebase had inconsistent heights:
+- Some `h-11` (44px) - too tall
+- Some `h-12` (48px) - even taller
+- Some no height specified (default h-10)
+- Compact filter bar correctly used `h-8` (32px)
+
+#### Fix Applied
+
+| File | Change |
+|------|--------|
+| `components/ui/select.tsx` | Changed default height from `h-10` to `h-8`, padding from `py-2` to `py-1.5`, border-radius from `rounded-2xl` to `rounded-md` |
+| `components/tables/CardList.tsx` | Changed `h-11` → `h-8` for sort dropdown |
+| `app/(app)/signup/page.tsx` | Changed `h-12` → `h-10` for form field (forms use taller inputs) |
+
+#### Verification
+
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors
 
 ---
 

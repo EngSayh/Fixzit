@@ -363,7 +363,7 @@ export default function SignupPage() {
                   onValueChange={(value) => handleChange("userType", value)}
                   placeholder="Select account type"
                 >
-                  <SelectTrigger className="h-12"></SelectTrigger>
+                  <SelectTrigger className="h-10"></SelectTrigger>
                   <SelectContent>
                     {/* ✅ FIXED: Use imported SIGNUP_USER_TYPES with t() for labels */}
                     {SIGNUP_USER_TYPES.map((type) => (
