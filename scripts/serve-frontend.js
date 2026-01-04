@@ -15,8 +15,11 @@ app.use((req, res, next) => {
 
 // Proxy API calls to backend
 app.use("/api", async (req, res) => {
-  const backendUrl = `http://localhost:5000${req.originalUrl}`;
-  console.log(`🔗 Proxying: ${req.method} ${backendUrl}`);
+  // Validate URL path to prevent SSRF (SEC-SSRF-005)
+  const safePath = req.originalUrl.replace(/[^\w\-./=&?]/g, "");
+  const backendUrl = `http://localhost:5000${safePath}`;
+  // Sanitize log to prevent log injection (SEC-LOG-002)
+  console.log(`🔗 Proxying: ${req.method} ${safePath.substring(0, 200)}`);
 
   try {
     const response = await fetch(backendUrl, {

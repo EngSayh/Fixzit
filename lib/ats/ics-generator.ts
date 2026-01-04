@@ -2,6 +2,7 @@
  * ICS Calendar Generator - Create RFC-5545 compliant .ics files for interview scheduling
  * Phase 2 implementation
  */
+import { randomBytes } from "crypto";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 
 interface ICSEvent {
@@ -26,7 +27,8 @@ interface ICSEvent {
  */
 export function generateICS(event: ICSEvent): string {
   const now = formatICSDate(new Date());
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@${EMAIL_DOMAINS.primary}`;
+  // SEC-RAND-001: Use crypto.randomBytes instead of Math.random for UID generation
+  const uid = `${Date.now()}-${randomBytes(6).toString("hex")}@${EMAIL_DOMAINS.primary}`;
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",

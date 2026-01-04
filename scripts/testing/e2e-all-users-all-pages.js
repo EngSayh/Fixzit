@@ -20,6 +20,9 @@ const fs = require("fs");
 const path = require("path");
 const { mintSessionCookie } = require("./session-cookie");
 
+// Sanitize log messages to prevent log injection (SEC-LOG-005)
+const safeLog = (str) => String(str).replace(/[\r\n]/g, " ").substring(0, 500);
+
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
@@ -356,15 +359,15 @@ async function testPage(page, auth, user) {
           : testResult.status === "ERROR"
             ? "💥"
             : "❌";
-  console.log(`  ${statusIcon} ${page.name.padEnd(40)} ${testResult.result}`);
+  console.log(`  ${statusIcon} ${safeLog(page.name).padEnd(40)} ${safeLog(testResult.result)}`);
 
   return testResult;
 }
 
 async function testUser(user) {
   console.log(`\n${"=".repeat(80)}`);
-  console.log(`👤 Testing User: ${user.name} (${user.role})`);
-  console.log(`📧 Email: ${user.email}`);
+  console.log(`👤 Testing User: ${safeLog(user.name)} (${safeLog(user.role)})`);
+  console.log(`📧 Email: ${safeLog(user.email)}`);
   console.log("=".repeat(80));
 
   // Test login
@@ -372,7 +375,7 @@ async function testUser(user) {
   const loginResult = await login(user);
 
   if (!loginResult.success) {
-    console.log(`❌ Login failed: ${loginResult.error}`);
+    console.log(`❌ Login failed: ${safeLog(loginResult.error)}`);
     console.log("⏭️  Skipping page tests for this user\n");
 
     results.push({
