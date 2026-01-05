@@ -10,9 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2 } from "@/components/ui/icons";
@@ -333,16 +331,13 @@ export default function AtsJobsPage() {
                 setStatusFilter(value as typeof statusFilter)
               }
               placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="flex-1">
@@ -353,16 +348,13 @@ export default function AtsJobsPage() {
               value={jobTypeFilter}
               onValueChange={(value) => setJobTypeFilter(value)}
               placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {jobTypeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {jobTypeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
         </CardContent>

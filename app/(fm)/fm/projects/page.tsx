@@ -18,9 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -179,65 +177,57 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
               value={typeFilter}
               onValueChange={setTypeFilter}
               placeholder={auto("Project Type", "filters.type")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Types", "filters.allTypes")}
-                </SelectItem>
-                <SelectItem value="NEW_CONSTRUCTION">
-                  {auto("New Construction", "filters.types.newConstruction")}
-                </SelectItem>
-                <SelectItem value="RENOVATION">
-                  {auto("Renovation", "filters.types.renovation")}
-                </SelectItem>
-                <SelectItem value="MAINTENANCE">
-                  {auto("Maintenance", "filters.types.maintenance")}
-                </SelectItem>
-                <SelectItem value="FIT_OUT">
-                  {auto("Fit Out", "filters.types.fitOut")}
-                </SelectItem>
-                <SelectItem value="DEMOLITION">
-                  {auto("Demolition", "filters.types.demolition")}
-                </SelectItem>
-              </SelectContent>
+              <SelectItem value="">
+                {auto("All Types", "filters.allTypes")}
+              </SelectItem>
+              <SelectItem value="NEW_CONSTRUCTION">
+                {auto("New Construction", "filters.types.newConstruction")}
+              </SelectItem>
+              <SelectItem value="RENOVATION">
+                {auto("Renovation", "filters.types.renovation")}
+              </SelectItem>
+              <SelectItem value="MAINTENANCE">
+                {auto("Maintenance", "filters.types.maintenance")}
+              </SelectItem>
+              <SelectItem value="FIT_OUT">
+                {auto("Fit Out", "filters.types.fitOut")}
+              </SelectItem>
+              <SelectItem value="DEMOLITION">
+                {auto("Demolition", "filters.types.demolition")}
+              </SelectItem>
             </Select>
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
               placeholder={auto("Status", "filters.status")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Status", "filters.allStatus")}
-                </SelectItem>
-                <SelectItem value="PLANNING">
-                  {auto("Planning", "status.planning")}
-                </SelectItem>
-                <SelectItem value="APPROVED">
-                  {auto("Approved", "status.approved")}
-                </SelectItem>
-                <SelectItem value="IN_PROGRESS">
-                  {auto("In Progress", "status.inProgress")}
-                </SelectItem>
-                <SelectItem value="ON_HOLD">
-                  {auto("On Hold", "status.onHold")}
-                </SelectItem>
-                <SelectItem value="COMPLETED">
-                  {auto("Completed", "status.completed")}
-                </SelectItem>
-                <SelectItem value="CANCELLED">
-                  {auto("Cancelled", "status.cancelled")}
-                </SelectItem>
-                <SelectItem value="CLOSED">
-                  {auto("Closed", "status.closed")}
-                </SelectItem>
-              </SelectContent>
+              <SelectItem value="">
+                {auto("All Status", "filters.allStatus")}
+              </SelectItem>
+              <SelectItem value="PLANNING">
+                {auto("Planning", "status.planning")}
+              </SelectItem>
+              <SelectItem value="APPROVED">
+                {auto("Approved", "status.approved")}
+              </SelectItem>
+              <SelectItem value="IN_PROGRESS">
+                {auto("In Progress", "status.inProgress")}
+              </SelectItem>
+              <SelectItem value="ON_HOLD">
+                {auto("On Hold", "status.onHold")}
+              </SelectItem>
+              <SelectItem value="COMPLETED">
+                {auto("Completed", "status.completed")}
+              </SelectItem>
+              <SelectItem value="CANCELLED">
+                {auto("Cancelled", "status.cancelled")}
+              </SelectItem>
+              <SelectItem value="CLOSED">
+                {auto("Closed", "status.closed")}
+              </SelectItem>
             </Select>
           </div>
         </CardContent>
@@ -600,26 +590,23 @@ function CreateProjectForm({
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder={auto("Select type", "placeholders.type")}
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="NEW_CONSTRUCTION">
-                {auto("New Construction", "options.newConstruction")}
-              </SelectItem>
-              <SelectItem value="RENOVATION">
-                {auto("Renovation", "options.renovation")}
-              </SelectItem>
-              <SelectItem value="MAINTENANCE">
-                {auto("Maintenance", "options.maintenance")}
-              </SelectItem>
-              <SelectItem value="FIT_OUT">
-                {auto("Fit Out", "options.fitOut")}
-              </SelectItem>
-              <SelectItem value="DEMOLITION">
-                {auto("Demolition", "options.demolition")}
-              </SelectItem>
-            </SelectContent>
+            <SelectItem value="NEW_CONSTRUCTION">
+              {auto("New Construction", "options.newConstruction")}
+            </SelectItem>
+            <SelectItem value="RENOVATION">
+              {auto("Renovation", "options.renovation")}
+            </SelectItem>
+            <SelectItem value="MAINTENANCE">
+              {auto("Maintenance", "options.maintenance")}
+            </SelectItem>
+            <SelectItem value="FIT_OUT">
+              {auto("Fit Out", "options.fitOut")}
+            </SelectItem>
+            <SelectItem value="DEMOLITION">
+              {auto("Demolition", "options.demolition")}
+            </SelectItem>
           </Select>
         </div>
       </div>

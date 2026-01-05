@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-01-05T12:23:04+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-05-115711.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-05-122304.json",
+  "summary": {
+    "added": 0,
+    "resolved": 3,
+    "current": 15,
+    "baseline": 18
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/feeds/indeed/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "indeed-feed-endpoint-returns-501-when-disabled-feature-app-api-feeds-indeed-rout",
+          "title": "Indeed feed endpoint returns 501 when disabled",
+          "location": "app/api/feeds/indeed/route.ts:35"
+        }
+      ]
+    },
+    {
+      "file": "app/api/feeds/linkedin/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "linkedin-feed-endpoint-returns-501-when-disabled-feature-app-api-feeds-linkedin-",
+          "title": "LinkedIn feed endpoint returns 501 when disabled",
+          "location": "app/api/feeds/linkedin/route.ts:34"
+        }
+      ]
+    },
+    {
+      "file": "app/api/integrations/linkedin/apply/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "linkedin-apply-integration-returns-501-when-disabled-feature-app-api-integration",
+          "title": "LinkedIn apply integration returns 501 when disabled",
+          "location": "app/api/integrations/linkedin/apply/route.ts:60"
+        }
+      ]
+    }
+  ]
+}

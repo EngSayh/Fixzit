@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-01-05T12:23:04+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-05-115711.json",
+  "current": "docs/artifacts/todo-scan-2026-01-05-122304.json",
+  "summary": {
+    "added": 3,
+    "resolved": 2,
+    "current": 2519,
+    "baseline": 2518
+  },
+  "fileChanges": [
+    {
+      "file": ".\\tests\\services\\returns-service.test.ts",
+      "added": [
+        {
+          "key": "todo-marker-tests-services-returns-service-test-ts-l210",
+          "title": "Marker 'TODO' in .\\tests\\services\\returns-service.test.ts:210",
+          "location": ".\\tests\\services\\returns-service.test.ts:210"
+        },
+        {
+          "key": "todo-marker-tests-services-returns-service-test-ts-l291",
+          "title": "Marker 'pending' in .\\tests\\services\\returns-service.test.ts:291",
+          "location": ".\\tests\\services\\returns-service.test.ts:291"
+        },
+        {
+          "key": "todo-marker-tests-services-returns-service-test-ts-l485",
+          "title": "Marker 'pending' in .\\tests\\services\\returns-service.test.ts:485",
+          "location": ".\\tests\\services\\returns-service.test.ts:485"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-tests-services-returns-service-test-ts-l274",
+          "title": "Marker 'pending' in .\\tests\\services\\returns-service.test.ts:274",
+          "location": ".\\tests\\services\\returns-service.test.ts:274"
+        },
+        {
+          "key": "todo-marker-tests-services-returns-service-test-ts-l468",
+          "title": "Marker 'pending' in .\\tests\\services\\returns-service.test.ts:468",
+          "location": ".\\tests\\services\\returns-service.test.ts:468"
+        }
+      ]
+    }
+  ]
+}

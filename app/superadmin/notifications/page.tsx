@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -175,15 +175,12 @@ export default function SuperadminNotificationsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex gap-4">
-                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[120px]">
-                  <SelectTrigger>{channelFilter === "all" ? "All Channels" : channelFilter.charAt(0).toUpperCase() + channelFilter.slice(1)}</SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Channels</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="sms">SMS</SelectItem>
-                    <SelectItem value="push">Push</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  </SelectContent>
+                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <SelectItem value="all">All Channels</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="sms">SMS</SelectItem>
+                  <SelectItem value="push">Push</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
                 </Select>
               </div>
             </CardContent>

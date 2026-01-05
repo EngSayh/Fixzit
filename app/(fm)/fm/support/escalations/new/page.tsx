@@ -16,9 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -227,16 +225,13 @@ function NewEscalationContent({
                   onValueChange={(value: string) =>
                     updateField("severity", value as SeverityOption)
                   }
+                  className="w-full bg-muted border-input text-foreground"
                 >
-                  <SelectTrigger>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEVERITIES.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {auto(option, `severities.${option}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  {SEVERITIES.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {auto(option, `severities.${option}`)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div>
@@ -460,16 +455,13 @@ function NewEscalationContent({
                 onValueChange={(value: string) =>
                   updateField("preferredChannel", value as ChannelOption)
                 }
+                className="w-full bg-muted border-input text-foreground"
               >
-                <SelectTrigger>
-                </SelectTrigger>
-                <SelectContent>
-                  {CHANNELS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {auto(option, `channels.${option}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {CHANNELS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {auto(option, `channels.${option}`)}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
           </CardContent>

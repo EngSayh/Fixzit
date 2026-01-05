@@ -18,9 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Pagination } from "@/components/ui/pagination";
@@ -358,32 +356,30 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
               placeholder={t("fm.properties.status", "Status")}
               className="w-48"
             >
-              <SelectContent>
-                <SelectItem value="">
-                  {t("common.all", "All Status")}
-                </SelectItem>
-                <SelectItem value="DRAFT">
-                  {t("fm.invoices.draft", "Draft")}
-                </SelectItem>
-                <SelectItem value="SENT">
-                  {t("fm.invoices.sent", "Sent")}
-                </SelectItem>
-                <SelectItem value="VIEWED">
-                  {t("fm.invoices.viewed", "Viewed")}
-                </SelectItem>
-                <SelectItem value="APPROVED">
-                  {t("fm.vendors.approved", "Approved")}
-                </SelectItem>
-                <SelectItem value="PAID">
-                  {t("fm.invoices.paid", "Paid")}
-                </SelectItem>
-                <SelectItem value="OVERDUE">
-                  {t("fm.invoices.overdue", "Overdue")}
-                </SelectItem>
-                <SelectItem value="CANCELLED">
-                  {t("fm.invoices.cancelled", "Cancelled")}
-                </SelectItem>
-              </SelectContent>
+              <SelectItem value="">
+                {t("common.all", "All Status")}
+              </SelectItem>
+              <SelectItem value="DRAFT">
+                {t("fm.invoices.draft", "Draft")}
+              </SelectItem>
+              <SelectItem value="SENT">
+                {t("fm.invoices.sent", "Sent")}
+              </SelectItem>
+              <SelectItem value="VIEWED">
+                {t("fm.invoices.viewed", "Viewed")}
+              </SelectItem>
+              <SelectItem value="APPROVED">
+                {t("fm.vendors.approved", "Approved")}
+              </SelectItem>
+              <SelectItem value="PAID">
+                {t("fm.invoices.paid", "Paid")}
+              </SelectItem>
+              <SelectItem value="OVERDUE">
+                {t("fm.invoices.overdue", "Overdue")}
+              </SelectItem>
+              <SelectItem value="CANCELLED">
+                {t("fm.invoices.cancelled", "Cancelled")}
+              </SelectItem>
             </Select>
             <Select
               value={typeFilter}
@@ -391,26 +387,24 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
               placeholder={t("fm.properties.type", "Type")}
               className="w-48"
             >
-              <SelectContent>
-                <SelectItem value="">
-                  {t("fm.properties.allTypes", "All Types")}
-                </SelectItem>
-                <SelectItem value="SALES">
-                  {t("fm.invoices.sales", "Sales")}
-                </SelectItem>
-                <SelectItem value="PURCHASE">
-                  {t("fm.invoices.purchase", "Purchase")}
-                </SelectItem>
-                <SelectItem value="RENTAL">
-                  {t("fm.invoices.rental", "Rental")}
-                </SelectItem>
-                <SelectItem value="SERVICE">
-                  {t("fm.invoices.service", "Service")}
-                </SelectItem>
-                <SelectItem value="MAINTENANCE">
-                  {t("fm.invoices.maintenance", "Maintenance")}
-                </SelectItem>
-              </SelectContent>
+              <SelectItem value="">
+                {t("fm.properties.allTypes", "All Types")}
+              </SelectItem>
+              <SelectItem value="SALES">
+                {t("fm.invoices.sales", "Sales")}
+              </SelectItem>
+              <SelectItem value="PURCHASE">
+                {t("fm.invoices.purchase", "Purchase")}
+              </SelectItem>
+              <SelectItem value="RENTAL">
+                {t("fm.invoices.rental", "Rental")}
+              </SelectItem>
+              <SelectItem value="SERVICE">
+                {t("fm.invoices.service", "Service")}
+              </SelectItem>
+              <SelectItem value="MAINTENANCE">
+                {t("fm.invoices.maintenance", "Maintenance")}
+              </SelectItem>
             </Select>
           </div>
         </CardContent>
@@ -875,25 +869,23 @@ function CreateInvoiceForm({
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder="Select invoice type"
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SALES">
-                {t("fm.invoices.sales", "Sales")}
-              </SelectItem>
-              <SelectItem value="PURCHASE">
-                {t("fm.invoices.purchase", "Purchase")}
-              </SelectItem>
-              <SelectItem value="RENTAL">
-                {t("fm.invoices.rental", "Rental")}
-              </SelectItem>
-              <SelectItem value="SERVICE">
-                {t("fm.invoices.service", "Service")}
-              </SelectItem>
-              <SelectItem value="MAINTENANCE">
-                {t("fm.invoices.maintenance", "Maintenance")}
-              </SelectItem>
-            </SelectContent>
+            <SelectItem value="SALES">
+              {t("fm.invoices.sales", "Sales")}
+            </SelectItem>
+            <SelectItem value="PURCHASE">
+              {t("fm.invoices.purchase", "Purchase")}
+            </SelectItem>
+            <SelectItem value="RENTAL">
+              {t("fm.invoices.rental", "Rental")}
+            </SelectItem>
+            <SelectItem value="SERVICE">
+              {t("fm.invoices.service", "Service")}
+            </SelectItem>
+            <SelectItem value="MAINTENANCE">
+              {t("fm.invoices.maintenance", "Maintenance")}
+            </SelectItem>
           </Select>
         </div>
         <div>
@@ -906,14 +898,12 @@ function CreateInvoiceForm({
               setFormData({ ...formData, currency: value })
             }
             placeholder="Select currency"
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SAR">SAR</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="EUR">EUR</SelectItem>
-              <SelectItem value="AED">AED</SelectItem>
-            </SelectContent>
+            <SelectItem value="SAR">SAR</SelectItem>
+            <SelectItem value="USD">USD</SelectItem>
+            <SelectItem value="EUR">EUR</SelectItem>
+            <SelectItem value="AED">AED</SelectItem>
           </Select>
         </div>
       </div>

@@ -13,9 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   Search,
@@ -316,24 +314,20 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={handleStatusFilterChange} className="w-40">
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                {t("common.all", "All Status")}
-              </SelectItem>
-              <SelectItem value="active">
-                {t("status.active", "Active")}
-              </SelectItem>
-              <SelectItem value="pending">
-                {t("status.pending", "Pending")}
-              </SelectItem>
-              <SelectItem value="open">{t("status.open", "Open")}</SelectItem>
-              <SelectItem value="draft">
-                {t("status.draft", "Draft")}
-              </SelectItem>
-            </SelectContent>
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange} placeholder={t("common.all", "All Status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <SelectItem value="all">
+              {t("common.all", "All Status")}
+            </SelectItem>
+            <SelectItem value="active">
+              {t("status.active", "Active")}
+            </SelectItem>
+            <SelectItem value="pending">
+              {t("status.pending", "Pending")}
+            </SelectItem>
+            <SelectItem value="open">{t("status.open", "Open")}</SelectItem>
+            <SelectItem value="draft">
+              {t("status.draft", "Draft")}
+            </SelectItem>
           </Select>
           <Button
             variant="outline"

@@ -17,9 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -186,23 +184,19 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")} className="w-48">
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {t("fm.properties.allTypes", "All Types")}
-                </SelectItem>
-                <SelectItem value="INDIVIDUAL">
-                  {t("fm.tenants.individual", "Individual")}
-                </SelectItem>
-                <SelectItem value="COMPANY">
-                  {t("fm.tenants.company", "Company")}
-                </SelectItem>
-                <SelectItem value="GOVERNMENT">
-                  {t("fm.tenants.government", "Government")}
-                </SelectItem>
-              </SelectContent>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectItem value="">
+                {t("fm.properties.allTypes", "All Types")}
+              </SelectItem>
+              <SelectItem value="INDIVIDUAL">
+                {t("fm.tenants.individual", "Individual")}
+              </SelectItem>
+              <SelectItem value="COMPANY">
+                {t("fm.tenants.company", "Company")}
+              </SelectItem>
+              <SelectItem value="GOVERNMENT">
+                {t("fm.tenants.government", "Government")}
+              </SelectItem>
             </Select>
           </div>
         </CardContent>

@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-01-05T12:59:22+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-05-122304.json",
+  "current": "docs/artifacts/todo-scan-2026-01-05-125922.json",
+  "summary": {
+    "added": 0,
+    "resolved": 0,
+    "current": 2519,
+    "baseline": 2519
+  },
+  "fileChanges": []
+}

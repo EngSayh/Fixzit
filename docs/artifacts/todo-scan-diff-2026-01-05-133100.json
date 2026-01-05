@@ -1,0 +1,457 @@
+{
+  "generatedAt": "2026-01-05T13:31:00+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-05-125922.json",
+  "current": "docs/artifacts/todo-scan-2026-01-05-133100.json",
+  "summary": {
+    "added": 80,
+    "resolved": 4,
+    "current": 2595,
+    "baseline": 2519
+  },
+  "fileChanges": [
+    {
+      "file": ".\\app\\superadmin\\issues\\page.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "todo-marker-app-superadmin-issues-page-tsx-l1037",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\issues\\page.tsx:1037",
+          "location": ".\\app\\superadmin\\issues\\page.tsx:1037"
+        },
+        {
+          "key": "todo-marker-app-superadmin-issues-page-tsx-l1050",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\issues\\page.tsx:1050",
+          "location": ".\\app\\superadmin\\issues\\page.tsx:1050"
+        },
+        {
+          "key": "todo-marker-app-superadmin-issues-page-tsx-l1063",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\issues\\page.tsx:1063",
+          "location": ".\\app\\superadmin\\issues\\page.tsx:1063"
+        }
+      ]
+    },
+    {
+      "file": ".\\lib\\qa\\sanitize.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "todo-marker-lib-qa-sanitize-ts-l78",
+          "title": "Marker 'xxx' in .\\lib\\qa\\sanitize.ts:78",
+          "location": ".\\lib\\qa\\sanitize.ts:78"
+        }
+      ]
+    },
+    {
+      "file": ".\\scripts\\import-todo-scan.js",
+      "added": [
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l2",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:2",
+          "location": ".\\scripts\\import-todo-scan.js:2"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l6",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:6",
+          "location": ".\\scripts\\import-todo-scan.js:6"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l13",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:13",
+          "location": ".\\scripts\\import-todo-scan.js:13"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l26",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:26",
+          "location": ".\\scripts\\import-todo-scan.js:26"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l27",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:27",
+          "location": ".\\scripts\\import-todo-scan.js:27"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l41",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:41",
+          "location": ".\\scripts\\import-todo-scan.js:41"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l42",
+          "title": "Marker 'stub' in .\\scripts\\import-todo-scan.js:42",
+          "location": ".\\scripts\\import-todo-scan.js:42"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l55",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:55",
+          "location": ".\\scripts\\import-todo-scan.js:55"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l56",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:56",
+          "location": ".\\scripts\\import-todo-scan.js:56"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l70",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:70",
+          "location": ".\\scripts\\import-todo-scan.js:70"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l84",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:84",
+          "location": ".\\scripts\\import-todo-scan.js:84"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l93",
+          "title": "Marker 'stub' in .\\scripts\\import-todo-scan.js:93",
+          "location": ".\\scripts\\import-todo-scan.js:93"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l112",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:112",
+          "location": ".\\scripts\\import-todo-scan.js:112"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l113",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:113",
+          "location": ".\\scripts\\import-todo-scan.js:113"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l126",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:126",
+          "location": ".\\scripts\\import-todo-scan.js:126"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l127",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:127",
+          "location": ".\\scripts\\import-todo-scan.js:127"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l140",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:140",
+          "location": ".\\scripts\\import-todo-scan.js:140"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l141",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:141",
+          "location": ".\\scripts\\import-todo-scan.js:141"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l154",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:154",
+          "location": ".\\scripts\\import-todo-scan.js:154"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l155",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:155",
+          "location": ".\\scripts\\import-todo-scan.js:155"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l168",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:168",
+          "location": ".\\scripts\\import-todo-scan.js:168"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l169",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:169",
+          "location": ".\\scripts\\import-todo-scan.js:169"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l183",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:183",
+          "location": ".\\scripts\\import-todo-scan.js:183"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l197",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:197",
+          "location": ".\\scripts\\import-todo-scan.js:197"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l198",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:198",
+          "location": ".\\scripts\\import-todo-scan.js:198"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l211",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:211",
+          "location": ".\\scripts\\import-todo-scan.js:211"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l212",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:212",
+          "location": ".\\scripts\\import-todo-scan.js:212"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l225",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:225",
+          "location": ".\\scripts\\import-todo-scan.js:225"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l226",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:226",
+          "location": ".\\scripts\\import-todo-scan.js:226"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l239",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:239",
+          "location": ".\\scripts\\import-todo-scan.js:239"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l249",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:249",
+          "location": ".\\scripts\\import-todo-scan.js:249"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l255",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:255",
+          "location": ".\\scripts\\import-todo-scan.js:255"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l256",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:256",
+          "location": ".\\scripts\\import-todo-scan.js:256"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l270",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:270",
+          "location": ".\\scripts\\import-todo-scan.js:270"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l271",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:271",
+          "location": ".\\scripts\\import-todo-scan.js:271"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l284",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:284",
+          "location": ".\\scripts\\import-todo-scan.js:284"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l285",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:285",
+          "location": ".\\scripts\\import-todo-scan.js:285"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l312",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:312",
+          "location": ".\\scripts\\import-todo-scan.js:312"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l313",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:313",
+          "location": ".\\scripts\\import-todo-scan.js:313"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l326",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:326",
+          "location": ".\\scripts\\import-todo-scan.js:326"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l327",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:327",
+          "location": ".\\scripts\\import-todo-scan.js:327"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l341",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:341",
+          "location": ".\\scripts\\import-todo-scan.js:341"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l342",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:342",
+          "location": ".\\scripts\\import-todo-scan.js:342"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l355",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:355",
+          "location": ".\\scripts\\import-todo-scan.js:355"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l356",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:356",
+          "location": ".\\scripts\\import-todo-scan.js:356"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l369",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:369",
+          "location": ".\\scripts\\import-todo-scan.js:369"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l370",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:370",
+          "location": ".\\scripts\\import-todo-scan.js:370"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l384",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:384",
+          "location": ".\\scripts\\import-todo-scan.js:384"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l398",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:398",
+          "location": ".\\scripts\\import-todo-scan.js:398"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l399",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:399",
+          "location": ".\\scripts\\import-todo-scan.js:399"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l405",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:405",
+          "location": ".\\scripts\\import-todo-scan.js:405"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l406",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:406",
+          "location": ".\\scripts\\import-todo-scan.js:406"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l408",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:408",
+          "location": ".\\scripts\\import-todo-scan.js:408"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l412",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:412",
+          "location": ".\\scripts\\import-todo-scan.js:412"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l413",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:413",
+          "location": ".\\scripts\\import-todo-scan.js:413"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l419",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:419",
+          "location": ".\\scripts\\import-todo-scan.js:419"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l426",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:426",
+          "location": ".\\scripts\\import-todo-scan.js:426"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l427",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:427",
+          "location": ".\\scripts\\import-todo-scan.js:427"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l433",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:433",
+          "location": ".\\scripts\\import-todo-scan.js:433"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l434",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:434",
+          "location": ".\\scripts\\import-todo-scan.js:434"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l436",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:436",
+          "location": ".\\scripts\\import-todo-scan.js:436"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l440",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:440",
+          "location": ".\\scripts\\import-todo-scan.js:440"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l441",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:441",
+          "location": ".\\scripts\\import-todo-scan.js:441"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l447",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:447",
+          "location": ".\\scripts\\import-todo-scan.js:447"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l450",
+          "title": "Marker 'tbd' in .\\scripts\\import-todo-scan.js:450",
+          "location": ".\\scripts\\import-todo-scan.js:450"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l470",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:470",
+          "location": ".\\scripts\\import-todo-scan.js:470"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l483",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:483",
+          "location": ".\\scripts\\import-todo-scan.js:483"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l484",
+          "title": "Marker 'not implemented' in .\\scripts\\import-todo-scan.js:484",
+          "location": ".\\scripts\\import-todo-scan.js:484"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l497",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:497",
+          "location": ".\\scripts\\import-todo-scan.js:497"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l498",
+          "title": "Marker 'placeholder' in .\\scripts\\import-todo-scan.js:498",
+          "location": ".\\scripts\\import-todo-scan.js:498"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l525",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:525",
+          "location": ".\\scripts\\import-todo-scan.js:525"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l526",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:526",
+          "location": ".\\scripts\\import-todo-scan.js:526"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l539",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:539",
+          "location": ".\\scripts\\import-todo-scan.js:539"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l540",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:540",
+          "location": ".\\scripts\\import-todo-scan.js:540"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l554",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:554",
+          "location": ".\\scripts\\import-todo-scan.js:554"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l567",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:567",
+          "location": ".\\scripts\\import-todo-scan.js:567"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l568",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:568",
+          "location": ".\\scripts\\import-todo-scan.js:568"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l574",
+          "title": "Marker 'deferred' in .\\scripts\\import-todo-scan.js:574",
+          "location": ".\\scripts\\import-todo-scan.js:574"
+        },
+        {
+          "key": "todo-marker-scripts-import-todo-scan-js-l586",
+          "title": "Marker 'todo' in .\\scripts\\import-todo-scan.js:586",
+          "location": ".\\scripts\\import-todo-scan.js:586"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": ".\\scripts\\ssot-log-commands.ps1",
+      "added": [
+        {
+          "key": "todo-marker-scripts-ssot-log-commands-ps1-l220",
+          "title": "Marker 'not implemented' in .\\scripts\\ssot-log-commands.ps1:220",
+          "location": ".\\scripts\\ssot-log-commands.ps1:220"
+        }
+      ],
+      "resolved": []
+    }
+  ]
+}

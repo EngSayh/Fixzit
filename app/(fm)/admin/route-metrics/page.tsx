@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { toast } from "sonner";
@@ -1156,18 +1154,15 @@ export default function RouteMetricsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto space-y-4">
           <div className="flex flex-wrap gap-3 items-center">
-            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-48">
-              <SelectTrigger></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {auto("All modules", "aliases.filter.all")}
+            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectItem value="all">
+                {auto("All modules", "aliases.filter.all")}
+              </SelectItem>
+              {moduleOptions.map((module) => (
+                <SelectItem key={module} value={module}>
+                  {module}
                 </SelectItem>
-                {moduleOptions.map((module) => (
-                  <SelectItem key={module} value={module}>
-                    {module}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              ))}
             </Select>
             <Input
               value={aliasQuery}

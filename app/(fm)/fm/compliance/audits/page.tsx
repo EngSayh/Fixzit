@@ -11,9 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -266,16 +264,13 @@ export default function ComplianceAuditsPage() {
                 setStatusFilter(value as AuditStatus | "ALL")
               }
               placeholder={auto("All statuses", "filters.status.all")}
+              className="w-full bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_FILTERS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(option.label, option.translationKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {STATUS_FILTERS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {auto(option.label, option.translationKey)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="space-y-2">
@@ -288,16 +283,13 @@ export default function ComplianceAuditsPage() {
                 setRiskFilter(value as AuditRisk | "ALL")
               }
               placeholder={auto("All risk levels", "filters.risk.all")}
+              className="w-full bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {RISK_FILTERS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(option.label, option.translationKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {RISK_FILTERS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {auto(option.label, option.translationKey)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="space-y-2">

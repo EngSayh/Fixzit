@@ -17,12 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -191,39 +186,31 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
               value={typeFilter}
               onValueChange={setTypeFilter}
               placeholder={auto("Asset Type", "filters.type")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Types", "filters.allTypes")}
+              <SelectItem value="">
+                {auto("All Types", "filters.allTypes")}
+              </SelectItem>
+              {ASSET_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
                 </SelectItem>
-                {ASSET_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              ))}
             </Select>
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
               placeholder={auto("Status", "filters.status")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Status", "filters.allStatus")}
+              <SelectItem value="">
+                {auto("All Status", "filters.allStatus")}
+              </SelectItem>
+              {ASSET_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
                 </SelectItem>
-                {ASSET_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              ))}
             </Select>
           </div>
         </CardContent>
@@ -654,20 +641,13 @@ function CreateAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                <SelectTrigger
-                  id="type"
-                  aria-invalid={!!errors.type}
-                  aria-describedby={errors.type ? "type-error" : undefined}
-                >
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {ASSET_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />
@@ -787,16 +767,13 @@ function CreateAssetForm({
               onValueChange={field.onChange}
               disabled={isSubmitting}
               placeholder={auto("Select status", "form.placeholders.status")}
+              className="w-full bg-muted border-input text-foreground"
             >
-              <SelectTrigger id="status">
-              </SelectTrigger>
-              <SelectContent>
-                {ASSET_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {ASSET_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                </SelectItem>
+              ))}
             </Select>
           )}
         />
@@ -818,16 +795,13 @@ function CreateAssetForm({
                 "Select criticality",
                 "form.placeholders.criticality",
               )}
+              className="w-full bg-muted border-input text-foreground"
             >
-              <SelectTrigger id="criticality">
-              </SelectTrigger>
-              <SelectContent>
-                {ASSET_CRITICALITY_LEVELS.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {ASSET_CRITICALITY_LEVELS.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
+                </SelectItem>
+              ))}
             </Select>
           )}
         />
@@ -942,20 +916,13 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                <SelectTrigger
-                  id="edit-type"
-                  aria-invalid={!!errors.type}
-                  aria-describedby={errors.type ? "edit-type-error" : undefined}
-                >
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {ASSET_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />
@@ -998,16 +965,13 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select status", "form.placeholders.status")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                <SelectTrigger id="edit-status">
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {ASSET_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />
@@ -1025,16 +989,13 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select criticality", "form.placeholders.criticality")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                <SelectTrigger id="edit-criticality">
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_CRITICALITY_LEVELS.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {ASSET_CRITICALITY_LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />

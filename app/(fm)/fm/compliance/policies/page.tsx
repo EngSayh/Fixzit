@@ -11,9 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -232,19 +230,16 @@ export default function CompliancePoliciesPage() {
                 setStatusFilter(value as PolicyStatus | "ALL")
               }
               placeholder={auto("All statuses", "filters.status.all")}
+              className="w-full bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(
-                      option.value === "ALL" ? "All statuses" : option.value,
-                      option.key,
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {auto(
+                    option.value === "ALL" ? "All statuses" : option.value,
+                    option.key,
+                  )}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="space-y-2">
@@ -257,22 +252,19 @@ export default function CompliancePoliciesPage() {
                 setCategoryFilter(value as PolicyCategory | "ALL")
               }
               placeholder={auto("All categories", "filters.category.all")}
+              className="w-full bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(
-                      option.value === "ALL"
-                        ? "All categories"
-                        : option.value.charAt(0) +
-                            option.value.slice(1).toLowerCase(),
-                      option.key,
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {CATEGORY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {auto(
+                    option.value === "ALL"
+                      ? "All categories"
+                      : option.value.charAt(0) +
+                          option.value.slice(1).toLowerCase(),
+                    option.key,
+                  )}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="space-y-2">

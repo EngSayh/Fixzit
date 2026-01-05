@@ -18,9 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -185,62 +183,54 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
               value={statusFilter}
               onValueChange={setStatusFilter}
               placeholder={auto("Status", "filters.status")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Status", "filters.allStatus")}
-                </SelectItem>
-                <SelectItem value="DRAFT">
-                  {auto("Draft", "filters.statusOptions.draft")}
-                </SelectItem>
-                <SelectItem value="PUBLISHED">
-                  {auto("Published", "filters.statusOptions.published")}
-                </SelectItem>
-                <SelectItem value="BIDDING">
-                  {auto("Bidding", "filters.statusOptions.bidding")}
-                </SelectItem>
-                <SelectItem value="CLOSED">
-                  {auto("Closed", "filters.statusOptions.closed")}
-                </SelectItem>
-                <SelectItem value="AWARDED">
-                  {auto("Awarded", "filters.statusOptions.awarded")}
-                </SelectItem>
-                <SelectItem value="CANCELLED">
-                  {auto("Cancelled", "filters.statusOptions.cancelled")}
-                </SelectItem>
-              </SelectContent>
+              <SelectItem value="">
+                {auto("All Status", "filters.allStatus")}
+              </SelectItem>
+              <SelectItem value="DRAFT">
+                {auto("Draft", "filters.statusOptions.draft")}
+              </SelectItem>
+              <SelectItem value="PUBLISHED">
+                {auto("Published", "filters.statusOptions.published")}
+              </SelectItem>
+              <SelectItem value="BIDDING">
+                {auto("Bidding", "filters.statusOptions.bidding")}
+              </SelectItem>
+              <SelectItem value="CLOSED">
+                {auto("Closed", "filters.statusOptions.closed")}
+              </SelectItem>
+              <SelectItem value="AWARDED">
+                {auto("Awarded", "filters.statusOptions.awarded")}
+              </SelectItem>
+              <SelectItem value="CANCELLED">
+                {auto("Cancelled", "filters.statusOptions.cancelled")}
+              </SelectItem>
             </Select>
             <Select
               value={categoryFilter}
               onValueChange={setCategoryFilter}
               placeholder={auto("Category", "filters.category")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Categories", "filters.allCategories")}
-                </SelectItem>
-                <SelectItem value="Construction">
-                  {auto("Construction", "filters.categories.construction")}
-                </SelectItem>
-                <SelectItem value="Maintenance">
-                  {auto("Maintenance", "filters.categories.maintenance")}
-                </SelectItem>
-                <SelectItem value="Supplies">
-                  {auto("Supplies", "filters.categories.supplies")}
-                </SelectItem>
-                <SelectItem value="Services">
-                  {auto("Services", "filters.categories.services")}
-                </SelectItem>
-                <SelectItem value="Equipment">
-                  {auto("Equipment", "filters.categories.equipment")}
-                </SelectItem>
-              </SelectContent>
+              <SelectItem value="">
+                {auto("All Categories", "filters.allCategories")}
+              </SelectItem>
+              <SelectItem value="Construction">
+                {auto("Construction", "filters.categories.construction")}
+              </SelectItem>
+              <SelectItem value="Maintenance">
+                {auto("Maintenance", "filters.categories.maintenance")}
+              </SelectItem>
+              <SelectItem value="Supplies">
+                {auto("Supplies", "filters.categories.supplies")}
+              </SelectItem>
+              <SelectItem value="Services">
+                {auto("Services", "filters.categories.services")}
+              </SelectItem>
+              <SelectItem value="Equipment">
+                {auto("Equipment", "filters.categories.equipment")}
+              </SelectItem>
             </Select>
           </div>
         </CardContent>
@@ -672,26 +662,23 @@ function CreateRFQForm({
               "Select category",
               "form.placeholders.category",
             )}
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Construction">
-                {auto("Construction", "form.categories.construction")}
-              </SelectItem>
-              <SelectItem value="Maintenance">
-                {auto("Maintenance", "form.categories.maintenance")}
-              </SelectItem>
-              <SelectItem value="Supplies">
-                {auto("Supplies", "form.categories.supplies")}
-              </SelectItem>
-              <SelectItem value="Services">
-                {auto("Services", "form.categories.services")}
-              </SelectItem>
-              <SelectItem value="Equipment">
-                {auto("Equipment", "form.categories.equipment")}
-              </SelectItem>
-            </SelectContent>
+            <SelectItem value="Construction">
+              {auto("Construction", "form.categories.construction")}
+            </SelectItem>
+            <SelectItem value="Maintenance">
+              {auto("Maintenance", "form.categories.maintenance")}
+            </SelectItem>
+            <SelectItem value="Supplies">
+              {auto("Supplies", "form.categories.supplies")}
+            </SelectItem>
+            <SelectItem value="Services">
+              {auto("Services", "form.categories.services")}
+            </SelectItem>
+            <SelectItem value="Equipment">
+              {auto("Equipment", "form.categories.equipment")}
+            </SelectItem>
           </Select>
         </div>
       </div>

@@ -2,9 +2,7 @@
 
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,15 +45,13 @@ export default function CompensationNotesStep({
               "auto.fm.hr.directory.new.form.compensationType.placeholder",
               "Select compensation type",
             )}
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
-              {lookups.compensationTypes.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
+            {lookups.compensationTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
           </Select>
         </div>
         <div className="space-y-2">

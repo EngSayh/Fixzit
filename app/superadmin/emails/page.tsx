@@ -41,13 +41,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
@@ -488,18 +482,13 @@ export default function EmailTemplatesPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-[120px]">
-          <SelectTrigger>
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="auth">Authentication</SelectItem>
-            <SelectItem value="billing">Billing</SelectItem>
-            <SelectItem value="notifications">Notifications</SelectItem>
-            <SelectItem value="marketing">Marketing</SelectItem>
-            <SelectItem value="system">System</SelectItem>
-          </SelectContent>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
+          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="auth">Authentication</SelectItem>
+          <SelectItem value="billing">Billing</SelectItem>
+          <SelectItem value="notifications">Notifications</SelectItem>
+          <SelectItem value="marketing">Marketing</SelectItem>
+          <SelectItem value="system">System</SelectItem>
         </Select>
       </div>
 

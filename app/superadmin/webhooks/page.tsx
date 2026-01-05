@@ -36,10 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -635,15 +632,12 @@ export default function WebhooksPage() {
                 <Select
                   value={formData.retryPolicy}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, retryPolicy: v as typeof formData.retryPolicy }))}
+                  placeholder="Retry Policy"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Retry</SelectItem>
-                    <SelectItem value="linear">Linear</SelectItem>
-                    <SelectItem value="exponential">Exponential</SelectItem>
-                  </SelectContent>
+                  <SelectItem value="none">No Retry</SelectItem>
+                  <SelectItem value="linear">Linear</SelectItem>
+                  <SelectItem value="exponential">Exponential</SelectItem>
                 </Select>
               </div>
               <div className="space-y-2">

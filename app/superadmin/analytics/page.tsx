@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, Users, 
@@ -120,16 +120,11 @@ export default function SuperadminAnalyticsPage() {
           <p className="text-muted-foreground">System-wide analytics and business intelligence</p>
         </div>
         <div className="flex gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[120px] bg-muted border-input text-foreground">
-              <SelectValue placeholder="Time Range" />
-            </SelectTrigger>
-            <SelectContent className="bg-muted border-input">
-              <SelectItem value="24h">Last 24h</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
+          <Select value={timeRange} onValueChange={setTimeRange} placeholder="Time Range" className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <SelectItem value="24h">Last 24h</SelectItem>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
           </Select>
           <Button variant="outline" size="sm" onClick={fetchAnalytics} disabled={loading} className="border-input text-muted-foreground" aria-label={t("common.refresh", "Refresh analytics data")} title={t("common.refresh", "Refresh analytics data")}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />

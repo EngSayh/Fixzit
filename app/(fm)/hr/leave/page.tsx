@@ -13,8 +13,6 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import {
   Select,
-  SelectTrigger,
-  SelectContent,
   SelectItem,
 } from "@/components/ui/select";
 
@@ -481,19 +479,16 @@ export default function LeavePage() {
                       "hr.leave.form.leaveTypePlaceholder",
                       "Select leave type",
                     )}
+                    className="w-full bg-muted border-input text-foreground"
                   >
-                    <SelectTrigger>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leaveTypes.map((type) => (
-                        <SelectItem key={type._id} value={type._id}>
-                          {type.name} ({type.code})
-                          {typeof type.annualEntitlementDays === "number"
-                            ? ` • ${type.annualEntitlementDays}${t("hr.leave.form.leaveTypeDaysSuffix", "d")}`
-                            : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    {leaveTypes.map((type) => (
+                      <SelectItem key={type._id} value={type._id}>
+                        {type.name} ({type.code})
+                        {typeof type.annualEntitlementDays === "number"
+                          ? ` • ${type.annualEntitlementDays}${t("hr.leave.form.leaveTypeDaysSuffix", "d")}`
+                          : ""}
+                      </SelectItem>
+                    ))}
                   </Select>
                 )}
                 <p className="text-xs text-muted-foreground">

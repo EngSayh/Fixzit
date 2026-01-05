@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   UserPlus,
@@ -362,17 +360,14 @@ export default function SignupPage() {
                   value={formData.userType}
                   onValueChange={(value) => handleChange("userType", value)}
                   placeholder="Select account type"
-                  className="h-10"
+                  className="h-10 w-full bg-muted border-input text-foreground"
                 >
-                  <SelectTrigger></SelectTrigger>
-                  <SelectContent>
-                    {/* ✅ FIXED: Use imported SIGNUP_USER_TYPES with t() for labels */}
-                    {SIGNUP_USER_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {t(type.labelKey)} - {t(type.descriptionKey)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  {/* ✅ FIXED: Use imported SIGNUP_USER_TYPES with t() for labels */}
+                  {SIGNUP_USER_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {t(type.labelKey)} - {t(type.descriptionKey)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
 

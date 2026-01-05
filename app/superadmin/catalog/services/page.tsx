@@ -19,9 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   Table,
@@ -284,38 +282,26 @@ export default function FMServicesCatalogPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px]">
-          <SelectTrigger>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="HVAC">HVAC</SelectItem>
-            <SelectItem value="ELECTRICAL">Electrical</SelectItem>
-            <SelectItem value="PLUMBING">Plumbing</SelectItem>
-            <SelectItem value="CLEANING">Cleaning</SelectItem>
-            <SelectItem value="SECURITY">Security</SelectItem>
-            <SelectItem value="LANDSCAPING">Landscaping</SelectItem>
-            <SelectItem value="PEST_CONTROL">Pest Control</SelectItem>
-          </SelectContent>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
+          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="HVAC">HVAC</SelectItem>
+          <SelectItem value="ELECTRICAL">Electrical</SelectItem>
+          <SelectItem value="PLUMBING">Plumbing</SelectItem>
+          <SelectItem value="CLEANING">Cleaning</SelectItem>
+          <SelectItem value="SECURITY">Security</SelectItem>
+          <SelectItem value="LANDSCAPING">Landscaping</SelectItem>
+          <SelectItem value="PEST_CONTROL">Pest Control</SelectItem>
         </Select>
-        <Select value={modelFilter} onValueChange={setModelFilter} placeholder="Model" className="w-[120px]">
-          <SelectTrigger>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Models</SelectItem>
-            <SelectItem value="B2B">B2B</SelectItem>
-            <SelectItem value="B2C">B2C</SelectItem>
-            <SelectItem value="BOTH">B2B & B2C</SelectItem>
-          </SelectContent>
+        <Select value={modelFilter} onValueChange={setModelFilter} placeholder="Model" className="w-full sm:w-40 bg-muted border-input text-foreground">
+          <SelectItem value="all">All Models</SelectItem>
+          <SelectItem value="B2B">B2B</SelectItem>
+          <SelectItem value="B2C">B2C</SelectItem>
+          <SelectItem value="BOTH">B2B & B2C</SelectItem>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
-          <SelectTrigger>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
+        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="inactive">Inactive</SelectItem>
         </Select>
       </div>
 
