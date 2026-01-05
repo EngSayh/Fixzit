@@ -160,7 +160,7 @@ export default function InviteUserPage() {
                 <Select value={role} onValueChange={setRole} placeholder={auto(
                         "Select a role...",
                         "fields.rolePlaceholder",
-                      )}>
+                      )} className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectTrigger id="role">
                   </SelectTrigger>
                   <SelectContent>

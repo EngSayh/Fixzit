@@ -506,7 +506,7 @@ export function FmPropertiesList({
             <label className="block text-sm font-medium mb-2">
               {t("fm.properties.propertyType", "Property Type")}
             </label>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.properties.allTypes", "All Types")}>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.properties.allTypes", "All Types")} className="w-full sm:w-40 bg-muted border-input text-foreground">
               <SelectTrigger></SelectTrigger>
               <SelectContent>
                 {TYPE_OPTIONS.map((opt) => (
@@ -521,7 +521,7 @@ export function FmPropertiesList({
             <label className="block text-sm font-medium mb-2">
               {t("fm.properties.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("fm.properties.allStatus", "All Status")}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("fm.properties.allStatus", "All Status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
               <SelectTrigger></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (

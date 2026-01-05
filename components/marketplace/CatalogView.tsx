@@ -299,6 +299,7 @@ export default function CatalogView({
               <Select
                 value={category}
                 onValueChange={(value) => setCategory(value)}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectContent>
                   <SelectItem value="">{allCategoriesLabel}</SelectItem>

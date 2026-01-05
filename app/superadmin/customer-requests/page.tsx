@@ -360,6 +360,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.requestType}
                       onValueChange={(v) => setNewRequest({ ...newRequest, requestType: v })}
                       placeholder="Select type..."
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectTrigger>
                       </SelectTrigger>
@@ -396,6 +397,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.severity}
                       onValueChange={(v) => setNewRequest({ ...newRequest, severity: v })}
                       placeholder="Select severity..."
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectTrigger>
                       </SelectTrigger>
@@ -413,6 +415,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.channel}
                       onValueChange={(v) => setNewRequest({ ...newRequest, channel: v })}
                       placeholder="Select channel..."
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectTrigger>
                       </SelectTrigger>

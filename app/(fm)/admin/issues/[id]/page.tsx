@@ -517,7 +517,7 @@ export default function AdminIssueDetailPage({
                 <CardContent className="space-y-4">
                   <div>
                     <Label>Status</Label>
-                    <Select value={status} onValueChange={setStatus} placeholder="Select status">
+                    <Select value={status} onValueChange={setStatus} placeholder="Select status" className="w-full sm:w-40 bg-muted border-input text-foreground">
                       <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {STATUS_OPTIONS.map((opt) => (
@@ -530,7 +530,7 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority">
+                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority" className="w-full sm:w-40 bg-muted border-input text-foreground">
                       <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {PRIORITY_OPTIONS.map((opt) => (
@@ -543,7 +543,7 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Effort</Label>
-                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort">
+                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort" className="w-full sm:w-40 bg-muted border-input text-foreground">
                       <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {EFFORT_OPTIONS.map((opt) => (
@@ -556,7 +556,7 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Category</Label>
-                    <Select value={category} onValueChange={setCategory} placeholder="Select category">
+                    <Select value={category} onValueChange={setCategory} placeholder="Select category" className="w-full sm:w-40 bg-muted border-input text-foreground">
                       <SelectTrigger></SelectTrigger>
                       <SelectContent>
                         {CATEGORY_OPTIONS.map((opt) => (

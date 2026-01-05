@@ -635,6 +635,7 @@ export default function WebhooksPage() {
                 <Select
                   value={formData.retryPolicy}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, retryPolicy: v as typeof formData.retryPolicy }))}
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger>
                     <SelectValue />

@@ -536,7 +536,7 @@ export function FmVendorsList({
             <label className="block text-sm font-medium mb-2">
               {t("vendor.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-40 bg-muted border-input text-foreground">
               <SelectTrigger>
                 <SelectValue placeholder={t("common.all", "All Status")} />
               </SelectTrigger>

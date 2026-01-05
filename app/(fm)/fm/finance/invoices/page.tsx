@@ -875,6 +875,7 @@ function CreateInvoiceForm({
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder="Select invoice type"
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger></SelectTrigger>
             <SelectContent>
@@ -906,6 +907,7 @@ function CreateInvoiceForm({
               setFormData({ ...formData, currency: value })
             }
             placeholder="Select currency"
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger></SelectTrigger>
             <SelectContent>

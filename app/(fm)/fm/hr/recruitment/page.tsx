@@ -333,6 +333,7 @@ export default function AtsJobsPage() {
                 setStatusFilter(value as typeof statusFilter)
               }
               placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>
@@ -353,6 +354,7 @@ export default function AtsJobsPage() {
               value={jobTypeFilter}
               onValueChange={(value) => setJobTypeFilter(value)}
               placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>

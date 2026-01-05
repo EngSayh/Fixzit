@@ -237,7 +237,7 @@ export default function SettingsPage() {
                   <Label htmlFor="language">
                     {t("settings.preferences.language", "Language")}
                   </Label>
-                  <Select defaultValue="ar">
+                <Select defaultValue="ar" className="w-full sm:w-40 bg-muted border-input text-foreground">
                     <SelectTrigger id="language">
                       <SelectValue />
                     </SelectTrigger>
@@ -255,7 +255,7 @@ export default function SettingsPage() {
                   <Label htmlFor="timezone">
                     {t("settings.preferences.timezone", "Timezone")}
                   </Label>
-                  <Select defaultValue="Asia/Riyadh">
+                <Select defaultValue="Asia/Riyadh" className="w-full sm:w-40 bg-muted border-input text-foreground">
                     <SelectTrigger id="timezone">
                       <SelectValue />
                     </SelectTrigger>
@@ -278,8 +278,7 @@ export default function SettingsPage() {
                   </Label>
                   <Select
                     value={currency}
-                    onValueChange={(value) => setCurrency(value as CurrencyCode)}
-                  >
+                    onValueChange={(value) => setCurrency(value as CurrencyCode)}                    className="w-full sm:w-40 bg-muted border-input text-foreground"                  >
                     <SelectTrigger id="currency">
                       <SelectValue />
                     </SelectTrigger>
@@ -302,7 +301,7 @@ export default function SettingsPage() {
                   <Label htmlFor="theme">
                     {t("settings.preferences.theme", "Theme")}
                   </Label>
-                  <Select defaultValue="light">
+                <Select defaultValue="light" className="w-full sm:w-40 bg-muted border-input text-foreground">
                     <SelectTrigger id="theme">
                       <SelectValue />
                     </SelectTrigger>

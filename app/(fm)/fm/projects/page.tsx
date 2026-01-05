@@ -600,6 +600,7 @@ function CreateProjectForm({
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder={auto("Select type", "placeholders.type")}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger>
             </SelectTrigger>

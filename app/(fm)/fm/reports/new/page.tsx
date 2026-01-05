@@ -177,6 +177,7 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                     "fields.typePlaceholder",
                   )}
                   required
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger id="reportType">
                   </SelectTrigger>
@@ -221,6 +222,7 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                       setEndDate("");
                     }
                   }}
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger id="dateRange">
                   </SelectTrigger>
@@ -303,7 +305,7 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                 <Label htmlFor="format">
                   {auto("Output Format", "fields.format")}
                 </Label>
-                <Select value={format} onValueChange={setFormat}>
+                <Select value={format} onValueChange={setFormat} className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectTrigger id="format">
                   </SelectTrigger>
                   <SelectContent>

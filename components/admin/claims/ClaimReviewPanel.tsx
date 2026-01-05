@@ -719,6 +719,7 @@ export default function ClaimReviewPanel() {
                     value={decisionData.outcome}
                     onValueChange={handleOutcomeChange}
                     placeholder="اختر القرار"
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
                     <SelectTrigger></SelectTrigger>
                     <SelectContent>

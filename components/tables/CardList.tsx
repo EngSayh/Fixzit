@@ -190,7 +190,7 @@ export function CardList<TData extends Record<string, unknown>>({
         )}
         
         {sortOptions && sortOptions.length > 0 && (
-          <Select value={currentSort} onValueChange={onSortChange}>
+          <Select value={currentSort} onValueChange={onSortChange} className="w-full sm:w-40 bg-muted border-input text-foreground">
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>

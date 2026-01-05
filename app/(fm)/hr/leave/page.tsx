@@ -481,6 +481,7 @@ export default function LeavePage() {
                       "hr.leave.form.leaveTypePlaceholder",
                       "Select leave type",
                     )}
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
                     <SelectTrigger>
                     </SelectTrigger>

@@ -266,6 +266,7 @@ export default function ComplianceAuditsPage() {
                 setStatusFilter(value as AuditStatus | "ALL")
               }
               placeholder={auto("All statuses", "filters.status.all")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>
@@ -288,6 +289,7 @@ export default function ComplianceAuditsPage() {
                 setRiskFilter(value as AuditRisk | "ALL")
               }
               placeholder={auto("All risk levels", "filters.risk.all")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>

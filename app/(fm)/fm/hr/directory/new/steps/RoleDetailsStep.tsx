@@ -59,6 +59,7 @@ export default function RoleDetailsStep({
             "auto.fm.hr.directory.new.form.department.placeholder",
             "Select department",
           )}
+          className="w-full sm:w-40 bg-muted border-input text-foreground"
         >
           <SelectTrigger>
           </SelectTrigger>
@@ -89,6 +90,7 @@ export default function RoleDetailsStep({
               "auto.fm.hr.directory.new.form.employmentType.placeholder",
               "Select type",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger>
             </SelectTrigger>
@@ -114,6 +116,7 @@ export default function RoleDetailsStep({
               "auto.fm.hr.directory.new.form.workModel.placeholder",
               "Select model",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger>
             </SelectTrigger>

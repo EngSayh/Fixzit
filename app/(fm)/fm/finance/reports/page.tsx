@@ -330,7 +330,7 @@ function CreateReportDialog({
             <label htmlFor="report-type" className="text-sm font-medium">
               {auto("Report Type", "fields.type")}
             </label>
-            <Select value={type} onValueChange={setType} disabled={isSubmitting} placeholder="Select report type">
+            <Select value={type} onValueChange={setType} disabled={isSubmitting} placeholder="Select report type" className="w-full sm:w-40 bg-muted border-input text-foreground">
               <SelectTrigger id="report-type"></SelectTrigger>
               <SelectContent>
                 {reportTypes.map((rt) => (
@@ -346,7 +346,7 @@ function CreateReportDialog({
             <label htmlFor="report-format" className="text-sm font-medium">
               {auto("Format", "fields.format")}
             </label>
-            <Select value={format} onValueChange={setFormat} disabled={isSubmitting} placeholder="Select format">
+            <Select value={format} onValueChange={setFormat} disabled={isSubmitting} placeholder="Select format" className="w-full sm:w-40 bg-muted border-input text-foreground">
               <SelectTrigger id="report-format"></SelectTrigger>
               <SelectContent>
                 {formats.map((f) => (

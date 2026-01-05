@@ -348,6 +348,7 @@ export function SetupWizard() {
                     setDefaults({ ...defaults, language: value })
                   }
                   placeholder="Select language"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger id="language">
                   </SelectTrigger>
@@ -366,6 +367,7 @@ export function SetupWizard() {
                     setDefaults({ ...defaults, currency: value })
                   }
                   placeholder="Select currency"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger id="currency">
                   </SelectTrigger>
@@ -386,6 +388,7 @@ export function SetupWizard() {
                     setDefaults({ ...defaults, timezone: value })
                   }
                   placeholder="Select timezone"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger id="timezone">
                   </SelectTrigger>

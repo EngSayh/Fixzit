@@ -211,6 +211,7 @@ function QuotaEditDialog({
                 applyPlanDefaults(v);
               }}
               placeholder="Select plan"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>

@@ -227,6 +227,7 @@ function NewEscalationContent({
                   onValueChange={(value: string) =>
                     updateField("severity", value as SeverityOption)
                   }
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger>
                   </SelectTrigger>
@@ -460,6 +461,7 @@ function NewEscalationContent({
                 onValueChange={(value: string) =>
                   updateField("preferredChannel", value as ChannelOption)
                 }
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectTrigger>
                 </SelectTrigger>

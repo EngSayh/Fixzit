@@ -672,6 +672,7 @@ function CreateRFQForm({
               "Select category",
               "form.placeholders.category",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger>
             </SelectTrigger>

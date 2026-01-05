@@ -338,7 +338,7 @@ export default function EditVendorPage() {
                 <Label htmlFor="status">
                   {auto("Status *", "form.labels.status")}
                 </Label>
-                <Select name="status" defaultValue={vendor.status}>
+                <Select name="status" defaultValue={vendor.status} className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectContent>
                     <SelectItem value="PENDING">
                       {auto("Pending", "form.status.pending")}

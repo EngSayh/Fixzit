@@ -654,6 +654,7 @@ function CreateAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectTrigger
                   id="type"
@@ -787,6 +788,7 @@ function CreateAssetForm({
               onValueChange={field.onChange}
               disabled={isSubmitting}
               placeholder={auto("Select status", "form.placeholders.status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger id="status">
               </SelectTrigger>
@@ -818,6 +820,7 @@ function CreateAssetForm({
                 "Select criticality",
                 "form.placeholders.criticality",
               )}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger id="criticality">
               </SelectTrigger>
@@ -942,6 +945,7 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectTrigger
                   id="edit-type"
@@ -998,6 +1002,7 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select status", "form.placeholders.status")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectTrigger id="edit-status">
                 </SelectTrigger>
@@ -1025,6 +1030,7 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select criticality", "form.placeholders.criticality")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectTrigger id="edit-criticality">
                 </SelectTrigger>

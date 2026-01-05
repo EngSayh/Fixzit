@@ -232,6 +232,7 @@ export default function CompliancePoliciesPage() {
                 setStatusFilter(value as PolicyStatus | "ALL")
               }
               placeholder={auto("All statuses", "filters.status.all")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>
@@ -257,6 +258,7 @@ export default function CompliancePoliciesPage() {
                 setCategoryFilter(value as PolicyCategory | "ALL")
               }
               placeholder={auto("All categories", "filters.category.all")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectTrigger>
               </SelectTrigger>

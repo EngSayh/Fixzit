@@ -148,6 +148,7 @@ export default function NewSchedulePage() {
                     "fields.typePlaceholder",
                   )}
                   required
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectTrigger id="reportType">
                   </SelectTrigger>
@@ -182,7 +183,7 @@ export default function NewSchedulePage() {
                   <Calendar className="w-4 h-4" />
                   {auto("Frequency", "fields.frequency")}
                 </Label>
-                <Select value={frequency} onValueChange={setFrequency}>
+                <Select value={frequency} onValueChange={setFrequency} className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectTrigger id="frequency">
                   </SelectTrigger>
                   <SelectContent>
@@ -212,7 +213,7 @@ export default function NewSchedulePage() {
                 <Label htmlFor="format">
                   {auto("Output Format", "fields.format")}
                 </Label>
-                <Select value={format} onValueChange={setFormat}>
+                <Select value={format} onValueChange={setFormat} className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectTrigger id="format">
                   </SelectTrigger>
                   <SelectContent>

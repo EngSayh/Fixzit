@@ -186,6 +186,7 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder={t("fm.properties.selectType", "Select type")}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectTrigger>
             </SelectTrigger>

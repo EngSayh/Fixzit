@@ -846,7 +846,7 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update subscription status");
                         }
                       }}
-                      className="bg-muted border-input"
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectTrigger>
                         <span className="capitalize">{selectedSubscription.status.replace("_", " ")}</span>
@@ -884,7 +884,7 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update billing cycle");
                         }
                       }}
-                      className="bg-muted border-input"
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectTrigger>
                         <span className="capitalize">{selectedSubscription.billingCycle}</span>
