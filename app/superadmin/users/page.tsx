@@ -1353,7 +1353,7 @@ export default function SuperadminUsersPage() {
                 value={createUserForm.role}
                 onValueChange={(value) => setCreateUserForm((prev) => ({ ...prev, role: value as UserRoleType }))}
                 placeholder={t("superadmin.users.selectRole", "Select a role")}
-                className="bg-muted border-input"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {CANONICAL_ROLES.map((role) => (
                   <SelectItem key={role} value={role}>
@@ -1369,7 +1369,7 @@ export default function SuperadminUsersPage() {
                 value={createUserForm.orgId}
                 onValueChange={(value) => setCreateUserForm((prev) => ({ ...prev, orgId: value }))}
                 placeholder={t("superadmin.users.selectOrg", "Select organization (optional)")}
-                className="bg-muted border-input"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectItem value="">{t("superadmin.users.noOrg", "No organization")}</SelectItem>
                 {organizations.map((org) => (
@@ -1444,7 +1444,7 @@ export default function SuperadminUsersPage() {
                 value={newRole}
                 onValueChange={(value) => setNewRole(value as UserRoleType)}
                 placeholder={t("superadmin.users.selectRole", "Select a role")}
-                className="bg-muted border-input"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {CANONICAL_ROLES.map((role) => (
                   <SelectItem key={role} value={role}>
