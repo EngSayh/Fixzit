@@ -19,62 +19,72 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
-### 2026-01-05 (Asia/Riyadh) — BUILD VERIFICATION & SCAN AUDIT [AGENT-0022]
+### 2026-01-05 (Asia/Riyadh) — DEEP SCAN ANALYSIS & ISSUE TRIAGE [AGENT-0022]
 
 **Agent Token:** [AGENT-0022]  
 **Branch:** `fix/dropdown-width-standardization`  
-**Commits ahead of main:** 35
+**Commits ahead of main:** 36
+**Scan Artifact:** `incomplete-code-scan-2026-01-04-141722.json`
 
-#### Verification Results
+#### Build Verification (Re-confirmed)
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| `pnpm typecheck` | ✅ PASSED | 0 errors (previously reported apartmentSearch.ts issues resolved) |
-| `pnpm lint` | ✅ PASSED | 0 errors (previously reported offline-cache-service.ts issue resolved) |
-| Git preflight | ✅ 0 behind | 35 commits ahead of origin/main |
+| `pnpm typecheck` | ✅ PASSED | 0 errors |
+| `pnpm lint` | ✅ PASSED | 0 errors |
+| Git preflight | ✅ 0 behind | 36 commits ahead |
 
-#### Scan Artifacts Reviewed (User Provided)
+#### 18 Curated Issues - Full Triage
 
-| Artifact | Issues | Status |
-|----------|--------|--------|
-| incomplete-code-scan-2026-01-04 | 18 curated issues | UNCHANGED from prior scan |
-| todo-scan-2026-01-04 | 2500 markers | NET-ZERO change (line shifts only) |
+##### 🔴 P1/P2 Issues (Blocked - External Dependencies)
 
-#### Curated 501 Endpoints Summary (18 Total)
+| # | Priority | File | Issue | Status | Blocker |
+|---|----------|------|-------|--------|---------|
+| 1 | **P1** | `server/services/onboardingEntities.ts:116` | ZATCA/Ejar integration stubs | **BLOCKED** | Requires ZATCA API credentials + Ejar API contract |
+| 2 | **P2** | `app/api/support/welcome-email/route.ts:78` | Returns 501 when SendGrid missing | **DESIGN** | Correct behavior - clear error message provided |
 
-These are intentional "Not Implemented" responses for disabled/unconfigured features:
+##### 🟡 501 Feature Gates (15 issues - Design Decisions, Not Bugs)
 
-| Module | Count | Examples |
+| Module | Files | Behavior | Assessment |
+|--------|-------|----------|------------|
+| **Storage (S3)** | `upload/presigned-url`, `scan`, `verify-metadata`, `resumes/presign`, `work-orders/attachments/presign` | Returns `S3NotConfiguredError` with 501 | ✅ Correct - env vars not set |
+| **ATS** | `feeds/linkedin`, `feeds/indeed`, `integrations/linkedin/apply`, `ats/public-post` | Returns 501 when `ATS_ENABLED` not set | ✅ Correct - feature flag |
+| **Marketplace** | `marketplace/products`, `marketplace/categories` | Returns 501 when `MARKETPLACE_ENABLED` not set | ✅ Correct - feature flag |
+| **Billing** | `billing/charge-recurring` | Returns 501 (deprecated endpoint) | ✅ Correct - intentionally deprecated |
+| **GraphQL** | `lib/graphql/index.ts` | Returns 501 when graphql-yoga not installed | ✅ Correct - optional dependency |
+| **Onboarding** | `onboarding/[caseId]/documents/request-upload` | Returns 501 when storage not configured | ✅ Correct - depends on S3 |
+
+##### 🟢 Future Features (Not Bugs)
+
+| File | Issue | Status |
+|------|-------|--------|
+| `lib/buildingModel.ts:471` | AI building model using LLM | Planned Q2 2026 |
+| `vitest.config.ts:140` | Static import migration | Roadmap item |
+
+#### Conclusion
+
+**No code changes required.** All 18 issues are either:
+1. **BLOCKED** by external dependencies (ZATCA/Ejar APIs, SendGrid credentials)
+2. **DESIGN DECISIONS** - 501 responses for unconfigured features are correct
+3. **FUTURE FEATURES** - planned for Q2 2026
+
+#### Recommended Actions (For Platform Team)
+
+| Action | Owner | Priority |
 |--------|-------|----------|
-| Storage (S3) | 5 | Presign, scan, verify when S3 not configured |
-| ATS | 4 | LinkedIn, Indeed feeds when ATS disabled |
-| Onboarding | 2 | Document integrations stub |
-| Marketplace | 2 | Category/product endpoints when disabled |
-| Other | 5 | Recurring billing, SendGrid, GraphQL stubs |
+| Configure SendGrid/SES for email | DevOps | P2 |
+| Configure S3 bucket for file uploads | DevOps | P2 |
+| Obtain ZATCA API credentials | Business | P1 |
+| Obtain Ejar API contract | Business | P1 |
+| Enable ATS feature flag (`ATS_ENABLED=true`) | DevOps | P3 |
+| Enable Marketplace feature flag | DevOps | P3 |
 
-**Assessment:** These are **design decisions** (feature flags), not bugs. Each returns 501 with appropriate messaging when the feature is disabled or external service not configured. No code changes required.
+#### SSOT Import (Pending CSRF Fix)
 
-#### Broad TODO/Marker Scan (2500 markers)
-
-| Category | Count |
-|----------|-------|
-| `pending` | 1215 |
-| `placeholder` | 1049 |
-| `todo` | 69 |
-| `stub` | 59 |
-| `xxx` | 40 |
-| `feature` | 1132 |
-| `refactor` | 1357 |
-| `bug/fixme` | 11 |
-
-**Assessment:** Technical debt backlog. The 11 bug/fixme markers should be prioritized. Others are documentation/enhancement work.
-
-#### SSOT Status
-
-- CSRF/ISSUE_API_TOKEN issue noted by user - requires platform team to resolve before import
-- Import commands prepared:
-  - `pnpm issue-log import docs/artifacts/incomplete-code-scan-import-2026-01-04-141722.json`
-  - `pnpm issue-log import docs/artifacts/todo-scan-import-2026-01-04-141906.json`
+```bash
+pnpm issue-log import docs/artifacts/incomplete-code-scan-import-2026-01-04-141722.json
+pnpm issue-log import docs/artifacts/todo-scan-import-2026-01-04-141906.json
+```
 
 ---
 
