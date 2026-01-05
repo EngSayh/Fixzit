@@ -300,6 +300,7 @@ export default function ClaimForm({
               value={claimType}
               onValueChange={setClaimType}
               placeholder="اختر نوع المشكلة (Select problem type)"
+              className="w-full bg-muted border-input text-foreground"
             >
               {CLAIM_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
