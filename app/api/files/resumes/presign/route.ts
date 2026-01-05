@@ -49,12 +49,12 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Missing organization context" }, 400, req);
     }
     
-    // Check S3 configuration
+    // Check S3 configuration (returns 503 if not configured)
     try {
       assertS3Configured();
     } catch (error) {
       if (error instanceof S3NotConfiguredError) {
-        return createSecureResponse(error.toJSON(), 501, req);
+        return createSecureResponse(error.toJSON(), 503, req);
       }
       throw error;
     }
