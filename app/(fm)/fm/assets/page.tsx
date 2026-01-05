@@ -641,6 +641,7 @@ function CreateAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {ASSET_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
@@ -766,6 +767,7 @@ function CreateAssetForm({
               onValueChange={field.onChange}
               disabled={isSubmitting}
               placeholder={auto("Select status", "form.placeholders.status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
                 {ASSET_STATUSES.map((status) => (
                   <SelectItem key={status} value={status}>
@@ -793,6 +795,7 @@ function CreateAssetForm({
                 "Select criticality",
                 "form.placeholders.criticality",
               )}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
                 {ASSET_CRITICALITY_LEVELS.map((level) => (
                   <SelectItem key={level} value={level}>
@@ -913,6 +916,7 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {ASSET_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
@@ -961,6 +965,7 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select status", "form.placeholders.status")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {ASSET_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
@@ -984,6 +989,7 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select criticality", "form.placeholders.criticality")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {ASSET_CRITICALITY_LEVELS.map((level) => (
                     <SelectItem key={level} value={level}>

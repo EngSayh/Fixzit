@@ -253,6 +253,7 @@ export default function AttendancePage() {
               value={selectedEmployee}
               onValueChange={(value) => setSelectedEmployee(value)}
               placeholder={t("hr.attendance.selectPlaceholder", "Choose employee")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
                 {employees.map((employee) => (
                   <SelectItem key={employee._id} value={employee._id}>
@@ -297,6 +298,7 @@ export default function AttendancePage() {
                   setStatusFilter(value as AttendanceStatus | "ALL")
                 }
                 placeholder={t("hr.attendance.filters.status", "Status")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
@@ -317,6 +319,7 @@ export default function AttendancePage() {
                   )
                 }
                 placeholder={t("hr.attendance.filters.source", "Source")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {sourceOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>

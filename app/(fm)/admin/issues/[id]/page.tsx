@@ -34,7 +34,12 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -512,42 +517,54 @@ export default function AdminIssueDetailPage({
                 <CardContent className="space-y-4">
                   <div>
                     <Label>Status</Label>
-                    <Select value={status} onValueChange={setStatus} placeholder="Select status" className="bg-muted border-input text-foreground">
+                    <Select value={status} onValueChange={setStatus} placeholder="Select status" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                      <SelectTrigger></SelectTrigger>
+                      <SelectContent>
                         {STATUS_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
                         ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority" className="bg-muted border-input text-foreground">
+                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                      <SelectTrigger></SelectTrigger>
+                      <SelectContent>
                         {PRIORITY_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value} className={opt.color}>
                             {opt.label}
                           </SelectItem>
                         ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label>Effort</Label>
-                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort" className="bg-muted border-input text-foreground">
+                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                      <SelectTrigger></SelectTrigger>
+                      <SelectContent>
                         {EFFORT_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
                         ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label>Category</Label>
-                    <Select value={category} onValueChange={setCategory} placeholder="Select category" className="bg-muted border-input text-foreground">
+                    <Select value={category} onValueChange={setCategory} placeholder="Select category" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                      <SelectTrigger></SelectTrigger>
+                      <SelectContent>
                         {CATEGORY_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
                         ))}
+                      </SelectContent>
                     </Select>
                   </div>
                 </CardContent>

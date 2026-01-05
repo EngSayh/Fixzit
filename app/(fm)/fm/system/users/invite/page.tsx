@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
@@ -155,7 +160,10 @@ export default function InviteUserPage() {
                 <Select value={role} onValueChange={setRole} placeholder={auto(
                         "Select a role...",
                         "fields.rolePlaceholder",
-                      )} className="bg-muted border-input text-foreground">
+                      )} className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <SelectTrigger id="role">
+                  </SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="admin">
                       {auto("Administrator", "roles.admin")}
                     </SelectItem>
@@ -168,6 +176,7 @@ export default function InviteUserPage() {
                     <SelectItem value="viewer">
                       {auto("Viewer", "roles.viewer")}
                     </SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 

@@ -222,6 +222,7 @@ function NewEscalationContent({
                   onValueChange={(value: string) =>
                     updateField("severity", value as SeverityOption)
                   }
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                     {SEVERITIES.map((option) => (
                       <SelectItem key={option} value={option}>
@@ -451,6 +452,7 @@ function NewEscalationContent({
                 onValueChange={(value: string) =>
                   updateField("preferredChannel", value as ChannelOption)
                 }
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                   {CHANNELS.map((option) => (
                     <SelectItem key={option} value={option}>

@@ -503,6 +503,7 @@ export default function OnboardingWizard({
             value={basicInfo.country}
             onValueChange={(value) => setBasicInfo((prev) => ({ ...prev, country: value }))}
             placeholder={t("onboarding.selectCountry", "Select country")}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
             <SelectItem value="SA">{isRTL ? "المملكة العربية السعودية" : "Saudi Arabia"}</SelectItem>
             <SelectItem value="AE">{isRTL ? "الإمارات العربية المتحدة" : "UAE"}</SelectItem>

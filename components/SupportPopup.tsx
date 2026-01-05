@@ -551,6 +551,7 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
                 value={moduleKey}
                 onValueChange={setModule}
                 placeholder={t("support.modulePlaceholder", "Select module")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {MODULES.map((m) => (
                   <SelectItem key={m} value={m}>
@@ -575,6 +576,7 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
                   "support.categoryPlaceholder",
                   "Select category",
                 )}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {CATEGORIES.map((c) => (
                   <SelectItem key={c} value={c}>
@@ -595,6 +597,7 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
                   "support.subCategoryPlaceholder",
                   "Select sub-category",
                 )}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {(SUB_CATEGORIES[category] || []).map((s) => (
                   <SelectItem key={s} value={s}>
@@ -614,6 +617,7 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
                 value={type}
                 onValueChange={setType}
                 placeholder={t("support.typePlaceholder", "Select type")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {TYPES.map((t_val) => (
                   <SelectItem key={t_val} value={t_val}>
@@ -634,6 +638,7 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
                   "support.priorityPlaceholder",
                   "Select priority",
                 )}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {PRIORITIES.map((p) => (
                   <SelectItem key={p} value={p}>

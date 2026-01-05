@@ -12,7 +12,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { ExternalLink, Loader2, Plus } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -325,12 +330,15 @@ function CreateReportDialog({
             <label htmlFor="report-type" className="text-sm font-medium">
               {auto("Report Type", "fields.type")}
             </label>
-            <Select value={type} onValueChange={setType} disabled={isSubmitting} placeholder="Select report type" className="bg-muted border-input text-foreground">
+            <Select value={type} onValueChange={setType} disabled={isSubmitting} placeholder="Select report type" className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectTrigger id="report-type"></SelectTrigger>
+              <SelectContent>
                 {reportTypes.map((rt) => (
                   <SelectItem key={rt.value} value={rt.value}>
                     {rt.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
             </Select>
           </div>
 
@@ -338,12 +346,15 @@ function CreateReportDialog({
             <label htmlFor="report-format" className="text-sm font-medium">
               {auto("Format", "fields.format")}
             </label>
-            <Select value={format} onValueChange={setFormat} disabled={isSubmitting} placeholder="Select format" className="bg-muted border-input text-foreground">
+            <Select value={format} onValueChange={setFormat} disabled={isSubmitting} placeholder="Select format" className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectTrigger id="report-format"></SelectTrigger>
+              <SelectContent>
                 {formats.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     {f.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
             </Select>
           </div>
 

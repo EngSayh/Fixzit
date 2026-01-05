@@ -261,6 +261,7 @@ export default function NewSupportTicketPage() {
                     "Select a module",
                     "fields.module.placeholder",
                   )}
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                     {MODULE_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
@@ -276,6 +277,7 @@ export default function NewSupportTicketPage() {
                   onValueChange={(value: string) =>
                     updateField("priority", value as PriorityOption)
                   }
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                     {PRIORITY_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>

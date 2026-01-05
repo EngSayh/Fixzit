@@ -14,7 +14,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { ChevronLeft, Save } from "@/components/ui/icons";
 import Link from "next/link";
@@ -338,7 +338,8 @@ export default function EditVendorPage() {
                 <Label htmlFor="status">
                   {auto("Status *", "form.labels.status")}
                 </Label>
-                <Select name="status" defaultValue={vendor.status} className="bg-muted border-input text-foreground">
+                <Select name="status" defaultValue={vendor.status} className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <SelectContent>
                     <SelectItem value="PENDING">
                       {auto("Pending", "form.status.pending")}
                     </SelectItem>
@@ -354,6 +355,7 @@ export default function EditVendorPage() {
                     <SelectItem value="BLACKLISTED">
                       {auto("Blacklisted", "form.status.blacklisted")}
                     </SelectItem>
+                  </SelectContent>
                 </Select>
                 {errors.status && (
                   <p className="text-sm text-destructive">{errors.status}</p>

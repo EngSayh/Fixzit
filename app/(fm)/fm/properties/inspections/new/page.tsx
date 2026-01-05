@@ -141,6 +141,7 @@ export default function CreateInspectionPage() {
                     setForm((prev) => ({ ...prev, type: value }))
                   }
                   placeholder={auto("Select type", "form.type.placeholder")}
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                     <SelectItem value="handover">
                       {auto("Handover", "form.type.handover")}

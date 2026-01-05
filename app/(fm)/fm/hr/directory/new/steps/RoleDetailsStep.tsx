@@ -54,6 +54,7 @@ export default function RoleDetailsStep({
             "auto.fm.hr.directory.new.form.department.placeholder",
             "Select department",
           )}
+          className="w-full sm:w-40 bg-muted border-input text-foreground"
         >
             {lookups.departments.map((department) => (
               <SelectItem key={department} value={department}>
@@ -80,6 +81,7 @@ export default function RoleDetailsStep({
               "auto.fm.hr.directory.new.form.employmentType.placeholder",
               "Select type",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
               {lookups.employmentTypes.map((employmentType) => (
                 <SelectItem key={employmentType} value={employmentType}>
@@ -101,6 +103,7 @@ export default function RoleDetailsStep({
               "auto.fm.hr.directory.new.form.workModel.placeholder",
               "Select model",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
               {lookups.workModels.map((workModel) => (
                 <SelectItem key={workModel} value={workModel}>

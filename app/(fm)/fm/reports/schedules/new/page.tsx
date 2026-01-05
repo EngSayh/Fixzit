@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
@@ -143,13 +148,17 @@ export default function NewSchedulePage() {
                     "fields.typePlaceholder",
                   )}
                   required
-                  className="bg-muted border-input text-foreground"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
+                  <SelectTrigger id="reportType">
+                  </SelectTrigger>
+                  <SelectContent>
                     {REPORT_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {auto(type.label, `types.${type.value}`)}
                       </SelectItem>
                     ))}
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -174,12 +183,16 @@ export default function NewSchedulePage() {
                   <Calendar className="w-4 h-4" />
                   {auto("Frequency", "fields.frequency")}
                 </Label>
-                <Select value={frequency} onValueChange={setFrequency} className="bg-muted border-input text-foreground">
+                <Select value={frequency} onValueChange={setFrequency} className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <SelectTrigger id="frequency">
+                  </SelectTrigger>
+                  <SelectContent>
                     {FREQUENCIES.map((freq) => (
                       <SelectItem key={freq.value} value={freq.value}>
                         {auto(freq.label, `frequencies.${freq.value}`)}
                       </SelectItem>
                     ))}
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -200,12 +213,16 @@ export default function NewSchedulePage() {
                 <Label htmlFor="format">
                   {auto("Output Format", "fields.format")}
                 </Label>
-                <Select value={format} onValueChange={setFormat} className="bg-muted border-input text-foreground">
+                <Select value={format} onValueChange={setFormat} className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <SelectTrigger id="format">
+                  </SelectTrigger>
+                  <SelectContent>
                     {FORMATS.map((fmt) => (
                       <SelectItem key={fmt.value} value={fmt.value}>
                         {auto(fmt.label, `formats.${fmt.value}`)}
                       </SelectItem>
                     ))}
+                  </SelectContent>
                 </Select>
               </div>
             </CardContent>

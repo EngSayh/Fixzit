@@ -42,6 +42,7 @@ export default function CompensationNotesStep({
               "auto.fm.hr.directory.new.form.compensationType.placeholder",
               "Select compensation type",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
               {lookups.compensationTypes.map((type) => (
                 <SelectItem key={type} value={type}>

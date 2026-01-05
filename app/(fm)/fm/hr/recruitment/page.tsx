@@ -328,6 +328,7 @@ export default function AtsJobsPage() {
                 setStatusFilter(value as typeof statusFilter)
               }
               placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
                 {statusOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
@@ -344,6 +345,7 @@ export default function AtsJobsPage() {
               value={jobTypeFilter}
               onValueChange={(value) => setJobTypeFilter(value)}
               placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
                 {jobTypeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>

@@ -659,6 +659,7 @@ function CreateRFQForm({
               "Select category",
               "form.placeholders.category",
             )}
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
               <SelectItem value="Construction">
                 {auto("Construction", "form.categories.construction")}
