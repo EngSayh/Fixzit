@@ -42,12 +42,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -1034,43 +1029,43 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[120px] bg-muted border-input text-white">
-              <SelectTrigger>
-                {statusOptions.find(o => o.value === statusFilter)?.label || t("superadmin.issues.filters.status")}
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select 
+              value={statusFilter} 
+              onValueChange={setStatusFilter} 
+              placeholder={t("superadmin.issues.filters.status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
+            >
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[120px] bg-muted border-input text-white">
-              <SelectTrigger>
-                {priorityOptions.find(o => o.value === priorityFilter)?.label || t("superadmin.issues.filters.priority")}
-              </SelectTrigger>
-              <SelectContent>
-                {priorityOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select 
+              value={priorityFilter} 
+              onValueChange={setPriorityFilter} 
+              placeholder={t("superadmin.issues.filters.priority")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
+            >
+              {priorityOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[120px] bg-muted border-input text-white">
-              <SelectTrigger>
-                {categoryOptions.find(o => o.value === categoryFilter)?.label || t("superadmin.issues.filters.category")}
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select 
+              value={categoryFilter} 
+              onValueChange={setCategoryFilter} 
+              placeholder={t("superadmin.issues.filters.category")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
+            >
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
 
             <Button
@@ -1677,32 +1672,28 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-status">{t("superadmin.issues.form.status", "Status")}</Label>
-                <Select defaultValue={selectedIssue.status} className="mt-1">
-                  <SelectTrigger>
-                    {getStatusLabel(selectedIssue.status)}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                <Select 
+                  defaultValue={selectedIssue.status} 
+                  className="mt-1 w-full bg-muted border-input text-foreground"
+                >
+                  {statusOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div>
                 <Label htmlFor="edit-priority">{t("superadmin.issues.form.priority", "Priority")}</Label>
-                <Select defaultValue={selectedIssue.priority} className="mt-1">
-                  <SelectTrigger>
-                    {getPriorityLabel(selectedIssue.priority)}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {priorityOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                <Select 
+                  defaultValue={selectedIssue.priority} 
+                  className="mt-1 w-full bg-muted border-input text-foreground"
+                >
+                  {priorityOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div className="flex gap-2 pt-4">
