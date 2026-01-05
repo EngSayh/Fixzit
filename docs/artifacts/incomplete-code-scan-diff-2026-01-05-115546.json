@@ -1,0 +1,313 @@
+{
+  "generatedAt": "2026-01-05T11:55:46+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-04.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-05-115546.json",
+  "summary": {
+    "added": 12,
+    "resolved": 18,
+    "current": 17,
+    "baseline": 23
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/ats/public-post/route.ts",
+      "added": [
+        {
+          "key": "app-api-ats-public-post-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/ats/public-post/route.ts:91"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/billing/charge-recurring/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "recurring-billing-charge-endpoint-not-implemented-feature-app-api-billing-charge",
+          "title": "Recurring billing charge endpoint not implemented",
+          "location": "app/api/billing/charge-recurring/route.ts:16"
+        }
+      ]
+    },
+    {
+      "file": "app/api/feeds/indeed/route.ts",
+      "added": [
+        {
+          "key": "app-api-feeds-indeed-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/feeds/indeed/route.ts:38"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/feeds/linkedin/route.ts",
+      "added": [
+        {
+          "key": "app-api-feeds-linkedin-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/feeds/linkedin/route.ts:35"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/files/resumes/presign/route.ts",
+      "added": [
+        {
+          "key": "app-api-files-resumes-presign-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/files/resumes/presign/route.ts:57"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/integrations/linkedin/apply/route.ts",
+      "added": [
+        {
+          "key": "app-api-integrations-linkedin-apply-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/integrations/linkedin/apply/route.ts:12"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/marketplace/categories/route.ts",
+      "added": [
+        {
+          "key": "app-api-marketplace-categories-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/marketplace/categories/route.ts:54"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/marketplace/products/route.ts",
+      "added": [
+        {
+          "key": "app-api-marketplace-products-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/marketplace/products/route.ts:103"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/notifications/stream/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "notifications-stream-lacks-pub-sub-scaling-efficiency-app-api-notifications-stre",
+          "title": "Notifications stream lacks pub/sub scaling",
+          "location": "app/api/notifications/stream/route.ts:133"
+        }
+      ]
+    },
+    {
+      "file": "app/api/onboarding/[caseId]/documents/request-upload/route.ts",
+      "added": [
+        {
+          "key": "app-api-onboarding-caseid-documents-request-upload-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/onboarding/[caseId]/documents/request-upload/route.ts:52"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/owner/statements/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "owner-statements-export-endpoint-not-implemented-feature-app-api-owner-statement",
+          "title": "Owner statements export endpoint not implemented",
+          "location": "app/api/owner/statements/route.ts:379"
+        }
+      ]
+    },
+    {
+      "file": "app/api/upload/presigned-url/route.ts",
+      "added": [
+        {
+          "key": "app-api-upload-presigned-url-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/upload/presigned-url/route.ts:76"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/upload/scan/route.ts",
+      "added": [
+        {
+          "key": "app-api-upload-scan-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/upload/scan/route.ts:84"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/upload/verify-metadata/route.ts",
+      "added": [
+        {
+          "key": "app-api-upload-verify-metadata-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/upload/verify-metadata/route.ts:52"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "app/api/work-orders/[id]/attachments/presign/route.ts",
+      "added": [
+        {
+          "key": "app-api-work-orders-id-attachments-presign-route-ts-returns-501-feature",
+          "title": "route returns 501",
+          "location": "app/api/work-orders/[id]/attachments/presign/route.ts:60"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": "jobs/export-worker.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "implement-proper-xlsx-export-using-exceljs-sheetjs-when-needed-feature-jobs-expo",
+          "title": "Implement proper XLSX export using exceljs/sheetjs when needed.",
+          "location": "jobs/export-worker.ts:42"
+        }
+      ]
+    },
+    {
+      "file": "lib/graphql/index.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1158",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1158"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1182",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1182"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1207",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1207"
+        },
+        {
+          "key": "code-not-implemented-feature-lib-graphql-index-ts-1233",
+          "title": "code: \"NOT_IMPLEMENTED\",",
+          "location": "lib/graphql/index.ts:1233"
+        }
+      ]
+    },
+    {
+      "file": "server/models/Employee.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "pii-encryption-not-implemented-for-employee-model-security-server-models-employe",
+          "title": "PII encryption not implemented for Employee model",
+          "location": "server/models/Employee.ts:38"
+        }
+      ]
+    },
+    {
+      "file": "services/souq/settlements/payout-processor.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "sadad-span-live-mode-is-not-implemented-yet-keep-enable-sadad-payouts-false-or-s",
+          "title": "\"SADAD/SPAN live mode is not implemented yet. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.\",",
+          "location": "services/souq/settlements/payout-processor.ts:611"
+        },
+        {
+          "key": "sadad-span-live-payout-mode-not-implemented-bug-services-souq-settlements-payout",
+          "title": "SADAD/SPAN live payout mode not implemented",
+          "location": "services/souq/settlements/payout-processor.ts:599"
+        }
+      ]
+    },
+    {
+      "file": "tests/api/_helpers/loadRoute.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "it-skip-route-not-implemented-feature-tests-api-helpers-loadroute-ts-29",
+          "title": "it.skip('route not implemented');",
+          "location": "tests/api/_helpers/loadRoute.ts:29"
+        },
+        {
+          "key": "testfn-skip-route-not-implemented-result-error-feature-tests-api-helpers-loadrou",
+          "title": "testFn.skip(`Route not implemented: ${result.error}`);",
+          "location": "tests/api/_helpers/loadRoute.ts:69"
+        }
+      ]
+    },
+    {
+      "file": "tests/e2e/finance-billing-flow.spec.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "accept-200-404-not-implemented-or-auth-errors-missing-test-tests-e2e-finance-bil",
+          "title": "Accept 200, 404 (not implemented), or auth errors",
+          "location": "tests/e2e/finance-billing-flow.spec.ts:324"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/api/admin/billing/pricebooks.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "this-test-is-marked-as-todo-until-post-route-implements-field-sanitization-track",
+          "title": "This test is marked as todo until POST route implements field sanitization (tracked separately)",
+          "location": "tests/unit/api/admin/billing/pricebooks.test.ts:123"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/api/work-orders/patch.route.test.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "s3-cleanup-testability-todo-missing-test-tests-unit-api-work-orders-patch-route-",
+          "title": "S3 cleanup testability TODO",
+          "location": "tests/unit/api/work-orders/patch.route.test.ts:275"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/components/aqar/PropertiesList.query.test.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "filterpresetsdropdown-not-implemented-tracked-in-ssot-for-future-implementation-",
+          "title": "FilterPresetsDropdown not implemented - tracked in SSOT for future implementation",
+          "location": "tests/unit/components/aqar/PropertiesList.query.test.tsx:94"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/components/marketplace/ProductsList.query.test.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "filterpresetsdropdown-tests-not-implemented-missing-test-tests-unit-components-m",
+          "title": "FilterPresetsDropdown tests not implemented",
+          "location": "tests/unit/components/marketplace/ProductsList.query.test.tsx:90"
+        }
+      ]
+    }
+  ]
+}
