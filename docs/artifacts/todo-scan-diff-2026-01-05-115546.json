@@ -1,0 +1,964 @@
+{
+  "generatedAt": "2026-01-05T11:55:46+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-04-141906.json",
+  "current": "docs/artifacts/todo-scan-2026-01-05-115546.json",
+  "summary": {
+    "added": 87,
+    "resolved": 69,
+    "current": 2518,
+    "baseline": 2500
+  },
+  "fileChanges": [
+    {
+      "file": ".\\Incoming\\fixzit_ssot_tools\\scripts\\ssot-migrate-v6.mjs",
+      "added": [
+        {
+          "key": "todo-marker-incoming-fixzit-ssot-tools-scripts-ssot-migrate-v6-mjs-l103",
+          "title": "Marker 'pending' in .\\Incoming\\fixzit_ssot_tools\\scripts\\ssot-migrate-v6.mjs:103",
+          "location": ".\\Incoming\\fixzit_ssot_tools\\scripts\\ssot-migrate-v6.mjs:103"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-incoming-fixzit-ssot-tools-scripts-ssot-migrate-v6-mjs-l106",
+          "title": "Marker 'pending' in .\\Incoming\\fixzit_ssot_tools\\scripts\\ssot-migrate-v6.mjs:106",
+          "location": ".\\Incoming\\fixzit_ssot_tools\\scripts\\ssot-migrate-v6.mjs:106"
+        }
+      ]
+    },
+    {
+      "file": ".\\app\\api\\issues\\import\\route.ts",
+      "added": [
+        {
+          "key": "todo-marker-app-api-issues-import-route-ts-l198",
+          "title": "Marker 'pending' in .\\app\\api\\issues\\import\\route.ts:198",
+          "location": ".\\app\\api\\issues\\import\\route.ts:198"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-app-api-issues-import-route-ts-l194",
+          "title": "Marker 'pending' in .\\app\\api\\issues\\import\\route.ts:194",
+          "location": ".\\app\\api\\issues\\import\\route.ts:194"
+        }
+      ]
+    },
+    {
+      "file": ".\\app\\api\\payments\\tap\\webhook\\route.ts",
+      "added": [
+        {
+          "key": "todo-marker-app-api-payments-tap-webhook-route-ts-l702",
+          "title": "Marker 'PENDING' in .\\app\\api\\payments\\tap\\webhook\\route.ts:702",
+          "location": ".\\app\\api\\payments\\tap\\webhook\\route.ts:702"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-app-api-payments-tap-webhook-route-ts-l698",
+          "title": "Marker 'PENDING' in .\\app\\api\\payments\\tap\\webhook\\route.ts:698",
+          "location": ".\\app\\api\\payments\\tap\\webhook\\route.ts:698"
+        }
+      ]
+    },
+    {
+      "file": ".\\app\\api\\superadmin\\users\\[id]\\route.ts",
+      "added": [
+        {
+          "key": "todo-marker-app-api-superadmin-users-id-route-ts-l24",
+          "title": "Marker 'PENDING' in .\\app\\api\\superadmin\\users\\[id]\\route.ts:24",
+          "location": ".\\app\\api\\superadmin\\users\\[id]\\route.ts:24"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": ".\\app\\superadmin\\analytics\\page.tsx",
+      "added": [
+        {
+          "key": "todo-marker-app-superadmin-analytics-page-tsx-l125",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\analytics\\page.tsx:125",
+          "location": ".\\app\\superadmin\\analytics\\page.tsx:125"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-app-superadmin-analytics-page-tsx-l123",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\analytics\\page.tsx:123",
+          "location": ".\\app\\superadmin\\analytics\\page.tsx:123"
+        }
+      ]
+    },
+    {
+      "file": ".\\app\\superadmin\\import-export\\page.tsx",
+      "added": [
+        {
+          "key": "todo-marker-app-superadmin-import-export-page-tsx-l190",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\import-export\\page.tsx:190",
+          "location": ".\\app\\superadmin\\import-export\\page.tsx:190"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-app-superadmin-import-export-page-tsx-l188",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\import-export\\page.tsx:188",
+          "location": ".\\app\\superadmin\\import-export\\page.tsx:188"
+        }
+      ]
+    },
+    {
+      "file": ".\\app\\superadmin\\progress\\page.tsx",
+      "added": [
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l192",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:192",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:192"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l199",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:199",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:199"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l203",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:203",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:203"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l219",
+          "title": "Marker 'pending' in .\\app\\superadmin\\progress\\page.tsx:219",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:219"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l398",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:398",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:398"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l60",
+          "title": "Marker 'deferred' in .\\app\\superadmin\\progress\\page.tsx:60",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:60"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l68",
+          "title": "Marker 'deferred' in .\\app\\superadmin\\progress\\page.tsx:68",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:68"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l89",
+          "title": "Marker 'deferred' in .\\app\\superadmin\\progress\\page.tsx:89",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:89"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l90",
+          "title": "Marker 'Deferred' in .\\app\\superadmin\\progress\\page.tsx:90",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:90"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l189",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:189",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:189"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l196",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:196",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:196"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l200",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:200",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:200"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l216",
+          "title": "Marker 'pending' in .\\app\\superadmin\\progress\\page.tsx:216",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:216"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l395",
+          "title": "Marker 'Pending' in .\\app\\superadmin\\progress\\page.tsx:395",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:395"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l57",
+          "title": "Marker 'deferred' in .\\app\\superadmin\\progress\\page.tsx:57",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:57"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l65",
+          "title": "Marker 'deferred' in .\\app\\superadmin\\progress\\page.tsx:65",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:65"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l86",
+          "title": "Marker 'deferred' in .\\app\\superadmin\\progress\\page.tsx:86",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:86"
+        },
+        {
+          "key": "todo-marker-app-superadmin-progress-page-tsx-l87",
+          "title": "Marker 'Deferred' in .\\app\\superadmin\\progress\\page.tsx:87",
+          "location": ".\\app\\superadmin\\progress\\page.tsx:87"
+        }
+      ]
+    },
+    {
+      "file": ".\\app\\superadmin\\users\\page.tsx",
+      "added": [
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1030",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1030",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1030"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1034",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:1034",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1034"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1076",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1076",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1076"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1080",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:1080",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1080"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l113",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:113",
+          "location": ".\\app\\superadmin\\users\\page.tsx:113"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1130",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1130",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1130"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1140",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1140",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1140"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l120",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:120",
+          "location": ".\\app\\superadmin\\users\\page.tsx:120"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1322",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1322",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1322"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1334",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1334",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1334"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1344",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1344",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1344"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1355",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1355",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1355"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1371",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1371",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1371"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l1446",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:1446",
+          "location": ".\\app\\superadmin\\users\\page.tsx:1446"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l441",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:441",
+          "location": ".\\app\\superadmin\\users\\page.tsx:441"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l658",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:658",
+          "location": ".\\app\\superadmin\\users\\page.tsx:658"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l661",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:661",
+          "location": ".\\app\\superadmin\\users\\page.tsx:661"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l669",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:669",
+          "location": ".\\app\\superadmin\\users\\page.tsx:669"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l674",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:674",
+          "location": ".\\app\\superadmin\\users\\page.tsx:674"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l682",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:682",
+          "location": ".\\app\\superadmin\\users\\page.tsx:682"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l696",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:696",
+          "location": ".\\app\\superadmin\\users\\page.tsx:696"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l79",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:79",
+          "location": ".\\app\\superadmin\\users\\page.tsx:79"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l110",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:110",
+          "location": ".\\app\\superadmin\\users\\page.tsx:110"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l117",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:117",
+          "location": ".\\app\\superadmin\\users\\page.tsx:117"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l485",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:485",
+          "location": ".\\app\\superadmin\\users\\page.tsx:485"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l488",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:488",
+          "location": ".\\app\\superadmin\\users\\page.tsx:488"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l496",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:496",
+          "location": ".\\app\\superadmin\\users\\page.tsx:496"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l501",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:501",
+          "location": ".\\app\\superadmin\\users\\page.tsx:501"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l509",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:509",
+          "location": ".\\app\\superadmin\\users\\page.tsx:509"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l523",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:523",
+          "location": ".\\app\\superadmin\\users\\page.tsx:523"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l76",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:76",
+          "location": ".\\app\\superadmin\\users\\page.tsx:76"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l834",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:834",
+          "location": ".\\app\\superadmin\\users\\page.tsx:834"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l838",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:838",
+          "location": ".\\app\\superadmin\\users\\page.tsx:838"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l880",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:880",
+          "location": ".\\app\\superadmin\\users\\page.tsx:880"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l884",
+          "title": "Marker 'PENDING' in .\\app\\superadmin\\users\\page.tsx:884",
+          "location": ".\\app\\superadmin\\users\\page.tsx:884"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l934",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:934",
+          "location": ".\\app\\superadmin\\users\\page.tsx:934"
+        },
+        {
+          "key": "todo-marker-app-superadmin-users-page-tsx-l944",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\users\\page.tsx:944",
+          "location": ".\\app\\superadmin\\users\\page.tsx:944"
+        }
+      ]
+    },
+    {
+      "file": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx",
+      "added": [
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l233",
+          "title": "Marker 'Pending' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:233",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:233"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l319",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:319",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:319"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l358",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:358",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:358"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l375",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:375",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:375"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l400",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:400",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:400"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l181",
+          "title": "Marker 'Pending' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:181",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:181"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l267",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:267",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:267"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l285",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:285",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:285"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l302",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:302",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:302"
+        },
+        {
+          "key": "todo-marker-components-superadmin-settings-brandingsettingsform-tsx-l327",
+          "title": "Marker 'placeholder' in .\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:327",
+          "location": ".\\components\\superadmin\\settings\\BrandingSettingsForm.tsx:327"
+        }
+      ]
+    },
+    {
+      "file": ".\\components\\tables\\CardList.tsx",
+      "added": [
+        {
+          "key": "todo-marker-components-tables-cardlist-tsx-l195",
+          "title": "Marker 'placeholder' in .\\components\\tables\\CardList.tsx:195",
+          "location": ".\\components\\tables\\CardList.tsx:195"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-components-tables-cardlist-tsx-l192",
+          "title": "Marker 'placeholder' in .\\components\\tables\\CardList.tsx:192",
+          "location": ".\\components\\tables\\CardList.tsx:192"
+        }
+      ]
+    },
+    {
+      "file": ".\\config\\rbac.submodules.ts",
+      "added": [
+        {
+          "key": "todo-marker-config-rbac-submodules-ts-l233",
+          "title": "Marker 'pending' in .\\config\\rbac.submodules.ts:233",
+          "location": ".\\config\\rbac.submodules.ts:233"
+        },
+        {
+          "key": "todo-marker-config-rbac-submodules-ts-l76",
+          "title": "Marker 'pending' in .\\config\\rbac.submodules.ts:76",
+          "location": ".\\config\\rbac.submodules.ts:76"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts",
+      "added": [
+        {
+          "key": "todo-marker-issue-tracker-app-api-issues-import-route-ts-l371",
+          "title": "Marker 'TODO' in .\\issue-tracker\\app\\api\\issues\\import\\route.ts:371",
+          "location": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts:371"
+        },
+        {
+          "key": "todo-marker-issue-tracker-app-api-issues-import-route-ts-l400",
+          "title": "Marker 'TODO' in .\\issue-tracker\\app\\api\\issues\\import\\route.ts:400",
+          "location": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts:400"
+        },
+        {
+          "key": "todo-marker-issue-tracker-app-api-issues-import-route-ts-l434",
+          "title": "Marker 'TBD' in .\\issue-tracker\\app\\api\\issues\\import\\route.ts:434",
+          "location": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts:434"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-issue-tracker-app-api-issues-import-route-ts-l370",
+          "title": "Marker 'TODO' in .\\issue-tracker\\app\\api\\issues\\import\\route.ts:370",
+          "location": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts:370"
+        },
+        {
+          "key": "todo-marker-issue-tracker-app-api-issues-import-route-ts-l399",
+          "title": "Marker 'TODO' in .\\issue-tracker\\app\\api\\issues\\import\\route.ts:399",
+          "location": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts:399"
+        },
+        {
+          "key": "todo-marker-issue-tracker-app-api-issues-import-route-ts-l433",
+          "title": "Marker 'TBD' in .\\issue-tracker\\app\\api\\issues\\import\\route.ts:433",
+          "location": ".\\issue-tracker\\app\\api\\issues\\import\\route.ts:433"
+        }
+      ]
+    },
+    {
+      "file": ".\\issue-tracker\\app\\dashboard\\issues\\page.tsx",
+      "added": [
+        {
+          "key": "todo-marker-issue-tracker-app-dashboard-issues-page-tsx-l516",
+          "title": "Marker 'pending' in .\\issue-tracker\\app\\dashboard\\issues\\page.tsx:516",
+          "location": ".\\issue-tracker\\app\\dashboard\\issues\\page.tsx:516"
+        },
+        {
+          "key": "todo-marker-issue-tracker-app-dashboard-issues-page-tsx-l719",
+          "title": "Marker 'placeholder' in .\\issue-tracker\\app\\dashboard\\issues\\page.tsx:719",
+          "location": ".\\issue-tracker\\app\\dashboard\\issues\\page.tsx:719"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-issue-tracker-app-dashboard-issues-page-tsx-l515",
+          "title": "Marker 'pending' in .\\issue-tracker\\app\\dashboard\\issues\\page.tsx:515",
+          "location": ".\\issue-tracker\\app\\dashboard\\issues\\page.tsx:515"
+        },
+        {
+          "key": "todo-marker-issue-tracker-app-dashboard-issues-page-tsx-l718",
+          "title": "Marker 'placeholder' in .\\issue-tracker\\app\\dashboard\\issues\\page.tsx:718",
+          "location": ".\\issue-tracker\\app\\dashboard\\issues\\page.tsx:718"
+        }
+      ]
+    },
+    {
+      "file": ".\\jobs\\onboarding-ocr-worker.ts",
+      "added": [
+        {
+          "key": "todo-marker-jobs-onboarding-ocr-worker-ts-l273",
+          "title": "Marker 'placeholder' in .\\jobs\\onboarding-ocr-worker.ts:273",
+          "location": ".\\jobs\\onboarding-ocr-worker.ts:273"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-jobs-onboarding-ocr-worker-ts-l263",
+          "title": "Marker 'placeholder' in .\\jobs\\onboarding-ocr-worker.ts:263",
+          "location": ".\\jobs\\onboarding-ocr-worker.ts:263"
+        }
+      ]
+    },
+    {
+      "file": ".\\lib\\finance\\tap-payments.ts",
+      "added": [
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l231",
+          "title": "Marker 'PENDING' in .\\lib\\finance\\tap-payments.ts:231",
+          "location": ".\\lib\\finance\\tap-payments.ts:231"
+        },
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l255",
+          "title": "Marker 'Pending' in .\\lib\\finance\\tap-payments.ts:255",
+          "location": ".\\lib\\finance\\tap-payments.ts:255"
+        },
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l916",
+          "title": "Marker 'pending' in .\\lib\\finance\\tap-payments.ts:916",
+          "location": ".\\lib\\finance\\tap-payments.ts:916"
+        },
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l952",
+          "title": "Marker 'pending' in .\\lib\\finance\\tap-payments.ts:952",
+          "location": ".\\lib\\finance\\tap-payments.ts:952"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l229",
+          "title": "Marker 'PENDING' in .\\lib\\finance\\tap-payments.ts:229",
+          "location": ".\\lib\\finance\\tap-payments.ts:229"
+        },
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l253",
+          "title": "Marker 'Pending' in .\\lib\\finance\\tap-payments.ts:253",
+          "location": ".\\lib\\finance\\tap-payments.ts:253"
+        },
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l898",
+          "title": "Marker 'pending' in .\\lib\\finance\\tap-payments.ts:898",
+          "location": ".\\lib\\finance\\tap-payments.ts:898"
+        },
+        {
+          "key": "todo-marker-lib-finance-tap-payments-ts-l934",
+          "title": "Marker 'pending' in .\\lib\\finance\\tap-payments.ts:934",
+          "location": ".\\lib\\finance\\tap-payments.ts:934"
+        }
+      ]
+    },
+    {
+      "file": ".\\lib\\finance\\tap-webhook\\persistence.ts",
+      "added": [
+        {
+          "key": "todo-marker-lib-finance-tap-webhook-persistence-ts-l356",
+          "title": "Marker 'PENDING' in .\\lib\\finance\\tap-webhook\\persistence.ts:356",
+          "location": ".\\lib\\finance\\tap-webhook\\persistence.ts:356"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-lib-finance-tap-webhook-persistence-ts-l352",
+          "title": "Marker 'PENDING' in .\\lib\\finance\\tap-webhook\\persistence.ts:352",
+          "location": ".\\lib\\finance\\tap-webhook\\persistence.ts:352"
+        }
+      ]
+    },
+    {
+      "file": ".\\lib\\graphql\\index.ts",
+      "added": [
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1486",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1486",
+          "location": ".\\lib\\graphql\\index.ts:1486"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1507",
+          "title": "Marker 'stub' in .\\lib\\graphql\\index.ts:1507",
+          "location": ".\\lib\\graphql\\index.ts:1507"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1519",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1519",
+          "location": ".\\lib\\graphql\\index.ts:1519"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1484",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1484",
+          "location": ".\\lib\\graphql\\index.ts:1484"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1505",
+          "title": "Marker 'stub' in .\\lib\\graphql\\index.ts:1505",
+          "location": ".\\lib\\graphql\\index.ts:1505"
+        },
+        {
+          "key": "todo-marker-lib-graphql-index-ts-l1517",
+          "title": "Marker 'Stub' in .\\lib\\graphql\\index.ts:1517",
+          "location": ".\\lib\\graphql\\index.ts:1517"
+        }
+      ]
+    },
+    {
+      "file": ".\\middleware.ts",
+      "added": [
+        {
+          "key": "todo-marker-middleware-ts-l458",
+          "title": "Marker 'stub' in .\\middleware.ts:458",
+          "location": ".\\middleware.ts:458"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-middleware-ts-l457",
+          "title": "Marker 'stub' in .\\middleware.ts:457",
+          "location": ".\\middleware.ts:457"
+        }
+      ]
+    },
+    {
+      "file": ".\\scripts\\ci\\verify-prod-env.js",
+      "added": [
+        {
+          "key": "todo-marker-scripts-ci-verify-prod-env-js-l56",
+          "title": "Marker 'placeholder' in .\\scripts\\ci\\verify-prod-env.js:56",
+          "location": ".\\scripts\\ci\\verify-prod-env.js:56"
+        },
+        {
+          "key": "todo-marker-scripts-ci-verify-prod-env-js-l69",
+          "title": "Marker 'placeholder' in .\\scripts\\ci\\verify-prod-env.js:69",
+          "location": ".\\scripts\\ci\\verify-prod-env.js:69"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-scripts-ci-verify-prod-env-js-l55",
+          "title": "Marker 'placeholder' in .\\scripts\\ci\\verify-prod-env.js:55",
+          "location": ".\\scripts\\ci\\verify-prod-env.js:55"
+        },
+        {
+          "key": "todo-marker-scripts-ci-verify-prod-env-js-l68",
+          "title": "Marker 'placeholder' in .\\scripts\\ci\\verify-prod-env.js:68",
+          "location": ".\\scripts\\ci\\verify-prod-env.js:68"
+        }
+      ]
+    },
+    {
+      "file": ".\\services\\souq\\settlements\\payout-processor.ts",
+      "added": [
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l114",
+          "title": "Marker 'PENDING' in .\\services\\souq\\settlements\\payout-processor.ts:114",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:114"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l115",
+          "title": "Marker 'PENDING' in .\\services\\souq\\settlements\\payout-processor.ts:115",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:115"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l122",
+          "title": "Marker 'PENDING' in .\\services\\souq\\settlements\\payout-processor.ts:122",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:122"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l263",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:263",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:263"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l289",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:289",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:289"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l305",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:305",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:305"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l325",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:325",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:325"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l345",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:345",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:345"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l359",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:359",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:359"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l372",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:372",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:372"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l586",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:586",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:586"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l605",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:605",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:605"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l776",
+          "title": "Marker 'PENDING' in .\\services\\souq\\settlements\\payout-processor.ts:776",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:776"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l777",
+          "title": "Marker 'PENDING' in .\\services\\souq\\settlements\\payout-processor.ts:777",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:777"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l779",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:779",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:779"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l838",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:838",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:838"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l842",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:842",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:842"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l933",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:933",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:933"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l934",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:934",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:934"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l260",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:260",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:260"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l286",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:286",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:286"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l302",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:302",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:302"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l322",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:322",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:322"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l538",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:538",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:538"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l557",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:557",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:557"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l728",
+          "title": "Marker 'PENDING' in .\\services\\souq\\settlements\\payout-processor.ts:728",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:728"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l729",
+          "title": "Marker 'Pending' in .\\services\\souq\\settlements\\payout-processor.ts:729",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:729"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l730",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:730",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:730"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l788",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:788",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:788"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l792",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:792",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:792"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l883",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:883",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:883"
+        },
+        {
+          "key": "todo-marker-services-souq-settlements-payout-processor-ts-l884",
+          "title": "Marker 'pending' in .\\services\\souq\\settlements\\payout-processor.ts:884",
+          "location": ".\\services\\souq\\settlements\\payout-processor.ts:884"
+        }
+      ]
+    },
+    {
+      "file": ".\\services\\souq\\vendor-intelligence.ts",
+      "added": [
+        {
+          "key": "todo-marker-services-souq-vendor-intelligence-ts-l1179",
+          "title": "Marker 'pending' in .\\services\\souq\\vendor-intelligence.ts:1179",
+          "location": ".\\services\\souq\\vendor-intelligence.ts:1179"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-services-souq-vendor-intelligence-ts-l1177",
+          "title": "Marker 'pending' in .\\services\\souq\\vendor-intelligence.ts:1177",
+          "location": ".\\services\\souq\\vendor-intelligence.ts:1177"
+        }
+      ]
+    },
+    {
+      "file": ".\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts",
+      "added": [
+        {
+          "key": "todo-marker-tests-unit-api-souq-claims-claims-route-test-ts-l260",
+          "title": "Marker 'pending' in .\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:260",
+          "location": ".\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:260"
+        },
+        {
+          "key": "todo-marker-tests-unit-api-souq-claims-claims-route-test-ts-l310",
+          "title": "Marker 'pending' in .\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:310",
+          "location": ".\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:310"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-tests-unit-api-souq-claims-claims-route-test-ts-l255",
+          "title": "Marker 'pending' in .\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:255",
+          "location": ".\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:255"
+        },
+        {
+          "key": "todo-marker-tests-unit-api-souq-claims-claims-route-test-ts-l305",
+          "title": "Marker 'pending' in .\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:305",
+          "location": ".\\tests\\unit\\api\\souq\\claims\\claims.route.test.ts:305"
+        }
+      ]
+    },
+    {
+      "file": ".\\tests\\unit\\components\\aqar\\PropertiesList.query.test.tsx",
+      "added": [
+        {
+          "key": "todo-marker-tests-unit-components-aqar-propertieslist-query-test-tsx-l96",
+          "title": "Marker 'TODO' in .\\tests\\unit\\components\\aqar\\PropertiesList.query.test.tsx:96",
+          "location": ".\\tests\\unit\\components\\aqar\\PropertiesList.query.test.tsx:96"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": ".\\tests\\unit\\components\\marketplace\\ProductsList.query.test.tsx",
+      "added": [
+        {
+          "key": "todo-marker-tests-unit-components-marketplace-productslist-query-test-tsx-l92",
+          "title": "Marker 'TODO' in .\\tests\\unit\\components\\marketplace\\ProductsList.query.test.tsx:92",
+          "location": ".\\tests\\unit\\components\\marketplace\\ProductsList.query.test.tsx:92"
+        }
+      ],
+      "resolved": []
+    },
+    {
+      "file": ".\\tests\\unit\\server\\security\\idempotency.spec.ts",
+      "added": [
+        {
+          "key": "todo-marker-tests-unit-server-security-idempotency-spec-ts-l24",
+          "title": "Marker 'pending' in .\\tests\\unit\\server\\security\\idempotency.spec.ts:24",
+          "location": ".\\tests\\unit\\server\\security\\idempotency.spec.ts:24"
+        }
+      ],
+      "resolved": [
+        {
+          "key": "todo-marker-tests-unit-server-security-idempotency-spec-ts-l25",
+          "title": "Marker 'pending' in .\\tests\\unit\\server\\security\\idempotency.spec.ts:25",
+          "location": ".\\tests\\unit\\server\\security\\idempotency.spec.ts:25"
+        }
+      ]
+    }
+  ]
+}

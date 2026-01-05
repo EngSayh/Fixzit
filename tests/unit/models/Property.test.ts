@@ -141,15 +141,7 @@ describe("Property model - Schema Validation", () => {
   });
 
   it("should enforce required fields", () => {
-    const requiredFields = [
-      "orgId",
-      "code",
-      "name",
-      "type",
-      "address.coordinates.lat",
-      "address.coordinates.lng",
-    ] as const;
-
+    // Required fields: orgId, code, name, type, address.coordinates.lat, address.coordinates.lng
     for (const field of ["orgId", "code", "name", "type"]) {
       const data = buildValidProperty();
       delete data[field];

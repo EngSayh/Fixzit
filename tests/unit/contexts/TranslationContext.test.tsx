@@ -37,11 +37,7 @@ vi.mock("@/i18n/config", () => ({
   DEFAULT_LOCALE: "ar",
 }));
 
-import {
-  TranslationProvider,
-  useTranslation,
-} from "@/contexts/TranslationContext";
-
+// Dynamic import used in beforeAll - static import removed to avoid unused variable warning
 type TranslationModule = typeof import("@/contexts/TranslationContext");
 type TranslationContextValue = ReturnType<TranslationModule["useTranslation"]>;
 

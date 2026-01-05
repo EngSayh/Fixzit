@@ -606,6 +606,6 @@ const nextConfig = {
   // Output configuration for deployment
   // Use standalone output in production builds, but avoid it in local/test to reduce build flakiness
   output: process.env.NEXT_OUTPUT || (isVercelDeploy ? 'standalone' : undefined),
-}
+};
 
-module.exports = withBundleAnalyzer(nextConfig)
+module.exports = withBundleAnalyzer(nextConfig);

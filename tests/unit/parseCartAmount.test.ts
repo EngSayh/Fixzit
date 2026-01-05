@@ -1,4 +1,4 @@
-import { describe, test, expect } from "vitest";
+import { test, expect } from "vitest";
 import { parseCartAmount } from "@/lib/payments/parseCartAmount";
 
 test("accepts numeric input", () => {

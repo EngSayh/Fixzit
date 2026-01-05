@@ -18,6 +18,7 @@ import {
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { safeContainsRegex } from "@/lib/utils/regex";
 
 // Default org ID for API token access - checks multiple env vars for flexibility
 function resolveApiTokenOrgId(): string {
@@ -171,7 +172,8 @@ export async function GET(request: NextRequest) {
       baseMatch.category = categoryParam;
     }
     if (searchParam) {
-      const searchRegex = new RegExp(searchParam, 'i');
+      // Use safe regex to prevent ReDoS attacks from user-controlled search input
+      const searchRegex = safeContainsRegex(searchParam);
       baseMatch.$or = [
         { title: { $regex: searchRegex } },
         { description: { $regex: searchRegex } },

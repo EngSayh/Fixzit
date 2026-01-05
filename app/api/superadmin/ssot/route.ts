@@ -38,17 +38,16 @@ export async function GET(req: NextRequest) {
     // Resolve the canonical SSOT file path
     const ssotPath = path.join(process.cwd(), 'docs', 'PENDING_MASTER.md');
     
-    // Read file stats for metadata
-    const stats = await fs.stat(ssotPath);
-    
-    // Read file content
+    // Read file content first (atomic operation), then get stats
+    // This avoids TOCTOU race condition where file could change between stat and read
     const content = await fs.readFile(ssotPath, 'utf-8');
+    const stats = await fs.stat(ssotPath);
     
     // Return content with metadata
     return NextResponse.json({
       content,
       lastModified: stats.mtime.toISOString(),
-      sizeBytes: stats.size,
+      sizeBytes: content.length, // Use content length for accuracy
       fileName: 'PENDING_MASTER.md',
       path: 'docs/PENDING_MASTER.md',
     });

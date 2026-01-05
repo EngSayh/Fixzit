@@ -395,7 +395,7 @@ export default function ImpersonationHistoryPage() {
             className="ps-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[150px]">
+        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
           <SelectTrigger>
             <Filter className="h-4 w-4 me-2" />
           </SelectTrigger>
@@ -406,7 +406,7 @@ export default function ImpersonationHistoryPage() {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range" className="w-[150px]">
+        <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range" className="w-[120px]">
           <SelectTrigger>
             <Clock className="h-4 w-4 me-2" />
           </SelectTrigger>

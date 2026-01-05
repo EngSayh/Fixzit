@@ -13,6 +13,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import { safeExactMatchRegex } from "@/lib/utils/regex";
 
 // Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
@@ -70,17 +71,17 @@ export async function GET(request: NextRequest) {
       if (status === "open") {
         filter.status = { $in: ["New", "Open", "Waiting"] };
       } else {
-        // Case-insensitive match for status
-        filter.status = { $regex: new RegExp(`^${status}$`, "i") };
+        // Case-insensitive match for status - use safe regex to prevent ReDoS
+        filter.status = { $regex: safeExactMatchRegex(status) };
       }
     }
     if (priority && priority !== "all") {
-      // Case-insensitive match for priority
-      filter.priority = { $regex: new RegExp(`^${priority}$`, "i") };
+      // Case-insensitive match for priority - use safe regex to prevent ReDoS
+      filter.priority = { $regex: safeExactMatchRegex(priority) };
     }
     if (ticketModule && ticketModule !== "all") {
-      // Case-insensitive match for module
-      filter.module = { $regex: new RegExp(`^${ticketModule}$`, "i") };
+      // Case-insensitive match for module - use safe regex to prevent ReDoS
+      filter.module = { $regex: safeExactMatchRegex(ticketModule) };
     }
 
     const [tickets, total] = await Promise.all([

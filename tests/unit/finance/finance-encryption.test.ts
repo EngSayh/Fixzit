@@ -242,7 +242,7 @@ describe("Finance Model PII Encryption", () => {
       await invoice.save();
 
       // Update with new values
-      const updated = await Invoice.findByIdAndUpdate(
+      await Invoice.findByIdAndUpdate(
         invoice._id,
         {
           $set: {
@@ -305,11 +305,11 @@ describe("Finance Model PII Encryption", () => {
       const invoice = new Invoice(data);
       await invoice.save();
 
-      // Get the encrypted value
+      // Get the encrypted value - verify encryption applied
       const raw1 = await Invoice.collection.findOne({
         _id: invoice._id,
       });
-      const encryptedTaxId = raw1?.issuer?.taxId;
+      expect(isEncrypted(raw1?.issuer?.taxId)).toBe(true);
 
       // Save again (simulate re-save)
       const found = await Invoice.findById(invoice._id);

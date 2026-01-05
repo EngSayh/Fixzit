@@ -15,7 +15,7 @@
  * Uses mutable module-scope variables for Vitest forks isolation compatibility.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ============= MUTABLE TEST CONTEXT =============
 // Track mock calls via module-scope arrays (survives vi.clearAllMocks)
@@ -64,31 +64,8 @@ const mockAuditLogModel = vi.mocked(AuditLogModel);
 // ============= HELPER FUNCTIONS FOR ASSERTIONS =============
 // These provide readable assertions using the call tracking arrays
 
-function expectLoggerErrorCalledWith(containsString: string) {
-  const found = loggerErrorCalls.some(call => 
-    typeof call[0] === 'string' && call[0].includes(containsString)
-  );
-  expect(found).toBe(true);
-}
-
-function expectLoggerErrorNotCalledWith(containsString: string) {
-  const found = loggerErrorCalls.some(call => 
-    typeof call[0] === 'string' && call[0].includes(containsString)
-  );
-  expect(found).toBe(false);
-}
-
 function expectLoggerErrorNotCalled() {
   expect(loggerErrorCalls.length).toBe(0);
-}
-
-function expectLoggerInfoCalled() {
-  expect(loggerInfoCalls.length).toBeGreaterThan(0);
-}
-
-function expectLoggerInfoCalledWith(matcher: (args: unknown[]) => boolean) {
-  const found = loggerInfoCalls.some(matcher);
-  expect(found).toBe(true);
 }
 
 function expectAuditLogModelLogCalled() {
@@ -97,15 +74,6 @@ function expectAuditLogModelLogCalled() {
 
 function expectAuditLogModelLogNotCalled() {
   expect(auditLogModelLogCalls.length).toBe(0);
-}
-
-function expectAuditLogModelLogCalledWith(matcher: (arg: unknown) => boolean) {
-  const found = auditLogModelLogCalls.some(call => matcher(call[0]));
-  expect(found).toBe(true);
-}
-
-function getAuditLogModelLogCalls() {
-  return auditLogModelLogCalls.map(call => call[0]);
 }
 
 describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {

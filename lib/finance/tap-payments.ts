@@ -399,6 +399,10 @@ class TapPaymentsClient {
    */
   async getCharge(chargeId: string): Promise<TapChargeResponse> {
     this.ensureConfigured("get charge");
+    // SEC-SSRF-001: Validate chargeId format to prevent SSRF attacks
+    if (!/^chg_[a-zA-Z0-9_]+$/.test(chargeId)) {
+      throw new Error("Invalid charge ID format");
+    }
     try {
       const response = await fetch(`${this.baseUrl}/charges/${chargeId}`, {
         method: "GET",
@@ -491,6 +495,10 @@ class TapPaymentsClient {
    */
   async getRefund(refundId: string): Promise<TapRefundResponse> {
     this.ensureConfigured("get refund");
+    // SEC-SSRF-002: Validate refundId format to prevent SSRF attacks
+    if (!/^re[fp]_[a-zA-Z0-9_]+$/.test(refundId)) {
+      throw new Error("Invalid refund ID format");
+    }
     try {
       const response = await fetch(`${this.baseUrl}/refunds/${refundId}`, {
         method: "GET",
@@ -708,6 +716,10 @@ class TapPaymentsClient {
    */
   async getTransfer(transferId: string): Promise<TapTransferResponse> {
     this.ensureConfigured("get transfer");
+    // SEC-SSRF-003: Validate transferId format to prevent SSRF attacks
+    if (!/^tr_[a-zA-Z0-9_]+$/.test(transferId)) {
+      throw new Error("Invalid transfer ID format");
+    }
     try {
       const response = await fetch(`${this.baseUrl}/transfers/${transferId}`, {
         method: "GET",
@@ -797,6 +809,10 @@ class TapPaymentsClient {
    */
   async getDestination(destinationId: string): Promise<TapDestinationResponse> {
     this.ensureConfigured("get destination");
+    // SEC-SSRF-004: Validate destinationId format to prevent SSRF attacks
+    if (!/^dst_[a-zA-Z0-9_]+$/.test(destinationId)) {
+      throw new Error("Invalid destination ID format");
+    }
     try {
       const response = await fetch(`${this.baseUrl}/destinations/${destinationId}`, {
         method: "GET",

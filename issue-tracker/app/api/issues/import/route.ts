@@ -333,7 +333,8 @@ function parsePendingMaster(content: string): ParsedIssue[] {
         
         // Extract action if present
         let action = 'Investigate and fix';
-        const actionMatch = descriptionPart.match(/Action:\s*(.+?)(?:\.|$)/i);
+        // SEC-REDOS-004: Use possessive-like pattern to avoid polynomial backtracking
+        const actionMatch = descriptionPart.match(/Action:\s*([^.]+)/i);
         if (actionMatch) {
           action = actionMatch[1].trim();
         }

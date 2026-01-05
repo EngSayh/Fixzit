@@ -9,7 +9,7 @@
  * @module tests/unit/server/services/subscriptionBillingService.test
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Test the exported types and interface contracts
 describe("Subscription Billing Service Types", () => {

@@ -4,12 +4,12 @@ class SecureUtils {
   static sanitizeHTML(dirty) {
     if (typeof dirty !== "string") return "";
 
-    // Basic HTML entity encoding
+    // Basic HTML entity encoding - replace dangerous chars with HTML entities
     return dirty
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, '"')
+      .replace(/&/g, "&amp;")     // Must be first to avoid double-encoding
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
       .replace(/'/g, "&#x27;")
       .replace(/\//g, "&#x2F;");
   }

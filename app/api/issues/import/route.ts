@@ -138,7 +138,9 @@ function slugify(value: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    // SEC-REDOS-003: Split into two separate replacements to avoid alternation ReDoS
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
     .slice(0, 80);
 }
 

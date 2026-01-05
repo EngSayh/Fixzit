@@ -189,6 +189,7 @@ const publicApiPrefixes = [
   '/api/marketplace/products',
   '/api/marketplace/search',
   '/api/projects',
+  '/api/system/version', // Public: Version check for client version monitoring (no sensitive data)
   '/api/webhooks',
   // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
   // NOTE: /api/copilot is public but enforces role-based policies internally via CopilotSession

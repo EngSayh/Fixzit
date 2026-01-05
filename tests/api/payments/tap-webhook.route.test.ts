@@ -38,8 +38,12 @@ const {
 
   TapTransactionMock.findOne = vi.fn(async (filter: Record<string, unknown>) => {
     if (!filter) return null;
-    if (filter.chargeId) {
-      return savedTransactions.find((tx) => tx.chargeId === filter.chargeId) ?? null;
+    // Handle both direct chargeId and $eq operator pattern used by route
+    const chargeId = filter.chargeId && typeof filter.chargeId === 'object' 
+      ? (filter.chargeId as { $eq?: string }).$eq 
+      : filter.chargeId;
+    if (chargeId) {
+      return savedTransactions.find((tx) => tx.chargeId === chargeId) ?? null;
     }
     if (filter._id) {
       return savedTransactions.find((tx) => tx._id === filter._id) ?? null;

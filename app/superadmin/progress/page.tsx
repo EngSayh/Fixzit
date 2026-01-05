@@ -34,24 +34,27 @@ interface VitestStats {
 
 async function loadVitestStats(): Promise<VitestStats | null> {
   const resultsPath = path.join(process.cwd(), "vitest-results.json");
-  const exists = await fs.promises
-    .stat(resultsPath)
-    .then(() => true)
-    .catch(() => false);
+  
+  // SEC-TOCTOU: Read directly and handle ENOENT instead of check-then-read
+  try {
+    const raw = await fs.promises.readFile(resultsPath, "utf-8");
+    const data = JSON.parse(raw);
 
-  if (!exists) return null;
-
-  const raw = await fs.promises.readFile(resultsPath, "utf-8");
-  const data = JSON.parse(raw);
-
-  return {
-    totalTests: data.numTotalTests ?? 0,
-    passedTests: data.numPassedTests ?? 0,
-    failedTests: data.numFailedTests ?? 0,
-    totalSuites: data.numTotalTestSuites ?? 0,
-    passedSuites: data.numPassedTestSuites ?? 0,
-    failedSuites: data.numFailedTestSuites ?? 0,
-  };
+    return {
+      totalTests: data.numTotalTests ?? 0,
+      passedTests: data.numPassedTests ?? 0,
+      failedTests: data.numFailedTests ?? 0,
+      totalSuites: data.numTotalTestSuites ?? 0,
+      passedSuites: data.numPassedTestSuites ?? 0,
+      failedSuites: data.numFailedTestSuites ?? 0,
+    };
+  } catch (err) {
+    // File doesn't exist or isn't readable - return null
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw err; // Re-throw other errors
+  }
 }
 
 type PhaseStatusOrDeferred = PhaseStatus | "deferred";

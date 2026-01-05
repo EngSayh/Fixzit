@@ -418,7 +418,7 @@ program
       if (options.assignee) updates.assignedTo = options.assignee;
       if (options.comment) updates.comment = { content: options.comment };
       
-      const result = await apiRequest('PATCH', `/issues/${id}`, updates);
+      await apiRequest('PATCH', `/issues/${id}`, updates);
       console.log(`✅ Issue ${id} updated`);
     } catch (error: any) {
       console.error(`❌ Error: ${error.message}`);

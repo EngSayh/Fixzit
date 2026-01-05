@@ -1,12 +1,13 @@
 console.log("Testing ZATCA system...");
-const crypto = require("crypto");
+// ZATCA data structure test
 const data = {
   seller: "Test Seller",
   buyer: "Test Buyer",
   total: 100,
   vat: 15,
 };
-const base64Data = Buffer.from(JSON.stringify(data)).toString("base64");
+// Verify JSON serialization works
+console.log("Data structure valid:", JSON.stringify(data).length > 0);
 const tlvData =
   "01" +
   Buffer.from("Test Seller").length.toString(16).padStart(2, "0") +

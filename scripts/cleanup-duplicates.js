@@ -11,7 +11,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 
 const DRY_RUN = !process.argv.includes('--apply');
 const reportPath = 'duplicate-detection-report.json';

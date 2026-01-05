@@ -47,10 +47,11 @@ async function debugAuth() {
     console.log("   - Email:", user.email);
     console.log("   - Role:", user.role || user.professional?.role || "N/A");
     console.log("   - Has password hash:", !!user.password);
+    // SEC-001: Only log hash length and format type, not actual hash content
     console.log("   - Password hash length:", user.password?.length || 0);
     console.log(
-      "   - Password hash starts with:",
-      user.password?.substring(0, 7),
+      "   - Hash format:",
+      user.password?.startsWith("$2a$") || user.password?.startsWith("$2b$") ? "bcrypt" : "unknown",
     );
     console.log(
       "   - Is Active:",
@@ -58,7 +59,7 @@ async function debugAuth() {
     );
     console.log("");
 
-    // Test bcrypt comparison
+    // Test bcrypt comparison (note: never log actual password in production)
     console.log("🔍 Testing bcrypt password comparison...");
     const isValid = await bcrypt.compare(testPassword, user.password);
 
@@ -67,10 +68,10 @@ async function debugAuth() {
     } else {
       console.log("❌ PASSWORD MISMATCH! This is the problem.");
       console.log("");
-      console.log("🔧 Generating new hash for comparison:");
-      const newHash = await bcrypt.hash(testPassword, 10);
-      console.log("   New hash:", newHash);
-      console.log("   Stored hash:", user.password);
+      console.log("🔧 Generating new hash for debug comparison:");
+      // SEC-001: Don't log hash content, only verification status
+      console.log("   New hash generated: [REDACTED for security]");
+      console.log("   Stored hash format:", user.password?.substring(0, 4) === "$2a$" || user.password?.substring(0, 4) === "$2b$" ? "bcrypt" : "unknown");
       console.log("");
       console.log(
         "💡 The stored password might have been hashed with a different method or salt.",

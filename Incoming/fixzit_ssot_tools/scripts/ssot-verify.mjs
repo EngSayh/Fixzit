@@ -44,9 +44,8 @@ const REQUIRED_SCHEMA_KEYS = [
   "version",
 ];
 
-function get(obj, path) {
-  return path.split(".").reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), obj);
-}
+// Utility preserved for future deep property access
+// function get(obj, path) { return path.split(".").reduce((acc, k) => acc?.[k], obj); }
 
 async function main() {
   await mongoose.connect(uri, dbName ? { dbName } : {});

@@ -288,12 +288,17 @@ async function seed() {
     console.log(`✅ Created: ${userData.email} (${userData.role})`);
   }
 
+  // SEC-001: Only show password in strictly local dev mode with explicit flag
   const isDev =
     process.env.NODE_ENV === "development" &&
     !process.env.CI &&
     process.env.LOCAL_DEV === "1";
   if (isDev) {
-    console.log(`\n🔑 LOCAL DEV ONLY (LOCAL_DEV=1) - Password: ${PASSWORD}`);
+    // Triple-check we're not in CI/production before logging sensitive info
+    const isSafeToLog = !process.env.VERCEL && !process.env.GITHUB_ACTIONS && !process.env.JENKINS;
+    if (isSafeToLog) {
+      console.log(`\n🔑 LOCAL DEV ONLY - Password length: ${PASSWORD?.length || 0} chars`);
+    }
     console.log(
       "⚠️  WARNING: Never log passwords in production, CI, or shared environments!\n",
     );

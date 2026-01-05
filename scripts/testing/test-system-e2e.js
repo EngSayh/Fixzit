@@ -2,6 +2,9 @@
 
 const http = require("http");
 
+// Sanitize log messages to prevent log injection (SEC-LOG-004)
+const safeLog = (str) => String(str).replace(/[\r\n]/g, " ").substring(0, 500);
+
 async function testEndpoint(path, description) {
   return new Promise((resolve) => {
     const options = {
@@ -13,17 +16,17 @@ async function testEndpoint(path, description) {
     };
 
     const req = http.request(options, (res) => {
-      console.log(`✅ ${description}: ${res.statusCode} ${res.statusMessage}`);
+      console.log(`✅ ${safeLog(description)}: ${res.statusCode} ${safeLog(res.statusMessage)}`);
       resolve({ success: true, status: res.statusCode, path });
     });
 
     req.on("error", (err) => {
-      console.log(`❌ ${description}: ${err.message}`);
+      console.log(`❌ ${safeLog(description)}: ${safeLog(err.message)}`);
       resolve({ success: false, error: err.message, path });
     });
 
     req.on("timeout", () => {
-      console.log(`⏱️  ${description}: Timeout after 5s`);
+      console.log(`⏱️  ${safeLog(description)}: Timeout after 5s`);
       req.destroy();
       resolve({ success: false, error: "Timeout", path });
     });

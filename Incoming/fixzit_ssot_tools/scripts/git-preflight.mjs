@@ -28,7 +28,15 @@ function run(cmd, { allowFail = false } = {}) {
 
 const args = new Set(process.argv.slice(2));
 const baseArgIndex = process.argv.indexOf('--base');
-const base = baseArgIndex > -1 ? process.argv[baseArgIndex + 1] : 'origin/main';
+const baseArg = baseArgIndex > -1 ? process.argv[baseArgIndex + 1] : 'origin/main';
+// SEC-CMD-001: Validate base ref to prevent command injection
+// Only allow alphanumeric, forward slash, hyphen, underscore, and dot
+if (!/^[a-zA-Z0-9/_.-]+$/.test(baseArg)) {
+  console.error(`[git-preflight] ERROR: Invalid base ref format: ${baseArg}`);
+  console.error('[git-preflight] HINT: Use refs like "origin/main" or "HEAD~1"');
+  process.exit(1);
+}
+const base = baseArg;
 const doFetch = !args.has('--no-fetch');
 const requireClean = args.has('--require-clean');
 

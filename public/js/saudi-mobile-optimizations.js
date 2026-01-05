@@ -271,16 +271,9 @@ class SaudiMobileOptimizer {
 
   /**
    * Setup mobile payment method support
+   * Supported: mada, stcpay, applepay, googlepay, samsungpay
    */
   setupMobilePaymentSupport() {
-    const supportedMethods = [
-      "mada",
-      "stcpay",
-      "applepay",
-      "googlepay",
-      "samsungpay",
-    ];
-
     // Detect available payment methods
     if ("PaymentRequest" in window) {
       const paymentMethods = [

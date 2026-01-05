@@ -529,7 +529,7 @@ describe("uploadWorkOrderPhoto", () => {
       mimeType: "image/png",
       buffer: Buffer.from("filedata"),
     };
-    const { chain, mocks } = makeFindOneSelectLean({ workOrderNumber: "WO-55", attachments: [] });
+    const { chain } = makeFindOneSelectLean({ workOrderNumber: "WO-55", attachments: [] });
     workOrderFindOne.mockReturnValue(chain);
     workOrderFindOneAndUpdate.mockResolvedValue({ workOrderNumber: "WO-55" });
 

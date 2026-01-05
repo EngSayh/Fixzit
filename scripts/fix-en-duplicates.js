@@ -72,8 +72,8 @@ if (matches.length > 1) {
 }
 
 // Remove any trailing "export default en" statements at the actual file end
-// Use pattern without 'm' flag to match only at string end
-content = content.replace(/(\n\s*export default en;?\s*)+$/, "");
+// SEC-REDOS-001: Use non-nested quantifier pattern to prevent ReDoS
+content = content.replace(/\n\s*export default en;?\s*$/, "");
 
 // Ensure the file ends properly after the last closing brace
 const lastBraceIndex = content.lastIndexOf("}");
@@ -82,7 +82,10 @@ if (lastBraceIndex !== -1) {
   const suffix = content.substring(lastBraceIndex + 1);
 
   // Check if suffix contains only whitespace and/or comments
-  const hasOnlyWhitespaceOrComments = /^[\s/*]*$/.test(suffix);
+  // SEC-REDOS-002: Simplified pattern to prevent ReDoS
+  const trimmedSuffix = suffix.trim();
+  const hasOnlyWhitespaceOrComments = trimmedSuffix === "" || 
+    /^[/*\s]+$/.test(trimmedSuffix);
 
   if (hasOnlyWhitespaceOrComments || suffix.trim() === "") {
     // Safe to add semicolon

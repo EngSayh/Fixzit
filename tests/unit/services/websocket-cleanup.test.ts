@@ -139,7 +139,7 @@ describe('WebSocket Cleanup', () => {
         }, CLEANUP_DELAY_MS);
       };
 
-      const timerId = scheduleCleanup('conn-123', () => {
+      scheduleCleanup('conn-123', () => {
         // Cleanup logic
       });
 
@@ -184,7 +184,7 @@ describe('WebSocket Cleanup', () => {
 
   describe('Heartbeat Monitoring', () => {
     it('should detect stale connections via heartbeat', () => {
-      const HEARTBEAT_INTERVAL_MS = 30000;
+      // Heartbeat interval: 30000ms, Stale threshold: 60000ms
       const STALE_THRESHOLD_MS = 60000;
 
       const connections = new Map<string, { lastHeartbeat: number }>();

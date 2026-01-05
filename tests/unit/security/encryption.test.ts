@@ -4,7 +4,7 @@
  * Tests AES-256-GCM encryption/decryption functions with comprehensive coverage.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import crypto from 'crypto';
 import {
   encryptField,

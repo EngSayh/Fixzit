@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 import {
   setLocaleToArabic,
   ADMIN_STATE_PATH,
-  hasAdminState,
 } from "./utils/rtl-helpers";
 
 test.describe("RTL dashboard system smoke", () => {

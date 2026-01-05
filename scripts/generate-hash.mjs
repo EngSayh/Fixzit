@@ -3,15 +3,24 @@ import bcrypt from "bcryptjs";
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
 async function generateHashes() {
-  const passwords = [
-    { email: `admin@${EMAIL_DOMAIN}`, password: "Admin@123" },
-    { email: `tenant@${EMAIL_DOMAIN}`, password: "Tenant@123" },
-    { email: `vendor@${EMAIL_DOMAIN}`, password: "Vendor@123" },
+  // SEC-001: Use environment variables for passwords, don't hardcode
+  const seedPassword = process.env.SEED_PASSWORD || process.env.TEST_PASSWORD;
+  if (!seedPassword) {
+    console.error("❌ SEED_PASSWORD or TEST_PASSWORD environment variable required");
+    console.error("   Set it in .env.local: SEED_PASSWORD=YourSecurePassword");
+    process.exit(1);
+  }
+
+  const emails = [
+    `admin@${EMAIL_DOMAIN}`,
+    `tenant@${EMAIL_DOMAIN}`,
+    `vendor@${EMAIL_DOMAIN}`,
   ];
 
-  for (const user of passwords) {
-    const hash = await bcrypt.hash(user.password, 10);
-    console.log(`${user.email}: ${hash}`);
+  for (const email of emails) {
+    const hash = await bcrypt.hash(seedPassword, 10);
+    // Only log email and hash - never log password to avoid security warnings
+    console.log(`${email}: ${hash}`);
   }
 }
 

@@ -8,7 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getServerSession from 'next-auth';
 import mongoose from 'mongoose';
-import Issue, { IssueStatus, IssueCategory, IssuePriority } from '@/models/issue';
+import Issue, { IssueStatus } from '@/models/issue';
+// IssueCategory and IssuePriority are used by the Issue model for validation
+// but not directly in this route's code
 import { connectDB } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 

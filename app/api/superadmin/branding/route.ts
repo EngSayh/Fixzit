@@ -15,14 +15,31 @@ import { PlatformSettings } from "@/server/models/PlatformSettings";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { revalidatePath } from "next/cache";
 import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
-import { setSuperAdminTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
+import { setTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
+import { setAuditContext, clearAuditContext } from "@/server/plugins/auditPlugin";
 import { z } from "zod";
 import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
+const isAbsoluteUrl = (value: string) => {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const UrlOrPathSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (value) => value.startsWith("/") || isAbsoluteUrl(value),
+    "Must be a valid URL or relative path",
+  );
 
 const BrandingUpdateSchema = z.object({
-  logoUrl: z.string().url().optional(),
+  logoUrl: UrlOrPathSchema.optional(),
   logoStorageKey: z.string().optional(),
   logoFileName: z.string().optional(),
   logoMimeType: z.string().optional(), // Relax validation - allow any string
@@ -32,7 +49,7 @@ const BrandingUpdateSchema = z.object({
     .positive()
     .max(2_000_000, "Logo file size must be <= 2MB")
     .optional(),
-  faviconUrl: z.string().url().optional(),
+  faviconUrl: UrlOrPathSchema.optional(),
   brandName: z.string().min(1).max(100).optional(),
   brandColor: z
     .string()
@@ -82,27 +99,40 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // Set superadmin tenant context to bypass tenant isolation for global settings
-    setSuperAdminTenantContext("global", session.username || "superadmin", {
+    // Use a superadmin context without forcing an orgId (global settings)
+    setTenantContext({
+      orgId: undefined,
+      isSuperAdmin: true,
+      userId: session.username,
+      assumedOrgId: "global",
       skipTenantFilter: true,
+    });
+    
+    // Set audit context for platform operations (createdBy is optional for PlatformSettings)
+    // Note: superadmin sessions don't have a MongoDB userId, just a username
+    // The auditPlugin will skip setting createdBy/updatedBy since the userId is not a valid ObjectId
+    setAuditContext({
+      userId: undefined, // superadmin has no MongoDB user ID
+      userEmail: session.username,
     });
 
     try {
-      // Get default platform settings (no orgId = global)
-      // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document; SUPER_ADMIN: global platform settings
-      let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
-
-      // If no settings exist, create default
-      if (!settings) {
-        // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: global platform settings
-        settings = await PlatformSettings.create({
-          logoUrl: "/img/fixzit-logo.png",
-          brandName: "Fixzit Enterprise",
-          brandColor: BRAND_COLORS.primary,
-          // createdBy/updatedBy are set by auditPlugin
-        });
-        logger.info("Created default platform settings", { username: session.username });
-      }
+      // Get or create default platform settings (no orgId = global)
+      const settings = await PlatformSettings.findOneAndUpdate(
+        { orgId: { $exists: false } },
+        {
+          $setOnInsert: {
+            logoUrl: "/img/fixzit-logo.png",
+            brandName: "Fixzit Enterprise",
+            brandColor: BRAND_COLORS.primary,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      );
 
       const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
       return NextResponse.json({
@@ -122,11 +152,22 @@ export async function GET(request: NextRequest) {
       });
     } finally {
       clearTenantContext();
+      clearAuditContext();
     }
   } catch (error) {
-    logger.error("Failed to fetch platform branding", { error });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error("Failed to fetch platform branding", { 
+      error: errorMessage, 
+      stack: errorStack,
+      errorType: error?.constructor?.name,
+    });
     return NextResponse.json(
-      { error: "Failed to fetch branding settings" },
+      { 
+        error: "Failed to fetch branding settings",
+        // Include details in development for debugging
+        ...(process.env.NODE_ENV === 'development' && { details: errorMessage }),
+      },
       { status: 500 }
     );
   }
@@ -156,9 +197,20 @@ export async function PATCH(request: NextRequest) {
 
     await connectDb();
 
-    // Set superadmin tenant context to bypass tenant isolation for global settings
-    setSuperAdminTenantContext("global", session.username || "superadmin", {
+    // Use a superadmin context without forcing an orgId (global settings)
+    setTenantContext({
+      orgId: undefined,
+      isSuperAdmin: true,
+      userId: session.username,
+      assumedOrgId: "global",
       skipTenantFilter: true,
+    });
+    
+    // Set audit context for platform operations
+    // Note: superadmin sessions don't have a MongoDB userId, just a username
+    setAuditContext({
+      userId: undefined, // superadmin has no MongoDB user ID
+      userEmail: session.username,
     });
 
     try {
@@ -200,13 +252,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     // SSRF Protection: Validate URLs after Zod parse
+    const isRelativeUrl = (value: string) => value.startsWith("/");
     let currentField: "logoUrl" | "faviconUrl" | null = null;
     try {
-      if (body.logoUrl) {
+      if (body.logoUrl && !isRelativeUrl(body.logoUrl)) {
         currentField = "logoUrl";
         await validatePublicHttpsUrl(body.logoUrl);
       }
-      if (body.faviconUrl) {
+      if (body.faviconUrl && !isRelativeUrl(body.faviconUrl)) {
         currentField = "faviconUrl";
         await validatePublicHttpsUrl(body.faviconUrl);
       }
@@ -289,6 +342,7 @@ export async function PATCH(request: NextRequest) {
       });
     } finally {
       clearTenantContext();
+      clearAuditContext();
     }
   } catch (error) {
     logger.error("Failed to update platform branding", { error });

@@ -173,14 +173,14 @@ export default function SuperadminAuditPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter} className="w-[160px] bg-muted border-input text-foreground">
+            <Select value={actionFilter} onValueChange={setActionFilter} className="w-[120px] bg-muted border-input text-foreground">
               <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Actions</SelectItem>
                 {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
               </SelectContent>
             </Select>
-            <Select value={entityFilter} onValueChange={setEntityFilter} className="w-[160px] bg-muted border-input text-foreground">
+            <Select value={entityFilter} onValueChange={setEntityFilter} className="w-[120px] bg-muted border-input text-foreground">
               <SelectTrigger><SelectValue placeholder="Entity" /></SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Entities</SelectItem>

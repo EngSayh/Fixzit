@@ -26,7 +26,7 @@ function TestI18nProvider({
   initialDict,
   initialLocale = "en",
 }: PropsWithChildren<{ initialDict: Dict; initialLocale?: string }>) {
-  const [dict, setDict] = useState<Dict>(initialDict);
+  const [dict] = useState<Dict>(initialDict);
   const [locale, setLocale] = useState<string>(initialLocale);
 
   const value = useMemo(

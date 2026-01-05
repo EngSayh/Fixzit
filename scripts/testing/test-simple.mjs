@@ -1,5 +1,8 @@
 import http from "http";
 
+// Sanitize log messages to prevent log injection (SEC-LOG-003)
+const safeLog = (str) => String(str).replace(/[\r\n]/g, " ").substring(0, 500);
+
 async function testBasicConnectivity() {
   return new Promise((resolve) => {
     const req = http.request(
@@ -11,13 +14,13 @@ async function testBasicConnectivity() {
         timeout: 3000,
       },
       (res) => {
-        console.log(`✅ Server responding: ${res.statusCode}`);
+        console.log(`✅ Server responding: ${safeLog(res.statusCode)}`);
         resolve(true);
       },
     );
 
     req.on("error", (err) => {
-      console.log(`❌ Connection failed: ${err.message}`);
+      console.log(`❌ Connection failed: ${safeLog(err.message)}`);
       resolve(false);
     });
 

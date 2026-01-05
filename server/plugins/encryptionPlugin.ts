@@ -101,6 +101,7 @@ function toEncryptableString(value: unknown, fieldPath?: string): string | null 
 
 /**
  * Set a nested value in an object using dot notation
+ * SEC-PROTO-001: Protected against prototype pollution
  */
 function setNestedValue(
   obj: Record<string, unknown>,
@@ -108,6 +109,12 @@ function setNestedValue(
   value: unknown
 ): void {
   const parts = path.split(".");
+  // SEC-PROTO-001: Block prototype pollution attacks
+  const dangerousKeys = ["__proto__", "constructor", "prototype"];
+  if (parts.some(p => dangerousKeys.includes(p))) {
+    return; // Silently ignore dangerous paths
+  }
+  
   let current: Record<string, unknown> = obj;
 
   for (let i = 0; i < parts.length - 1; i++) {

@@ -284,7 +284,7 @@ export default function FMServicesCatalogPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[150px]">
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px]">
           <SelectTrigger>
           </SelectTrigger>
           <SelectContent>
@@ -298,7 +298,7 @@ export default function FMServicesCatalogPage() {
             <SelectItem value="PEST_CONTROL">Pest Control</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={modelFilter} onValueChange={setModelFilter} placeholder="Model" className="w-[130px]">
+        <Select value={modelFilter} onValueChange={setModelFilter} placeholder="Model" className="w-[120px]">
           <SelectTrigger>
           </SelectTrigger>
           <SelectContent>
@@ -308,7 +308,7 @@ export default function FMServicesCatalogPage() {
             <SelectItem value="BOTH">B2B & B2C</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[130px]">
+        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
           <SelectTrigger>
           </SelectTrigger>
           <SelectContent>
