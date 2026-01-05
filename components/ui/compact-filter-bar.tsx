@@ -141,7 +141,7 @@ export function CompactFilterBar({
           {/* Dropdowns */}
           {dropdowns?.map((dropdown, index) => (
             <React.Fragment key={dropdown.id}>
-              <Select value={dropdown.value} onValueChange={dropdown.onChange} placeholder={dropdown.placeholder} className={cn("text-xs bg-muted border-input text-foreground", dropdown.width || "w-[110px]")}>
+              <Select value={dropdown.value} onValueChange={dropdown.onChange} placeholder={dropdown.placeholder} className={cn("text-xs bg-background border-input", dropdown.width || "w-[110px]")}>
                 {dropdown.options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -238,7 +238,7 @@ export function SimpleFilterBar({
 
           {/* Filters */}
           {filters?.map((filter) => (
-            <Select key={filter.id} value={filter.value} onValueChange={filter.onChange} placeholder={filter.placeholder} className={cn("text-xs bg-muted border-input text-foreground", filter.width || "w-[130px]")}>
+            <Select key={filter.id} value={filter.value} onValueChange={filter.onChange} placeholder={filter.placeholder} className={cn("text-xs bg-muted border-input", filter.width || "w-[130px]")}>
               {filter.options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
