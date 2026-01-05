@@ -437,7 +437,8 @@ export const Config = {
    * Feature Flags
    */
   features: {
-    atsEnabled: getBoolean("ATS_ENABLED", false),
+    // ATS is in-house implementation - enabled by default
+    atsEnabled: getBoolean("ATS_ENABLED", true),
     platformOrgId: getOptional("PLATFORM_ORG_ID"),
     publicJobsOrgId: getOptional("PUBLIC_JOBS_ORG_ID"),
   },
