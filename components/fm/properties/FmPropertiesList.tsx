@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -507,14 +507,11 @@ export function FmPropertiesList({
               {t("fm.properties.propertyType", "Property Type")}
             </label>
             <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.properties.allTypes", "All Types")}>
-              <SelectTrigger></SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
-                    {t(`fm.properties.${opt.value.toLowerCase() || "allTypes"}`, opt.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {TYPE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                  {t(`fm.properties.${opt.value.toLowerCase() || "allTypes"}`, opt.label)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div>
@@ -522,14 +519,11 @@ export function FmPropertiesList({
               {t("fm.properties.status", "Status")}
             </label>
             <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("fm.properties.allStatus", "All Status")}>
-              <SelectTrigger></SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
-                    {t(`fm.properties.status.${opt.value.toLowerCase() || "all"}`, opt.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                  {t(`fm.properties.status.${opt.value.toLowerCase() || "all"}`, opt.label)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="flex gap-2 pt-4">

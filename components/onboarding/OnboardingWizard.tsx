@@ -16,12 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
   Check,
@@ -509,16 +504,12 @@ export default function OnboardingWizard({
             onValueChange={(value) => setBasicInfo((prev) => ({ ...prev, country: value }))}
             placeholder={t("onboarding.selectCountry", "Select country")}
           >
-            <SelectTrigger id="country">
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SA">{isRTL ? "المملكة العربية السعودية" : "Saudi Arabia"}</SelectItem>
-              <SelectItem value="AE">{isRTL ? "الإمارات العربية المتحدة" : "UAE"}</SelectItem>
-              <SelectItem value="KW">{isRTL ? "الكويت" : "Kuwait"}</SelectItem>
-              <SelectItem value="BH">{isRTL ? "البحرين" : "Bahrain"}</SelectItem>
-              <SelectItem value="OM">{isRTL ? "عمان" : "Oman"}</SelectItem>
-              <SelectItem value="QA">{isRTL ? "قطر" : "Qatar"}</SelectItem>
-            </SelectContent>
+            <SelectItem value="SA">{isRTL ? "المملكة العربية السعودية" : "Saudi Arabia"}</SelectItem>
+            <SelectItem value="AE">{isRTL ? "الإمارات العربية المتحدة" : "UAE"}</SelectItem>
+            <SelectItem value="KW">{isRTL ? "الكويت" : "Kuwait"}</SelectItem>
+            <SelectItem value="BH">{isRTL ? "البحرين" : "Bahrain"}</SelectItem>
+            <SelectItem value="OM">{isRTL ? "عمان" : "Oman"}</SelectItem>
+            <SelectItem value="QA">{isRTL ? "قطر" : "Qatar"}</SelectItem>
           </Select>
         </div>
       </div>
