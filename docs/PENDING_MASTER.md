@@ -19,6 +19,65 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-05 (Asia/Riyadh) — BUILD VERIFICATION & SCAN AUDIT [AGENT-0022]
+
+**Agent Token:** [AGENT-0022]  
+**Branch:** `fix/dropdown-width-standardization`  
+**Commits ahead of main:** 35
+
+#### Verification Results
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `pnpm typecheck` | ✅ PASSED | 0 errors (previously reported apartmentSearch.ts issues resolved) |
+| `pnpm lint` | ✅ PASSED | 0 errors (previously reported offline-cache-service.ts issue resolved) |
+| Git preflight | ✅ 0 behind | 35 commits ahead of origin/main |
+
+#### Scan Artifacts Reviewed (User Provided)
+
+| Artifact | Issues | Status |
+|----------|--------|--------|
+| incomplete-code-scan-2026-01-04 | 18 curated issues | UNCHANGED from prior scan |
+| todo-scan-2026-01-04 | 2500 markers | NET-ZERO change (line shifts only) |
+
+#### Curated 501 Endpoints Summary (18 Total)
+
+These are intentional "Not Implemented" responses for disabled/unconfigured features:
+
+| Module | Count | Examples |
+|--------|-------|----------|
+| Storage (S3) | 5 | Presign, scan, verify when S3 not configured |
+| ATS | 4 | LinkedIn, Indeed feeds when ATS disabled |
+| Onboarding | 2 | Document integrations stub |
+| Marketplace | 2 | Category/product endpoints when disabled |
+| Other | 5 | Recurring billing, SendGrid, GraphQL stubs |
+
+**Assessment:** These are **design decisions** (feature flags), not bugs. Each returns 501 with appropriate messaging when the feature is disabled or external service not configured. No code changes required.
+
+#### Broad TODO/Marker Scan (2500 markers)
+
+| Category | Count |
+|----------|-------|
+| `pending` | 1215 |
+| `placeholder` | 1049 |
+| `todo` | 69 |
+| `stub` | 59 |
+| `xxx` | 40 |
+| `feature` | 1132 |
+| `refactor` | 1357 |
+| `bug/fixme` | 11 |
+
+**Assessment:** Technical debt backlog. The 11 bug/fixme markers should be prioritized. Others are documentation/enhancement work.
+
+#### SSOT Status
+
+- CSRF/ISSUE_API_TOKEN issue noted by user - requires platform team to resolve before import
+- Import commands prepared:
+  - `pnpm issue-log import docs/artifacts/incomplete-code-scan-import-2026-01-04-141722.json`
+  - `pnpm issue-log import docs/artifacts/todo-scan-import-2026-01-04-141906.json`
+
+---
+
 ### 2026-01-04 23:30 (Asia/Riyadh) — GITHUB CODE SCANNING CONTINUATION [AGENT-0021]
 
 **Agent Token:** [AGENT-0021]  
