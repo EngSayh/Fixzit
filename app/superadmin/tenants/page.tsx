@@ -29,12 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -275,30 +270,20 @@ export default function SuperadminTenantsPage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectTrigger>
-                {statusFilter === "all" ? "All Status" : statusFilter}
-              </SelectTrigger>
-              <SelectContent className="bg-muted border-input">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="TRIAL">Trial</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                <SelectItem value="EXPIRED">Expired</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="TRIAL">Trial</SelectItem>
+              <SelectItem value="SUSPENDED">Suspended</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              <SelectItem value="EXPIRED">Expired</SelectItem>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectTrigger>
-                {typeFilter === "all" ? "All Types" : typeFilter}
-              </SelectTrigger>
-              <SelectContent className="bg-muted border-input">
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="CORPORATE">Corporate</SelectItem>
-                <SelectItem value="GOVERNMENT">Government</SelectItem>
-                <SelectItem value="INDIVIDUAL">Individual</SelectItem>
-                <SelectItem value="NONPROFIT">Non-Profit</SelectItem>
-                <SelectItem value="STARTUP">Startup</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="CORPORATE">Corporate</SelectItem>
+              <SelectItem value="GOVERNMENT">Government</SelectItem>
+              <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+              <SelectItem value="NONPROFIT">Non-Profit</SelectItem>
+              <SelectItem value="STARTUP">Startup</SelectItem>
             </Select>
           </div>
         </CardContent>

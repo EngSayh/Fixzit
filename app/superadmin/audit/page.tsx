@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
@@ -173,19 +173,13 @@ export default function SuperadminAuditPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter} className="w-[120px] bg-muted border-input text-foreground">
-              <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
-              <SelectContent className="bg-muted border-input">
+            <Select value={actionFilter} onValueChange={setActionFilter} placeholder="Action" className="w-full sm:w-40 bg-muted border-input text-foreground">
                 <SelectItem value="all">All Actions</SelectItem>
                 {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
-              </SelectContent>
             </Select>
-            <Select value={entityFilter} onValueChange={setEntityFilter} className="w-[120px] bg-muted border-input text-foreground">
-              <SelectTrigger><SelectValue placeholder="Entity" /></SelectTrigger>
-              <SelectContent className="bg-muted border-input">
+            <Select value={entityFilter} onValueChange={setEntityFilter} placeholder="Entity" className="w-full sm:w-40 bg-muted border-input text-foreground">
                 <SelectItem value="all">All Entities</SelectItem>
                 {ENTITY_TYPES.map((entity) => (<SelectItem key={entity} value={entity}>{entity}</SelectItem>))}
-              </SelectContent>
             </Select>
           </div>
         </CardContent>
