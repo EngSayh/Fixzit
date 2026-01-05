@@ -338,22 +338,22 @@ export default function EditVendorPage() {
                 <Label htmlFor="status">
                   {auto("Status *", "form.labels.status")}
                 </Label>
-                <Select name="status" defaultValue={vendor.status} className="bg-muted border-input text-foreground">
-                    <SelectItem value="PENDING">
-                      {auto("Pending", "form.status.pending")}
-                    </SelectItem>
-                    <SelectItem value="APPROVED">
-                      {auto("Approved", "form.status.approved")}
-                    </SelectItem>
-                    <SelectItem value="SUSPENDED">
-                      {auto("Suspended", "form.status.suspended")}
-                    </SelectItem>
-                    <SelectItem value="REJECTED">
-                      {auto("Rejected", "form.status.rejected")}
-                    </SelectItem>
-                    <SelectItem value="BLACKLISTED">
-                      {auto("Blacklisted", "form.status.blacklisted")}
-                    </SelectItem>
+                <Select name="status" defaultValue={vendor.status} placeholder="Select status" className="w-full bg-muted border-input text-foreground">
+                  <SelectItem value="PENDING">
+                    {auto("Pending", "form.status.pending")}
+                  </SelectItem>
+                  <SelectItem value="APPROVED">
+                    {auto("Approved", "form.status.approved")}
+                  </SelectItem>
+                  <SelectItem value="SUSPENDED">
+                    {auto("Suspended", "form.status.suspended")}
+                  </SelectItem>
+                  <SelectItem value="REJECTED">
+                    {auto("Rejected", "form.status.rejected")}
+                  </SelectItem>
+                  <SelectItem value="BLACKLISTED">
+                    {auto("Blacklisted", "form.status.blacklisted")}
+                  </SelectItem>
                 </Select>
                 {errors.status && (
                   <p className="text-sm text-destructive">{errors.status}</p>

@@ -743,7 +743,7 @@ export default function SuperadminSubscriptionsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency" className="bg-muted border-input text-foreground">
+                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency" className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectItem value="SAR">SAR</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                   <SelectItem value="EUR">EUR</SelectItem>
@@ -843,8 +843,7 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update subscription status");
                         }
                       }}
-                      placeholder="Status"
-                      className="bg-muted border-input text-foreground"
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="trial">Trial</SelectItem>
@@ -877,8 +876,7 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update billing cycle");
                         }
                       }}
-                      placeholder="Billing Cycle"
-                      className="bg-muted border-input text-foreground"
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="annual">Annual</SelectItem>

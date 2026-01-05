@@ -1,6 +1,9 @@
 "use client";
 
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { EmployeeDraft, Lookups, TranslateFn } from "../types";
@@ -54,12 +57,13 @@ export default function RoleDetailsStep({
             "auto.fm.hr.directory.new.form.department.placeholder",
             "Select department",
           )}
+          className="w-full bg-muted border-input text-foreground"
         >
-            {lookups.departments.map((department) => (
-              <SelectItem key={department} value={department}>
-                {department}
-              </SelectItem>
-            ))}
+          {lookups.departments.map((department) => (
+            <SelectItem key={department} value={department}>
+              {department}
+            </SelectItem>
+          ))}
         </Select>
       </div>
 
@@ -80,12 +84,13 @@ export default function RoleDetailsStep({
               "auto.fm.hr.directory.new.form.employmentType.placeholder",
               "Select type",
             )}
+            className="w-full bg-muted border-input text-foreground"
           >
-              {lookups.employmentTypes.map((employmentType) => (
-                <SelectItem key={employmentType} value={employmentType}>
-                  {employmentType}
-                </SelectItem>
-              ))}
+            {lookups.employmentTypes.map((employmentType) => (
+              <SelectItem key={employmentType} value={employmentType}>
+                {employmentType}
+              </SelectItem>
+            ))}
           </Select>
         </div>
         <div className="space-y-2">
@@ -101,12 +106,13 @@ export default function RoleDetailsStep({
               "auto.fm.hr.directory.new.form.workModel.placeholder",
               "Select model",
             )}
+            className="w-full bg-muted border-input text-foreground"
           >
-              {lookups.workModels.map((workModel) => (
-                <SelectItem key={workModel} value={workModel}>
-                  {workModel}
-                </SelectItem>
-              ))}
+            {lookups.workModels.map((workModel) => (
+              <SelectItem key={workModel} value={workModel}>
+                {workModel}
+              </SelectItem>
+            ))}
           </Select>
         </div>
       </div>

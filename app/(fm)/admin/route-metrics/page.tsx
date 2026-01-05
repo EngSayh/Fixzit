@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { toast } from "sonner";
 import {
@@ -1151,15 +1154,15 @@ export default function RouteMetricsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto space-y-4">
           <div className="flex flex-wrap gap-3 items-center">
-            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-48 bg-muted border-input text-foreground">
-                <SelectItem value="all">
-                  {auto("All modules", "aliases.filter.all")}
+            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectItem value="all">
+                {auto("All modules", "aliases.filter.all")}
+              </SelectItem>
+              {moduleOptions.map((module) => (
+                <SelectItem key={module} value={module}>
+                  {module}
                 </SelectItem>
-                {moduleOptions.map((module) => (
-                  <SelectItem key={module} value={module}>
-                    {module}
-                  </SelectItem>
-                ))}
+              ))}
             </Select>
             <Input
               value={aliasQuery}
