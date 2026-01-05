@@ -175,7 +175,12 @@ export default function SuperadminNotificationsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex gap-4">
-                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[120px] bg-muted border-input text-foreground">
+                <Select 
+                  value={channelFilter} 
+                  onValueChange={setChannelFilter} 
+                  placeholder="All Channels"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
+                >
                   <SelectItem value="all">All Channels</SelectItem>
                   <SelectItem value="email">Email</SelectItem>
                   <SelectItem value="sms">SMS</SelectItem>

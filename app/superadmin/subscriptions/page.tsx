@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
@@ -743,13 +743,10 @@ export default function SuperadminSubscriptionsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency" className="bg-muted border-input">
-                  <SelectTrigger>{tierForm.currency}</SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SAR">SAR</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                  </SelectContent>
+                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency" className="mt-1 w-full bg-muted border-input text-foreground">
+                  <SelectItem value="SAR">SAR</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
                 </Select>
               </div>
             </div>
@@ -846,17 +843,13 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update subscription status");
                         }
                       }}
-                      className="w-full sm:w-40 bg-muted border-input text-foreground"
+                      placeholder="Status"
+                      className="mt-1 w-full bg-muted border-input text-foreground"
                     >
-                      <SelectTrigger>
-                        <span className="capitalize">{selectedSubscription.status.replace("_", " ")}</span>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="trial">Trial</SelectItem>
-                        <SelectItem value="past_due">Past Due</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="trial">Trial</SelectItem>
+                      <SelectItem value="past_due">Past Due</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </Select>
                   </div>
                   
@@ -884,15 +877,11 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update billing cycle");
                         }
                       }}
-                      className="w-full sm:w-40 bg-muted border-input text-foreground"
+                      placeholder="Billing Cycle"
+                      className="mt-1 w-full bg-muted border-input text-foreground"
                     >
-                      <SelectTrigger>
-                        <span className="capitalize">{selectedSubscription.billingCycle}</span>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="annual">Annual</SelectItem>
-                      </SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="annual">Annual</SelectItem>
                     </Select>
                   </div>
                 </div>

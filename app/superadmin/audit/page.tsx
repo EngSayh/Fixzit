@@ -173,13 +173,13 @@ export default function SuperadminAuditPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter} placeholder="Action" className="w-[120px] bg-muted border-input text-foreground">
-              <SelectItem value="all">All Actions</SelectItem>
-              {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
+            <Select value={actionFilter} onValueChange={setActionFilter} placeholder="Action" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Actions</SelectItem>
+                {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
             </Select>
-            <Select value={entityFilter} onValueChange={setEntityFilter} placeholder="Entity" className="w-[120px] bg-muted border-input text-foreground">
-              <SelectItem value="all">All Entities</SelectItem>
-              {ENTITY_TYPES.map((entity) => (<SelectItem key={entity} value={entity}>{entity}</SelectItem>))}
+            <Select value={entityFilter} onValueChange={setEntityFilter} placeholder="Entity" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Entities</SelectItem>
+                {ENTITY_TYPES.map((entity) => (<SelectItem key={entity} value={entity}>{entity}</SelectItem>))}
             </Select>
           </div>
         </CardContent>

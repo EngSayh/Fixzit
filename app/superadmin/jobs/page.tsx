@@ -187,10 +187,10 @@ export default function SuperadminJobsPage() {
               value={typeFilter} 
               onValueChange={setTypeFilter}
               placeholder="Job Type"
-              className="w-[120px] bg-muted border-input text-foreground"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectItem value="all">All Types</SelectItem>
-              {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
+                <SelectItem value="all">All Types</SelectItem>
+                {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
             </Select>
             <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0} aria-label={t("superadmin.jobs.process", "Process pending jobs")} title={t("superadmin.jobs.process", "Process pending jobs")}>
               {processing ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Processing...</> : <><Play className="h-4 w-4 me-2" />Process Jobs</>}

@@ -389,13 +389,13 @@ export default function ImpersonationHistoryPage() {
             className="ps-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px] bg-muted border-input text-foreground">
+        <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
           <SelectItem value="all">All Status</SelectItem>
           <SelectItem value="active">Active</SelectItem>
           <SelectItem value="ended">Ended</SelectItem>
           <SelectItem value="expired">Expired</SelectItem>
         </Select>
-        <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range" className="w-[120px] bg-muted border-input text-foreground">
+        <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range" className="w-full sm:w-40 bg-muted border-input text-foreground">
           <SelectItem value="24h">Last 24 Hours</SelectItem>
           <SelectItem value="7d">Last 7 Days</SelectItem>
           <SelectItem value="30d">Last 30 Days</SelectItem>
