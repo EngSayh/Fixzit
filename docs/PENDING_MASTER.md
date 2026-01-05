@@ -19,6 +19,89 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-05 13:00 (Asia/Riyadh) — SMART REMEDIATION REPORT REVIEW [AGENT-0023]
+
+**Agent Token:** [AGENT-0023]  
+**Branch:** `docs/feature-gates-documentation`  
+**Commits ahead of main:** 1
+**Scan Artifact:** `incomplete-code-scan-2026-01-05-122304.json` (reviewed from AGENT-TEMP-20260105T1155)
+
+#### Git Preflight
+
+| Check | Status |
+|-------|--------|
+| Behind origin/main | 0 ✅ |
+| Ahead of origin/main | 1 |
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+
+#### Report Analysis: 15 Curated Issues
+
+Reviewed the SMART report from AGENT-TEMP-20260105T1155. Key findings:
+
+| Category | Count | Status | Action Required |
+|----------|-------|--------|-----------------|
+| **Feature Gates (501)** | 12 | ✅ Documented in `FEATURE_GATES.md` | NO - correct design |
+| **External Deps Blocked** | 2 | ❌ BLOCKED | Requires ZATCA/Ejar API credentials |
+| **Roadmap Items** | 1 | 📋 Planned Q2 2026 | NO - AI building model |
+
+#### HTTP Status Code Analysis
+
+The report suggested changing 501 to 403/404 for feature-gated endpoints. **This is technically incorrect:**
+
+| Status | Meaning | When To Use |
+|--------|---------|-------------|
+| **501** | Not Implemented | Feature intentionally disabled ✅ |
+| **403** | Forbidden | User lacks permissions ❌ |
+| **404** | Not Found | Endpoint doesn't exist ❌ |
+
+**Decision:** Keep 501 as the correct semantic choice for feature-gated endpoints.
+
+#### FIXME Markers Verification
+
+Report claimed 11 FIXME markers. Verification:
+- `grep -r "FIXME" app lib server services`: **0 matches** in production code
+- All FIXMEs are in documentation/audit files
+
+#### Module-by-Module Status (15 Issues)
+
+| # | Module | Issue | Verified Status |
+|---|--------|-------|-----------------|
+| 1 | Onboarding | request-upload 501 | ✅ Feature gate - S3 required |
+| 2 | Onboarding | ZATCA/Ejar stubs | ❌ BLOCKED - external APIs |
+| 3 | ATS | public-post 501 | ✅ Feature gate - ATS_ENABLED |
+| 4 | ATS | resumes/presign 501 | ✅ Feature gate - S3 required |
+| 5 | Marketplace | products 501 | ✅ Feature gate - MARKETPLACE_ENABLED |
+| 6 | Marketplace | categories 501 | ✅ Feature gate - MARKETPLACE_ENABLED |
+| 7 | Storage | presigned-url 501 | ✅ Feature gate - S3 required |
+| 8 | Storage | scan 501 | ✅ Feature gate - S3 required |
+| 9 | Storage | verify-metadata 501 | ✅ Feature gate - S3 required |
+| 10 | FM | attachments/presign 501 | ✅ Feature gate - S3 required |
+| 11 | Billing | charge-recurring 501 | ✅ Deprecated endpoint |
+| 12 | Support | welcome-email 501 | ✅ Feature gate - SendGrid required |
+| 13 | FM | buildingModel AI stub | 📋 Roadmap Q2 2026 |
+| 14 | GraphQL | 501 until yoga installed | ✅ Optional dependency |
+| 15 | TestInfra | vitest static imports | 📋 Roadmap item |
+
+#### Production vs Local Verification
+
+| Service | GitHub Secret | Vercel Env | Production Status |
+|---------|--------------|------------|-------------------|
+| AWS S3 | `AWS_S3_BUCKET` ✅ | ✅ | Works in production |
+| SendGrid | `SEND_GRID` ✅ | ✅ | Works in production |
+| Marketplace | N/A | `MARKETPLACE_ENABLED=true` | Works in production |
+
+#### Conclusion
+
+**No code changes required from this report.** All 15 issues are either:
+1. **Design decisions** properly returning 501 (12 issues)
+2. **Blocked** by external dependencies requiring business action (2 issues)  
+3. **Roadmap items** for future sprints (1 issue)
+
+The feature-gate pattern is already documented in `docs/guides/FEATURE_GATES.md` (created by AGENT-0022).
+
+---
+
 ### 2026-01-05 (Asia/Riyadh) — DEEP SCAN ANALYSIS & ISSUE TRIAGE [AGENT-0022]
 
 **Agent Token:** [AGENT-0022]  
