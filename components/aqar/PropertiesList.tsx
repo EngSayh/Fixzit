@@ -28,6 +28,7 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
+import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -465,6 +466,18 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         }
         end={
           <>
+            <FilterPresetsDropdown
+              entityType="properties"
+              currentFilters={state.filters as Record<string, unknown>}
+              currentSearch={state.q}
+              onLoadPreset={(filters, _sort, search) => {
+                updateState({ 
+                  filters: filters as PropertyFilters, 
+                  q: search || "",
+                  page: 1 
+                });
+              }}
+            />
             <div className="hidden md:flex gap-2">
               <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")}>
                 Table
