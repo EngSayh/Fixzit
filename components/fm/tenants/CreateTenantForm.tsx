@@ -181,6 +181,7 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder={t("fm.properties.selectType", "Select type")}
+            className="w-full bg-muted border-input text-foreground"
           >
             <SelectItem value="INDIVIDUAL">
               {t("fm.tenants.individual", "Individual")}

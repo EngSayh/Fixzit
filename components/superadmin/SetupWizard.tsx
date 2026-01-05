@@ -343,6 +343,7 @@ export function SetupWizard() {
                     setDefaults({ ...defaults, language: value })
                   }
                   placeholder="Select language"
+                  className="w-full bg-muted border-input text-foreground"
                 >
                   <SelectItem value="en">English</SelectItem>
                   <SelectItem value="ar">العربية (Arabic)</SelectItem>
@@ -357,6 +358,7 @@ export function SetupWizard() {
                     setDefaults({ ...defaults, currency: value })
                   }
                   placeholder="Select currency"
+                  className="w-full bg-muted border-input text-foreground"
                 >
                   <SelectItem value="SAR">SAR - Saudi Riyal</SelectItem>
                   <SelectItem value="AED">AED - UAE Dirham</SelectItem>
@@ -373,6 +375,7 @@ export function SetupWizard() {
                     setDefaults({ ...defaults, timezone: value })
                   }
                   placeholder="Select timezone"
+                  className="w-full bg-muted border-input text-foreground"
                 >
                   <SelectItem value="Asia/Riyadh">Asia/Riyadh (GMT+3)</SelectItem>
                   <SelectItem value="Asia/Dubai">Asia/Dubai (GMT+4)</SelectItem>

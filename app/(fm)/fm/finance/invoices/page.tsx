@@ -354,7 +354,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
               value={statusFilter}
               onValueChange={setStatusFilter}
               placeholder={t("fm.properties.status", "Status")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectItem value="">
                 {t("common.all", "All Status")}
@@ -385,7 +385,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
               value={typeFilter}
               onValueChange={setTypeFilter}
               placeholder={t("fm.properties.type", "Type")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectItem value="">
                 {t("fm.properties.allTypes", "All Types")}
