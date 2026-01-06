@@ -2,8 +2,8 @@
  * Unit tests for HelpArticle model.
  * Framework: Vitest with MongoDB Memory Server
  *
- * ✅ FIXED: Removed subprocess-based testing (caused ESM circular dependency)
- * Now using direct imports with mongoose connection from vitest.setup.ts
+ * ✅ FIXED: Uses global mongoose connection from vitest.setup.ts
+ * ✅ NO redundant MongoMemoryServer - vitest.setup.ts handles it
  * 
  * Tests validate:
  * - Schema: required fields, defaults, enums, indexes, timestamps
@@ -12,67 +12,24 @@
  * - Validation rules
  */
  
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
 
-// Model will be imported AFTER mongoose connection is ready
+// Model will be imported dynamically per test
 let HelpArticle: mongoose.Model<any>;
-let localMongoServer: MongoMemoryServer | null = null;
 
-/**
- * Wait for mongoose connection to be ready (max 10s).
- * If not connected after timeout, attempts to start a local MongoMemoryServer.
- */
-async function ensureMongoConnection(maxWaitMs = 10000): Promise<void> {
+beforeEach(async () => {
+  // Wait for mongoose connection (global setup provides it)
+  const maxWaitMs = 15000;
   const start = Date.now();
-  
-  // First, wait for global setup to potentially connect
   while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWaitMs) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   
-  // If still not connected, start our own MongoMemoryServer
   if (mongoose.connection.readyState !== 1) {
-    if (!localMongoServer) {
-      localMongoServer = await MongoMemoryServer.create({
-        instance: {
-          dbName: "fixzit-test-helparticle",
-          launchTimeout: 60000,
-        },
-      });
-      const uri = localMongoServer.getUri();
-      await mongoose.connect(uri, {
-        autoCreate: true,
-        autoIndex: true,
-      });
-    }
+    throw new Error(`Mongoose not connected - readyState: ${mongoose.connection.readyState}`);
   }
-  
-  // Final check
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error(
-      `Mongoose not connected - readyState: ${mongoose.connection.readyState}`
-    );
-  }
-}
-
-beforeAll(async () => {
-  await ensureMongoConnection();
-});
-
-afterAll(async () => {
-  if (localMongoServer) {
-    await mongoose.disconnect();
-    await localMongoServer.stop();
-    localMongoServer = null;
-  }
-});
-
-beforeEach(async () => {
-  // Clear tenant context
-  await mongoose.connection.dropDatabase();
   
   // Clear model from mongoose cache using proper API
   if (mongoose.connection.models.HelpArticle) {
@@ -116,6 +73,9 @@ beforeEach(async () => {
     console.error('Schema paths available:', Object.keys(HelpArticle.schema.paths));
     throw new Error('HelpArticle schema missing orgId - tenantIsolationPlugin did not run');
   }
+  
+  // Clean the collection for this test
+  await HelpArticle.deleteMany({});
 });
 
 describe("HelpArticle model schema", () => {
