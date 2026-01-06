@@ -48,6 +48,19 @@ export async function waitForMongoConnection(
     // After maxWaitMs, fall back to local MongoMemoryServer
     if (elapsed > maxWaitMs) {
       console.debug(`[waitForMongoConnection] Global setup not ready after ${maxWaitMs}ms, starting local MongoMemoryServer...`);
+      
+      // CRITICAL: Disconnect any active/pending connection before creating fallback
+      // This prevents "Can't call openUri() on an active connection with different connection strings"
+      const currentState = mongoose.connection.readyState;
+      if (currentState !== 0) {
+        console.debug(`[waitForMongoConnection] Disconnecting existing connection (readyState=${currentState}) before fallback...`);
+        try {
+          await mongoose.disconnect();
+        } catch {
+          // Ignore disconnect errors - we're creating a fresh connection anyway
+        }
+      }
+      
       if (!localMongoServer) {
         localMongoServer = await MongoMemoryServer.create({
           instance: {

@@ -682,11 +682,32 @@ beforeAll(async () => {
     
     // Now handle disconnection if still connected
     if (mongoose.connection.readyState !== 0) {
+      // Check if already connected to the correct URI
+      const currentHost = mongoose.connection.host;
+      const newHost = mongoUri.split('@')[1]?.split('/')[0] || mongoUri.split('://')[1]?.split('/')[0];
+      
+      if (currentHost && newHost && currentHost.includes('127.0.0.1') && newHost.includes('127.0.0.1')) {
+        // Already connected to a local MongoDB (likely MongoMemoryServer) - reuse connection
+        logger.debug("✅ Reusing existing MongoDB connection:", { currentHost });
+        mongoUriRef = mongoUri;
+        return;
+      }
+      
       // Clear all models to prevent stale model cache with old connection
       for (const modelName of Object.keys(mongoose.connection.models)) {
         mongoose.connection.deleteModel(modelName);
       }
       await realDisconnect();
+      
+      // Wait for disconnection to complete
+      await new Promise<void>((resolve) => {
+        if (mongoose.connection.readyState === 0) {
+          resolve();
+        } else {
+          mongoose.connection.once('disconnected', () => resolve());
+          setTimeout(resolve, 1000); // Fallback timeout
+        }
+      });
     }
     
     mongoUriRef = mongoUri;
