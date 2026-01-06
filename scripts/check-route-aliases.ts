@@ -23,6 +23,8 @@ const ENFORCED_DIRS = [
 const ALLOWLIST_FILES = new Set<string>([
   // Central canonical definition of the legacy alias
   path.join("config", "topbar-modules.ts"),
+  // Collection names definition - contains string values, not usage
+  path.join("lib", "db", "collection-names.ts"),
 ]);
 
 type CliOptions = {

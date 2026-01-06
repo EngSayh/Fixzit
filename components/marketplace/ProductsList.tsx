@@ -28,6 +28,7 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
+import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -396,6 +397,18 @@ export function ProductsList({ orgId }: ProductsListProps) {
         }
         end={
           <>
+            <FilterPresetsDropdown
+              entityType="products"
+              currentFilters={state.filters as Record<string, unknown>}
+              currentSearch={state.q}
+              onLoadPreset={(filters, _sort, search) => {
+                updateState({ 
+                  filters: filters as ProductFilters, 
+                  q: search || "",
+                  page: 1 
+                });
+              }}
+            />
             <div className="hidden md:flex gap-2">
               <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")} aria-label="Switch to table view" aria-pressed={viewMode === "table"}>
                 Table

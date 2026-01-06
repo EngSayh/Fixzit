@@ -5,6 +5,7 @@ import { submitForClearance, submitForReporting, encodeInvoiceXml } from "@/lib/
 import { generateInvoiceHash } from "@/lib/zatca/crypto";
 import type { ZatcaSubmissionResult } from "@/lib/zatca/fatoora-types";
 import type { Document, WithId, FindCursor, Sort } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 interface ZatcaCredentialsDoc extends Document { orgId: string; productionCsid?: string; secret?: string; }
 interface ZatcaSubmissionDoc extends Document { orgId: string; invoiceId: string; invoiceHash: string; type: "clearance" | "reporting"; status: string; response?: ZatcaSubmissionResult; createdAt: Date; }
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (type !== "clearance" && type !== "reporting") return NextResponse.json({ error: "Invalid type" }, { status: 400 });
 
   const db = await connectDb();
-  const creds = await db.collection("zatca_credentials").findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;
+  const creds = await db.collection(COLLECTIONS.ZATCA_CREDENTIALS).findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;
   if (!creds?.productionCsid || !creds?.secret) return NextResponse.json({ error: "Complete ZATCA onboarding first" }, { status: 400 });
 
   const invoiceHash = generateInvoiceHash(invoiceXml);
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     result = await submitForReporting(creds.productionCsid, creds.secret, encodedInvoice, invoiceHash);
   }
 
-  await db.collection("zatca_submissions").insertOne({ orgId: user.orgId, invoiceId, invoiceHash, type, status: result.success ? "success" : "failed", response: result, createdAt: new Date() });
+  await db.collection(COLLECTIONS.ZATCA_SUBMISSIONS).insertOne({ orgId: user.orgId, invoiceId, invoiceHash, type, status: result.success ? "success" : "failed", response: result, createdAt: new Date() });
   return NextResponse.json(result);
 }
 
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const skip = parseInt(url.searchParams.get("skip") || "0", 10);
 
   const db = await connectDb();
-  const collection = db.collection("zatca_submissions");
+  const collection = db.collection(COLLECTIONS.ZATCA_SUBMISSIONS);
   const cursor = collection.find({ orgId: user.orgId }) as FindCursor<WithId<ZatcaSubmissionDoc>>;
   const submissions = await cursor.sort({ createdAt: -1 } as Sort).skip(skip).limit(limit).toArray();
   const total = await collection.countDocuments({ orgId: user.orgId });

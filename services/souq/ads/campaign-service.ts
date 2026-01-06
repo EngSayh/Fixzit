@@ -7,10 +7,13 @@
  * - Set bidding strategies (manual, automatic)
  * - Schedule campaigns
  * - Track performance metrics
+ * 
+ * TD-001: Migrated from hardcoded collection names to COLLECTIONS constant
  */
 
 import { nanoid } from "nanoid";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 const MIN_BID_SAR = 0.05;
 const MIN_DAILY_BUDGET_SAR = 10;
@@ -196,8 +199,8 @@ export class CampaignService {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection("souq_campaigns").insertOne(campaign);
-    await db.collection("souq_ad_bids").insertMany(bids);
+    await db.collection(COLLECTIONS.SOUQ_CAMPAIGNS).insertOne(campaign);
+    await db.collection(COLLECTIONS.SOUQ_AD_BIDS).insertMany(bids);
 
     logger.info(`[CampaignService] Created campaign: ${campaignId}`);
 
@@ -250,11 +253,11 @@ export class CampaignService {
     };
 
     await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .updateOne({ campaignId, orgId }, { $set: updateDoc });
 
     const updated = await db
-      .collection<Campaign>("souq_campaigns")
+      .collection<Campaign>(COLLECTIONS.SOUQ_CAMPAIGNS)
       .findOne({ campaignId, orgId });
 
     if (!updated) {
@@ -278,15 +281,15 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>("souq_campaigns")
+      .collection<Campaign>(COLLECTIONS.SOUQ_CAMPAIGNS)
       .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "delete");
 
     // Delete bids scoped to campaign
-    await db.collection("souq_ad_bids").deleteMany({ campaignId, orgId });
+    await db.collection(COLLECTIONS.SOUQ_AD_BIDS).deleteMany({ campaignId, orgId });
 
     // Delete campaign scoped by orgId
-    await db.collection("souq_campaigns").deleteOne({ campaignId, orgId });
+    await db.collection(COLLECTIONS.SOUQ_CAMPAIGNS).deleteOne({ campaignId, orgId });
 
     logger.info(`[CampaignService] Deleted campaign: ${campaignId}`);
   }
@@ -299,14 +302,14 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .findOne({ campaignId, orgId });
 
     if (!campaign) return null;
 
     // Fetch bids
     const bids = await db
-      .collection<AdBid>("souq_ad_bids")
+      .collection<AdBid>(COLLECTIONS.SOUQ_AD_BIDS)
       .find({ campaignId, orgId })
       .toArray();
 
@@ -338,7 +341,7 @@ export class CampaignService {
     if (filters?.type) query.type = filters.type;
 
     const campaigns = await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .find(query)
       .sort({ createdAt: -1 })
       .toArray();
@@ -349,7 +352,7 @@ export class CampaignService {
         const campaignId = (campaign as unknown as { campaignId: string })
           .campaignId;
         const bids = await db
-          .collection<AdBid>("souq_ad_bids")
+          .collection<AdBid>(COLLECTIONS.SOUQ_AD_BIDS)
           .find({ campaignId, orgId })
           .toArray();
 
@@ -386,21 +389,21 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>("souq_campaigns")
+      .collection<Campaign>(COLLECTIONS.SOUQ_CAMPAIGNS)
       .findOne({ campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "stats");
 
     // Aggregate stats from all bids in campaign
     // 🔐 STRICT v4.1: All queries must include orgId for tenant isolation
     const bids = await db
-      .collection("souq_ad_bids")
+      .collection(COLLECTIONS.SOUQ_AD_BIDS)
       .find({ campaignId, orgId })
       .toArray();
 
     const bidIds = bids.map((b) => b.bidId);
 
     const stats = await db
-      .collection("souq_ad_stats")
+      .collection(COLLECTIONS.SOUQ_AD_STATS)
       .find({ bidId: { $in: bidIds }, orgId })
       .toArray();
 
@@ -454,12 +457,12 @@ export class CampaignService {
     }
 
     const campaign = await db
-      .collection<Campaign>("souq_campaigns")
+      .collection<Campaign>(COLLECTIONS.SOUQ_CAMPAIGNS)
       .findOne({ campaignId: bid.campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "update bid");
 
     const result = await db
-      .collection("souq_ad_bids")
+      .collection(COLLECTIONS.SOUQ_AD_BIDS)
       .updateOne({ bidId, orgId }, { $set: { bidAmount: newBidAmount } });
     if (result.matchedCount === 0) {
       throw new Error("Bid not found or not updated");
@@ -488,12 +491,12 @@ export class CampaignService {
     }
 
     const campaign = await db
-      .collection<Campaign>("souq_campaigns")
+      .collection<Campaign>(COLLECTIONS.SOUQ_CAMPAIGNS)
       .findOne({ campaignId: bid.campaignId, orgId });
     this.ensureOwnership(campaign, sellerId, "toggle bid");
 
     const result = await db
-      .collection("souq_ad_bids")
+      .collection(COLLECTIONS.SOUQ_AD_BIDS)
       .updateOne({ bidId, orgId }, { $set: { status } });
     if (result.matchedCount === 0) {
       throw new Error("Bid not found or not updated");
@@ -541,7 +544,7 @@ export class CampaignService {
       orgId,
     };
 
-    await db.collection("souq_ad_bids").insertOne(bid);
+    await db.collection(COLLECTIONS.SOUQ_AD_BIDS).insertOne(bid);
 
     logger.info(
       `[CampaignService] Added keyword "${keyword}" to campaign ${campaignId}`,
@@ -639,7 +642,7 @@ export class CampaignService {
 
       for (const productId of products) {
         const product = await db
-          .collection("souq_products")
+          .collection(COLLECTIONS.SOUQ_PRODUCTS)
           .findOne({ fsin: productId, orgId });
 
         if (product) {
@@ -755,7 +758,7 @@ export class CampaignService {
     }
 
     const campaigns = await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .find(campaignQuery)
       .toArray();
 
@@ -769,7 +772,7 @@ export class CampaignService {
     );
 
     const bids = await db
-      .collection("souq_ad_bids")
+      .collection(COLLECTIONS.SOUQ_AD_BIDS)
       .find({ campaignId: { $in: campaignIds }, orgId: params.orgId })
       .toArray();
 
@@ -779,7 +782,7 @@ export class CampaignService {
 
     const bidIds = bids.map((b) => b.bidId);
     const rawStats = await db
-      .collection("souq_ad_stats")
+      .collection(COLLECTIONS.SOUQ_AD_STATS)
       .find({ bidId: { $in: bidIds }, orgId: params.orgId })
       .toArray();
 
@@ -828,7 +831,7 @@ export class CampaignService {
     let productNameMap: Map<string, string> = new Map();
     if (productFsins.length > 0) {
       const products = await db
-        .collection("souq_products")
+        .collection(COLLECTIONS.SOUQ_PRODUCTS)
         .find(
           { fsin: { $in: productFsins }, orgId: params.orgId },
           { projection: { fsin: 1, title: 1, name: 1 } },
@@ -874,7 +877,7 @@ export class CampaignService {
     };
 
     const timeseries = (await db
-      .collection("souq_ad_events")
+      .collection(COLLECTIONS.SOUQ_AD_EVENTS)
       .aggregate([
         { $match: match },
         {

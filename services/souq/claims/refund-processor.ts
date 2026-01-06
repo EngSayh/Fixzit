@@ -1,5 +1,6 @@
 import { ObjectId as MongoObjectId, type Filter, type Document } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { COLLECTIONS } from '@/lib/db/collection-names';
 import { createRequire } from 'module';
 import { tapPayments } from '@/lib/finance/tap-payments';
 import { assertTapConfig } from '@/lib/tapConfig';
@@ -286,7 +287,7 @@ export class RefundProcessor {
       orderIdFilters.push({ _id: new MongoObjectId(request.orderId) });
     }
     // 🔐 CRITICAL: Use $and to combine org scope with order filters - prevents $or key collision
-    const order = await db.collection('souq_orders').findOne({
+    const order = await db.collection(COLLECTIONS.SOUQ_ORDERS).findOne({
       $and: [
         buildOrgScope(request.orgId),
         { $or: orderIdFilters },
@@ -880,7 +881,7 @@ export class RefundProcessor {
     // Use $and to combine org filter (which has $or) with orderId filter (which also uses $or).
     // This prevents the second $or from overwriting the first one.
     const orgFilter = buildOrgScope(orgId);
-    await db.collection('souq_orders').updateOne(
+    await db.collection(COLLECTIONS.SOUQ_ORDERS).updateOne(
       { $and: [orgFilter, { $or: orderIdFilters }] },
       {
         $set: {

@@ -18,6 +18,7 @@ import { ObjectId } from "mongodb";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Environment Validation - Fail fast at startup
@@ -805,7 +806,7 @@ export async function archiveOldLogs(
     }
     
     // Move to archive collection
-    await db.collection("audit_logs_archive").insertMany(expired);
+    await db.collection(COLLECTIONS.AUDIT_LOGS_ARCHIVE).insertMany(expired);
     
     // Delete from main collection
     const ids = expired.map(e => e._id);

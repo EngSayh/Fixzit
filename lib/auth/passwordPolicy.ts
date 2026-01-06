@@ -25,6 +25,7 @@ import { compare } from "bcryptjs";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // ============================================================================
 // Types & Configuration
@@ -129,7 +130,7 @@ const COMMON_PASSWORDS = new Set([
 export async function getPasswordPolicy(orgId: string): Promise<PasswordPolicy> {
   try {
     const db = await getDatabase();
-    const settings = await db.collection("organization_settings").findOne({ orgId });
+    const settings = await db.collection(COLLECTIONS.ORGANIZATION_SETTINGS).findOne({ orgId });
     
     if (settings?.passwordPolicy) {
       return { ...DEFAULT_POLICY, ...settings.passwordPolicy };
@@ -309,7 +310,7 @@ async function isPasswordInHistory(
       24 // max reasonable cap
     );
     
-    const history = await db.collection("password_history")
+    const history = await db.collection(COLLECTIONS.PASSWORD_HISTORY)
       .find({ orgId, userId })
       .sort({ createdAt: -1 })
       .limit(historyCount)
@@ -347,7 +348,7 @@ export async function addToPasswordHistory(
     const policy = await getPasswordPolicy(orgId);
     
     // Insert new entry
-    await db.collection("password_history").insertOne({
+    await db.collection(COLLECTIONS.PASSWORD_HISTORY).insertOne({
       orgId,
       userId,
       hash: passwordHash,
@@ -355,14 +356,14 @@ export async function addToPasswordHistory(
     });
     
     // Clean up old entries beyond history count
-    const history = await db.collection("password_history")
+    const history = await db.collection(COLLECTIONS.PASSWORD_HISTORY)
       .find({ orgId, userId })
       .sort({ createdAt: -1 })
       .toArray();
     
     if (history.length > policy.historyCount) {
       const toDelete = history.slice(policy.historyCount).map(h => h._id);
-      await db.collection("password_history").deleteMany({
+      await db.collection(COLLECTIONS.PASSWORD_HISTORY).deleteMany({
         _id: { $in: toDelete },
       });
     }
@@ -423,7 +424,7 @@ export async function isAccountLocked(
 ): Promise<{ locked: boolean; remainingMinutes: number; reason?: string }> {
   try {
     const db = await getDatabase();
-    const lockout = await db.collection("account_lockouts").findOne({
+    const lockout = await db.collection(COLLECTIONS.ACCOUNT_LOCKOUTS).findOne({
       orgId,
       userId,
       expiresAt: { $gt: new Date() },
@@ -467,7 +468,7 @@ export async function lockAccount(
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + policy.lockoutDurationMinutes);
     
-    await db.collection("account_lockouts").updateOne(
+    await db.collection(COLLECTIONS.ACCOUNT_LOCKOUTS).updateOne(
       { orgId, userId },
       {
         $set: {
@@ -501,7 +502,7 @@ export async function unlockAccount(
   try {
     const db = await getDatabase();
     
-    await db.collection("account_lockouts").deleteOne({ orgId, userId });
+    await db.collection(COLLECTIONS.ACCOUNT_LOCKOUTS).deleteOne({ orgId, userId });
     
     logger.info("Account unlocked", { orgId, userId });
   } catch (error) {
@@ -530,7 +531,7 @@ export async function recordFailedAttempt(
     // Atomic increment that only succeeds if count would stay below threshold
     // This prevents race condition where multiple concurrent failures could
     // each increment to exactly maxFailedAttempts before any triggers lockout
-    const incrementResult = await db.collection("login_attempts").findOneAndUpdate(
+    const incrementResult = await db.collection(COLLECTIONS.LOGIN_ATTEMPTS).findOneAndUpdate(
       { 
         orgId, 
         userId,
@@ -555,10 +556,10 @@ export async function recordFailedAttempt(
     
     // Increment didn't match - re-query to get current state
     // Another concurrent request may have already locked the account
-    const current = await db.collection("login_attempts").findOne({ orgId, userId });
+    const current = await db.collection(COLLECTIONS.LOGIN_ATTEMPTS).findOne({ orgId, userId });
     
     // Check if account is already locked (may have been locked by concurrent request)
-    const alreadyLocked = await db.collection("account_lockouts").findOne({ orgId, userId });
+    const alreadyLocked = await db.collection(COLLECTIONS.ACCOUNT_LOCKOUTS).findOne({ orgId, userId });
     
     if (alreadyLocked) {
       // Account was locked by concurrent request - report threshold reached
@@ -570,7 +571,7 @@ export async function recordFailedAttempt(
     
     // Lock account and reset counter
     await lockAccount(orgId, userId);
-    await db.collection("login_attempts").deleteOne({ orgId, userId });
+    await db.collection(COLLECTIONS.LOGIN_ATTEMPTS).deleteOne({ orgId, userId });
     
     return { shouldLock: true, attemptCount };
   } catch (error) {
@@ -593,7 +594,7 @@ export async function clearFailedAttempts(
 ): Promise<void> {
   try {
     const db = await getDatabase();
-    await db.collection("login_attempts").deleteOne({ orgId, userId });
+    await db.collection(COLLECTIONS.LOGIN_ATTEMPTS).deleteOne({ orgId, userId });
   } catch (error) {
     logger.error("Failed to clear failed attempts", {
       error: error instanceof Error ? error.message : "Unknown error",

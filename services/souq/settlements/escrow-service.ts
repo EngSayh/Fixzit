@@ -14,6 +14,7 @@ import {
   EscrowReleaseStatus,
 } from "@/server/models/finance/EscrowRelease";
 import { connectDb, getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { metricsRegistry } from "@/lib/monitoring/metrics-registry";
@@ -92,7 +93,7 @@ async function emitEscrowEvent(
 
   try {
     const db = await getDatabase();
-    await db.collection("finance_escrow_events").updateOne(
+    await db.collection(COLLECTIONS.FINANCE_ESCROW_EVENTS).updateOne(
       { event, idempotencyKey },
       {
         $setOnInsert: { createdAt: new Date() },

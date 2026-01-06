@@ -1,6 +1,7 @@
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 import { sendSMS as sendSMSViaService } from "@/lib/sms";
 import { loadTranslations } from "@/lib/i18n/translation-loader";
 import { Config } from "@/lib/config/constants";
@@ -160,7 +161,7 @@ async function getSeller(
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
     const seller = await db
-      .collection("souq_sellers")
+      .collection(COLLECTIONS.SOUQ_SELLERS)
       .findOne({ sellerId, orgId: { $in: orgCandidates } });
 
     if (!seller) {
@@ -356,7 +357,7 @@ async function logNotification(
     const db = await getDatabase();
     const getCollection = () => {
       if (typeof (db as unknown as Record<string, unknown>).collection === "function") {
-        const raw = (db as unknown as { collection: (name: string) => unknown }).collection("seller_notifications");
+        const raw = (db as unknown as { collection: (name: string) => unknown }).collection(COLLECTIONS.SELLER_NOTIFICATIONS);
         if (raw && typeof (raw as Record<string, unknown>).insertOne === "function") {
           return raw as {
             insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;

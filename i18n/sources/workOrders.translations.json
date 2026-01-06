@@ -34,6 +34,8 @@
     "workOrders.bulk.delete": "Delete",
     "workOrders.bulk.confirmReject": "Are you sure you want to reject these items?",
     "workOrders.bulk.confirmDelete": "This action cannot be undone. Delete selected items?",
+    "workOrders.bulk.errors.assigneeRequired": "Assignee is required for this action.",
+    "workOrders.bulk.errors.bulkFailed": "Bulk {{action}} action failed.",
     "workOrders.assignedTo": "Assigned To",
     "workOrders.assignTo": "Assign To",
     "workOrders.attachments": "Attachments",
@@ -263,7 +265,13 @@
     "workOrders.woId": "WO ID",
     "workOrders.workDescription": "Work Description",
     "workOrders.workOrder": "Work Order",
-    "workOrders.workOrders1": "Work Orders"
+    "workOrders.workOrders1": "Work Orders",
+    "workOrders.offline.syncSuccess": "Offline work orders synced",
+    "workOrders.offline.syncCount": "{{count}} work orders synced",
+    "workOrders.offline.syncFailed": "Some offline work orders failed",
+    "workOrders.offline.syncFailedCount": "{{count}} work orders failed to sync",
+    "workOrders.offline.statusQueued": "Pending sync",
+    "workOrders.offline.statusFailed": "Sync failed"
   },
   "ar": {
     "workOrders.actualTime": "الوقت الفعلي",
@@ -300,6 +308,8 @@
     "workOrders.bulk.delete": "حذف",
     "workOrders.bulk.confirmReject": "هل أنت متأكد أنك تريد رفض هذه العناصر؟",
     "workOrders.bulk.confirmDelete": "لا يمكن التراجع عن هذا الإجراء. حذف العناصر المحددة؟",
+    "workOrders.bulk.errors.assigneeRequired": "المكلف مطلوب لهذا الإجراء.",
+    "workOrders.bulk.errors.bulkFailed": "فشل إجراء {{action}} الجماعي.",
     "workOrders.assignedTo": "مسند إلى",
     "workOrders.assignTo": "تعيين إلى",
     "workOrders.attachments": "المرفقات",
@@ -529,6 +539,12 @@
     "workOrders.woId": "رقم أمر العمل",
     "workOrders.workDescription": "وصف العمل",
     "workOrders.workOrder": "أمر عمل",
-    "workOrders.workOrders1": "أوامر العمل"
+    "workOrders.workOrders1": "أوامر العمل",
+    "workOrders.offline.syncSuccess": "تمت مزامنة أوامر العمل غير المتصلة",
+    "workOrders.offline.syncCount": "تمت مزامنة {{count}} أمر عمل",
+    "workOrders.offline.syncFailed": "فشلت بعض أوامر العمل غير المتصلة",
+    "workOrders.offline.syncFailedCount": "فشلت مزامنة {{count}} أمر عمل",
+    "workOrders.offline.statusQueued": "في انتظار المزامنة",
+    "workOrders.offline.statusFailed": "فشلت المزامنة"
   }
 }

@@ -10,6 +10,8 @@
  * - Reserve management (hold/release)
  * - Withdrawal request handling
  * - Admin adjustments
+ *
+ * TD-001: Migrated to COLLECTIONS constants for type-safe collection names
  */
 
 import { ClientSession, Db, ObjectId } from "mongodb";
@@ -19,6 +21,7 @@ import { logger } from "@/lib/logger";
 import { buildOrgCandidates, findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 import { PAYOUT_CONFIG } from "@/services/souq/settlements/settlement-config";
 import { generateTransactionId, generateWithdrawalRequestId } from "@/lib/id-generator";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // Use centralized config to prevent drift between withdrawal and payout validation
 const WITHDRAWAL_HOLD_DAYS = PAYOUT_CONFIG.holdPeriodDays;
@@ -153,7 +156,7 @@ export class SellerBalanceService {
 
     let balanceDoc: Record<string, unknown> | null = null;
     try {
-      const balancesCollection = db.collection("souq_seller_balances");
+      const balancesCollection = db.collection(COLLECTIONS.SOUQ_SELLER_BALANCES);
       balanceDoc = await balancesCollection.findOne({
         sellerId: sellerFilter,
         orgId: { $in: orgCandidates },
@@ -208,7 +211,7 @@ export class SellerBalanceService {
     }
     const connection = await connectDb();
     const db = connection.connection.db!;
-    const ordersCollection = db.collection("souq_orders");
+    const ordersCollection = db.collection(COLLECTIONS.SOUQ_ORDERS);
     
     const sellerFilter = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
@@ -367,7 +370,7 @@ export class SellerBalanceService {
     // 🔧 FIX: Single connectDb call instead of duplicate
     const connection = await connectDb();
     const db = connection.connection.db!;
-    const transactionsCollection = db.collection("souq_transactions");
+    const transactionsCollection = db.collection(COLLECTIONS.SOUQ_TRANSACTIONS);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const sellerFilter = ObjectId.isValid(sellerId)
@@ -574,8 +577,8 @@ export class SellerBalanceService {
     const connection = await connectDb();
     const db = connection.connection.db!;
     const client = connection.connection.getClient();
-    const transactionsCollection = db.collection("souq_transactions");
-    const balancesCollection = db.collection("souq_seller_balances");
+    const transactionsCollection = db.collection(COLLECTIONS.SOUQ_TRANSACTIONS);
+    const balancesCollection = db.collection(COLLECTIONS.SOUQ_SELLER_BALANCES);
 
     await this.ensureBalanceIndexes(db);
 
@@ -800,9 +803,9 @@ export class SellerBalanceService {
     const connection = await connectDb();
     const db = connection.connection.db!;
     const client = connection.connection.getClient();
-    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
-    const settlementsCollection = db.collection("souq_settlements");
-    const payoutsCollection = db.collection("souq_payouts");
+    const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
+    const settlementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
     await this.ensureWithdrawalIndexes(db);
 
     const session = client.startSession();
@@ -979,7 +982,7 @@ export class SellerBalanceService {
       : [orgIdStr];
     const connection = await connectDb();
     const db = connection.connection.db!;
-    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
     await this.ensureWithdrawalIndexes(db);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
@@ -1072,7 +1075,7 @@ export class SellerBalanceService {
       : [orgIdStr];
     const connection = await connectDb();
     const db = connection.connection.db!;
-    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const request = (await withdrawalsCollection.findOne({
@@ -1174,7 +1177,7 @@ export class SellerBalanceService {
 
     const connection = await connectDb();
     const db = connection.connection.db!;
-    const transactionsCollection = db.collection("souq_transactions");
+    const transactionsCollection = db.collection(COLLECTIONS.SOUQ_TRANSACTIONS);
 
     const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: { $in: orgCandidates } };
 
@@ -1227,7 +1230,7 @@ export class SellerBalanceService {
       : sellerId;
     const connection = await connectDb();
     const db = connection.connection.db!;
-    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
     await this.ensureWithdrawalIndexes(db);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
@@ -1351,7 +1354,7 @@ export class SellerBalanceService {
     if (!this.withdrawalIndexesReady) {
       this.withdrawalIndexesReady = (async () => {
         try {
-          await db.collection("souq_withdrawal_requests").createIndexes([
+          await db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS).createIndexes([
             { key: { requestId: 1 }, unique: true, name: "requestId_unique", background: true },
             { key: { payoutId: 1, orgId: 1 }, name: "payout_org", background: true },
             {
@@ -1375,7 +1378,7 @@ export class SellerBalanceService {
     if (!this.balanceIndexesReady) {
       this.balanceIndexesReady = (async () => {
         try {
-          await db.collection("souq_seller_balances").createIndex(
+          await db.collection(COLLECTIONS.SOUQ_SELLER_BALANCES).createIndex(
             { orgId: 1, sellerId: 1 },
             { unique: true, name: "org_seller_unique", background: true },
           );
@@ -1442,7 +1445,7 @@ export class SellerBalanceService {
       : sellerId;
     const orgCandidates = this.buildOrgCandidates(orgId);
 
-    const statement = await db.collection("souq_settlements").findOne(
+    const statement = await db.collection(COLLECTIONS.SOUQ_SETTLEMENTS).findOne(
       {
         statementId,
         sellerId: sellerFilter,
@@ -1484,7 +1487,7 @@ export class SellerBalanceService {
       : sellerId;
     const orgCandidates = this.buildOrgCandidates(orgId);
 
-    const existingPayout = await db.collection("souq_payouts").findOne({
+    const existingPayout = await db.collection(COLLECTIONS.SOUQ_PAYOUTS).findOne({
       statementId,
       sellerId: sellerFilter,
       orgId: { $in: orgCandidates },

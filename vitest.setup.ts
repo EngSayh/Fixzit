@@ -514,8 +514,16 @@ const isJsdomEnv = typeof window !== "undefined" && typeof document !== "undefin
 const forceMongo =
   process.env.SKIP_GLOBAL_MONGO === "false" || process.env.FORCE_GLOBAL_MONGO === "true";
 const skipGlobalMongo = isJsdomEnv && process.env.SKIP_GLOBAL_MONGO === "true";
+// Check if MONGODB_URI is already set to a real MongoDB (not memory server)
+// This happens in CI when a MongoDB service container is running
+const externalMongoUri = process.env.MONGODB_URI;
+const hasExternalMongo =
+  typeof externalMongoUri === "string" &&
+  (externalMongoUri.includes("mongodb://localhost:27017") ||
+    externalMongoUri.includes("mongodb://127.0.0.1:27017"));
 // Default: always enable MongoMemoryServer for node/server tests; allow opt-out only for jsdom via env.
-const shouldUseInMemoryMongo = forceMongo || !isJsdomEnv || !skipGlobalMongo;
+// Skip MongoMemoryServer if an external MongoDB is already configured (CI service container)
+const shouldUseInMemoryMongo = !hasExternalMongo && (forceMongo || !isJsdomEnv || !skipGlobalMongo);
 let mongoServer: MongoMemoryServer | undefined;
 let mongoUriRef: string | undefined;
 let shuttingDownMongo = false;
@@ -682,11 +690,32 @@ beforeAll(async () => {
     
     // Now handle disconnection if still connected
     if (mongoose.connection.readyState !== 0) {
+      // Check if already connected to the correct URI
+      const currentHost = mongoose.connection.host;
+      const newHost = mongoUri.split('@')[1]?.split('/')[0] || mongoUri.split('://')[1]?.split('/')[0];
+      
+      if (currentHost && newHost && currentHost.includes('127.0.0.1') && newHost.includes('127.0.0.1')) {
+        // Already connected to a local MongoDB (likely MongoMemoryServer) - reuse connection
+        logger.debug("✅ Reusing existing MongoDB connection:", { currentHost });
+        mongoUriRef = mongoUri;
+        return;
+      }
+      
       // Clear all models to prevent stale model cache with old connection
       for (const modelName of Object.keys(mongoose.connection.models)) {
         mongoose.connection.deleteModel(modelName);
       }
       await realDisconnect();
+      
+      // Wait for disconnection to complete
+      await new Promise<void>((resolve) => {
+        if (mongoose.connection.readyState === 0) {
+          resolve();
+        } else {
+          mongoose.connection.once('disconnected', () => resolve());
+          setTimeout(resolve, 1000); // Fallback timeout
+        }
+      });
     }
     
     mongoUriRef = mongoUri;

@@ -17,6 +17,7 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Error Logging Helper
@@ -501,8 +502,8 @@ export async function getFinanceKPIs(
     ];
     
     const [revenueResult, prevRevenueResult] = await Promise.all([
-      db.collection("transactions").aggregate(revenuePipeline).toArray(),
-      db.collection("transactions").aggregate(prevRevenuePipeline).toArray(),
+      db.collection(COLLECTIONS.TRANSACTIONS).aggregate(revenuePipeline).toArray(),
+      db.collection(COLLECTIONS.TRANSACTIONS).aggregate(prevRevenuePipeline).toArray(),
     ]);
     
     const totalRevenueValue = revenueResult[0]?.total || 0;
@@ -520,11 +521,11 @@ export async function getFinanceKPIs(
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ];
     
-    const receivablesResult = await db.collection("invoices")
+    const receivablesResult = await db.collection(COLLECTIONS.INVOICES)
       .aggregate(receivablesPipeline).toArray();
     
     // Unit count for per-unit calculation
-    const unitCount = await db.collection("units").countDocuments({
+    const unitCount = await db.collection(COLLECTIONS.UNITS).countDocuments({
       org_id: orgId,
       status: "active",
     });
@@ -552,8 +553,8 @@ export async function getFinanceKPIs(
     const prevCashFlowPipeline = createCashFlowPipeline(previousRange);
     
     const [cashFlowResult, prevCashFlowResult] = await Promise.all([
-      db.collection("finance_payments").aggregate(cashFlowPipeline).toArray(),
-      db.collection("finance_payments").aggregate(prevCashFlowPipeline).toArray(),
+      db.collection(COLLECTIONS.FINANCE_PAYMENTS).aggregate(cashFlowPipeline).toArray(),
+      db.collection(COLLECTIONS.FINANCE_PAYMENTS).aggregate(prevCashFlowPipeline).toArray(),
     ]);
     
     const inflows = cashFlowResult.find(r => r._id === "RECEIVED")?.total || 0;
@@ -583,8 +584,8 @@ export async function getFinanceKPIs(
     const prevExpensePipeline = createExpensePipeline(previousRange);
     
     const [expenseResult, prevExpenseResult] = await Promise.all([
-      db.collection("fm_financial_transactions").aggregate(expensePipeline).toArray(),
-      db.collection("fm_financial_transactions").aggregate(prevExpensePipeline).toArray(),
+      db.collection(COLLECTIONS.FM_FINANCIAL_TRANSACTIONS).aggregate(expensePipeline).toArray(),
+      db.collection(COLLECTIONS.FM_FINANCIAL_TRANSACTIONS).aggregate(prevExpensePipeline).toArray(),
     ]);
     
     const totalExpenses = expenseResult[0]?.total || 0;
@@ -635,11 +636,11 @@ export async function getOperationsKPIs(
     
     // Work orders created
     const [createdCount, prevCreatedCount] = await Promise.all([
-      db.collection("work_orders").countDocuments({
+      db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).countDocuments({
         org_id: orgId,
         createdAt: { $gte: dateRange.start, $lte: dateRange.end },
       }),
-      db.collection("work_orders").countDocuments({
+      db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).countDocuments({
         org_id: orgId,
         createdAt: { $gte: previousRange.start, $lte: previousRange.end },
       }),
@@ -647,12 +648,12 @@ export async function getOperationsKPIs(
     
     // Work orders completed
     const [completedCount, prevCompletedCount] = await Promise.all([
-      db.collection("work_orders").countDocuments({
+      db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).countDocuments({
         org_id: orgId,
         status: "completed",
         completedAt: { $gte: dateRange.start, $lte: dateRange.end },
       }),
-      db.collection("work_orders").countDocuments({
+      db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).countDocuments({
         org_id: orgId,
         status: "completed",
         completedAt: { $gte: previousRange.start, $lte: previousRange.end },
@@ -681,13 +682,13 @@ export async function getOperationsKPIs(
       },
     ];
     
-    const resolutionResult = await db.collection("work_orders")
+    const resolutionResult = await db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE)
       .aggregate(resolutionPipeline).toArray();
     
     const avgResolutionHours = (resolutionResult[0]?.avgTime || 0) / (1000 * 60 * 60);
     
     // SLA compliance
-    const slaCompletedOnTime = await db.collection("work_orders").countDocuments({
+    const slaCompletedOnTime = await db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).countDocuments({
       org_id: orgId,
       status: "completed",
       completedAt: { $gte: dateRange.start, $lte: dateRange.end },
@@ -697,7 +698,7 @@ export async function getOperationsKPIs(
     const slaCompliance = completedCount > 0 ? (slaCompletedOnTime / completedCount) * 100 : 0;
     
     // Preventive maintenance
-    const preventiveCount = await db.collection("work_orders").countDocuments({
+    const preventiveCount = await db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).countDocuments({
       org_id: orgId,
       type: "preventive",
       completedAt: { $gte: dateRange.start, $lte: dateRange.end },
@@ -748,17 +749,17 @@ export async function getPropertyKPIs(
     }
     
     // Property counts
-    const propertyCount = await db.collection("properties").countDocuments({
+    const propertyCount = await db.collection(COLLECTIONS.PROPERTIES).countDocuments({
       org_id: orgId,
       status: "active",
     });
     
-    const unitCount = await db.collection("units").countDocuments({
+    const unitCount = await db.collection(COLLECTIONS.UNITS).countDocuments({
       org_id: orgId,
       status: "active",
     });
     
-    const occupiedCount = await db.collection("units").countDocuments({
+    const occupiedCount = await db.collection(COLLECTIONS.UNITS).countDocuments({
       org_id: orgId,
       status: "active",
       occupancy_status: "occupied",
@@ -767,7 +768,7 @@ export async function getPropertyKPIs(
     const occupancyRate = unitCount > 0 ? (occupiedCount / unitCount) * 100 : 0;
     
     // Vacancy days
-    const vacantUnits = await db.collection("units").find({
+    const vacantUnits = await db.collection(COLLECTIONS.UNITS).find({
       org_id: orgId,
       status: "active",
       occupancy_status: "vacant",
@@ -782,7 +783,7 @@ export async function getPropertyKPIs(
     const avgVacancyDays = vacantUnits.length > 0 ? totalVacancyDays / vacantUnits.length : 0;
     
     // Turnover rate (leases ended in period)
-    const leasesEnded = await db.collection("leases").countDocuments({
+    const leasesEnded = await db.collection(COLLECTIONS.LEASES).countDocuments({
       org_id: orgId,
       endDate: { $gte: dateRange.start, $lte: dateRange.end },
       status: "ended",
@@ -807,7 +808,7 @@ export async function getPropertyKPIs(
       },
     ];
     
-    const rentResult = await db.collection("units")
+    const rentResult = await db.collection(COLLECTIONS.UNITS)
       .aggregate(rentPipeline).toArray();
     
     const avgRentPerSqm = rentResult[0]?.totalArea > 0 
@@ -851,7 +852,7 @@ export async function getHRKPIs(
     const previousRange = getPreviousPeriodRange(timeRange);
     
     // Employee count
-    const employeeCount = await db.collection("employees").countDocuments({
+    const employeeCount = await db.collection(COLLECTIONS.EMPLOYEES).countDocuments({
       org_id: orgId,
       status: "active",
     });
@@ -873,7 +874,7 @@ export async function getHRKPIs(
       },
     ];
     
-    const attendanceResult = await db.collection("attendance")
+    const attendanceResult = await db.collection(COLLECTIONS.ATTENDANCE)
       .aggregate(attendancePipeline).toArray();
     
     const attendanceRate = attendanceResult[0]?.total > 0 
@@ -881,7 +882,7 @@ export async function getHRKPIs(
       : 0;
     
     // Turnover
-    const terminated = await db.collection("employees").countDocuments({
+    const terminated = await db.collection(COLLECTIONS.EMPLOYEES).countDocuments({
       org_id: orgId,
       terminatedAt: { $gte: dateRange.start, $lte: dateRange.end },
     });
@@ -909,7 +910,7 @@ export async function getHRKPIs(
       },
     ];
     
-    const tenureResult = await db.collection("employees")
+    const tenureResult = await db.collection(COLLECTIONS.EMPLOYEES)
       .aggregate(tenurePipeline).toArray();
     
     const avgTenureYears = (tenureResult[0]?.avgTenure || 0) / (1000 * 60 * 60 * 24 * 365);
@@ -928,7 +929,7 @@ export async function getHRKPIs(
       { $group: { _id: null, total: { $sum: "$netAmount" } } },
     ];
     
-    const payrollResult = await db.collection("payroll_runs")
+    const payrollResult = await db.collection(COLLECTIONS.PAYROLL_RUNS)
       .aggregate(payrollPipeline).toArray();
     
     return {
@@ -1469,8 +1470,8 @@ async function calculateRevenueKPI(
   ];
   
   const [current, previous] = await Promise.all([
-    db.collection("transactions").aggregate(pipeline(dateRange)).toArray(),
-    db.collection("transactions").aggregate(pipeline(previousRange)).toArray(),
+    db.collection(COLLECTIONS.TRANSACTIONS).aggregate(pipeline(dateRange)).toArray(),
+    db.collection(COLLECTIONS.TRANSACTIONS).aggregate(pipeline(previousRange)).toArray(),
   ]);
   
   return createKPIResult(
@@ -1487,8 +1488,8 @@ async function calculateOccupancyKPI(
   const db = await getDatabase();
   
   const [total, occupied] = await Promise.all([
-    db.collection("units").countDocuments({ org_id: orgId, status: "active" }),
-    db.collection("units").countDocuments({ 
+    db.collection(COLLECTIONS.UNITS).countDocuments({ org_id: orgId, status: "active" }),
+    db.collection(COLLECTIONS.UNITS).countDocuments({ 
       org_id: orgId, 
       status: "active", 
       occupancy_status: "occupied" 
@@ -1530,10 +1531,10 @@ async function calculateCollectionKPI(
   ];
   
   const [collected, due, prevCollected, prevDue] = await Promise.all([
-    db.collection("invoices").aggregate(pipeline(dateRange)).toArray(),
-    db.collection("invoices").aggregate(duePipeline(dateRange)).toArray(),
-    db.collection("invoices").aggregate(pipeline(previousRange)).toArray(),
-    db.collection("invoices").aggregate(duePipeline(previousRange)).toArray(),
+    db.collection(COLLECTIONS.INVOICES).aggregate(pipeline(dateRange)).toArray(),
+    db.collection(COLLECTIONS.INVOICES).aggregate(duePipeline(dateRange)).toArray(),
+    db.collection(COLLECTIONS.INVOICES).aggregate(pipeline(previousRange)).toArray(),
+    db.collection(COLLECTIONS.INVOICES).aggregate(duePipeline(previousRange)).toArray(),
   ]);
   
   const rate = due[0]?.due > 0 ? ((collected[0]?.collected || 0) / due[0].due) * 100 : 0;
@@ -1560,8 +1561,8 @@ async function calculateMaintenanceCostKPI(
   ];
   
   const [current, previous] = await Promise.all([
-    db.collection("work_orders").aggregate(pipeline(dateRange)).toArray(),
-    db.collection("work_orders").aggregate(pipeline(previousRange)).toArray(),
+    db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).aggregate(pipeline(dateRange)).toArray(),
+    db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).aggregate(pipeline(previousRange)).toArray(),
   ]);
   
   return createKPIResult(
@@ -1589,7 +1590,7 @@ async function calculateSatisfactionKPI(
     { $group: { _id: null, avgRating: { $avg: "$rating" } } },
   ];
   
-  const result = await db.collection("feedback")
+  const result = await db.collection(COLLECTIONS.FEEDBACK)
     .aggregate(pipeline).toArray();
   
   const satisfaction = (result[0]?.avgRating || 0) * 20; // Convert 5-star to percentage
@@ -1680,7 +1681,7 @@ async function calculateFirstTimeFixRate(
     },
   ];
 
-  const result = await db.collection("workorders").aggregate(pipeline).toArray();
+  const result = await db.collection(COLLECTIONS.WORK_ORDERS).aggregate(pipeline).toArray();
   const totalCompleted = result[0]?.totalCompleted[0]?.count || 0;
 
   if (totalCompleted === 0) {
@@ -1760,7 +1761,7 @@ async function calculateTrainingHours(
   ];
 
   const result = await db
-    .collection("trainingsessions")
+    .collection(COLLECTIONS.TRAINING_SESSIONS)
     .aggregate(pipeline)
     .toArray();
 

@@ -8,6 +8,8 @@
  * - Zero-Trust Session Management
  * - Comprehensive Audit Logging
  * 
+ * TD-001: Migrated to COLLECTIONS constants for type-safe collection names
+ * 
  * @module services/security/enterprise-security
  */
 
@@ -15,6 +17,7 @@ import crypto from "crypto";
 import { ObjectId, type ClientSession } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 import type {
   WebAuthnCredential,
   WebAuthnChallenge,
@@ -561,7 +564,8 @@ async function getPreviousAuditHash(
   session?: ClientSession
 ): Promise<string> {
   try {
-    const lastAudit = await db.collection("audit_logs").findOne(
+    // TD-001: Using AUDIT_LOGS_UNDERSCORE for chain integrity (DATA-002 tracks naming)
+    const lastAudit = await db.collection(COLLECTIONS.AUDIT_LOGS_UNDERSCORE).findOne(
       {},
       { sort: { timestamp: -1 }, projection: { integrity_hash: 1 }, session }
     );
@@ -640,7 +644,7 @@ export async function createAuditLogEntry(
         previous_hash: previousHash,
       };
       
-      await db.collection("audit_logs").insertOne(
+      await db.collection(COLLECTIONS.AUDIT_LOGS_UNDERSCORE).insertOne(
         { _id: logId, ...entry },
         { session }
       );

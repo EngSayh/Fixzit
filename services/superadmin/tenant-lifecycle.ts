@@ -8,6 +8,8 @@
  * - Ghost Mode (stealth access)
  * - Health Monitoring
  * 
+ * TD-001: Migrated to COLLECTIONS constants for type-safe collection names
+ * 
  * @module services/superadmin/tenant-lifecycle
  */
 
@@ -16,6 +18,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
 import crypto from "crypto";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // =============================================================================
 // TYPES
@@ -270,7 +273,7 @@ export async function createSnapshot(
   };
   
   // Persist snapshot to database
-  await db.collection("tenant_snapshots").insertOne(snapshot);
+  await db.collection(COLLECTIONS.TENANT_SNAPSHOTS).insertOne(snapshot);
   
   logger.info("Tenant snapshot creation initiated", {
     snapshot_id: snapshotId.toString(),
@@ -306,7 +309,7 @@ export async function restoreFromSnapshot(
   } else {
     // Fallback to database lookup if getSnapshot not provided
     const db = await getDatabase();
-    snapshot = await db.collection("tenant_snapshots").findOne({
+    snapshot = await db.collection(COLLECTIONS.TENANT_SNAPSHOTS).findOne({
       _id: snapshotId,
     }) as TenantSnapshot | null;
   }
@@ -345,7 +348,7 @@ export async function restoreFromSnapshot(
   };
   
   // Persist restore job to database
-  await db.collection("restore_jobs").insertOne(restoreJob);
+  await db.collection(COLLECTIONS.RESTORE_JOBS).insertOne(restoreJob);
   
   logger.info("Tenant restore initiated", {
     job_id: jobId.toString(),
@@ -364,7 +367,7 @@ export async function restoreFromSnapshot(
       });
       
       // Update restore job with pre-restore snapshot reference
-      await db.collection("restore_jobs").updateOne(
+      await db.collection(COLLECTIONS.RESTORE_JOBS).updateOne(
         { _id: jobId },
         { $set: { pre_restore_snapshot_id: preRestoreSnapshot._id } }
       );
@@ -381,7 +384,7 @@ export async function restoreFromSnapshot(
       });
       
       // Update job status to failed
-      await db.collection("restore_jobs").updateOne(
+      await db.collection(COLLECTIONS.RESTORE_JOBS).updateOne(
         { _id: jobId },
         { $set: { status: "failed", error: "Pre-restore backup failed" } }
       );
@@ -462,10 +465,10 @@ export async function activateKillSwitch(
   try {
     await session.withTransaction(async () => {
       // Persist kill switch event to database
-      await db.collection("kill_switch_events").insertOne(event, { session });
+      await db.collection(COLLECTIONS.KILL_SWITCH_EVENTS).insertOne(event, { session });
       
       // Update tenant status
-      await db.collection("organizations").updateOne(
+      await db.collection(COLLECTIONS.ORGANIZATIONS).updateOne(
         { _id: tenantId },
         { 
           $set: { 
@@ -526,7 +529,7 @@ export async function deactivateKillSwitch(
     filter.tenant_id = new ObjectId(callerTenantId);
   }
   
-  const updateResult = await db.collection("kill_switch_events").findOneAndUpdate(
+  const updateResult = await db.collection(COLLECTIONS.KILL_SWITCH_EVENTS).findOneAndUpdate(
     filter,
     {
       $set: {
@@ -558,7 +561,7 @@ export async function deactivateKillSwitch(
   const session = await mongoose.connection.getClient().startSession();
   try {
     await session.withTransaction(async () => {
-      await db.collection("organizations").updateOne(
+      await db.collection(COLLECTIONS.ORGANIZATIONS).updateOne(
         { _id: event.tenant_id },
         {
           $set: {
@@ -659,7 +662,7 @@ export async function initiateTimeTravel(
   };
   
   // Persist time travel request to database
-  await db.collection("time_travel_requests").insertOne(request);
+  await db.collection(COLLECTIONS.TIME_TRAVEL_REQUESTS).insertOne(request);
   
   logger.info("Time travel initiated", {
     request_id: requestId.toString(),
@@ -693,7 +696,7 @@ export async function executeTimeTravel(
     if (expiresAt <= new Date()) {
       // Persist the expired status to database
       const db = await getDatabase();
-      await db.collection("time_travel_requests").updateOne(
+      await db.collection(COLLECTIONS.TIME_TRAVEL_REQUESTS).updateOne(
         { _id: request._id },
         { $set: { status: "preview_expired", updatedAt: new Date() } }
       );
@@ -722,7 +725,7 @@ export async function executeTimeTravel(
   
   // Persist the updated request to database
   const db = await getDatabase();
-  await db.collection("time_travel_requests").updateOne(
+  await db.collection(COLLECTIONS.TIME_TRAVEL_REQUESTS).updateOne(
     { _id: request._id },
     {
       $set: {
@@ -831,7 +834,7 @@ export async function startGhostSession(
   };
   
   // Persist ghost session to database for audit and lifecycle tracking
-  await db.collection("ghost_sessions").insertOne(session);
+  await db.collection(COLLECTIONS.GHOST_SESSIONS).insertOne(session);
   
   // Log without exposing token
   logger.warn("Ghost mode session started", {
@@ -867,7 +870,7 @@ export async function logGhostAction(
   };
   
   // Persist action to database
-  await db.collection("ghost_sessions").updateOne(
+  await db.collection(COLLECTIONS.GHOST_SESSIONS).updateOne(
     { _id: session._id },
     {
       $push: { actions_performed: loggedAction },
@@ -893,7 +896,7 @@ export async function endGhostSession(session: GhostSession): Promise<GhostSessi
   
   // Persist session end to database
   // Note: Do NOT set actions_performed here - it would overwrite concurrent logGhostAction updates
-  await db.collection("ghost_sessions").updateOne(
+  await db.collection(COLLECTIONS.GHOST_SESSIONS).updateOne(
     { _id: session._id },
     {
       $set: {

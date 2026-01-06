@@ -7,6 +7,8 @@
  * - Budget alerts (75%, 90%, 100%)
  * - Auto-pause when depleted
  * - Budget reset at midnight (Saudi time)
+ *
+ * TD-001: Migrated to COLLECTIONS constants for type-safe collection names
  */
 
 import { ObjectId } from "mongodb";
@@ -14,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 import { MemoryKV } from "@/lib/memory-kv";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 const DAY_SECONDS = 86400;
 const _DAY_MS = DAY_SECONDS * 1000;
@@ -205,7 +208,7 @@ export class BudgetManager {
 
     // Get all active campaigns
     const campaigns = await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .find({ status: "active", orgId: { $in: orgCandidates } })
       .toArray();
 
@@ -231,7 +234,7 @@ export class BudgetManager {
       // Reset spentToday in MongoDB with orgId scoping
       // AUDIT-2025-12-06: Use String orgId to match schema
       await db
-        .collection("souq_campaigns")
+        .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
         .updateOne(
           {
             campaignId: campaign.campaignId,
@@ -266,7 +269,7 @@ export class BudgetManager {
     const db = await getDatabase();
 
     await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .updateOne(
         { campaignId, orgId: { $in: orgCandidates } },
         { $set: { spentToday: 0, lastBudgetReset: new Date() } },
@@ -355,7 +358,7 @@ export class BudgetManager {
     const campaign = await this.fetchCampaign(campaignId, orgCandidates);
 
     // ???? STRICT v4.1: Include orgId in filter
-    await db.collection("souq_campaigns").updateOne(
+    await db.collection(COLLECTIONS.SOUQ_CAMPAIGNS).updateOne(
       { campaignId, orgId: { $in: orgCandidates } },
       {
         $set: {
@@ -494,7 +497,7 @@ export class BudgetManager {
 
     // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
     const campaigns = await findWithOrgFallback(
-      db.collection("souq_campaigns"),
+      db.collection(COLLECTIONS.SOUQ_CAMPAIGNS),
       { campaignId } as Record<string, unknown>,
       Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates],
     );
@@ -534,7 +537,7 @@ export class BudgetManager {
       ? { $in: [sellerId, new ObjectId(sellerId)] }
       : sellerId;
     const campaigns = await findWithOrgFallback(
-      db.collection("souq_campaigns"),
+      db.collection(COLLECTIONS.SOUQ_CAMPAIGNS),
       {
         sellerId: sellerFilter,
       } as Record<string, unknown>,
@@ -639,7 +642,7 @@ export class BudgetManager {
     const db = await getDatabase();
 
     await db
-      .collection("souq_campaigns")
+      .collection(COLLECTIONS.SOUQ_CAMPAIGNS)
       .updateOne({ campaignId, orgId: { $in: orgCandidates } }, { $set: { dailyBudget: newBudget } });
 
     logger.info(
@@ -678,7 +681,7 @@ export class BudgetManager {
     }).format(startKsa);
 
     const history = await db
-      .collection("souq_ad_daily_spend")
+      .collection(COLLECTIONS.SOUQ_AD_DAILY_SPEND)
       .find({
         campaignId,
         orgId: { $in: orgCandidates },

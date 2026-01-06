@@ -11,7 +11,11 @@
  * - Sponsored Products (search results)
  * - Sponsored Brands (banner ads)
  * - Product Display Ads (PDP sidebar)
+ *
+ * TD-001: Migrated to COLLECTIONS constants for type-safe collection names
  */
+
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 interface AdCampaign {
   campaignId: string;
@@ -317,7 +321,7 @@ export class AuctionEngine {
     const orgFilter = { $or: [{ orgId }, { org_id: orgId }] };
 
     const product = await db
-      .collection("souq_products")
+      .collection(COLLECTIONS.SOUQ_PRODUCTS)
       .findOne({ fsin: productId, ...orgFilter });
 
     if (!product) return 0.5; // Default quality
@@ -497,7 +501,7 @@ export class AuctionEngine {
     // Build org filter for tenant isolation - handles both orgId and org_id for legacy data
     const orgFilter = { $or: [{ orgId }, { org_id: orgId }] };
 
-    const stats = await db.collection("souq_ad_stats").findOne({ bidId, ...orgFilter });
+    const stats = await db.collection(COLLECTIONS.SOUQ_AD_STATS).findOne({ bidId, ...orgFilter });
 
     return {
       impressions: stats?.impressions || 0,
@@ -518,7 +522,7 @@ export class AuctionEngine {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection("souq_ad_events").insertOne({
+    await db.collection(COLLECTIONS.SOUQ_AD_EVENTS).insertOne({
       eventType: "impression",
       orgId: context.orgId, // Required for tenant isolation
       bidId,
@@ -532,7 +536,7 @@ export class AuctionEngine {
     });
 
     // Update aggregated stats (scoped by bidId which is unique per campaign)
-    await db.collection("souq_ad_stats").updateOne(
+    await db.collection(COLLECTIONS.SOUQ_AD_STATS).updateOne(
       { bidId, orgId: context.orgId },
       {
         $inc: { impressions: 1 },
@@ -554,7 +558,7 @@ export class AuctionEngine {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection("souq_ad_events").insertOne({
+    await db.collection(COLLECTIONS.SOUQ_AD_EVENTS).insertOne({
       eventType: "click",
       orgId: context.orgId, // Required for tenant isolation
       bidId,
@@ -569,7 +573,7 @@ export class AuctionEngine {
     });
 
     // Update aggregated stats (scoped by bidId which is unique per campaign)
-    await db.collection("souq_ad_stats").updateOne(
+    await db.collection(COLLECTIONS.SOUQ_AD_STATS).updateOne(
       { bidId, orgId: context.orgId },
       {
         $inc: {
@@ -582,7 +586,7 @@ export class AuctionEngine {
     );
 
     // Update campaign spend
-    await db.collection("souq_campaigns").updateOne(
+    await db.collection(COLLECTIONS.SOUQ_CAMPAIGNS).updateOne(
       { campaignId, orgId: context.orgId },
       {
         $inc: { spentToday: actualCpc },
@@ -602,7 +606,7 @@ export class AuctionEngine {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection("souq_ad_events").insertOne({
+    await db.collection(COLLECTIONS.SOUQ_AD_EVENTS).insertOne({
       eventType: "conversion",
       orgId,
       bidId,
@@ -612,7 +616,7 @@ export class AuctionEngine {
     });
 
     // Update aggregated stats
-    await db.collection("souq_ad_stats").updateOne(
+    await db.collection(COLLECTIONS.SOUQ_AD_STATS).updateOne(
       { bidId, orgId },
       {
         $inc: {

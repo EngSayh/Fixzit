@@ -91,9 +91,7 @@ describe("PropertiesList query params", () => {
     expect(params.get("bedroomsMax")).toBe("4");
   });
 
-  it.skip("passes correct props to FilterPresetsDropdown", async () => {
-    // SKIPPED: FilterPresetsDropdown not yet added to PropertiesList component
-    // TODO: Enable when FilterPresetsDropdown is integrated into PropertiesList
+  it("passes correct props to FilterPresetsDropdown", async () => {
     capturedKeys = [];
     capturedPresetProps = undefined;
     await act(async () => {

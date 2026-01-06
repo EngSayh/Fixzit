@@ -13,6 +13,7 @@
 
 import { ObjectId, Filter, Document } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 import { PAYOUT_CONFIG } from "./settlement-config";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { generateStatementId, generatePrefixedId } from "@/lib/id-generator";
@@ -369,7 +370,7 @@ export class SettlementCalculatorService {
       throw new Error("orgId is required for calculatePeriodSettlement (STRICT v4.1 tenant isolation)");
     }
     const db = (await connectDb()).connection.db!;
-    const ordersCollection = db.collection("souq_orders");
+    const ordersCollection = db.collection(COLLECTIONS.SOUQ_ORDERS);
     const orgFilter = buildOrgFilter(orgId);
 
     const orderSellerId = ObjectId.isValid(sellerId)
@@ -648,7 +649,7 @@ export class SettlementCalculatorService {
    */
   static async releaseReserves(sellerId: string, orgId: string): Promise<number> {
     const db = (await connectDb()).connection.db!;
-    const ordersCollection = db.collection("souq_orders");
+    const ordersCollection = db.collection(COLLECTIONS.SOUQ_ORDERS);
     if (!orgId) {
       throw new Error("orgId is required for releaseReserves (STRICT v4.1 tenant isolation)");
     }
@@ -724,9 +725,9 @@ export class SettlementCalculatorService {
       throw new Error("orgId is required for getSellerSummary (STRICT v4.1 tenant isolation)");
     }
     const db = (await connectDb()).connection.db!;
-    const ordersCollection = db.collection("souq_orders");
+    const ordersCollection = db.collection(COLLECTIONS.SOUQ_ORDERS);
     const statementsCollection =
-      db.collection<SettlementStatement>("souq_settlements");
+      db.collection<SettlementStatement>(COLLECTIONS.SOUQ_SETTLEMENTS);
     const orderSellerId = ObjectId.isValid(sellerId)
       ? new ObjectId(sellerId)
       : sellerId;
