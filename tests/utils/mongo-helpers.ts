@@ -66,6 +66,13 @@ export async function waitForMongoConnection(
         console.debug(`[waitForMongoConnection] Global setup not ready after ${maxWaitMs}ms, connecting to MONGODB_URI: ${mongoUri.split('@').pop()}`);
         await mongoose.connect(mongoUri, { autoCreate: true, autoIndex: true });
         console.debug(`[waitForMongoConnection] Connected to external MongoDB successfully`);
+        
+        // Wait for connection to stabilize
+        let stableWait = 0;
+        while (mongoose.connection.readyState !== 1 && stableWait < 5000) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          stableWait += 100;
+        }
         break;
       }
       
@@ -81,6 +88,18 @@ export async function waitForMongoConnection(
         const uri = localMongoServer.getUri();
         await mongoose.connect(uri, { autoCreate: true, autoIndex: true });
         console.debug(`[waitForMongoConnection] Local MongoMemoryServer started successfully`);
+      } else {
+        // MongoMemoryServer already exists, just reconnect
+        const uri = localMongoServer.getUri();
+        await mongoose.connect(uri, { autoCreate: true, autoIndex: true });
+        console.debug(`[waitForMongoConnection] Reconnected to existing local MongoMemoryServer`);
+      }
+      
+      // Wait for connection to stabilize (mongoose state transitions can take a moment)
+      let stableWait = 0;
+      while (mongoose.connection.readyState !== 1 && stableWait < 5000) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        stableWait += 100;
       }
       break;
     }
