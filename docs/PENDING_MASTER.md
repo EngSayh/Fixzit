@@ -73,6 +73,28 @@ Checked 20+ files with `setInterval()` calls:
 - `app/superadmin/issues/page.tsx` ✅
 - All have `return () => clearInterval(interval)` in useEffect
 
+#### PERF-001 Verification: .lean() Enforcement
+
+ESLint rule `local/require-lean` actively enforced:
+
+| Metric | Count |
+|--------|-------|
+| Queries using `.lean()` | 417 |
+| Documented exceptions | 138 |
+| Unjustified violations | 0 |
+
+All 138 exceptions have `// eslint-disable-next-line local/require-lean -- NO_LEAN: <reason>` annotations.
+
+#### ERROR-TRACK Verification: Sentry Setup
+
+Sentry is **fully configured**:
+- `sentry.server.config.ts` - Server-side error tracking
+- `sentry.client.config.ts` - Client-side with browser tracing + replay
+- `sentry.edge.config.ts` - Edge runtime support
+- DSN from `NEXT_PUBLIC_SENTRY_DSN` environment variable
+- 10% trace sampling in production, 100% in development
+- Privacy-respecting replay (maskAllText, blockAllMedia)
+
 ---
 
 ### 2026-01-06 (Asia/Riyadh) — TD-001 COMPLETE ✅ [AGENT-0036]
@@ -6086,6 +6108,8 @@ pnpm lint       # ✅ 0 warnings
 | Any types (TD-002) | ✅ MINIMAL (3) [AGENT-0036] | Only 3 casts in prod code (queues/setup.ts, tenant-lifecycle.ts) |
 | Filter persistence (BUG-001) | ✅ ALREADY DONE [AGENT-0036] | All 5 components use serializeFilters() |
 | Aggregate migration (LOGIC-002) | ✅ ALREADY DONE [AGENT-0036] | All 61 aggregates have orgId scope + maxTimeMS |
+| .lean() enforcement (PERF-001) | ✅ ALREADY DONE [AGENT-0036] | 417 usages, 138 documented exceptions, ESLint rule enforced |
+| Error tracking (ERROR-TRACK) | ✅ ALREADY DONE [AGENT-0036] | Sentry fully configured (client/server/edge) |
 
 ### 📊 db.collection() CALLS AUDIT (TD-001) — ✅ COMPLETE [AGENT-0036]
 
