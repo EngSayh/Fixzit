@@ -942,143 +942,82 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
         </div>
       )}
 
-      {/* Filters - Sticky */}
-      <Card className="bg-muted border-input sticky top-0 z-10">
+      {/* Filters - Clean horizontal layout matching users/tenants pages */}
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
-          {/* Quick Status Tabs */}
-          <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-input">
-            <Button
-              variant={statusFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("all")}
-              className={statusFilter === "all" ? "" : "text-muted-foreground border-input"}
-              aria-label={t("superadmin.issues.filters.showAll", "Show all issues")}
-              title={t("superadmin.issues.filters.showAll", "Show all issues")}
-              aria-pressed={statusFilter === "all"}
-            >
-              All
-            </Button>
-            <Button
-              variant={statusFilter === "open" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("open")}
-              className={statusFilter === "open" ? "" : "text-muted-foreground border-input"}
-              aria-label={t("superadmin.issues.filters.showOpen", "Show open issues")}
-              title={t("superadmin.issues.filters.showOpen", "Show open issues")}
-              aria-pressed={statusFilter === "open"}
-            >
-              Open
-            </Button>
-            <Button
-              variant={statusFilter === "closed" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("closed")}
-              className={statusFilter === "closed" ? "" : "text-muted-foreground border-input"}
-              aria-label={t("superadmin.issues.filters.showClosed", "Show closed issues")}
-              title={t("superadmin.issues.filters.showClosed", "Show closed issues")}
-              aria-pressed={statusFilter === "closed"}
-            >
-              Closed
-            </Button>
-            <Button
-              variant={statusFilter === "blocked" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("blocked")}
-              className={statusFilter === "blocked" ? "" : "text-muted-foreground border-input"}
-              aria-label={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
-              title={t("superadmin.issues.filters.showBlocked", "Show blocked issues")}
-              aria-pressed={statusFilter === "blocked"}
-            >
-              Blocked
-            </Button>
-            <Button
-              variant={viewMode === "stale" ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
-              className={viewMode === "stale" ? "" : "text-muted-foreground border-input"}
-              aria-label={t("superadmin.issues.filters.showStale", "Show stale issues")}
-              title={t("superadmin.issues.filters.showStale", "Show stale issues")}
-              aria-pressed={viewMode === "stale"}
-            >
-              <Clock className="h-4 w-4 me-1" />
-              Stale
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-muted-foreground hover:text-foreground ms-auto"
-              aria-label={t("superadmin.issues.filters.clear", "Clear all filters")}
-              title={t("superadmin.issues.filters.clear", "Clear all filters")}
-            >
-              Clear filters
-            </Button>
-          </div>
-
-          {/* Detailed Filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t("superadmin.issues.search")}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-                />
-              </div>
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("superadmin.issues.search", "Search issues by title, ID, or description...")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
             </div>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select 
+                value={statusFilter} 
+                onValueChange={setStatusFilter} 
+                placeholder={t("superadmin.issues.filters.status")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            <Select 
-              value={statusFilter} 
-              onValueChange={setStatusFilter} 
-              placeholder={t("superadmin.issues.filters.status")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </Select>
+              <Select 
+                value={priorityFilter} 
+                onValueChange={setPriorityFilter} 
+                placeholder={t("superadmin.issues.filters.priority")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                {priorityOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            <Select 
-              value={priorityFilter} 
-              onValueChange={setPriorityFilter} 
-              placeholder={t("superadmin.issues.filters.priority")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-              {priorityOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </Select>
+              <Select 
+                value={categoryFilter} 
+                onValueChange={setCategoryFilter} 
+                placeholder={t("superadmin.issues.filters.category")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                {categoryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            <Select 
-              value={categoryFilter} 
-              onValueChange={setCategoryFilter} 
-              placeholder={t("superadmin.issues.filters.category")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-              {categoryOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </Select>
+              <Select 
+                value={viewMode} 
+                onValueChange={(val) => setViewMode(val as typeof viewMode)} 
+                placeholder="View Mode"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="default">Default View</SelectItem>
+                <SelectItem value="quickWins">Quick Wins</SelectItem>
+                <SelectItem value="stale">Stale Issues</SelectItem>
+              </Select>
 
-            <Button
-              variant={viewMode === "quickWins" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("quickWins")}
-              aria-label={t("superadmin.issues.views.quickWins", "Show quick win issues")}
-              title={t("superadmin.issues.views.quickWins", "Show quick win issues")}
-              aria-pressed={viewMode === "quickWins"}
-            >
-              <Zap className="h-4 w-4 me-1" />
-              {t("superadmin.issues.views.quickWins")}
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label={t("superadmin.issues.filters.clear", "Clear all filters")}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
