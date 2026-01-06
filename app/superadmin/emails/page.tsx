@@ -472,25 +472,33 @@ export default function EmailTemplatesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("superadmin.emails.search", "Search templates...")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="ps-9"
-          />
-        </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
-          <SelectItem value="all">All Categories</SelectItem>
-          <SelectItem value="auth">Authentication</SelectItem>
-          <SelectItem value="billing">Billing</SelectItem>
-          <SelectItem value="notifications">Notifications</SelectItem>
-          <SelectItem value="marketing">Marketing</SelectItem>
-          <SelectItem value="system">System</SelectItem>
-        </Select>
-      </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("superadmin.emails.search", "Search templates...")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="auth">Authentication</SelectItem>
+                <SelectItem value="billing">Billing</SelectItem>
+                <SelectItem value="notifications">Notifications</SelectItem>
+                <SelectItem value="marketing">Marketing</SelectItem>
+                <SelectItem value="system">System</SelectItem>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Templates Table */}
       <Card>

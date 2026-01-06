@@ -267,6 +267,7 @@ export default function SuperadminQuotasPage() {
   const [quotas, setQuotas] = useState<TenantQuota[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState<string>("all");
   const [selectedTenant, setSelectedTenant] = useState<TenantQuota | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -334,10 +335,12 @@ export default function SuperadminQuotasPage() {
     ));
   };
 
-  const filteredQuotas = quotas.filter(q => 
-    q.tenantName.toLowerCase().includes(search.toLowerCase()) ||
-    q.tenantId.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredQuotas = quotas.filter(q => {
+    const matchesPlan = planFilter === "all" || q.plan === planFilter;
+    const matchesSearch = q.tenantName.toLowerCase().includes(search.toLowerCase()) ||
+      q.tenantId.toLowerCase().includes(search.toLowerCase());
+    return matchesPlan && matchesSearch;
+  });
 
   // Summary stats
   const overLimitCount = quotas.filter(q => 
@@ -427,18 +430,38 @@ export default function SuperadminQuotasPage() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("superadmin.quotas.search", "Search tenants...")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="ps-9"
-          />
-        </div>
-      </div>
+      {/* Filters */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("superadmin.quotas.search", "Search tenants...")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select 
+                value={planFilter} 
+                onValueChange={setPlanFilter}
+                placeholder="All Plans"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="all">All Plans</SelectItem>
+                <SelectItem value="starter">Starter</SelectItem>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="enterprise">Enterprise</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quotas Table */}
       <Card>

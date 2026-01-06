@@ -112,12 +112,19 @@ export default function SuperadminCatalogPage() {
 
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.catalog.searchPlaceholder", "Search products...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.catalog.categoryPlaceholder", "Category")} className="w-full sm:w-40 bg-muted border-input text-foreground"><SelectItem value="all">{t("superadmin.catalog.allCategories", "All Categories")}</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.catalog.statusPlaceholder", "Status")} className="w-full sm:w-40 bg-muted border-input text-foreground"><SelectItem value="all">{t("superadmin.catalog.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.catalog.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="OUT_OF_STOCK">{t("common.outOfStock", "Out of Stock")}</SelectItem></Select>
-            <Select value={businessModelFilter} onValueChange={setBusinessModelFilter} placeholder={t("superadmin.catalog.modelPlaceholder", "Model")} className="w-full sm:w-40 bg-muted border-input text-foreground"><SelectItem value="all">{t("superadmin.catalog.allModels", "All Models")}</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></Select>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.catalog.search", "Search products")} title={t("superadmin.catalog.search", "Search products")}><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder={t("superadmin.catalog.searchPlaceholder", "Search products...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground" />
+            </div>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.catalog.categoryPlaceholder", "Category")} className="w-full sm:w-40 bg-muted border-input text-foreground"><SelectItem value="all">{t("superadmin.catalog.allCategories", "All Categories")}</SelectItem>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>))}</Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.catalog.statusPlaceholder", "Status")} className="w-full sm:w-40 bg-muted border-input text-foreground"><SelectItem value="all">{t("superadmin.catalog.allStatus", "All Status")}</SelectItem><SelectItem value="ACTIVE">{t("superadmin.catalog.active", "Active")}</SelectItem><SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem><SelectItem value="OUT_OF_STOCK">{t("common.outOfStock", "Out of Stock")}</SelectItem></Select>
+              <Select value={businessModelFilter} onValueChange={setBusinessModelFilter} placeholder={t("superadmin.catalog.modelPlaceholder", "Model")} className="w-full sm:w-40 bg-muted border-input text-foreground"><SelectItem value="all">{t("superadmin.catalog.allModels", "All Models")}</SelectItem><SelectItem value="B2B">B2B Only</SelectItem><SelectItem value="B2C">B2C Only</SelectItem><SelectItem value="BOTH">B2B & B2C</SelectItem></Select>
+              <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.catalog.search", "Search products")} title={t("superadmin.catalog.search", "Search products")}><Search className="h-4 w-4 me-2" />{t("superadmin.catalog.search", "Search")}</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
