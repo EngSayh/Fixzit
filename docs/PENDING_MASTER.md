@@ -19,6 +19,50 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-07 (Asia/Riyadh) — LINT:COLLECTIONS BASELINE FIX [AGENT-0009]
+
+**Agent Token:** `[AGENT-0009]`  
+**Branch:** `fix/lint-collections-baseline`  
+**PR:** #670
+
+#### Problem Statement
+
+The `lint:collections` CI check was failing on ALL open PRs (#661, #662, #663) due to 55+ hardcoded collection literals in `lib/auth/passwordPolicy.ts` and `lib/auth/mfaService.ts`.
+
+#### Root Cause
+
+Missing collection constants in `lib/db/collection-names.ts`:
+- `ACCOUNT_LOCKOUTS`
+- `LOGIN_ATTEMPTS`
+- `MFA_PENDING`
+
+#### Solution Implemented
+
+| File | Changes |
+|------|---------|
+| `lib/db/collection-names.ts` | Added 3 new constants |
+| `lib/auth/passwordPolicy.ts` | Replaced 8 hardcoded literals |
+| `lib/auth/mfaService.ts` | Replaced 3 hardcoded literals |
+
+#### Local CI Verification
+
+| Check | Result |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+| `pnpm run lint:collections` | ✅ No hardcoded collection literals found |
+| `pnpm vitest run` | ✅ 98 tests pass |
+
+#### Status
+
+- [x] Fix implemented
+- [x] Local CI verified
+- [x] PR #670 created
+- [ ] GitHub CI (pending)
+- [ ] Merge to main
+
+---
+
 ### 2026-01-05 13:00 (Asia/Riyadh) — SMART REMEDIATION REPORT REVIEW [AGENT-0023]
 
 **Agent Token:** [AGENT-0023]  
