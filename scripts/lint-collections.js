@@ -7,9 +7,10 @@ const path = require('path');
 const glob = require('glob');
 
 const args = process.argv.slice(2);
-// By default, scan runtime and scripts (app/server/lib/modules/scripts).
+// By default, scan runtime code only (app/server/lib/modules).
+// Scripts folder is excluded as it contains one-off migration scripts and admin tools.
 // Pass additional paths explicitly if needed.
-const roots = args.length ? args : ['app', 'server', 'lib', 'modules', 'scripts'];
+const roots = args.length ? args : ['app', 'server', 'lib', 'modules'];
 
 const allowExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const allowLiterals = new Set([
