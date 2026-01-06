@@ -297,7 +297,8 @@ export async function GET(req: NextRequest) {
       Invoice.find(match)
         .sort({ issueDate: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(), // PERF-001: Read-only query optimization
       Invoice.countDocuments(match),
     ]);
 
