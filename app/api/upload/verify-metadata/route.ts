@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     assertS3Configured();
   } catch (error) {
     if (error instanceof S3NotConfiguredError) {
-      return NextResponse.json(error.toJSON(), { status: 501 });
+      return NextResponse.json(error.toJSON(), { status: 503 });
     }
     throw error;
   }
