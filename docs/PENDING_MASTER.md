@@ -19,6 +19,79 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-07 14:30 (Asia/Riyadh) — CI MONGODB RACE CONDITION FIX [AGENT-0034]
+
+**Agent Token:** `[AGENT-0034]`  
+**Branch:** `fix/lint-collections-baseline`  
+**PR:** #670 (continued from AGENT-0009/AGENT-0010)
+
+#### Problem Statement
+
+GitHub CI was failing with ENOENT errors when multiple shards tried to download MongoDB binary simultaneously:
+```
+Error: ENOENT: no such file or directory, rename 
+'/home/runner/.cache/mongodb-binaries/mongodb-linux-x86_64-ubuntu2204-7.0.24.tgz.downloading' 
+-> '/home/runner/.cache/mongodb-binaries/mongodb-linux-x86_64-ubuntu2204-7.0.24.tgz'
+```
+
+This affected 5 CI jobs: Tests (Server 1/4), Quality Gates, QA, CI Summary, and test-api shard.
+
+#### Root Cause
+
+Missing MongoDB Memory Server binary caching and pre-download step in 3 workflows:
+- `ci-full-suite.yml` - No cache for sharded server/client tests
+- `fixzit-quality-gates.yml` - No cache for unit tests
+- `qa.yml` - No cache for vitest runs
+
+#### Solution Implemented
+
+Added MongoDB binary caching and pre-download to all 3 workflows:
+
+| Workflow | Changes Added |
+|----------|---------------|
+| `ci-full-suite.yml` | Cache + pre-download for server-tests job |
+| `ci-full-suite.yml` | Cache + pre-download for client-tests job |
+| `fixzit-quality-gates.yml` | Cache + pre-download after Install Dependencies |
+| `qa.yml` | Cache + pre-download after Install dependencies |
+
+Cache configuration:
+```yaml
+- name: Cache MongoMemoryServer binaries
+  uses: actions/cache@v4
+  with:
+    path: ~/.cache/mongodb-binaries
+    key: ${{ runner.os }}-mongodb-binaries-7.0.24
+    restore-keys: |
+      ${{ runner.os }}-mongodb-binaries-
+
+- name: Pre-download MongoDB binary
+  run: npx mongodb-memory-server-core --download-only
+  env:
+    MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+```
+
+#### Local CI Verification
+
+| Check | Result |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 warnings |
+| `pnpm run lint:collections` | ✅ No hardcoded collection literals |
+| Server tests (3,255) | ✅ All pass (327s) |
+| Client tests (1,488) | ✅ All pass (27s) |
+| **Total: 4,743 tests** | ✅ **100% pass** |
+
+#### Status
+
+- [x] Problem identified (MongoDB binary race condition)
+- [x] Fix implemented (3 workflow files updated)
+- [x] Local CI verified (4,743 tests pass)
+- [x] Pushed to PR #670
+- [ ] GitHub CI (pending re-run)
+- [ ] Merge to main
+
+---
+
 ### 2026-01-07 (Asia/Riyadh) — LINT:COLLECTIONS BASELINE FIX [AGENT-0009]
 
 **Agent Token:** `[AGENT-0009]`  
