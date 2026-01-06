@@ -134,6 +134,11 @@ export const COLLECTIONS = {
   TENANT_SNAPSHOTS: "tenant_snapshots",
   GHOST_SESSIONS: "ghost_sessions",
   
+  // Auth / Security collections
+  ACCOUNT_LOCKOUTS: "account_lockouts",
+  LOGIN_ATTEMPTS: "login_attempts",
+  MFA_PENDING: "mfa_pending",
+  
   // Issue tracker (SSOT)
   ISSUES: "issues",
 } as const;

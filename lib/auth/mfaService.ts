@@ -24,6 +24,7 @@ import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 import { encryptField, decryptField } from "@/lib/security/encryption";
 import { logAuthEvent, AuthAction, RiskLevel } from "./auditLogger";
 
@@ -269,7 +270,7 @@ export async function initMFASetup(
       createdAt: new Date(),
     }));
     
-    await db.collection("mfa_pending").updateOne(
+    await db.collection(COLLECTIONS.MFA_PENDING).updateOne(
       { orgId, userId },
       {
         $set: {
@@ -323,7 +324,7 @@ export async function completeMFASetup(
     const db = await getDatabase();
     
     // Get pending setup
-    const pending = await db.collection("mfa_pending").findOne({
+    const pending = await db.collection(COLLECTIONS.MFA_PENDING).findOne({
       orgId,
       userId,
       expiresAt: { $gt: new Date() },
@@ -360,7 +361,7 @@ export async function completeMFASetup(
     );
     
     // Clean up pending
-    await db.collection("mfa_pending").deleteOne({ orgId, userId });
+    await db.collection(COLLECTIONS.MFA_PENDING).deleteOne({ orgId, userId });
     
     // Audit log
     await logAuthEvent({
