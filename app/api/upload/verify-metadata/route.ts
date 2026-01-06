@@ -44,12 +44,12 @@ export async function GET(req: NextRequest) {
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Check S3 configuration
+  // Check S3 configuration (returns 503 if not configured)
   try {
     assertS3Configured();
   } catch (error) {
     if (error instanceof S3NotConfiguredError) {
-      return NextResponse.json(error.toJSON(), { status: 501 });
+      return NextResponse.json(error.toJSON(), { status: 503 });
     }
     throw error;
   }
