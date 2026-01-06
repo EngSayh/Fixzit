@@ -446,16 +446,23 @@ export default function WebhooksPage() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={t("superadmin.webhooks.search", "Search webhooks...")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="ps-9"
-        />
-      </div>
+      {/* Filters */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("superadmin.webhooks.search", "Search webhooks...")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Webhooks Table */}
       <Card>

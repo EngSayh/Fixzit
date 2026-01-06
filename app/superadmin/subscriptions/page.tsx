@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
+import { Search } from "@/components/ui/icons";
 import {
   Wallet, RefreshCw, Eye, Edit, Plus, Trash2,
   Users, Building2, Crown, Star, Sparkles, Check, X,
@@ -557,34 +557,39 @@ export default function SuperadminSubscriptionsPage() {
 
         {/* Subscriptions Tab */}
         <TabsContent value="subscriptions" className="space-y-4">
-          <SimpleFilterBar
-            search={{
-              value: search,
-              onChange: setSearch,
-              placeholder: "Search subscriptions...",
-            }}
-            filters={[
-              {
-                id: "status",
-                value: statusFilter,
-                placeholder: "All Statuses",
-                options: [
-                  { value: "all", label: "All Statuses" },
-                  { value: "active", label: "Active" },
-                  { value: "trial", label: "Trial" },
-                  { value: "past_due", label: "Past Due" },
-                  { value: "cancelled", label: "Cancelled" },
-                  { value: "expired", label: "Expired" },
-                ],
-                onChange: setStatusFilter,
-                width: "w-[140px]",
-              },
-            ]}
-            onClear={() => {
-              setSearch("");
-              setStatusFilter("all");
-            }}
-          />
+          {/* Filters */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                {/* Search row */}
+                <div className="relative flex-1">
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search subscriptions..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                {/* Filter row */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                    placeholder="All Statuses"
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  >
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="trial">Trial</SelectItem>
+                    <SelectItem value="past_due">Past Due</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">

@@ -662,15 +662,24 @@ export default function SuperadminFooterContentPage() {
 
         {/* Policies Tab */}
         <TabsContent value="policies" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
-            </div>
-            <Button onClick={handleNewPolicy} className="bg-primary text-primary-foreground" aria-label={t("superadmin.footerContent.addPolicy", "Add new policy page")} title={t("superadmin.footerContent.addPolicy", "Add new policy page")}>
-              <Plus className="h-4 w-4 me-2" />Add Policy
-            </Button>
-          </div>
+          {/* Filters */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                {/* Search row */}
+                <div className="relative flex-1">
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground" />
+                </div>
+                {/* Action row */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                  <Button onClick={handleNewPolicy} className="bg-primary text-primary-foreground" aria-label={t("superadmin.footerContent.addPolicy", "Add new policy page")} title={t("superadmin.footerContent.addPolicy", "Add new policy page")}>
+                    <Plus className="h-4 w-4 me-2" />Add Policy
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">

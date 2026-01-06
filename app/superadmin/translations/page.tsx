@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, Search, CheckCircle, AlertTriangle, Languages,
@@ -65,7 +66,7 @@ export default function SuperadminTranslationsPage() {
   const [keys, setKeys] = useState<TranslationKey[]>(SAMPLE_KEYS);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, _setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -169,27 +170,48 @@ export default function SuperadminTranslationsPage() {
           <TabsTrigger value="missing" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"><AlertTriangle className="h-4 w-4 me-2" />Missing ({missingCount})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="keys">
+        <TabsContent value="keys" className="space-y-4">
+          {/* Filters */}
           <Card className="bg-card border-border">
-            <CardHeader className="border-b border-border">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-foreground">Translation Keys</CardTitle>
-                  <CardDescription className="text-muted-foreground">All translation strings</CardDescription>
-                </div>
-                <div className="flex gap-2">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                {/* Search row */}
+                <div className="relative flex-1">
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search keys..."
+                    placeholder="Search translation keys..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    className="w-[200px] bg-muted border-input text-foreground"
+                    className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
                   />
+                </div>
+                {/* Filter row */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select 
+                    value={statusFilter} 
+                    onValueChange={setStatusFilter}
+                    placeholder="Status"
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  >
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="complete">Complete</SelectItem>
+                    <SelectItem value="missing">Missing</SelectItem>
+                  </Select>
+                  
                   <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("common.search", "Search translation keys")} title={t("common.search", "Search translation keys")}>
-                    <Search className="h-4 w-4" />
+                    <Search className="h-4 w-4 me-2" />Search
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Results Card */}
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="text-foreground">Translation Keys</CardTitle>
+              <CardDescription className="text-muted-foreground">All translation strings</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
