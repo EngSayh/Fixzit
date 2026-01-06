@@ -128,7 +128,7 @@ SEND_GRID            ✅ 2025-10-24
 
 # Vercel Env (verified via `vercel env ls`)
 MARKETPLACE_ENABLED  ✅ Production (45d ago)
-ATS_ENABLED          ✅ Production (implied by ATS routes working)
+ATS_ENABLED          ✅ Production (verified via functional testing + feature gate code review)
 ```
 
 #### Code Changes Applied This Session
