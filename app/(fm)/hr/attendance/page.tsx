@@ -248,68 +248,54 @@ export default function AttendancePage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-4 flex flex-col gap-4 md:flex-row md:items-center">
-          <div className="flex-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-              {t("hr.attendance.selectEmployee", "Select Employee")}
-            </p>
-            <Select
-              value={selectedEmployee}
-              onValueChange={(value) => setSelectedEmployee(value)}
-              placeholder={t("hr.attendance.selectPlaceholder", "Choose employee")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((employee) => (
-                  <SelectItem key={employee._id} value={employee._id}>
-                    {employee.employeeCode} — {employee.firstName}{" "}
-                    {employee.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-4 flex-1 flex-wrap md:flex-nowrap">
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Employee selector - full width */}
             <div className="flex-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t("hr.attendance.from", "From")}
-              </p>
+              <Select
+                value={selectedEmployee}
+                onValueChange={(value) => setSelectedEmployee(value)}
+                placeholder={t("hr.attendance.selectPlaceholder", "Choose employee")}
+              >
+                <SelectTrigger className="w-full bg-muted border-input text-foreground">
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((employee) => (
+                    <SelectItem key={employee._id} value={employee._id}>
+                      {employee.employeeCode} — {employee.firstName}{" "}
+                      {employee.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <Input
                 type="date"
                 value={dateRange.from}
                 onChange={(e) =>
                   setDateRange((prev) => ({ ...prev, from: e.target.value }))
                 }
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t("hr.attendance.to", "To")}
-              </p>
               <Input
                 type="date"
                 value={dateRange.to}
                 onChange={(e) =>
                   setDateRange((prev) => ({ ...prev, to: e.target.value }))
                 }
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               />
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t("hr.attendance.filters.status", "Status")}
-              </p>
               <Select
                 value={statusFilter}
                 onValueChange={(value) =>
                   setStatusFilter(value as AttendanceStatus | "ALL")
                 }
                 placeholder={t("hr.attendance.filters.status", "Status")}
-                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
@@ -319,11 +305,6 @@ export default function AttendancePage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t("hr.attendance.filters.source", "Source")}
-              </p>
               <Select
                 value={sourceFilter}
                 onValueChange={(value) =>
@@ -332,9 +313,8 @@ export default function AttendancePage() {
                   )
                 }
                 placeholder={t("hr.attendance.filters.source", "Source")}
-                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
                 </SelectTrigger>
                 <SelectContent>
                   {sourceOptions.map((option) => (

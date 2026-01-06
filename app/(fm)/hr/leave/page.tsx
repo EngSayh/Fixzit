@@ -308,40 +308,49 @@ export default function LeavePage() {
             )}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setFormOpen((prev) => !prev)}
-            aria-label={t("hr.leave.actions.newRequest", "New Leave Request")}
-          >
-            <CalendarPlus className="h-4 w-4 me-2" />
-            {t("hr.leave.actions.newRequest", "New Leave Request")}
-          </Button>
-          {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
-            (status) => (
-              <Button
-                key={status}
-                variant={filter === status ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleFilterChange(status)}
-                aria-label={status === "ALL"
-                  ? t("hr.leave.filter.all", "All")
-                  : t(
-                      leaveStatusLabels[status].key,
-                      leaveStatusLabels[status].fallback,
-                    )}
-              >
-                {status === "ALL"
-                  ? t("hr.leave.filter.all", "All")
-                  : t(
-                      leaveStatusLabels[status].key,
-                      leaveStatusLabels[status].fallback,
-                    )}
-              </Button>
-            ),
-          )}
-        </div>
+        <Button
+          variant="outline"
+          onClick={() => setFormOpen((prev) => !prev)}
+          aria-label={t("hr.leave.actions.newRequest", "New Leave Request")}
+        >
+          <CalendarPlus className="h-4 w-4 me-2" />
+          {t("hr.leave.actions.newRequest", "New Leave Request")}
+        </Button>
       </div>
+
+      {/* Filter Bar */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Filter buttons - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
+                (status) => (
+                  <Button
+                    key={status}
+                    variant={filter === status ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleFilterChange(status)}
+                    aria-label={status === "ALL"
+                      ? t("hr.leave.filter.all", "All")
+                      : t(
+                          leaveStatusLabels[status].key,
+                          leaveStatusLabels[status].fallback,
+                        )}
+                  >
+                    {status === "ALL"
+                      ? t("hr.leave.filter.all", "All")
+                      : t(
+                          leaveStatusLabels[status].key,
+                          leaveStatusLabels[status].fallback,
+                        )}
+                  </Button>
+                ),
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {requests.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -337,84 +337,85 @@ function IssuesDashboardContent() {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search issues..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-9"
-                />
-              </div>
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search issues..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
             </div>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="in_review">In Review</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="in_review">In Review</SelectItem>
-              <SelectItem value="blocked">Blocked</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </Select>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="P0">P0 Critical</SelectItem>
+                <SelectItem value="P1">P1 High</SelectItem>
+                <SelectItem value="P2">P2 Medium</SelectItem>
+                <SelectItem value="P3">P3 Low</SelectItem>
+              </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="Priority" className="w-[120px]">
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="P0">P0 Critical</SelectItem>
-              <SelectItem value="P1">P1 High</SelectItem>
-              <SelectItem value="P2">P2 Medium</SelectItem>
-              <SelectItem value="P3">P3 Low</SelectItem>
-            </Select>
-
-            <Select
-              value={categoryFilter || "all"}
-              onValueChange={(value) =>
-                setCategoryFilter(value === "all" ? "" : value)
-              }
-              placeholder="Category"
-              className="w-[120px]"
-            >
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="bug">Bug</SelectItem>
-              <SelectItem value="security">Security</SelectItem>
-              <SelectItem value="efficiency">Efficiency</SelectItem>
-              <SelectItem value="missing_test">Missing Tests</SelectItem>
-            </Select>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("all")}
-                aria-label="Show all issues"
-                aria-pressed={viewMode === "all"}
+              <Select
+                value={categoryFilter || "all"}
+                onValueChange={(value) =>
+                  setCategoryFilter(value === "all" ? "" : value)
+                }
+                placeholder="Category"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
-                All
-              </Button>
-              <Button
-                variant={viewMode === "quickWins" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("quickWins")}
-                aria-label="Show quick win issues"
-                aria-pressed={viewMode === "quickWins"}
-              >
-                <Zap className="h-4 w-4 me-1" />
-                Quick Wins
-              </Button>
-              <Button
-                variant={viewMode === "stale" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("stale")}
-                aria-label="Show stale issues"
-                aria-pressed={viewMode === "stale"}
-              >
-                <Clock className="h-4 w-4 me-1" />
-                Stale
-              </Button>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="security">Security</SelectItem>
+                <SelectItem value="efficiency">Efficiency</SelectItem>
+                <SelectItem value="missing_test">Missing Tests</SelectItem>
+              </Select>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("all")}
+                  aria-label="Show all issues"
+                  aria-pressed={viewMode === "all"}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={viewMode === "quickWins" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("quickWins")}
+                  aria-label="Show quick win issues"
+                  aria-pressed={viewMode === "quickWins"}
+                >
+                  <Zap className="h-4 w-4 me-1" />
+                  Quick Wins
+                </Button>
+                <Button
+                  variant={viewMode === "stale" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("stale")}
+                  aria-label="Show stale issues"
+                  aria-pressed={viewMode === "stale"}
+                >
+                  <Clock className="h-4 w-4 me-1" />
+                  Stale
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

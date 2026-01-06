@@ -9,7 +9,6 @@ import {
   MousePointerClick,
   Plus,
   Search,
-  Filter,
   MoreVertical,
   Play,
   Pause,
@@ -496,30 +495,28 @@ export default function AdvertisingPage() {
       {activeTab === "campaigns" && (
         <div className="space-y-6">
           {/* Filters and Search */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={auto(
-                      "Search campaigns...",
-                      "filters.searchPlaceholder",
-                    )}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
+          <div className="bg-card rounded-lg border border-border p-4">
+            <div className="flex flex-col gap-4">
+              {/* Row 1: Search input - full width */}
+              <div className="relative flex-1">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder={auto(
+                    "Search campaigns...",
+                    "filters.searchPlaceholder",
+                  )}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
               </div>
-
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-600" />
+              {/* Row 2: Filter dropdowns - horizontal */}
+              <div className="flex flex-col sm:flex-row gap-3">
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full sm:w-40 px-4 py-2 bg-muted border-input text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">
                     {auto("All Status", "filters.allStatus")}
@@ -538,7 +535,7 @@ export default function AdvertisingPage() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full sm:w-48 px-4 py-2 bg-muted border-input text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">
                     {auto("All Types", "filters.allTypes")}
@@ -553,15 +550,15 @@ export default function AdvertisingPage() {
                     {auto("Product Display", "filters.productDisplay")}
                   </option>
                 </select>
-              </div>
 
-              <Link
-                href="/marketplace/seller-central/advertising/create"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                {auto("Create Campaign", "quickActions.create")}
-              </Link>
+                <Link
+                  href="/marketplace/seller-central/advertising/create"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  {auto("Create Campaign", "quickActions.create")}
+                </Link>
+              </div>
             </div>
           </div>
 

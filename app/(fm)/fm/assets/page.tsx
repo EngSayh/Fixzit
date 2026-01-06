@@ -170,61 +170,59 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder={auto(
-                    "Search assets...",
-                    "filters.searchPlaceholder",
-                  )}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-10"
-                />
-              </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={auto(
+                  "Search assets...",
+                  "filters.searchPlaceholder",
+                )}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
             </div>
-            <Select
-              value={typeFilter}
-              onValueChange={setTypeFilter}
-              placeholder={auto("Asset Type", "filters.type")}
-              className="w-48"
-            >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Types", "filters.allTypes")}
-                </SelectItem>
-                {ASSET_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    {auto("All Types", "filters.allTypes")}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              placeholder={auto("Status", "filters.status")}
-              className="w-48"
-            >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
-                  {auto("All Status", "filters.allStatus")}
-                </SelectItem>
-                {ASSET_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                  {ASSET_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    {auto("All Status", "filters.allStatus")}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {ASSET_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
