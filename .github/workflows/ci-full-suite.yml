@@ -99,9 +99,12 @@ jobs:
       
       # Pre-download MongoDB binary to avoid race condition between shards
       - name: Pre-download MongoDB binary
-        run: node -e "const { MongoMemoryServer } = require('mongodb-memory-server'); MongoMemoryServer.create().then(s => s.stop());"
-        env:
-          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        run: |
+          node -e "
+            const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
+            const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
+            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+          "
         continue-on-error: true
       
       - name: Run server tests (shard ${{ matrix.shard }})
@@ -154,9 +157,12 @@ jobs:
       
       # Pre-download MongoDB binary to avoid race condition between shards
       - name: Pre-download MongoDB binary
-        run: node -e "const { MongoMemoryServer } = require('mongodb-memory-server'); MongoMemoryServer.create().then(s => s.stop());"
-        env:
-          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        run: |
+          node -e "
+            const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
+            const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
+            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+          "
         continue-on-error: true
       
       - name: Run client tests (shard ${{ matrix.shard }})

@@ -37,9 +37,12 @@ jobs:
 
       # Pre-download MongoDB binary before tests start
       - name: Pre-download MongoDB binary
-        run: node -e "const { MongoMemoryServer } = require('mongodb-memory-server'); MongoMemoryServer.create().then(s => s.stop());"
-        env:
-          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        run: |
+          node -e "
+            const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
+            const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
+            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+          "
         continue-on-error: true
 
       - name: 🔒 Assert non-production MongoDB
