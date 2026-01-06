@@ -27,6 +27,8 @@ export const COLLECTIONS = {
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
   AUDIT_LOGS: "auditLogs",
+  // TODO: DATA-002 - Investigate audit_logs vs auditLogs naming inconsistency
+  AUDIT_LOGS_UNDERSCORE: "audit_logs", // Used in enterprise-security.ts for chain integrity
   
   // Admin + org
   ORGANIZATIONS: "organizations",
