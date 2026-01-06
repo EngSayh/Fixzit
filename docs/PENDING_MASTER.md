@@ -24,7 +24,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 **Agent Token:** `[AGENT-0034]`  
 **Branch:** `fix/lint-collections-baseline`  
 **PR:** #670 (continued from AGENT-0009/AGENT-0010)
-**Commits:** 6 total (workflow fixes + package.json fix)
+**Commits:** 15+ total (workflow fixes + test fixes + vitest.setup.ts fixes)
 
 #### Problem Statement
 
@@ -34,14 +34,20 @@ GitHub CI was failing with multiple issues:
 2. **Module not found error** - Used wrong import path for mongodb-memory-server-core
 3. **Jest option in Vitest** - `test:models:ci` script used `--runInBand` (Jest-only option)
 4. **Missing pre-download in Models job** - test-models job lacked MongoDB caching
+5. **Connection conflict** - "Can't call openUri() on active connection" in test setup
+6. **Timeout on syncIndexes()** - waitForMongoConnection timeout too short (10s)
+7. **Test Runner conflict** - Real MongoDB service container conflicting with MongoMemoryServer
 
 #### Fixes Applied
 
-| Issue | Fix | Commit |
-|-------|-----|--------|
-| Wrong module path | Changed to `require('mongodb-memory-server')` with `MongoBinary.getPath()` | `f64692ac0` |
-| Jest `--runInBand` | Changed to Vitest `--no-file-parallelism` in package.json | `a170b5134` |
-| Missing Models pre-download | Added MongoDB cache + pre-download to test-models job | `8cd4f7a52` |
+| Issue | Fix | File |
+|-------|-----|------|
+| Wrong module path | Changed to `require('mongodb-memory-server').MongoBinary.getPath()` | Workflow files |
+| Jest `--runInBand` | Changed to Vitest `--no-file-parallelism` | `package.json` |
+| Missing Models pre-download | Added MongoDB cache + pre-download to test-models job | `ci-full-suite.yml` |
+| Connection conflict | Added connection reuse logic for local MongoDB | `vitest.setup.ts` |
+| syncIndexes timeout | Increased timeout from 10s to 30s | `tests/utils/mongo-helpers.ts` |
+| Test Runner conflict | Skip MongoMemoryServer when MONGODB_URI=localhost:27017 | `vitest.setup.ts` |
 
 #### Workflow Files Updated
 
@@ -52,17 +58,20 @@ GitHub CI was failing with multiple issues:
 | `qa.yml` | Cache + pre-download |
 | `package.json` | Fixed `test:models:ci` script |
 
-#### Current CI Status (after 5th push)
+#### Test Setup Fixes (vitest.setup.ts)
 
-| Job | Status |
-|-----|--------|
-| Server Tests (all 4 shards) | ✅ Pass |
-| Client Tests (all 2 shards) | ✅ Pass |
-| TypeScript Check | ✅ Pass |
-| ESLint | ✅ Pass |
-| Fixzit Quality Gates | ✅ Pass |
-| test-api, test-services | ✅ Pass |
-| Models Tests | ⏳ Pending (awaiting fix) |
+```typescript
+// Added detection of external MongoDB (Test Runner service container)
+const hasExternalMongo = 
+  process.env.MONGODB_URI?.includes('localhost:27017') ||
+  process.env.MONGODB_URI?.includes('127.0.0.1:27017');
+
+// Skip MongoMemoryServer when external MongoDB is detected
+if (hasExternalMongo) {
+  // Test Runner workflow - use real MongoDB service
+  return;
+}
+```
 
 #### Local CI Verification
 
