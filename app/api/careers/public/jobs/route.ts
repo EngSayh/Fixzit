@@ -34,6 +34,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { Config } from "@/lib/config/constants";
 
 const DEFAULT_LIMIT = 12;
 
@@ -79,9 +80,8 @@ export async function GET(req: NextRequest) {
 
     const orgId =
       orgIdParam ||
-      process.env.PUBLIC_JOBS_ORG_ID ||
-      process.env.NEXT_PUBLIC_ORG_ID ||
-      process.env.PLATFORM_ORG_ID;
+      Config.features.publicJobsOrgId ||
+      Config.features.platformOrgId;
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "Organization context is required" },
