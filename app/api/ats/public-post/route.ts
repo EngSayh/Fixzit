@@ -16,7 +16,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
-import { Config } from "@/lib/config/constants";
+import { Config, DEFAULT_PLATFORM_ORG_ID } from "@/lib/config/constants";
 
 const publicJobSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Feature not available" }, 501, req);
     }
 
-    const platformOrg = Config.features.platformOrgId || "fixzit-platform";
+    const platformOrg = Config.features.publicJobsOrgId || Config.features.platformOrgId || DEFAULT_PLATFORM_ORG_ID;
 
     const baseSlug = generateSlug(validatedBody.title || "job");
     let slug = baseSlug;

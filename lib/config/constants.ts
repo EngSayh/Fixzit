@@ -27,6 +27,13 @@ class ConfigurationError extends Error {
   }
 }
 
+/**
+ * Default platform organization ID used when no PLATFORM_ORG_ID is configured.
+ * This should only be used in development/testing environments.
+ * Production should always have PLATFORM_ORG_ID configured.
+ */
+export const DEFAULT_PLATFORM_ORG_ID = "fixzit-platform";
+
 export function validateAwsConfig(env: NodeJS.ProcessEnv): void {
   // Skip validation in browser context
   if (IS_BROWSER) {
