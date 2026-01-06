@@ -1024,7 +1024,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   placeholder={t("superadmin.issues.search")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="ps-9 bg-muted border-input text-white"
+                  className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             </div>
