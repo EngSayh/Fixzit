@@ -118,6 +118,10 @@ export const COLLECTIONS = {
   PAYMENT_HISTORY: "payment_history",
   EVICTION_RECORDS: "eviction_records",
   LEASES: "leases",
+  LEASE_SEQUENCES: "lease_sequences",
+  
+  // Notifications / Queue
+  NOTIFICATION_QUEUE: "notification_queue",
   
   // Errors / telemetry
   ERROR_EVENTS: "error_events",

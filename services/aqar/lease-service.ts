@@ -21,6 +21,7 @@ import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Utility Functions
@@ -203,7 +204,7 @@ async function generateLeaseNumber(orgId: string): Promise<string> {
   const year = new Date().getFullYear();
   
   // Get next sequence number
-  const result = await db.collection("lease_sequences").findOneAndUpdate(
+  const result = await db.collection(COLLECTIONS.LEASE_SEQUENCES).findOneAndUpdate(
     { orgId, year },
     { $inc: { seq: 1 } },
     { upsert: true, returnDocument: "after" }
@@ -274,7 +275,7 @@ export async function createLease(
     }
     
     // Validate property and unit exist and are available
-    const unit = await db.collection("units").findOne({
+    const unit = await db.collection(COLLECTIONS.UNITS).findOne({
       _id: new ObjectId(request.unitId),
       propertyId: request.propertyId,
       orgId: request.orgId,
@@ -289,7 +290,7 @@ export async function createLease(
     }
     
     // Validate tenant exists
-    const tenant = await db.collection("tenants").findOne({
+    const tenant = await db.collection(COLLECTIONS.TENANTS).findOne({
       _id: new ObjectId(request.tenantId),
       orgId: request.orgId,
     }, sessionOpts);
@@ -315,7 +316,7 @@ export async function createLease(
       overlapQuery._id = { $ne: new ObjectId(request.excludeLeaseId) };
     }
     
-    const overlapping = await db.collection("leases").findOne(overlapQuery, sessionOpts);
+    const overlapping = await db.collection(COLLECTIONS.LEASES).findOne(overlapQuery, sessionOpts);
     
     if (overlapping) {
       return { success: false, error: "Overlapping lease exists for this unit" };
@@ -368,7 +369,7 @@ export async function createLease(
       expiryNotificationsSentDays: [],
     };
     
-    const result = await db.collection("leases").insertOne(
+    const result = await db.collection(COLLECTIONS.LEASES).insertOne(
       lease,
       session ? { session } : undefined
     );
@@ -414,7 +415,7 @@ export async function activateLease(
     const db = await getDatabase();
     const sessionOpts = { session };
     
-    const lease = await db.collection("leases").findOne({
+    const lease = await db.collection(COLLECTIONS.LEASES).findOne({
       _id: new ObjectId(leaseId),
       orgId,
     }, sessionOpts);
@@ -432,7 +433,7 @@ export async function activateLease(
     // Helper function to perform activation updates
     const performActivation = async () => {
       // Update lease status - include expected status in filter to prevent race condition
-      const leaseResult = await db.collection("leases").updateOne(
+      const leaseResult = await db.collection(COLLECTIONS.LEASES).updateOne(
         { _id: new ObjectId(leaseId), orgId, status: expectedStatus },
         {
           $set: {
@@ -450,7 +451,7 @@ export async function activateLease(
       }
       
       // Update unit status to occupied
-      await db.collection("units").updateOne(
+      await db.collection(COLLECTIONS.UNITS).updateOne(
         { _id: new ObjectId(lease.unitId), orgId },
         {
           $set: {
@@ -519,7 +520,7 @@ export async function renewLease(
       
       await session.withTransaction(async () => {
         // Read current lease INSIDE transaction to prevent TOCTOU
-        const currentLease = await db.collection("leases").findOne({
+        const currentLease = await db.collection(COLLECTIONS.LEASES).findOne({
           _id: new ObjectId(leaseId),
           orgId,
           status: LeaseStatus.ACTIVE,
@@ -561,7 +562,7 @@ export async function renewLease(
         newLease = createResult.lease;
         
         // Only mark current lease as renewed AFTER new lease is created
-        await db.collection("leases").updateOne(
+        await db.collection(COLLECTIONS.LEASES).updateOne(
           { _id: new ObjectId(leaseId), orgId },
           {
             $set: {
@@ -613,7 +614,7 @@ export async function terminateLease(
   try {
     const db = await getDatabase();
     
-    const lease = await db.collection("leases").findOne({
+    const lease = await db.collection(COLLECTIONS.LEASES).findOne({
       _id: new ObjectId(leaseId),
       orgId,
       status: LeaseStatus.ACTIVE,
@@ -632,7 +633,7 @@ export async function terminateLease(
     // Use transaction for atomic updates
     await session.withTransaction(async () => {
       // Update lease - include status: ACTIVE in filter to prevent race condition
-      const leaseResult = await db.collection("leases").updateOne(
+      const leaseResult = await db.collection(COLLECTIONS.LEASES).updateOne(
         { _id: new ObjectId(leaseId), orgId, status: LeaseStatus.ACTIVE },
         {
           $set: {
@@ -656,7 +657,7 @@ export async function terminateLease(
       }
       
       // Update unit status
-      await db.collection("units").updateOne(
+      await db.collection(COLLECTIONS.UNITS).updateOne(
         { _id: new ObjectId(lease.unitId), orgId },
         {
           $set: {
@@ -702,7 +703,7 @@ export async function getLeaseById(
 ): Promise<LeaseDocument | null> {
   try {
     const db = await getDatabase();
-    const lease = await db.collection("leases").findOne({
+    const lease = await db.collection(COLLECTIONS.LEASES).findOne({
       _id: new ObjectId(leaseId),
       orgId,
     });
@@ -736,7 +737,7 @@ export async function getLeasesByProperty(
       filter.status = { $in: options.status };
     }
     
-    const leases = await db.collection("leases")
+    const leases = await db.collection(COLLECTIONS.LEASES)
       .find(filter)
       .sort({ startDate: -1 })
       .skip(options.skip || 0)
@@ -766,7 +767,7 @@ export async function getExpiringLeases(
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + daysUntilExpiry);
     
-    const leases = await db.collection("leases")
+    const leases = await db.collection(COLLECTIONS.LEASES)
       .find({
         orgId,
         status: LeaseStatus.ACTIVE,
@@ -802,7 +803,7 @@ export async function getRentOptimization(
     const db = await getDatabase();
     
     // Get unit details
-    const unit = await db.collection("units").findOne({
+    const unit = await db.collection(COLLECTIONS.UNITS).findOne({
       _id: new ObjectId(unitId),
       orgId,
     });
@@ -812,13 +813,13 @@ export async function getRentOptimization(
     }
     
     // Get property details
-    const property = await db.collection("properties").findOne({
+    const property = await db.collection(COLLECTIONS.PROPERTIES).findOne({
       _id: new ObjectId(propertyId),
       orgId,
     });
     
     // Get comparable units in same area
-    const comparables = await db.collection("leases").aggregate([
+    const comparables = await db.collection(COLLECTIONS.LEASES).aggregate([
       {
         $match: {
           orgId,
@@ -1014,7 +1015,7 @@ export async function registerWithEjar(
     const db = await getDatabase();
     
     // Fetch lease with full details
-    const lease = await db.collection("leases").findOne({
+    const lease = await db.collection(COLLECTIONS.LEASES).findOne({
       _id: new ObjectId(leaseId),
       orgId,
       status: LeaseStatus.ACTIVE,
@@ -1031,38 +1032,38 @@ export async function registerWithEjar(
     // Parallelize database fetches for better performance [PR Review Fix]
     const [property, unit, tenant, landlord] = await Promise.all([
       // Fetch property details
-      db.collection("properties").findOne({
+      db.collection(COLLECTIONS.PROPERTIES).findOne({
         _id: new ObjectId(lease.propertyId),
         orgId,
       }),
       // Fetch unit details if applicable
       lease.unitId 
-        ? db.collection("units").findOne({
+        ? db.collection(COLLECTIONS.UNITS).findOne({
             _id: new ObjectId(lease.unitId),
             propertyId: lease.propertyId,
           })
         : Promise.resolve(null),
       // Fetch tenant details
-      db.collection("tenants").findOne({
+      db.collection(COLLECTIONS.TENANTS).findOne({
         _id: new ObjectId(lease.tenantId),
         orgId,
       }),
       // Fetch landlord/owner - use lease.landlordId if available (deterministic) [PR Review Fix]
       // Otherwise fall back to property owner, not an arbitrary admin
       lease.landlordId
-        ? db.collection("users").findOne({
+        ? db.collection(COLLECTIONS.USERS).findOne({
             _id: new ObjectId(lease.landlordId),
             orgId,
           })
         : (async () => {
             // [AGENT-0008] Explicit type for multi-tenancy safety, cast to extract ownerId
-            const propDoc = await db.collection("properties").findOne({
+            const propDoc = await db.collection(COLLECTIONS.PROPERTIES).findOne({
               _id: new ObjectId(lease.propertyId),
               orgId,
             });
             const prop = propDoc as { ownerId?: string } | null;
             if (prop?.ownerId) {
-              return db.collection("users").findOne({
+              return db.collection(COLLECTIONS.USERS).findOne({
                 _id: new ObjectId(prop.ownerId),
                 orgId,
               });
@@ -1209,7 +1210,7 @@ export async function registerWithEjar(
     }
     
     // Update the lease with Ejar registration info
-    await db.collection("leases").updateOne(
+    await db.collection(COLLECTIONS.LEASES).updateOne(
       { _id: new ObjectId(leaseId), orgId },
       {
         $set: {
@@ -1353,7 +1354,7 @@ export async function processLeaseExpiryNotifications(
       nextDay.setDate(nextDay.getDate() + 1);
       
       // Find leases that haven't been notified for this specific days value
-      const leases = await db.collection("leases")
+      const leases = await db.collection(COLLECTIONS.LEASES)
         .find({
           orgId,
           status: LeaseStatus.ACTIVE,
@@ -1364,7 +1365,7 @@ export async function processLeaseExpiryNotifications(
       
       for (const lease of leases) {
         // Atomic update with $addToSet to prevent duplicates if job runs concurrently
-        const updateResult = await db.collection("leases").updateOne(
+        const updateResult = await db.collection(COLLECTIONS.LEASES).updateOne(
           { 
             _id: lease._id, 
             orgId,
@@ -1375,7 +1376,7 @@ export async function processLeaseExpiryNotifications(
         
         // Only queue notification if we actually updated the document
         if (updateResult.modifiedCount > 0) {
-          await db.collection("notification_queue").insertOne({
+          await db.collection(COLLECTIONS.NOTIFICATION_QUEUE).insertOne({
             orgId,
             type: "LEASE_EXPIRY_REMINDER",
             recipientId: lease.tenantId,
@@ -1428,7 +1429,7 @@ export async function processAutoRenewals(
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + daysBeforeExpiry);
     
-    const leases = await db.collection("leases")
+    const leases = await db.collection(COLLECTIONS.LEASES)
       .find({
         orgId,
         status: LeaseStatus.ACTIVE,
@@ -1450,7 +1451,7 @@ export async function processAutoRenewals(
       newEndDate.setFullYear(newEndDate.getFullYear() + 1);
       
       // Use atomic state transition: mark as renewalInProgress before attempting renewal
-      const stateUpdate = await db.collection("leases").updateOne(
+      const stateUpdate = await db.collection(COLLECTIONS.LEASES).updateOne(
         { _id: lease._id, orgId, renewalReminderSent: { $ne: true } },
         { $set: { renewalReminderSent: true, renewalAttemptedAt: new Date() } }
       );
@@ -1475,7 +1476,7 @@ export async function processAutoRenewals(
       } else {
         failed++;
         // Rollback the renewalReminderSent flag on failure so it can be retried
-        await db.collection("leases").updateOne(
+        await db.collection(COLLECTIONS.LEASES).updateOne(
           { _id: lease._id, orgId },
           { $set: { renewalReminderSent: false }, $unset: { renewalAttemptedAt: "" } }
         );
