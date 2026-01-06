@@ -87,16 +87,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mongodb-binaries-
 
-      # Pre-download MongoDB binary before tests start
+      # Pre-download MongoDB binary before tests start (blocking to prevent race conditions)
       - name: Pre-download MongoDB binary
         shell: bash
+        env:
+          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
         run: |
           node -e "
             const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
             const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
-            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => { console.error('Download failed:', e.message); process.exit(1); });
           "
-        continue-on-error: true
 
       # ---------- Phase 2 Canonical Rules ----------
       - name: Validate waivers schema
@@ -219,13 +220,22 @@ jobs:
         shell: bash
         env:
           NODE_ENV: test
+          # Ensure MongoDB binary download directory
+          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
         run: |
           mkdir -p .artifacts
           status=0
 
           # Run only unit/model tests (E2E tests require environment setup)
-          # Full E2E test suite should be run separately with proper test environment
-          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models']?0:1)" 2>/dev/null; then
+          # Use test:models:ci script which runs sequentially to avoid race conditions
+          # when downloading MongoDB binaries in parallel
+          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models:ci']?0:1)" 2>/dev/null; then
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm) pnpm test:models:ci || status=$? ;;
+              yarn) yarn test:models:ci || status=$? ;;
+              *) npm run test:models:ci || status=$? ;;
+            esac
+          elif node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models']?0:1)" 2>/dev/null; then
             case "${{ steps.pm.outputs.manager }}" in
               pnpm) pnpm test:models || status=$? ;;
               yarn) yarn test:models || status=$? ;;
