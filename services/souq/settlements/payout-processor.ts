@@ -14,6 +14,8 @@
  *
  * Migration Note (2025-06): Migrated from SADAD/SPAN simulation to TAP Transfers.
  * TAP handles bank settlements directly via their Destination/Transfer APIs.
+ *
+ * TD-001: Migrated to COLLECTIONS constants for type-safe collection names
  */
 
 import { ObjectId } from "mongodb";
@@ -29,6 +31,7 @@ import { generatePayoutId, generateTransactionId, generateBatchId } from "@/lib/
 // Tap Payments integration for marketplace seller payouts
 import { tapPayments, type TapTransferResponse as _TapTransferResponse } from "@/lib/finance/tap-payments";
 import { getTapConfig } from "@/lib/tapConfig";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 function normalizeOrgId(orgId: string) {
   const orgIdStr = String(orgId);
@@ -173,7 +176,7 @@ async function ensureWithdrawalIndexes(db: Db): Promise<void> {
   if (!withdrawalIndexesReady) {
     withdrawalIndexesReady = (async () => {
       try {
-        await db.collection("souq_withdrawal_requests").createIndexes([
+        await db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS).createIndexes([
           { key: { requestId: 1 }, unique: true, name: "requestId_unique", background: true },
           { key: { payoutId: 1, orgId: 1 }, name: "payout_org", background: true },
           {
@@ -217,8 +220,8 @@ export class PayoutProcessorService {
 
     const db = await getDbInstance();
     await ensureWithdrawalIndexes(db);
-    const statementsCollection = db.collection("souq_settlements");
-    const payoutsCollection = db.collection("souq_payouts");
+    const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
 
     // Fetch statement - souq_settlements uses STRING orgId
     const statement = (await statementsCollection.findOne({
@@ -318,7 +321,7 @@ export class PayoutProcessorService {
     }
     const { orgCandidates } = normalizeOrgId(orgId);
     const db = await getDbInstance();
-    const payoutsCollection = db.collection("souq_payouts");
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
 
     // 🔐 STRICT v4.1: Atomically claim the payout to avoid double-processing
     const claimed = await payoutsCollection.findOneAndUpdate(
@@ -358,7 +361,7 @@ export class PayoutProcessorService {
           
           // Mark withdrawal as pending confirmation
           try {
-            const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+            const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
             await withdrawalsCollection.updateOne(
               { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
               {
@@ -454,7 +457,7 @@ export class PayoutProcessorService {
 
         // Mark withdrawal as completed for consistency with ledger state
         try {
-          const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+          const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
           await withdrawalsCollection.updateOne(
             { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
             {
@@ -510,7 +513,7 @@ export class PayoutProcessorService {
     const { orgCandidates } = normalizeOrgId(orgId);
     const db = await getDbInstance();
     await ensureWithdrawalIndexes(db);
-    const payoutsCollection = db.collection("souq_payouts");
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
 
     const newRetryCount = payout.retryCount + 1;
 
@@ -533,7 +536,7 @@ export class PayoutProcessorService {
 
       // Sync withdrawal state and refund held funds back to the ledger to avoid stuck balances
       try {
-        const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+        const withdrawalsCollection = db.collection(COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS);
         await withdrawalsCollection.updateOne(
           { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
           {
@@ -709,7 +712,7 @@ export class PayoutProcessorService {
       // NOTE: In production, sellers should have a tapDestinationId stored in their profile
       // For now, we check if seller has a stored TAP destination ID
       const db = await getDbInstance();
-      const sellersCollection = db.collection("souq_sellers");
+      const sellersCollection = db.collection(COLLECTIONS.SOUQ_SELLERS);
       const seller = await sellersCollection.findOne({ 
         sellerId: payout.sellerId,
         orgId: payout.orgId,
@@ -829,8 +832,8 @@ export class PayoutProcessorService {
       : [orgIdStr];
     const orgKey = orgIdStr;
     const db = await getDbInstance();
-    const payoutsCollection = db.collection("souq_payouts");
-    const batchesCollection = db.collection("souq_payout_batches");
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
+    const batchesCollection = db.collection(COLLECTIONS.SOUQ_PAYOUT_BATCHES);
 
     // Generate batch ID
     const batchId = generateBatchId(scheduledDate);
@@ -922,7 +925,7 @@ export class PayoutProcessorService {
       ? [orgIdStr, new ObjectId(orgIdStr)]
       : [orgIdStr];
     const db = await getDbInstance();
-    const payoutsCollection = db.collection("souq_payouts");
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const payout = await payoutsCollection.findOne({ payoutId, orgId: { $in: orgCandidates } });
@@ -962,7 +965,7 @@ export class PayoutProcessorService {
       ? [orgIdStr, new ObjectId(orgIdStr)]
       : [orgIdStr];
     const db = await getDbInstance();
-    const payoutsCollection = db.collection("souq_payouts");
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const payout = (await payoutsCollection.findOne({
@@ -1002,7 +1005,7 @@ export class PayoutProcessorService {
       ? new ObjectId(sellerId)
       : sellerId;
     const db = await getDbInstance();
-    const payoutsCollection = db.collection("souq_payouts");
+    const payoutsCollection = db.collection(COLLECTIONS.SOUQ_PAYOUTS);
 
     // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
     const query: Record<string, unknown> = {
@@ -1090,7 +1093,7 @@ export class PayoutProcessorService {
       ? [orgId, new ObjectId(orgId)]
       : [orgId];
     const db = await getDbInstance();
-    const statementsCollection = db.collection("souq_settlements");
+    const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
 
     const update: Record<string, unknown> = { status };
 
@@ -1132,7 +1135,7 @@ export class PayoutProcessorService {
       const sellerFilter: Filter<Document> = sellerIdObj
         ? { _id: sellerIdObj, orgId: { $in: orgCandidatesForSeller } }
         : { sellerId: payout.sellerId, orgId: { $in: orgCandidatesForSeller } };
-      const seller = await db.collection("souq_sellers").findOne(sellerFilter);
+      const seller = await db.collection(COLLECTIONS.SOUQ_SELLERS).findOne(sellerFilter);
 
       if (!seller?.contactInfo?.phone) {
         logger.warn(

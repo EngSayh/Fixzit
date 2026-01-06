@@ -1,4 +1,5 @@
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 import { ClaimService, Claim, DecisionOutcome } from "./claim-service";
 import { logger } from "@/lib/logger";
 import { ObjectId as MongoObjectId, type Filter } from "mongodb";
@@ -262,15 +263,15 @@ export class InvestigationService {
     const orgFilter = { $in: orgCandidates };
 
     const [totalOrders, totalClaims, seller] = await Promise.all([
-      db.collection("souq_orders").countDocuments({
+      db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({
         sellerId,
         $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
       }),
-      db.collection("claims").countDocuments({
+      db.collection(COLLECTIONS.CLAIMS).countDocuments({
         sellerId,
         $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
       }),
-      db.collection("souq_sellers").findOne({
+      db.collection(COLLECTIONS.SOUQ_SELLERS).findOne({
         sellerId,
         $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
       }),
@@ -306,11 +307,11 @@ export class InvestigationService {
     const orgFilter = { $in: orgCandidates };
 
     const [totalOrders, claimCount] = await Promise.all([
-      db.collection("souq_orders").countDocuments({
+      db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({
         buyerId,
         $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
       }),
-      db.collection("claims").countDocuments({
+      db.collection(COLLECTIONS.CLAIMS).countDocuments({
         buyerId,
         $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
       }),

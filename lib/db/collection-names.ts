@@ -156,6 +156,7 @@ export const COLLECTIONS = {
   // Finance / ZATCA collections
   ZATCA_CREDENTIALS: "zatca_credentials",
   ZATCA_SUBMISSIONS: "zatca_submissions",
+  FINANCE_ESCROW_EVENTS: "finance_escrow_events",
   
   // Issue tracker (SSOT)
   ISSUES: "issues",
