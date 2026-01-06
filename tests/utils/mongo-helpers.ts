@@ -27,12 +27,15 @@ let localMongoServer: MongoMemoryServer | null = null;
  * If the connection is disconnected (readyState=0) and we have a MONGODB_URI,
  * this function will attempt to reconnect once before continuing to wait.
  * 
- * @param maxWaitMs - Maximum time to wait for global setup (default 30s before fallback)
+ * IMPORTANT: maxWaitMs must be LESS than mongoose bufferTimeoutMS (10s default)
+ * so the fallback triggers before mongoose operations timeout.
+ * 
+ * @param maxWaitMs - Maximum time to wait for global setup (default 8s before fallback)
  * @param retryIntervalMs - Interval between connection checks (default 100ms)
  * @returns Promise that resolves when connected or rejects on timeout
  */
 export async function waitForMongoConnection(
-  maxWaitMs = 30000,
+  maxWaitMs = 8000,
   retryIntervalMs = 100
 ): Promise<void> {
   const start = Date.now();
