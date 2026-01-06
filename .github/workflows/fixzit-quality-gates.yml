@@ -78,6 +78,22 @@ jobs:
               ;;
           esac
 
+      # Cache MongoMemoryServer binaries to prevent race conditions in tests
+      - name: Cache MongoMemoryServer binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongodb-binaries-7.0.24
+          restore-keys: |
+            ${{ runner.os }}-mongodb-binaries-
+
+      # Pre-download MongoDB binary before tests start
+      - name: Pre-download MongoDB binary
+        shell: bash
+        run: npx mongodb-memory-server-core --download-only
+        env:
+          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+
       # ---------- Phase 2 Canonical Rules ----------
       - name: Validate waivers schema
         shell: bash

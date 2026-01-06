@@ -26,6 +26,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Cache MongoMemoryServer binaries to prevent race conditions
+      - name: Cache MongoMemoryServer binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongodb-binaries-7.0.24
+          restore-keys: |
+            ${{ runner.os }}-mongodb-binaries-
+
+      # Pre-download MongoDB binary before tests start
+      - name: Pre-download MongoDB binary
+        run: npx mongodb-memory-server-core --download-only
+        env:
+          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+
       - name: 🔒 Assert non-production MongoDB
         if: ${{ env.MONGODB_URI != '' }}
         env:
