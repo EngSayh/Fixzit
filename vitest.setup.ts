@@ -517,9 +517,10 @@ const skipGlobalMongo = isJsdomEnv && process.env.SKIP_GLOBAL_MONGO === "true";
 // Check if MONGODB_URI is already set to a real MongoDB (not memory server)
 // This happens in CI when a MongoDB service container is running
 const externalMongoUri = process.env.MONGODB_URI;
-const hasExternalMongo = externalMongoUri && 
-  !externalMongoUri.includes('127.0.0.1:27') && 
-  externalMongoUri.includes('mongodb://localhost:27017');
+const hasExternalMongo =
+  typeof externalMongoUri === "string" &&
+  (externalMongoUri.includes("mongodb://localhost:27017") ||
+    externalMongoUri.includes("mongodb://127.0.0.1:27017"));
 // Default: always enable MongoMemoryServer for node/server tests; allow opt-out only for jsdom via env.
 // Skip MongoMemoryServer if an external MongoDB is already configured (CI service container)
 const shouldUseInMemoryMongo = !hasExternalMongo && (forceMongo || !isJsdomEnv || !skipGlobalMongo);
