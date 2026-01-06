@@ -108,6 +108,54 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
    - `pnpm lint`: ✅ 0 errors (warnings only)
    - `pnpm run lint:collections`: ✅ No hardcoded literals
 
+#### Detailed Bot Comments Register (All PRs)
+
+##### PR #670 — Bot Comments (30+ total)
+
+| Source | File | Comment | Action Taken |
+|--------|------|---------|--------------|
+| CodeRabbit | `vitest.setup.ts:517-522` | hasExternalMongo logic contradictory - checks NOT 127.0.0.1 AND includes localhost (impossible) | ✅ FIXED: Changed to proper OR check |
+| CodeRabbit | `scripts/lint-collections.js:13` | Missing 'services' folder from default scan roots | ✅ FIXED: Added 'services' to roots |
+| Google AI | `services/souq/settlements/withdrawal-service.ts:208` | Hardcoded "souq_settlement_statements" | ✅ FIXED: Use COLLECTIONS.SOUQ_SETTLEMENT_STATEMENTS |
+| Google AI | `services/souq/claims/refund-processor.ts:289` | Hardcoded "souq_orders" | ✅ FIXED: Use COLLECTIONS.SOUQ_ORDERS |
+| Google AI | `services/souq/claims/refund-processor.ts:883` | Hardcoded "souq_orders" | ✅ FIXED: Use COLLECTIONS.SOUQ_ORDERS |
+| Google AI | `services/souq/claims/investigation-service.ts:225` | Hardcoded "souq_orders" | ✅ FIXED: Use COLLECTIONS.SOUQ_ORDERS |
+| Google AI | `services/reports/bi-dashboard.ts:1764` | Hardcoded "trainingsessions" | ✅ FIXED: Use COLLECTIONS.TRAINING_SESSIONS |
+| Google AI | `services/notifications/seller-notification-service.ts:163` | Hardcoded "souq_sellers" | ✅ FIXED: Use COLLECTIONS.SOUQ_SELLERS |
+| Google AI | `services/notifications/seller-notification-service.ts:359` | Hardcoded "seller_notifications" | ✅ FIXED: Use COLLECTIONS.SELLER_NOTIFICATIONS |
+| Google AI | `services/compliance/pdpl-service.ts:483` | Hardcoded "consents" | ✅ FIXED: Use COLLECTIONS.CONSENTS |
+| Google AI | `services/compliance/pdpl-service.ts:508` | Hardcoded "invoices" | ✅ FIXED: Use COLLECTIONS.INVOICES |
+| CodeRabbit | Multiple files | Various code style suggestions | ⏭️ DEFERRED: Non-blocking suggestions |
+
+##### PR #669 — Bot Comments (3 total)
+
+| Source | File | Comment | Action Taken |
+|--------|------|---------|--------------|
+| Google AI | `app/(app)/souq/properties/page.tsx` | Type assertion `as PropertyFilters` may be unsafe - suggest runtime validation | ⏭️ DEFERRED: Enhancement suggestion |
+| Google AI | `app/(app)/souq/products/page.tsx` | Type assertion `as ProductFilters` may be unsafe - suggest runtime validation | ⏭️ DEFERRED: Enhancement suggestion |
+| Google AI | `i18n/locales/ar.json` | Arabic plural forms - current strings use singular form, recommend plural categories | ⏭️ DEFERRED: i18n enhancement |
+
+##### PR #664 — Bot Comments (1 total)
+
+| Source | File | Comment | Action Taken |
+|--------|------|---------|--------------|
+| Google AI | `app/superadmin/users/page.tsx:791-802` | roleFilter state defined but not wired to fetchUsers API call | ✅ FIXED: Added roleFilter to params and deps |
+
+##### PR #663 — Bot Comments (3 total)
+
+| Source | File | Comment | Action Taken |
+|--------|------|---------|--------------|
+| Google AI | `app/api/upload/verify-metadata/route.ts:52` | Returns 501 for S3NotConfiguredError but POST uses 503 - inconsistency | ✅ FIXED: Changed to 503 |
+| Google AI | `lib/storage/s3-config.ts:115-120` | Redundant "error" field now that "code" field exists | ⏭️ DEFERRED: Non-breaking |
+| Google AI | `app/api/files/[...path]/route.ts` | GET endpoint should also return 503 | ⏭️ DEFERRED: Not in this PR's scope |
+
+##### PR #662 — Bot Comments (2 total)
+
+| Source | File | Comment | Action Taken |
+|--------|------|---------|--------------|
+| Google AI | `app/api/ats/public-post/route.ts:96` | "fixzit-platform" is magic string - should be constant | ✅ FIXED: Added DEFAULT_PLATFORM_ORG_ID |
+| Google AI | `app/api/ats/public-post/route.ts:96` | Public jobs listing uses publicJobsOrgId but POST doesn't - mismatch | ✅ FIXED: Added publicJobsOrgId to fallback chain |
+
 #### PR Comments Summary (FINAL STATUS)
 
 | PR | Total Comments | Actionable | Status |
