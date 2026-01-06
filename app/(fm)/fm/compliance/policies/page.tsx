@@ -4,12 +4,17 @@ import useSWR from "swr";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { FileText, Loader2, RefreshCw } from "@/components/ui/icons";
+import { FileText, Loader2, RefreshCw, Search, XCircle } from "@/components/ui/icons";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
@@ -212,70 +217,80 @@ export default function CompliancePoliciesPage() {
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{auto("Filters", "filters.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {auto("Status", "filters.statusLabel")}
-            </p>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(value as PolicyStatus | "ALL")
-              }
-              placeholder={auto("All statuses", "filters.status.all")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(
-                      option.value === "ALL" ? "All statuses" : option.value,
-                      option.key,
-                    )}
-                  </SelectItem>
-                ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {auto("Category", "filters.categoryLabel")}
-            </p>
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) =>
-                setCategoryFilter(value as PolicyCategory | "ALL")
-              }
-              placeholder={auto("All categories", "filters.category.all")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(
-                      option.value === "ALL"
-                        ? "All categories"
-                        : option.value.charAt(0) +
-                            option.value.slice(1).toLowerCase(),
-                      option.key,
-                    )}
-                  </SelectItem>
-                ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {auto("Search", "filters.searchLabel")}
-            </p>
-            <Input
-              placeholder={auto(
-                "Search policy or owner…",
-                "filters.searchPlaceholder",
-              )}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={auto(
+                  "Search policy or owner…",
+                  "filters.searchPlaceholder",
+                )}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as PolicyStatus | "ALL")
+                }
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  {auto("All statuses", "filters.status.all")}
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {auto(
+                        option.value === "ALL" ? "All statuses" : option.value,
+                        option.key,
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) =>
+                  setCategoryFilter(value as PolicyCategory | "ALL")
+                }
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  {auto("All categories", "filters.category.all")}
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {auto(
+                        option.value === "ALL"
+                          ? "All categories"
+                          : option.value.charAt(0) +
+                              option.value.slice(1).toLowerCase(),
+                        option.key,
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("ALL");
+                  setCategoryFilter("ALL");
+                  setSearch("");
+                }}
+              >
+                <XCircle className="h-4 w-4 me-2" />
+                {auto("Clear", "filters.clear")}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -200,23 +200,26 @@ export default function PropertiesLeasesPage() {
       </div>
 
       {/* Filter Bar */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-2">
-            {["all", "active"].map((status) => (
-              <Button
-                key={status}
-                variant={statusFilter === status ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter(status)}
-                aria-label={t(`fm.properties.leases.filter.${status}Aria`, `Show ${status} leases`)}
-              >
-                {t(
-                  `fm.properties.leases.filter.${status}`,
-                  status.charAt(0).toUpperCase() + status.slice(1)
-                )}
-              </Button>
-            ))}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Filter buttons - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {["all", "active"].map((status) => (
+                <Button
+                  key={status}
+                  variant={statusFilter === status ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter(status)}
+                  aria-label={t(`fm.properties.leases.filter.${status}Aria`, `Show ${status} leases`)}
+                >
+                  {t(
+                    `fm.properties.leases.filter.${status}`,
+                    status.charAt(0).toUpperCase() + status.slice(1)
+                  )}
+                </Button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { toast } from "sonner";
 import {
@@ -17,6 +20,8 @@ import {
   RefreshCw,
   Loader2,
   Download,
+  Search,
+  XCircle,
 } from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 import {
@@ -1150,8 +1155,23 @@ export default function RouteMetricsPage() {
           )}
         </CardHeader>
         <CardContent className="overflow-x-auto space-y-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-48 bg-muted border-input text-foreground">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={aliasQuery}
+                onChange={(event) => setAliasQuery(event.target.value)}
+                placeholder={auto(
+                  "Search alias or target…",
+                  "aliases.search.placeholder",
+                )}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={moduleFilter} onValueChange={setModuleFilter} className="w-full sm:w-40 bg-muted border-input text-foreground">
                 <SelectItem value="all">
                   {auto("All modules", "aliases.filter.all")}
                 </SelectItem>
@@ -1160,21 +1180,24 @@ export default function RouteMetricsPage() {
                     {module}
                   </SelectItem>
                 ))}
-            </Select>
-            <Input
-              value={aliasQuery}
-              onChange={(event) => setAliasQuery(event.target.value)}
-              placeholder={auto(
-                "Search alias or target…",
-                "aliases.search.placeholder",
-              )}
-              className="w-64"
-            />
-            <span className="text-xs text-muted-foreground">
-              {auto("{{count}} aliases shown", "aliases.count", {
-                count: filteredAliases.length,
-              })}
-            </span>
+              </Select>
+              <span className="text-xs text-muted-foreground flex items-center">
+                {auto("{{count}} aliases shown", "aliases.count", {
+                  count: filteredAliases.length,
+                })}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setAliasQuery("");
+                  setModuleFilter("all");
+                }}
+              >
+                <XCircle className="h-4 w-4 me-2" />
+                {auto("Clear", "aliases.clear")}
+              </Button>
+            </div>
           </div>
           {sortedAliases.length === 0 ? (
             <p className="text-sm text-muted-foreground">

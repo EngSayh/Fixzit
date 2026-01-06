@@ -9,9 +9,10 @@ import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert, Loader2 } from "@/components/ui/icons";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+import { ShieldAlert, Loader2, Search, XCircle } from "@/components/ui/icons";
 import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
-import { HoverTooltip } from "@/components/common/HoverTooltip";
 
 // Roles allowed to access audit logs
 const ADMIN_ROLES = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"];
@@ -359,407 +360,181 @@ export default function AuditLogViewer() {
       )}
 
       {/* Filters */}
-      <div className="bg-card rounded-2xl border border-border p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              {auto("Action", "filters.actionLabel")}
-            </label>
-            <select
-              className="w-full rounded-2xl border-border bg-background text-foreground"
-            value={filters.action || ""}
-            onChange={(e) => {
-              setFilters({ ...filters, action: e.target.value || undefined });
-              setPage(1);
-            }}
-          >
-            <option value="">
-              {auto("All Actions", "filters.actions.all")}
-            </option>
-              <option value="CREATE">
-                {auto("Create", "filters.actions.create")}
-              </option>
-              <option value="READ">
-                {auto("Read", "filters.actions.read")}
-              </option>
-              <option value="UPDATE">
-                {auto("Update", "filters.actions.update")}
-              </option>
-              <option value="DELETE">
-                {auto("Delete", "filters.actions.delete")}
-              </option>
-              <option value="LOGIN">
-                {auto("Login", "filters.actions.login")}
-              </option>
-              <option value="LOGOUT">
-                {auto("Logout", "filters.actions.logout")}
-              </option>
-              <option value="EXPORT">
-                {auto("Export", "filters.actions.export")}
-              </option>
-              <option value="IMPORT">
-                {auto("Import", "filters.actions.import")}
-              </option>
-              <option value="APPROVE">
-                {auto("Approve", "filters.actions.approve")}
-              </option>
-              <option value="REJECT">
-                {auto("Reject", "filters.actions.reject")}
-              </option>
-              <option value="SEND">
-                {auto("Send", "filters.actions.send")}
-              </option>
-              <option value="RECEIVE">
-                {auto("Receive", "filters.actions.receive")}
-              </option>
-              <option value="UPLOAD">
-                {auto("Upload", "filters.actions.upload")}
-              </option>
-              <option value="DOWNLOAD">
-                {auto("Download", "filters.actions.download")}
-              </option>
-              <option value="SHARE">
-                {auto("Share", "filters.actions.share")}
-              </option>
-              <option value="ARCHIVE">
-                {auto("Archive", "filters.actions.archive")}
-              </option>
-              <option value="RESTORE">
-                {auto("Restore", "filters.actions.restore")}
-              </option>
-              <option value="ACTIVATE">
-                {auto("Activate", "filters.actions.activate")}
-              </option>
-              <option value="DEACTIVATE">
-                {auto("Deactivate", "filters.actions.deactivate")}
-              </option>
-              <option value="CUSTOM">
-                {auto("Custom", "filters.actions.custom")}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              {auto("Entity Type", "filters.entityTypeLabel")}
-              {/* P127: Add tooltip explaining entity type filter */}
-              <HoverTooltip
-                content={auto(
-                  "Filter by the type of resource that was affected. Examples: User accounts, Properties, Work Orders, Payments.",
-                  "filters.entityTypeTooltip"
-                )}
-                variant="info"
-                size="xs"
-                inline
-                className="ms-1"
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={auto("Search by org ID or name...", "filters.orgPlaceholder")}
+                value={filters.orgId || ""}
+                onChange={(e) => {
+                  setFilters({ ...filters, orgId: e.target.value || undefined });
+                  setPage(1);
+                }}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
-            </label>
-            <select
-              className="w-full rounded-2xl border-border bg-background text-foreground"
-            value={filters.entityType || ""}
-            onChange={(e) => {
-              setFilters({
-                ...filters,
-                entityType: e.target.value || undefined,
-              });
-              setPage(1);
-            }}
-            >
-              <option value="">
-                {auto("All Types", "filters.entityTypes.all")}
-              </option>
-              <option value="USER">
-                {auto("User", "filters.entityTypes.user")}
-              </option>
-              <option value="PROPERTY">
-                {auto("Property", "filters.entityTypes.property")}
-              </option>
-              <option value="TENANT">
-                {auto("Tenant", "filters.entityTypes.tenant")}
-              </option>
-              <option value="OWNER">
-                {auto("Owner", "filters.entityTypes.owner")}
-              </option>
-              <option value="CONTRACT">
-                {auto("Contract", "filters.entityTypes.contract")}
-              </option>
-              <option value="PAYMENT">
-                {auto("Payment", "filters.entityTypes.payment")}
-              </option>
-              <option value="INVOICE">
-                {auto("Invoice", "filters.entityTypes.invoice")}
-              </option>
-              <option value="WORKORDER">
-                {auto("Work Order", "filters.entityTypes.workOrder")}
-              </option>
-              <option value="TICKET">
-                {auto("Ticket", "filters.entityTypes.ticket")}
-              </option>
-              <option value="PROJECT">
-                {auto("Project", "filters.entityTypes.project")}
-              </option>
-              <option value="BID">
-                {auto("Bid", "filters.entityTypes.bid")}
-              </option>
-              <option value="VENDOR">
-                {auto("Vendor", "filters.entityTypes.vendor")}
-              </option>
-              <option value="SERVICE_PROVIDER">
-                {auto("Service Provider", "filters.entityTypes.serviceProvider")}
-              </option>
-              <option value="DOCUMENT">
-                {auto("Document", "filters.entityTypes.document")}
-              </option>
-              <option value="SETTING">
-                {auto("Setting", "filters.entityTypes.setting")}
-              </option>
-              <option value="OTHER">
-                {auto("Other", "filters.entityTypes.other")}
-              </option>
-            </select>
-          </div>
-
-          {/* P119: RBAC Role Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              {auto("User Role", "filters.userRoleLabel")}
-              {/* P127: Add tooltip explaining role filter */}
-              <HoverTooltip
-                content={auto(
-                  "Filter audit logs by the role of the user who performed the action. Super Admin sees all tenant activities.",
-                  "filters.roleTooltip"
-                )}
-                variant="help"
-                size="xs"
-                inline
-                className="ms-1"
+            </div>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+              <Select
+                value={filters.action || ""}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, action: value || undefined });
+                  setPage(1);
+                }}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="">{auto("All Actions", "filters.actions.all")}</SelectItem>
+                <SelectItem value="CREATE">{auto("Create", "filters.actions.create")}</SelectItem>
+                <SelectItem value="READ">{auto("Read", "filters.actions.read")}</SelectItem>
+                <SelectItem value="UPDATE">{auto("Update", "filters.actions.update")}</SelectItem>
+                <SelectItem value="DELETE">{auto("Delete", "filters.actions.delete")}</SelectItem>
+                <SelectItem value="LOGIN">{auto("Login", "filters.actions.login")}</SelectItem>
+                <SelectItem value="LOGOUT">{auto("Logout", "filters.actions.logout")}</SelectItem>
+                <SelectItem value="EXPORT">{auto("Export", "filters.actions.export")}</SelectItem>
+                <SelectItem value="IMPORT">{auto("Import", "filters.actions.import")}</SelectItem>
+                <SelectItem value="APPROVE">{auto("Approve", "filters.actions.approve")}</SelectItem>
+                <SelectItem value="REJECT">{auto("Reject", "filters.actions.reject")}</SelectItem>
+              </Select>
+              <Select
+                value={filters.entityType || ""}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, entityType: value || undefined });
+                  setPage(1);
+                }}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="">{auto("All Types", "filters.entityTypes.all")}</SelectItem>
+                <SelectItem value="USER">{auto("User", "filters.entityTypes.user")}</SelectItem>
+                <SelectItem value="PROPERTY">{auto("Property", "filters.entityTypes.property")}</SelectItem>
+                <SelectItem value="TENANT">{auto("Tenant", "filters.entityTypes.tenant")}</SelectItem>
+                <SelectItem value="CONTRACT">{auto("Contract", "filters.entityTypes.contract")}</SelectItem>
+                <SelectItem value="PAYMENT">{auto("Payment", "filters.entityTypes.payment")}</SelectItem>
+                <SelectItem value="WORKORDER">{auto("Work Order", "filters.entityTypes.workOrder")}</SelectItem>
+                <SelectItem value="VENDOR">{auto("Vendor", "filters.entityTypes.vendor")}</SelectItem>
+              </Select>
+              <Select
+                value={filters.userRole || ""}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, userRole: value || undefined });
+                  setPage(1);
+                }}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="">{auto("All Roles", "filters.roles.all")}</SelectItem>
+                <SelectItem value="SUPER_ADMIN">{auto("Super Admin", "filters.roles.superAdmin")}</SelectItem>
+                <SelectItem value="ADMIN">{auto("Admin", "filters.roles.admin")}</SelectItem>
+                <SelectItem value="FINANCE">{auto("Finance", "filters.roles.finance")}</SelectItem>
+                <SelectItem value="PROPERTY_MANAGER">{auto("Property Manager", "filters.roles.propertyManager")}</SelectItem>
+                <SelectItem value="VENDOR">{auto("Vendor", "filters.roles.vendor")}</SelectItem>
+              </Select>
+              <input
+                type="date"
+                className="h-10 px-3 rounded-md bg-muted border border-input text-foreground text-sm"
+                value={filters.startDate ? filters.startDate.toISOString().split("T")[0] : ""}
+                max={filters.endDate ? filters.endDate.toISOString().split("T")[0] : undefined}
+                onChange={(e) => {
+                  const value = e.target.value ? new Date(e.target.value + "T00:00:00") : undefined;
+                  setFilters({ ...filters, startDate: value });
+                  setPage(1);
+                }}
+                aria-label={auto("Start Date", "filters.startDate")}
               />
-            </label>
-            <select
-              className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.userRole || ""}
-              onChange={(e) => {
-                setFilters({
-                  ...filters,
-                  userRole: e.target.value || undefined,
-                });
-                setPage(1);
-              }}
-            >
-              <option value="">
-                {auto("All Roles", "filters.roles.all")}
-              </option>
-              <option value="SUPER_ADMIN">
-                {auto("Super Admin", "filters.roles.superAdmin")}
-              </option>
-              <option value="CORPORATE_ADMIN">
-                {auto("Corporate Admin", "filters.roles.corporateAdmin")}
-              </option>
-              <option value="ADMIN">
-                {auto("Admin", "filters.roles.admin")}
-              </option>
-              <option value="FINANCE">
-                {auto("Finance", "filters.roles.finance")}
-              </option>
-              <option value="PROPERTY_MANAGER">
-                {auto("Property Manager", "filters.roles.propertyManager")}
-              </option>
-              <option value="FACILITY_MANAGER">
-                {auto("Facility Manager", "filters.roles.facilityManager")}
-              </option>
-              <option value="MAINTENANCE">
-                {auto("Maintenance", "filters.roles.maintenance")}
-              </option>
-              <option value="VENDOR">
-                {auto("Vendor", "filters.roles.vendor")}
-              </option>
-              <option value="TENANT_USER">
-                {auto("Tenant User", "filters.roles.tenantUser")}
-              </option>
-              <option value="OWNER_USER">
-                {auto("Owner User", "filters.roles.ownerUser")}
-              </option>
-              <option value="AUDITOR">
-                {auto("Auditor", "filters.roles.auditor")}
-              </option>
-              <option value="PROCUREMENT">
-                {auto("Procurement", "filters.roles.procurement")}
-              </option>
-              <option value="HR">
-                {auto("HR", "filters.roles.hr")}
-              </option>
-              <option value="EMPLOYEE">
-                {auto("Employee", "filters.roles.employee")}
-              </option>
-            </select>
+              <input
+                type="date"
+                className="h-10 px-3 rounded-md bg-muted border border-input text-foreground text-sm"
+                value={filters.endDate ? filters.endDate.toISOString().split("T")[0] : ""}
+                min={filters.startDate ? filters.startDate.toISOString().split("T")[0] : undefined}
+                onChange={(e) => {
+                  const value = e.target.value ? new Date(e.target.value + "T23:59:59") : undefined;
+                  setFilters({ ...filters, endDate: value });
+                  setPage(1);
+                }}
+                aria-label={auto("End Date", "filters.endDate")}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilters({});
+                  setPage(1);
+                }}
+              >
+                <XCircle className="h-4 w-4 me-2" />
+                {auto("Clear", "filters.clear")}
+              </Button>
+            </div>
+            {/* Row 3: Quick filter presets */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({
+                    userRole: "super_admin",
+                    action: undefined,
+                    entityType: "TENANT",
+                    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                    endDate: new Date(),
+                  });
+                  setPage(1);
+                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 transition-colors"
+                aria-label={auto("Tenant Escalations", "presets.tenantEscalations")}
+              >
+                🏢 {auto("Tenant Escalations", "presets.tenantEscalations")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({
+                    action: "UPDATE",
+                    entityType: "USER",
+                    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                    endDate: new Date(),
+                  });
+                  setPage(1);
+                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors"
+                aria-label={auto("RBAC Changes", "presets.rbacChanges")}
+              >
+                🛡️ {auto("RBAC Changes", "presets.rbacChanges")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({
+                    action: "DELETE",
+                    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                    endDate: new Date(),
+                  });
+                  setPage(1);
+                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
+                aria-label={auto("Recent Deletions", "presets.recentDeletions")}
+              >
+                🗑️ {auto("Recent Deletions", "presets.recentDeletions")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({
+                    action: "LOGIN",
+                    startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                    endDate: new Date(),
+                  });
+                  setPage(1);
+                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+                aria-label={auto("Today's Logins", "presets.todaysLogins")}
+              >
+                🔑 {auto("Today's Logins", "presets.todaysLogins")}
+              </button>
+            </div>
           </div>
-
-          {/* P119: Tenant/Organization Scope Filter */}
-          <div>
-            <label
-              htmlFor="org-filter"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              {auto("Organization", "filters.orgLabel")}
-            </label>
-            <input
-              id="org-filter"
-              type="text"
-              placeholder={auto("Enter org ID or name...", "filters.orgPlaceholder")}
-              className="w-full rounded-2xl border-border bg-background text-foreground px-3 py-2"
-              value={filters.orgId || ""}
-              onChange={(e) => {
-                setFilters({
-                  ...filters,
-                  orgId: e.target.value || undefined,
-                });
-                setPage(1);
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="start-date"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              {auto("Start Date", "filters.startDate")}
-            </label>
-            <input
-              id="start-date"
-              type="date"
-              className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={
-                filters.startDate
-                  ? filters.startDate.toISOString().split("T")[0]
-                  : ""
-              }
-              max={
-                filters.endDate
-                  ? filters.endDate.toISOString().split("T")[0]
-                  : undefined
-              }
-              onChange={(e) => {
-                const value = e.target.value
-                  ? new Date(e.target.value + "T00:00:00")
-                  : undefined;
-                setFilters({ ...filters, startDate: value });
-                setPage(1);
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="end-date"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              {auto("End Date", "filters.endDate")}
-            </label>
-            <input
-              id="end-date"
-              type="date"
-              className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={
-                filters.endDate
-                  ? filters.endDate.toISOString().split("T")[0]
-                  : ""
-              }
-              min={
-                filters.startDate
-                  ? filters.startDate.toISOString().split("T")[0]
-                  : undefined
-              }
-              onChange={(e) => {
-                const value = e.target.value
-                  ? new Date(e.target.value + "T23:59:59")
-                  : undefined;
-                setFilters({ ...filters, endDate: value });
-                setPage(1);
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          {/* P129: Quick filter presets */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({
-                  userRole: "super_admin",
-                  action: undefined,
-                  entityType: "TENANT",
-                  startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-                  endDate: new Date(),
-                });
-                setPage(1);
-              }}
-              className="px-3 py-1.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 transition-colors"
-              aria-label={auto("Tenant Escalations", "presets.tenantEscalations")}
-            >
-              🏢 {auto("Tenant Escalations", "presets.tenantEscalations")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({
-                  action: "UPDATE",
-                  entityType: "USER",
-                  startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                  endDate: new Date(),
-                });
-                setPage(1);
-              }}
-              className="px-3 py-1.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors"
-              aria-label={auto("RBAC Changes", "presets.rbacChanges")}
-            >
-              🛡️ {auto("RBAC Changes", "presets.rbacChanges")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({
-                  action: "DELETE",
-                  startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-                  endDate: new Date(),
-                });
-                setPage(1);
-              }}
-              className="px-3 py-1.5 text-xs font-medium rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
-              aria-label={auto("Recent Deletions", "presets.recentDeletions")}
-            >
-              🗑️ {auto("Recent Deletions", "presets.recentDeletions")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({
-                  action: "LOGIN",
-                  startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
-                  endDate: new Date(),
-                });
-                setPage(1);
-              }}
-              className="px-3 py-1.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
-              aria-label={auto("Today's Logins", "presets.todaysLogins")}
-            >
-              🔑 {auto("Today's Logins", "presets.todaysLogins")}
-            </button>
-          </div>
-          <button type="button"
-            onClick={() => {
-              setFilters({});
-              setPage(1);
-            }}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-2xl"
-            aria-label={auto("Clear Filters", "filters.clear")}
-          >
-            {auto("Clear Filters", "filters.clear")}
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Logs Table */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">

@@ -5,10 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2 } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
@@ -294,65 +299,57 @@ export default function AtsJobsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base text-muted-foreground">
-            {t("hr.ats.jobs.filters.title", "Filters")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 md:flex-row md:items-end">
-          <div className="flex-1">
-            <label className="text-xs uppercase tracking-wide text-muted-foreground mb-1 block">
-              {t("hr.ats.jobs.filters.search", "Search")}
-            </label>
-            <div className="relative">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                className="ps-9"
                 placeholder={t(
                   "hr.ats.jobs.filters.searchPlaceholder",
                   "Title, dept, keyword...",
                 )}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
-          </div>
-          <div className="flex-1">
-            <label className="text-xs uppercase tracking-wide text-muted-foreground mb-1 block">
-              {t("hr.ats.jobs.filters.statusLabel", "Status")}
-            </label>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(value as typeof statusFilter)
-              }
-              placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-            </Select>
-          </div>
-          <div className="flex-1">
-            <label className="text-xs uppercase tracking-wide text-muted-foreground mb-1 block">
-              {t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
-            </label>
-            <Select
-              value={jobTypeFilter}
-              onValueChange={(value) => setJobTypeFilter(value)}
-              placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-                {jobTypeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-            </Select>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as typeof statusFilter)
+                }
+                placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={jobTypeFilter}
+                onValueChange={(value) => setJobTypeFilter(value)}
+                placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                </SelectTrigger>
+                <SelectContent>
+                  {jobTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

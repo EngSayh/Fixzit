@@ -4,12 +4,17 @@ import useSWR from "swr";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ClipboardCheck, Loader2, ShieldAlert, RefreshCw } from "@/components/ui/icons";
+import { ClipboardCheck, Loader2, ShieldAlert, RefreshCw, Search, XCircle } from "@/components/ui/icons";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
@@ -246,61 +251,71 @@ export default function ComplianceAuditsPage() {
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{auto("Filters", "filters.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {auto("Status", "filters.statusLabel")}
-            </p>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(value as AuditStatus | "ALL")
-              }
-              placeholder={auto("All statuses", "filters.status.all")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-                {STATUS_FILTERS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(option.label, option.translationKey)}
-                  </SelectItem>
-                ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {auto("Risk level", "filters.riskLabel")}
-            </p>
-            <Select
-              value={riskFilter}
-              onValueChange={(value) =>
-                setRiskFilter(value as AuditRisk | "ALL")
-              }
-              placeholder={auto("All risk levels", "filters.risk.all")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-                {RISK_FILTERS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {auto(option.label, option.translationKey)}
-                  </SelectItem>
-                ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {auto("Search", "filters.searchLabel")}
-            </p>
-            <Input
-              placeholder={auto(
-                "Search audit, owner, or tag…",
-                "filters.searchPlaceholder",
-              )}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={auto(
+                  "Search audit, owner, or tag…",
+                  "filters.searchPlaceholder",
+                )}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as AuditStatus | "ALL")
+                }
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  {auto("All statuses", "filters.status.all")}
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_FILTERS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {auto(option.label, option.translationKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={riskFilter}
+                onValueChange={(value) =>
+                  setRiskFilter(value as AuditRisk | "ALL")
+                }
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  {auto("All risk levels", "filters.risk.all")}
+                </SelectTrigger>
+                <SelectContent>
+                  {RISK_FILTERS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {auto(option.label, option.translationKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("ALL");
+                  setRiskFilter("ALL");
+                  setSearch("");
+                }}
+              >
+                <XCircle className="h-4 w-4 me-2" />
+                {auto("Clear", "filters.clear")}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
