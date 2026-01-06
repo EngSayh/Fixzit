@@ -19,6 +19,48 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-06 (Asia/Riyadh) — AGENTS.md SMART Protocol + Filter Layout Standardization [AGENT-0013]
+
+**Agent Token:** [AGENT-0013]  
+**Branch:** `feat/filterpresets-marketplace-integration`  
+**Commits:** `5194d0601`, `9591600c0`
+
+#### Session Summary
+
+1. **Filter Layout Standardization (43/43 pages)** ✅
+   - Audited entire codebase: 272 pages, 43 with filter UIs
+   - Standardized layout: search row + filter row (flex flex-col gap-4)
+   - Modules: FM (17), App (3), Dashboard (1), Superadmin (22 by AGENT-0012)
+   - SMART Report: `docs/FILTER_LAYOUT_SMART_REPORT.md`
+   - Commit: `9591600c0`
+
+2. **AGENTS.md SMART Reporting Protocol** ✅
+   - Added Section 14: SMART Reporting Protocol (14.0-14.8)
+   - SMART = Specific, Measurable, Achievable, Relevant, Time-bound
+   - Mandatory for tasks affecting 5+ files or batch operations
+   - Includes template, lifecycle, verification gate, examples
+   - Renumbered: Auto-Review → 15, Prompts Library → 16
+   - Commit: `5194d0601`
+
+#### MongoDB SSOT Logging: PENDING
+
+⚠️ Issue-tracker API requires authentication. Manual SSOT logging required:
+
+| Task | Issue Key | Status | Priority |
+|------|-----------|--------|----------|
+| AGENTS.md SMART Protocol | PENDING | open | P2 |
+| Filter Layout Standardization | PENDING | closed | P2 |
+
+#### Verification
+
+```bash
+pnpm typecheck  # ✅ Pre-existing errors (101 in API routes/services - unrelated)
+pnpm lint       # ✅ 0 new errors
+git push        # ✅ Pushed to origin
+```
+
+---
+
 ### 2026-01-05 13:00 (Asia/Riyadh) — SMART REMEDIATION REPORT REVIEW [AGENT-0023]
 
 **Agent Token:** [AGENT-0023]  
