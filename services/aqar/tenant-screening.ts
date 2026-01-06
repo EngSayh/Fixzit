@@ -20,6 +20,7 @@
 import { ObjectId, type UpdateFilter } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Types & Interfaces
@@ -216,7 +217,7 @@ export async function createScreeningApplication(
     
     // Race-condition safe: Use findOneAndUpdate with upsert for atomic check-and-create
     // If active screening exists, it returns the existing doc; if not, we create new one
-    const existing = await db.collection("screening_applications").findOne({
+    const existing = await db.collection(COLLECTIONS.SCREENING_APPLICATIONS).findOne({
       orgId: request.orgId,
       unitId: request.unitId,
       "applicant.nationalId": request.applicant.nationalId,
@@ -245,7 +246,7 @@ export async function createScreeningApplication(
     safeApplicantUpdate.orgId = request.orgId;
     safeApplicantUpdate.nationalId = request.applicant.nationalId;
     
-    const applicantResult = await db.collection("applicants").updateOne(
+    const applicantResult = await db.collection(COLLECTIONS.APPLICANTS).updateOne(
       { 
         orgId: request.orgId, 
         nationalId: request.applicant.nationalId 
@@ -267,7 +268,7 @@ export async function createScreeningApplication(
     if (applicantResult.upsertedId) {
       applicantId = applicantResult.upsertedId.toString();
     } else {
-      const existingApplicant = await db.collection("applicants").findOne({ 
+      const existingApplicant = await db.collection(COLLECTIONS.APPLICANTS).findOne({ 
         orgId: request.orgId, 
         nationalId: request.applicant.nationalId 
       });
@@ -311,7 +312,7 @@ export async function createScreeningApplication(
       createdBy: request.createdBy,
     };
     
-    const result = await db.collection("screening_applications").insertOne(application);
+    const result = await db.collection(COLLECTIONS.SCREENING_APPLICATIONS).insertOne(application);
     
     logger.info("Screening application created", {
       applicationId: result.insertedId.toString(),
@@ -473,7 +474,7 @@ export async function verifyDocument(
       updateFields["documents.$.notes"] = notes;
     }
     
-    const result = await db.collection("screening_applications").updateOne(
+    const result = await db.collection(COLLECTIONS.SCREENING_APPLICATIONS).updateOne(
       { 
         _id: new ObjectId(applicationId), 
         orgId,
@@ -630,7 +631,7 @@ export async function calculateScreeningScore(
     
     // Update application - only update status if currently PENDING or IN_PROGRESS
     // to avoid regressing DECIDED applications
-    const updateResult = await db.collection("screening_applications").updateOne(
+    const updateResult = await db.collection(COLLECTIONS.SCREENING_APPLICATIONS).updateOne(
       { 
         _id: new ObjectId(applicationId), 
         orgId,
@@ -647,7 +648,7 @@ export async function calculateScreeningScore(
     
     if (updateResult.matchedCount === 0) {
       // Check if application exists but is in a terminal state
-      const existingApp = await db.collection("screening_applications").findOne({
+      const existingApp = await db.collection(COLLECTIONS.SCREENING_APPLICATIONS).findOne({
         _id: new ObjectId(applicationId),
         orgId,
       });
@@ -902,7 +903,7 @@ async function calculateInternalCreditScore(
     const db = await getDatabase();
     
     // Check for any previous payment defaults in our system
-    const defaults = await db.collection("payment_history").countDocuments({
+    const defaults = await db.collection(COLLECTIONS.PAYMENT_HISTORY).countDocuments({
       orgId,
       tenantNationalId: nationalId,
       status: "defaulted",
@@ -914,7 +915,7 @@ async function calculateInternalCreditScore(
     }
     
     // Check for positive payment history
-    const onTimePayments = await db.collection("payment_history").countDocuments({
+    const onTimePayments = await db.collection(COLLECTIONS.PAYMENT_HISTORY).countDocuments({
       orgId,
       tenantNationalId: nationalId,
       status: "paid",
@@ -954,7 +955,7 @@ async function calculateRentalHistoryScore(
     const db = await getDatabase();
     
     // Check for evictions
-    const evictions = await db.collection("eviction_records").countDocuments({
+    const evictions = await db.collection(COLLECTIONS.EVICTION_RECORDS).countDocuments({
       orgId,
       tenantNationalId: nationalId,
     });
@@ -965,7 +966,7 @@ async function calculateRentalHistoryScore(
     }
     
     // Check previous leases in our system
-    const previousLeases = await db.collection("leases").find({
+    const previousLeases = await db.collection(COLLECTIONS.LEASES).find({
       orgId,
       "tenantSnapshot.nationalId": nationalId,
       status: { $in: ["RENEWED", "EXPIRED"] }, // Completed leases
@@ -1095,7 +1096,7 @@ export async function makeDecision(
       ? ScreeningStatus.CONDITIONALLY_APPROVED
       : ScreeningStatus.REJECTED;
     
-    const result = await db.collection("screening_applications").updateOne(
+    const result = await db.collection(COLLECTIONS.SCREENING_APPLICATIONS).updateOne(
       { _id: new ObjectId(applicationId), orgId },
       {
         $set: {

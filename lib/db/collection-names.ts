@@ -38,6 +38,13 @@ export const COLLECTIONS = {
   PAYMENTS: "payments",
   AQAR_PAYMENTS: "aqar_payments",
   
+  // Financial / Accounting collections
+  TRANSACTIONS: "transactions",
+  FINANCE_PAYMENTS: "finance_payments",
+  FM_FINANCIAL_TRANSACTIONS: "fm_financial_transactions",
+  PAYROLL_RUNS: "payroll_runs",
+  FEEDBACK: "feedback",
+  
   // ATS module
   ATS_JOBS: "jobs",
   ATS_APPLICATIONS: "applications",
@@ -104,6 +111,13 @@ export const COLLECTIONS = {
   AQAR_VIEWED_LISTINGS: "aqar_viewed_listings",
   AQAR_INQUIRIES: "aqar_inquiries",
   AQAR_SYNC_LOG: "aqar_sync_log",
+  
+  // Aqar tenant screening collections
+  SCREENING_APPLICATIONS: "screening_applications",
+  APPLICANTS: "applicants",
+  PAYMENT_HISTORY: "payment_history",
+  EVICTION_RECORDS: "eviction_records",
+  LEASES: "leases",
   
   // Errors / telemetry
   ERROR_EVENTS: "error_events",
