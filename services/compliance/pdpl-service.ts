@@ -20,6 +20,7 @@ import type {
 } from "@/types/compliance";
 import type { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // =============================================================================
 // CONFIGURATION
@@ -480,7 +481,7 @@ export async function executeErasure(
     // STEP 3: Anonymize consents (keep for audit trail, remove identifying info)
     // =========================================================================
     try {
-      const consentResult = await dbHandle.collection("consents").updateMany(
+      const consentResult = await dbHandle.collection(COLLECTIONS.CONSENTS).updateMany(
         baseFilter,
         {
           $set: {
@@ -505,7 +506,7 @@ export async function executeErasure(
     // STEP 4: Mark financial records (ZATCA 6-year retention - anonymize only)
     // =========================================================================
     try {
-      const invoiceResult = await dbHandle.collection("invoices").updateMany(
+      const invoiceResult = await dbHandle.collection(COLLECTIONS.INVOICES).updateMany(
         { ...orgFilter, "customer.userId": userId },
         {
           $set: {

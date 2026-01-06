@@ -101,6 +101,9 @@ export const COLLECTIONS = {
   SOUQ_RMAS: "souq_rmas",
   SOUQ_REFUNDS: "souq_refunds",
   
+  // Souq marketplace collections - Notifications
+  SELLER_NOTIFICATIONS: "seller_notifications",
+  
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
@@ -173,6 +176,12 @@ export const COLLECTIONS = {
   
   // FM (Facility Management) collections
   FM_BIDS: "fm_bids",
+  
+  // Training collections
+  TRAINING_SESSIONS: "trainingsessions",
+  
+  // Compliance / PDPL collections
+  CONSENTS: "consents",
   
   // Finance / ZATCA collections
   ZATCA_CREDENTIALS: "zatca_credentials",

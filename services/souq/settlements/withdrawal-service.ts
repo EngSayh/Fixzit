@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { generateWithdrawalId } from "@/lib/id-generator";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 /**
  * Withdrawal Request from Seller
@@ -205,7 +206,7 @@ export class WithdrawalService {
       // 🔐 STRICT v4.1: Query MUST include orgId for tenant isolation
       // Get latest settlement statement for this org's seller
       const statement = await db
-        .collection("souq_settlement_statements")
+        .collection(COLLECTIONS.SOUQ_SETTLEMENT_STATEMENTS)
         .findOne(
           { orgId, sellerId, status: "approved" },
           { sort: { statementDate: -1 } },

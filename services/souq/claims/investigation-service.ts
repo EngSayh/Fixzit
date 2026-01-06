@@ -222,7 +222,7 @@ export class InvestigationService {
       ? [orgId, new MongoObjectId(orgId)]
       : [orgId];
     const order = await db
-      .collection("souq_orders")
+      .collection(COLLECTIONS.SOUQ_ORDERS)
       .findOne({
         orderId,
         $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],

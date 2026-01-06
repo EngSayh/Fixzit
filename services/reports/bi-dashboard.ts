@@ -1761,7 +1761,7 @@ async function calculateTrainingHours(
   ];
 
   const result = await db
-    .collection("trainingsessions")
+    .collection(COLLECTIONS.TRAINING_SESSIONS)
     .aggregate(pipeline)
     .toArray();
 
