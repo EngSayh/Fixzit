@@ -4,6 +4,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { requestComplianceCsid, requestProductionCsid, submitComplianceInvoice } from "@/lib/zatca/fatoora-client";
 import type { ZatcaComplianceResponse, ZatcaProductionCsidResponse } from "@/lib/zatca/fatoora-types";
 import type { Document, WithId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 interface ZatcaCredentialsDoc extends Document { orgId: string; complianceCsid?: string; productionCsid?: string; secret?: string; complianceRequestId?: string; status: string; createdAt: Date; updatedAt: Date; }
 
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = await req.json() as { action: string; csr?: string; otp?: string; invoice?: string; invoiceHash?: string };
   const { action, csr, otp, invoice, invoiceHash } = body;
   const db = await connectDb();
-  const collection = db.collection("zatca_credentials");
+  const collection = db.collection(COLLECTIONS.ZATCA_CREDENTIALS);
   
   if (action === "request-compliance") {
     if (!csr || !otp) return NextResponse.json({ error: "CSR and OTP required" }, { status: 400 });
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const user = await getSessionUser(req);
   if (!user?.orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = await connectDb();
-  const creds = await db.collection("zatca_credentials").findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;
+  const creds = await db.collection(COLLECTIONS.ZATCA_CREDENTIALS).findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;
   if (!creds) return NextResponse.json({ status: "not_started", hasCompliance: false, hasProduction: false });
   return NextResponse.json({ status: creds.status, hasCompliance: !!creds.complianceCsid, hasProduction: !!creds.productionCsid, updatedAt: creds.updatedAt });
 }

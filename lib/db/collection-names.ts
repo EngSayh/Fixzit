@@ -136,6 +136,13 @@ export const COLLECTIONS = {
   
   // Issue tracker (SSOT)
   ISSUES: "issues",
+  
+  // FM (Facility Management) additional collections
+  FM_BIDS: "fm_bids",
+  
+  // ZATCA (Saudi e-invoicing) collections
+  ZATCA_CREDENTIALS: "zatca_credentials",
+  ZATCA_SUBMISSIONS: "zatca_submissions",
 } as const;
 
 // Type for collection names
