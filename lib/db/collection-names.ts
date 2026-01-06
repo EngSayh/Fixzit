@@ -138,9 +138,21 @@ export const COLLECTIONS = {
   ACCOUNT_LOCKOUTS: "account_lockouts",
   LOGIN_ATTEMPTS: "login_attempts",
   MFA_PENDING: "mfa_pending",
+  SESSIONS: "sessions",
+  TRUSTED_DEVICES: "trusted_devices",
+  PASSWORD_HISTORY: "password_history",
+  ORGANIZATION_SETTINGS: "organization_settings",
+  
+  // FM (Facility Management) collections
+  FM_BIDS: "fm_bids",
+  
+  // Finance / ZATCA collections
+  ZATCA_CREDENTIALS: "zatca_credentials",
+  ZATCA_SUBMISSIONS: "zatca_submissions",
   
   // Issue tracker (SSOT)
   ISSUES: "issues",
+  ISSUE_EVENTS: "issue_events",
 } as const;
 
 // Type for collection names

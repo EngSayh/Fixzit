@@ -11,6 +11,7 @@ import "server-only";
 
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 /**
  * Check if an organization can use AI building generation.
@@ -26,7 +27,7 @@ export async function orgCanUseBuildingAI(orgId: string): Promise<boolean> {
 
   try {
     const db = await getDatabase();
-    const org = await db.collection("organizations").findOne({
+    const org = await db.collection(COLLECTIONS.ORGANIZATIONS).findOne({
       _id: new ObjectId(orgId),
     });
 

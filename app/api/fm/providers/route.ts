@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
     // Persist bid to database
     try {
       const db = await getDatabase();
-      await db.collection("fm_bids").insertOne({
+      await db.collection(COLLECTIONS.FM_BIDS).insertOne({
         ...bid,
         _id: new ObjectId(),
         createdAt: new Date(),

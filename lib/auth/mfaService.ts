@@ -347,7 +347,7 @@ export async function completeMFASetup(
     }
     
     // Store MFA config on user
-    await db.collection("users").updateOne(
+    await db.collection(COLLECTIONS.USERS).updateOne(
       { _id: new ObjectId(userId), orgId },
       {
         $set: {
@@ -445,7 +445,7 @@ export async function disableMFA(
     const db = await getDatabase();
     
     // Get user's MFA config
-    const user = await db.collection("users").findOne({ _id: new ObjectId(userId), orgId });
+    const user = await db.collection(COLLECTIONS.USERS).findOne({ _id: new ObjectId(userId), orgId });
     if (!user?.security?.mfa?.enabled) {
       return { success: false, error: "MFA is not enabled" };
     }
@@ -484,7 +484,7 @@ export async function disableMFA(
     }
     
     // Disable MFA
-    await db.collection("users").updateOne(
+    await db.collection(COLLECTIONS.USERS).updateOne(
       { _id: new ObjectId(userId), orgId },
       {
         $set: {
@@ -500,7 +500,7 @@ export async function disableMFA(
     );
     
     // Revoke all sessions for the user after MFA disable (security measure)
-    await db.collection("sessions").deleteMany({ userId: new ObjectId(userId) });
+    await db.collection(COLLECTIONS.SESSIONS).deleteMany({ userId: new ObjectId(userId) });
     
     // Audit log
     await logAuthEvent({
@@ -552,7 +552,7 @@ export async function verifyMFACode(
     const db = await getDatabase();
     
     // Get user's MFA config
-    const user = await db.collection("users").findOne({ _id: new ObjectId(userId), orgId });
+    const user = await db.collection(COLLECTIONS.USERS).findOne({ _id: new ObjectId(userId), orgId });
     if (!user?.security?.mfa?.enabled) {
       return { success: false, error: "MFA is not enabled" };
     }
@@ -596,7 +596,7 @@ export async function verifyMFACode(
     }
     
     // Update last verified
-    await db.collection("users").updateOne(
+    await db.collection(COLLECTIONS.USERS).updateOne(
       { _id: new ObjectId(userId), orgId },
       { $set: { "security.mfa.lastVerified": new Date() } }
     );
@@ -625,7 +625,7 @@ export async function getMFAStatus(
   try {
     const db = await getDatabase();
     
-    const user = await db.collection("users").findOne(
+    const user = await db.collection(COLLECTIONS.USERS).findOne(
       { _id: new ObjectId(userId), orgId },
       { projection: { "security.mfa": 1 } }
     );
@@ -643,7 +643,7 @@ export async function getMFAStatus(
     const unusedCodes = (mfa.recoveryCodes || []).filter((c: { used: boolean }) => !c.used).length;
     
     // Count trusted devices
-    const trustedDevices = await db.collection("trusted_devices").countDocuments({
+    const trustedDevices = await db.collection(COLLECTIONS.TRUSTED_DEVICES).countDocuments({
       orgId,
       userId,
       expiresAt: { $gt: new Date() },
@@ -711,7 +711,7 @@ async function consumeRecoveryCode(
     const codeHash = hashRecoveryCode(code);
     
     // Find and mark code as used
-    const result = await db.collection("users").updateOne(
+    const result = await db.collection(COLLECTIONS.USERS).updateOne(
       {
         _id: new ObjectId(userId),
         orgId,
@@ -752,7 +752,7 @@ export async function regenerateRecoveryCodes(
     const db = await getDatabase();
     
     // Get user's MFA config and verify current code
-    const user = await db.collection("users").findOne({ _id: new ObjectId(userId), orgId });
+    const user = await db.collection(COLLECTIONS.USERS).findOne({ _id: new ObjectId(userId), orgId });
     if (!user?.security?.mfa?.enabled) {
       return { success: false, error: "MFA is not enabled" };
     }
@@ -771,7 +771,7 @@ export async function regenerateRecoveryCodes(
     }));
     
     // Update user
-    await db.collection("users").updateOne(
+    await db.collection(COLLECTIONS.USERS).updateOne(
       { _id: new ObjectId(userId), orgId },
       { $set: { "security.mfa.recoveryCodes": hashedCodes } }
     );
@@ -819,7 +819,7 @@ export async function trustDevice(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + daysValid);
     
-    await db.collection("trusted_devices").updateOne(
+    await db.collection(COLLECTIONS.TRUSTED_DEVICES).updateOne(
       { orgId, userId, deviceId },
       {
         $set: {
@@ -850,7 +850,7 @@ export async function isDeviceTrusted(
   try {
     const db = await getDatabase();
     
-    const device = await db.collection("trusted_devices").findOne({
+    const device = await db.collection(COLLECTIONS.TRUSTED_DEVICES).findOne({
       orgId,
       userId,
       deviceId,
@@ -878,7 +878,7 @@ export async function removeTrustedDevice(
 ): Promise<void> {
   try {
     const db = await getDatabase();
-    await db.collection("trusted_devices").deleteOne({ orgId, userId, deviceId });
+    await db.collection(COLLECTIONS.TRUSTED_DEVICES).deleteOne({ orgId, userId, deviceId });
   } catch (error) {
     logger.error("Failed to remove trusted device", {
       error: error instanceof Error ? error.message : "Unknown error",

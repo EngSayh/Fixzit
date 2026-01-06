@@ -130,7 +130,7 @@ const COMMON_PASSWORDS = new Set([
 export async function getPasswordPolicy(orgId: string): Promise<PasswordPolicy> {
   try {
     const db = await getDatabase();
-    const settings = await db.collection("organization_settings").findOne({ orgId });
+    const settings = await db.collection(COLLECTIONS.ORGANIZATION_SETTINGS).findOne({ orgId });
     
     if (settings?.passwordPolicy) {
       return { ...DEFAULT_POLICY, ...settings.passwordPolicy };
@@ -310,7 +310,7 @@ async function isPasswordInHistory(
       24 // max reasonable cap
     );
     
-    const history = await db.collection("password_history")
+    const history = await db.collection(COLLECTIONS.PASSWORD_HISTORY)
       .find({ orgId, userId })
       .sort({ createdAt: -1 })
       .limit(historyCount)
@@ -348,7 +348,7 @@ export async function addToPasswordHistory(
     const policy = await getPasswordPolicy(orgId);
     
     // Insert new entry
-    await db.collection("password_history").insertOne({
+    await db.collection(COLLECTIONS.PASSWORD_HISTORY).insertOne({
       orgId,
       userId,
       hash: passwordHash,
@@ -356,14 +356,14 @@ export async function addToPasswordHistory(
     });
     
     // Clean up old entries beyond history count
-    const history = await db.collection("password_history")
+    const history = await db.collection(COLLECTIONS.PASSWORD_HISTORY)
       .find({ orgId, userId })
       .sort({ createdAt: -1 })
       .toArray();
     
     if (history.length > policy.historyCount) {
       const toDelete = history.slice(policy.historyCount).map(h => h._id);
-      await db.collection("password_history").deleteMany({
+      await db.collection(COLLECTIONS.PASSWORD_HISTORY).deleteMany({
         _id: { $in: toDelete },
       });
     }
