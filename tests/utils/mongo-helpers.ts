@@ -45,11 +45,9 @@ export async function waitForMongoConnection(
   while (mongoose.connection.readyState !== 1) {
     const elapsed = Date.now() - start;
     
-    // After maxWaitMs, fall back to local MongoMemoryServer
+    // After maxWaitMs, fall back based on available MongoDB source
     if (elapsed > maxWaitMs) {
-      console.debug(`[waitForMongoConnection] Global setup not ready after ${maxWaitMs}ms, starting local MongoMemoryServer...`);
-      
-      // CRITICAL: Disconnect any active/pending connection before creating fallback
+      // CRITICAL: Disconnect any active/pending connection first
       // This prevents "Can't call openUri() on an active connection with different connection strings"
       const currentState = mongoose.connection.readyState;
       if (currentState !== 0) {
@@ -61,6 +59,18 @@ export async function waitForMongoConnection(
         }
       }
       
+      // Check if we have a real MongoDB URI (not MongoMemoryServer) to connect to
+      // This handles CI environments with MongoDB service containers
+      const mongoUri = process.env.MONGODB_URI;
+      if (mongoUri && !mongoUri.includes('127.0.0.1:') && !mongoUri.includes('localhost:27017/fixzit-test-fallback')) {
+        console.debug(`[waitForMongoConnection] Global setup not ready after ${maxWaitMs}ms, connecting to MONGODB_URI: ${mongoUri.split('@').pop()}`);
+        await mongoose.connect(mongoUri, { autoCreate: true, autoIndex: true });
+        console.debug(`[waitForMongoConnection] Connected to external MongoDB successfully`);
+        break;
+      }
+      
+      // Fall back to local MongoMemoryServer if no external MongoDB available
+      console.debug(`[waitForMongoConnection] Global setup not ready after ${maxWaitMs}ms, starting local MongoMemoryServer...`);
       if (!localMongoServer) {
         localMongoServer = await MongoMemoryServer.create({
           instance: {
