@@ -19,6 +19,7 @@ import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ExpenseCategory } from "./expense-categorization";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Types & Interfaces
@@ -476,7 +477,7 @@ export async function syncActuals(
       match.propertyId = record.propertyId;
     }
     
-    const actuals = await db.collection("expenses").aggregate([
+    const actuals = await db.collection(COLLECTIONS.EXPENSES).aggregate([
       { $match: match },
       {
         $group: {
@@ -587,7 +588,7 @@ export async function generateForecast(
     
     if (options?.propertyId) match.propertyId = options.propertyId;
     
-    const historicalData = await db.collection("expenses").aggregate([
+    const historicalData = await db.collection(COLLECTIONS.EXPENSES).aggregate([
       { $match: match },
       {
         $group: {

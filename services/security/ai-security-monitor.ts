@@ -24,6 +24,7 @@
 
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 import { ObjectId } from "mongodb";
 import { logSuspiciousActivity, RiskLevel } from "@/lib/auth/auditLogger";
 
@@ -295,7 +296,7 @@ async function detectBruteForce(
   const since = new Date(Date.now() - SECURITY_CONFIG.bruteForceWindowMinutes * 60 * 1000);
   
   // Count failures from this IP
-  const ipFailures = await db.collection("auth_logs").countDocuments({
+  const ipFailures = await db.collection(COLLECTIONS.AUTH_LOGS).countDocuments({
     orgId,
     ipAddress,
     action: "LOGIN_FAILURE",
@@ -303,7 +304,7 @@ async function detectBruteForce(
   });
   
   // Count failures for this email
-  const emailFailures = await db.collection("auth_logs").countDocuments({
+  const emailFailures = await db.collection(COLLECTIONS.AUTH_LOGS).countDocuments({
     orgId,
     email,
     action: "LOGIN_FAILURE",
@@ -337,7 +338,7 @@ async function detectCredentialStuffing(
   const since = new Date(Date.now() - SECURITY_CONFIG.credentialStuffingWindowHours * 60 * 60 * 1000);
   
   // Count unique IPs trying this account
-  const uniqueIPs = await db.collection("auth_logs").distinct("ipAddress", {
+  const uniqueIPs = await db.collection(COLLECTIONS.AUTH_LOGS).distinct("ipAddress", {
     orgId,
     email,
     action: "LOGIN_FAILURE",
@@ -390,7 +391,7 @@ async function detectNewDevice(
   userAgent: string
 ): Promise<DetectionResult> {
   // Get known user agents for this user
-  const knownAgents = await db.collection("auth_logs").distinct("userAgent", {
+  const knownAgents = await db.collection(COLLECTIONS.AUTH_LOGS).distinct("userAgent", {
     orgId,
     userId,
     action: "LOGIN_SUCCESS",
@@ -422,7 +423,7 @@ async function detectImpossibleTravel(
   ipAddress: string
 ): Promise<DetectionResult> {
   // Get last successful login
-  const lastLogin = await db.collection("auth_logs").findOne(
+  const lastLogin = await db.collection(COLLECTIONS.AUTH_LOGS).findOne(
     { orgId, userId, action: "LOGIN_SUCCESS" },
     { sort: { timestamp: -1 } }
   ) as { timestamp: Date; ipAddress?: string } | null;
@@ -484,7 +485,7 @@ async function checkIPReputation(
 ): Promise<DetectionResult> {
   // Check our blocklist - respect expiresAt for non-permanent blocks
   const now = new Date();
-  const blocked = await db.collection("blocked_ips").findOne({
+  const blocked = await db.collection(COLLECTIONS.BLOCKED_IPS).findOne({
     $or: [
       { 
         orgId, 
@@ -516,7 +517,7 @@ async function checkIPReputation(
   }
   
   // Check recent suspicious activity from this IP
-  const suspiciousCount = await db.collection("auth_logs").countDocuments({
+  const suspiciousCount = await db.collection(COLLECTIONS.AUTH_LOGS).countDocuments({
     orgId,
     ipAddress,
     $or: [
@@ -592,7 +593,7 @@ export async function createSecurityAlert(
       resolved: false,
     };
     
-    const result = await db.collection("security_alerts").insertOne(fullAlert);
+    const result = await db.collection(COLLECTIONS.SECURITY_ALERTS).insertOne(fullAlert);
     
     // Also log to auth_logs
     await logSuspiciousActivity(
@@ -642,7 +643,7 @@ export async function getSecurityAlerts(
     if (typeof options.acknowledged === "boolean") filter.acknowledged = options.acknowledged;
     if (typeof options.resolved === "boolean") filter.resolved = options.resolved;
     
-    const alerts = await db.collection("security_alerts")
+    const alerts = await db.collection(COLLECTIONS.SECURITY_ALERTS)
       .find(filter)
       .sort({ createdAt: -1 })
       .skip(options.skip || 0)
@@ -673,7 +674,7 @@ export async function acknowledgeAlert(
   try {
     const db = await getDatabase();
     
-    const result = await db.collection("security_alerts").updateOne(
+    const result = await db.collection(COLLECTIONS.SECURITY_ALERTS).updateOne(
       { _id: new ObjectId(alertId), orgId },
       {
         $set: {
@@ -711,7 +712,7 @@ export async function resolveAlert(
   try {
     const db = await getDatabase();
     
-    const result = await db.collection("security_alerts").updateOne(
+    const result = await db.collection(COLLECTIONS.SECURITY_ALERTS).updateOne(
       { _id: new ObjectId(alertId), orgId },
       {
         $set: {
@@ -754,7 +755,7 @@ export async function blockIP(
       ? new Date(Date.now() + durationHours * 60 * 60 * 1000)
       : null; // Permanent if no duration
     
-    await db.collection("blocked_ips").updateOne(
+    await db.collection(COLLECTIONS.BLOCKED_IPS).updateOne(
       { orgId, ipAddress },
       {
         $set: {
@@ -785,7 +786,7 @@ export async function unblockIP(
 ): Promise<void> {
   try {
     const db = await getDatabase();
-    await db.collection("blocked_ips").deleteOne({ orgId, ipAddress });
+    await db.collection(COLLECTIONS.BLOCKED_IPS).deleteOne({ orgId, ipAddress });
     logger.info("IP unblocked", { orgId, ipAddress });
   } catch (error) {
     logger.error("Failed to unblock IP", {
@@ -806,7 +807,7 @@ export async function isIPBlocked(
   try {
     const db = await getDatabase();
     
-    const entry = await db.collection("blocked_ips").findOne({
+    const entry = await db.collection(COLLECTIONS.BLOCKED_IPS).findOne({
       $and: [
         {
           $or: [

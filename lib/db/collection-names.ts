@@ -161,8 +161,11 @@ export const COLLECTIONS = {
   
   // Auth / Security collections
   ACCOUNT_LOCKOUTS: "account_lockouts",
+  AUTH_LOGS: "auth_logs",
+  BLOCKED_IPS: "blocked_ips",
   LOGIN_ATTEMPTS: "login_attempts",
   MFA_PENDING: "mfa_pending",
+  SECURITY_ALERTS: "security_alerts",
   SESSIONS: "sessions",
   TRUSTED_DEVICES: "trusted_devices",
   PASSWORD_HISTORY: "password_history",
@@ -175,6 +178,13 @@ export const COLLECTIONS = {
   ZATCA_CREDENTIALS: "zatca_credentials",
   ZATCA_SUBMISSIONS: "zatca_submissions",
   FINANCE_ESCROW_EVENTS: "finance_escrow_events",
+  EXPENSES: "expenses",
+  
+  // Admin / Audit collections (DATA-003: audit_logs_archive for archival)
+  AUDIT_LOGS_ARCHIVE: "audit_logs_archive",
+  
+  // CRM collections (DATA-004: support_tickets vs supporttickets inconsistency)
+  SUPPORT_TICKETS_UNDERSCORE: "support_tickets",
   
   // Issue tracker (SSOT)
   ISSUES: "issues",

@@ -18,6 +18,7 @@ import { ObjectId, type WithId, type Document } from "mongodb";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Types & Interfaces
@@ -699,7 +700,7 @@ export async function launchReviewCycle(
     const reviews: Omit<PerformanceReview, "_id">[] = [];
     
     // Batch fetch all employees and their managers for efficiency
-    const employeeRecords = await db.collection("employees").find({
+    const employeeRecords = await db.collection(COLLECTIONS.EMPLOYEES).find({
       $or: [
         { _id: { $in: employeeIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id)) } },
         { employeeId: { $in: employeeIds } }, // Support string-based IDs
@@ -724,7 +725,7 @@ export async function launchReviewCycle(
     
     // Fetch manager records
     const managerRecords = managerIds.size > 0 
-      ? await db.collection("employees").find({
+      ? await db.collection(COLLECTIONS.EMPLOYEES).find({
           $or: [
             { _id: { $in: Array.from(managerIds).filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id)) } },
             { employeeId: { $in: Array.from(managerIds) } },

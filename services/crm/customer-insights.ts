@@ -17,6 +17,7 @@
 import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names"; // TD-001
 
 // ============================================================================
 // Types & Interfaces
@@ -666,14 +667,14 @@ async function calculateSupportFactor(
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const recentTickets = await db.collection("support_tickets")
+    const recentTickets = await db.collection(COLLECTIONS.SUPPORT_TICKETS_UNDERSCORE)
       .countDocuments({
         orgId,
         "customer.userId": userId,
         createdAt: { $gte: thirtyDaysAgo },
       });
     
-    const openTickets = await db.collection("support_tickets")
+    const openTickets = await db.collection(COLLECTIONS.SUPPORT_TICKETS_UNDERSCORE)
       .countDocuments({
         orgId,
         "customer.userId": userId,
