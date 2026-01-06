@@ -24,28 +24,34 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 **Agent Token:** `[AGENT-0034]`  
 **Branch:** `fix/lint-collections-baseline`  
 **PR:** #670 (continued from AGENT-0009/AGENT-0010)
+**Commits:** 4 (initial fix, SSOT update, proper command, binary-only download)
 
 #### Problem Statement
 
-GitHub CI was failing with ENOENT errors when multiple shards tried to download MongoDB binary simultaneously:
-```
-Error: ENOENT: no such file or directory, rename 
-'/home/runner/.cache/mongodb-binaries/mongodb-linux-x86_64-ubuntu2204-7.0.24.tgz.downloading' 
--> '/home/runner/.cache/mongodb-binaries/mongodb-linux-x86_64-ubuntu2204-7.0.24.tgz'
-```
+GitHub CI was failing with multiple MongoDB-related issues:
 
-This affected 5 CI jobs: Tests (Server 1/4), Quality Gates, QA, CI Summary, and test-api shard.
+1. **ENOENT race condition** - Multiple shards downloading MongoDB binary simultaneously
+2. **Mongoose connection conflict** - Pre-download step creating connections that conflicted with tests
 
 #### Root Cause
 
-Missing MongoDB Memory Server binary caching and pre-download step in 3 workflows:
-- `ci-full-suite.yml` - No cache for sharded server/client tests
-- `fixzit-quality-gates.yml` - No cache for unit tests
-- `qa.yml` - No cache for vitest runs
+- Missing MongoDB Memory Server binary caching in 3 workflows
+- Initial fix used `MongoMemoryServer.create()` which created mongoose connections that conflicted with test setup
 
-#### Solution Implemented
+#### Solution Implemented (Iteration 3)
 
-Added MongoDB binary caching and pre-download to all 3 workflows:
+Used `MongoBinaryDownload.getMongodPath()` to download binary without creating any mongoose connections:
+
+```yaml
+- name: Pre-download MongoDB binary
+  run: |
+    node -e "
+      const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
+      const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
+      download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+    "
+  continue-on-error: true
+```
 
 | Workflow | Changes Added |
 |----------|---------------|
