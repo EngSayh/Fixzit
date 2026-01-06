@@ -92,20 +92,7 @@ export function OTPVerificationStep({
     }
   }, [resendCooldown]);
 
-  // Send OTP on mount if not already sent
-  useEffect(() => {
-    if (!hasSentInitial && identifier) {
-      sendOTP();
-      setHasSentInitial(true);
-    }
-  }, [identifier, hasSentInitial, sendOTP]);
-
-  // Focus first input on mount
-  useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
-
-  // Send OTP request
+  // Send OTP request - defined before useEffect that uses it
   const sendOTP = useCallback(async () => {
     if (isSending || resendCooldown > 0) return;
 
@@ -148,6 +135,19 @@ export function OTPVerificationStep({
       setIsSending(false);
     }
   }, [identifier, method, isRTL, isSending, resendCooldown]);
+
+  // Send OTP on mount if not already sent
+  useEffect(() => {
+    if (!hasSentInitial && identifier) {
+      sendOTP();
+      setHasSentInitial(true);
+    }
+  }, [identifier, hasSentInitial, sendOTP]);
+
+  // Focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
 
   // Handle input change
   const handleInputChange = (index: number, value: string) => {
