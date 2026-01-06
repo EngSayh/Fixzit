@@ -19,6 +19,62 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-07 (Asia/Riyadh) — P1 Verification Audit ✅ [AGENT-0036]
+
+**Agent Token:** `[AGENT-0036]`  
+**Branch:** `fix/lint-collections-baseline`  
+**PR:** #670 (continued)  
+**Session:** P1 item verification against AI_IMPROVEMENT_ANALYSIS_REPORT.md
+
+#### 🔍 P1 ITEMS VERIFIED COMPLETE
+
+| ID | Item | Report Status | Verified Status | Evidence |
+|----|------|---------------|-----------------|----------|
+| TD-001 | db.collection() calls | 🔵 OPEN | ✅ COMPLETE | 173 migrated, 0 in services |
+| TD-002 | 177 'any' types | 🔵 OPEN | ✅ MINIMAL (3) | Only 3 casts in prod (queues/setup.ts, tenant-lifecycle.ts) |
+| TD-003 | Timer cleanup (47 loc) | 🔵 OPEN | ✅ ALREADY DONE | All setInterval have clearInterval cleanup |
+| LOGIC-002 | Migrate aggregations | 🔵 OPEN | ✅ ALREADY DONE | Per aggregate-inventory.md: all 61 have orgId + maxTimeMS |
+| BUG-001 | Filter state persistence | 🔵 OPEN | ✅ ALREADY DONE | All 5 components use serializeFilters() |
+
+#### TD-002 Details: Only 3 Production `as any` Casts
+
+| File | Line | Context |
+|------|------|---------|
+| `lib/queues/setup.ts` | 165 | BullMQ job typing (acceptable) |
+| `services/superadmin/tenant-lifecycle.ts` | 548 | Mongoose typing (acceptable) |
+| `services/superadmin/tenant-lifecycle.ts` | 878 | Mongoose typing (acceptable) |
+
+The report's 177 count includes test files where `as any` is acceptable for mocking.
+
+#### BUG-001 Verification: All 5 Components Use serializeFilters()
+
+| Component | File | Lines |
+|-----------|------|-------|
+| WorkOrdersViewNew | `components/work-orders/WorkOrdersViewNew.tsx` | 189 |
+| UsersList | `components/users/UsersList.tsx` | 34, 134 |
+| EmployeesList | `components/hr/EmployeesList.tsx` | 34, 137 |
+| InvoicesList | `components/finance/InvoicesList.tsx` | 36, 170 |
+| AuditLogsList | `components/admin/AuditLogsList.tsx` | 34, 130 |
+
+#### LOGIC-002 Verification: Aggregation Inventory Audit
+
+Per `docs/audit/aggregate-inventory.md`:
+- **61 aggregate pipelines** across the codebase
+- **100%** have `maxTimeMS` protection
+- **100%** have tenant scoping (`org_id`, `tenantId`, or `organizationId`)
+- Status: **✅ PRODUCTION READY**
+
+#### TD-003 Verification: Timer Cleanup
+
+Checked 20+ files with `setInterval()` calls:
+- `app/superadmin/customer-requests/page.tsx` ✅
+- `app/superadmin/dashboard/page.tsx` ✅
+- `app/superadmin/security/page.tsx` ✅
+- `app/superadmin/issues/page.tsx` ✅
+- All have `return () => clearInterval(interval)` in useEffect
+
+---
+
 ### 2026-01-06 (Asia/Riyadh) — TD-001 COMPLETE ✅ [AGENT-0036]
 
 **Agent Token:** `[AGENT-0036]`  
@@ -6025,8 +6081,11 @@ pnpm lint       # ✅ 0 warnings
 | Task | Status | Details |
 |------|--------|---------|
 | PWA/Offline support | ✅ ALREADY DONE | `public/sw.js` (733 lines) + `ClientLayout.tsx` registration + `manifest.json` |
-| Timer cleanup (TD-003) | ✅ ALREADY DONE | All 7 files with setInterval have proper clearInterval cleanup |
-| db.collection() calls | ✅ COMPLETE [AGENT-0036] | 173 calls migrated to COLLECTIONS constants. 0 remaining in services |
+| Timer cleanup (TD-003) | ✅ ALREADY DONE | All 20+ files with setInterval have proper clearInterval cleanup [AGENT-0036] |
+| db.collection() calls (TD-001) | ✅ COMPLETE [AGENT-0036] | 173 calls migrated to COLLECTIONS constants. 0 remaining in services |
+| Any types (TD-002) | ✅ MINIMAL (3) [AGENT-0036] | Only 3 casts in prod code (queues/setup.ts, tenant-lifecycle.ts) |
+| Filter persistence (BUG-001) | ✅ ALREADY DONE [AGENT-0036] | All 5 components use serializeFilters() |
+| Aggregate migration (LOGIC-002) | ✅ ALREADY DONE [AGENT-0036] | All 61 aggregates have orgId scope + maxTimeMS |
 
 ### 📊 db.collection() CALLS AUDIT (TD-001) — ✅ COMPLETE [AGENT-0036]
 
