@@ -99,9 +99,10 @@ jobs:
       
       # Pre-download MongoDB binary to avoid race condition between shards
       - name: Pre-download MongoDB binary
-        run: npx mongodb-memory-server-core --download-only
+        run: node -e "const { MongoMemoryServer } = require('mongodb-memory-server'); MongoMemoryServer.create().then(s => s.stop());"
         env:
           MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        continue-on-error: true
       
       - name: Run server tests (shard ${{ matrix.shard }})
         run: pnpm vitest run --project=server --shard=${{ matrix.shard }} --reporter=dot --coverage
@@ -153,9 +154,10 @@ jobs:
       
       # Pre-download MongoDB binary to avoid race condition between shards
       - name: Pre-download MongoDB binary
-        run: npx mongodb-memory-server-core --download-only
+        run: node -e "const { MongoMemoryServer } = require('mongodb-memory-server'); MongoMemoryServer.create().then(s => s.stop());"
         env:
           MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        continue-on-error: true
       
       - name: Run client tests (shard ${{ matrix.shard }})
         run: pnpm vitest run --project=client --shard=${{ matrix.shard }} --reporter=dot --coverage

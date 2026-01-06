@@ -90,9 +90,10 @@ jobs:
       # Pre-download MongoDB binary before tests start
       - name: Pre-download MongoDB binary
         shell: bash
-        run: npx mongodb-memory-server-core --download-only
+        run: node -e "const { MongoMemoryServer } = require('mongodb-memory-server'); MongoMemoryServer.create().then(s => s.stop());"
         env:
           MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        continue-on-error: true
 
       # ---------- Phase 2 Canonical Rules ----------
       - name: Validate waivers schema
