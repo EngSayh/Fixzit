@@ -8,6 +8,33 @@ const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 const makeClaimId = () => `CLM-${new ObjectId().toHexString()}`;
 
 /**
+ * Claims API Test Suite - E2E/Integration Tests
+ *
+ * These tests make real HTTP calls to localhost:3000 and require:
+ * 1. A running Next.js dev server
+ * 2. MongoDB connection
+ *
+ * Skip in CI environments that don't start the dev server.
+ * For unit-test-only CI pipelines, these tests are skipped.
+ */
+
+// Check if we can reach the server (E2E tests need a running server)
+const checkServerAvailable = async (): Promise<boolean> => {
+  try {
+    const response = await fetch("http://localhost:3000/api/health", {
+      method: "GET",
+      signal: AbortSignal.timeout(2000),
+    });
+    return response.ok || response.status === 401;
+  } catch {
+    return false;
+  }
+};
+
+// Determine if we should run E2E tests
+const shouldSkipE2E = process.env.CI === "true" && !process.env.E2E_SERVER_RUNNING;
+
+/**
  * Claims API Test Suite
  *
  * Tests the Souq marketplace claims system including:
@@ -23,7 +50,10 @@ const makeClaimId = () => `CLM-${new ObjectId().toHexString()}`;
  * Coverage Target: 90% (from 40%)
  */
 
-describe("Claims API - Core Functionality", () => {
+// Use describe.skipIf to skip E2E tests in CI without dev server
+const describeE2E = shouldSkipE2E ? describe.skip : describe;
+
+describeE2E("Claims API - Core Functionality (E2E - requires running server)", () => {
   let db: Db;
   let client: MongoClient;
   let testOrderId: ObjectId;
@@ -31,8 +61,15 @@ describe("Claims API - Core Functionality", () => {
   let testSellerId: ObjectId;
   let testClaimId: ObjectId;
   let testOrgId: ObjectId;
+  let serverAvailable = false;
 
   beforeAll(async () => {
+    // Check if server is available for E2E tests
+    serverAvailable = await checkServerAvailable();
+    if (!serverAvailable && !shouldSkipE2E) {
+      console.warn("⚠️ Dev server not running - E2E tests may fail");
+    }
+
     const uri =
       process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
     client = new MongoClient(uri);
