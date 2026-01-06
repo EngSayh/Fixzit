@@ -101,9 +101,8 @@ jobs:
       - name: Pre-download MongoDB binary
         run: |
           node -e "
-            const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
-            const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
-            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+            const { MongoBinary } = require('mongodb-memory-server');
+            MongoBinary.getPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
           "
         continue-on-error: true
       
@@ -159,9 +158,8 @@ jobs:
       - name: Pre-download MongoDB binary
         run: |
           node -e "
-            const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
-            const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
-            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+            const { MongoBinary } = require('mongodb-memory-server');
+            MongoBinary.getPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
           "
         continue-on-error: true
       

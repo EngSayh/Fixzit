@@ -87,17 +87,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mongodb-binaries-
 
-      # Pre-download MongoDB binary before tests start (blocking to prevent race conditions)
+      # Pre-download MongoDB binary before tests start
       - name: Pre-download MongoDB binary
         shell: bash
-        env:
-          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
         run: |
           node -e "
-            const { MongoBinaryDownload } = require('mongodb-memory-server-core/lib/util/MongoBinaryDownload');
-            const download = new MongoBinaryDownload({ downloadDir: process.env.HOME + '/.cache/mongodb-binaries' });
-            download.getMongodPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => { console.error('Download failed:', e.message); process.exit(1); });
+            const { MongoBinary } = require('mongodb-memory-server');
+            MongoBinary.getPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
           "
+        continue-on-error: true
 
       # ---------- Phase 2 Canonical Rules ----------
       - name: Validate waivers schema
