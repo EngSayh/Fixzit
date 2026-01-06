@@ -12,19 +12,65 @@
  * - Validation rules
  */
  
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from "vitest";
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
-import { waitForMongoConnection } from '@/tests/utils/mongo-helpers';
 
 // Model will be imported AFTER mongoose connection is ready
 let HelpArticle: mongoose.Model<any>;
+let localMongoServer: MongoMemoryServer | null = null;
+
+/**
+ * Wait for mongoose connection to be ready (max 10s).
+ * If not connected after timeout, attempts to start a local MongoMemoryServer.
+ */
+async function ensureMongoConnection(maxWaitMs = 10000): Promise<void> {
+  const start = Date.now();
+  
+  // First, wait for global setup to potentially connect
+  while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWaitMs) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  
+  // If still not connected, start our own MongoMemoryServer
+  if (mongoose.connection.readyState !== 1) {
+    if (!localMongoServer) {
+      localMongoServer = await MongoMemoryServer.create({
+        instance: {
+          dbName: "fixzit-test-helparticle",
+          launchTimeout: 60000,
+        },
+      });
+      const uri = localMongoServer.getUri();
+      await mongoose.connect(uri, {
+        autoCreate: true,
+        autoIndex: true,
+      });
+    }
+  }
+  
+  // Final check
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error(
+      `Mongoose not connected - readyState: ${mongoose.connection.readyState}`
+    );
+  }
+}
+
+beforeAll(async () => {
+  await ensureMongoConnection();
+});
+
+afterAll(async () => {
+  if (localMongoServer) {
+    await mongoose.disconnect();
+    await localMongoServer.stop();
+    localMongoServer = null;
+  }
+});
 
 beforeEach(async () => {
-  // Wait for mongoose connection from vitest.setup.ts beforeAll
-  // Uses shared utility with 180s timeout and retry logic
-  await waitForMongoConnection();
-  
   // Clear tenant context
   await mongoose.connection.dropDatabase();
   
