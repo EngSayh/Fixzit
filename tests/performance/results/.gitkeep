@@ -1,0 +1,6 @@
+# Performance test results directory
+# JSON summaries from k6 runs are saved here
+# This file ensures the directory is tracked in git
+
+*.json
+!.gitkeep
