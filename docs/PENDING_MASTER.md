@@ -19,6 +19,118 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-06 — AI IMPROVEMENT ANALYSIS WORK SESSION [AGENT-0031]
+
+**Agent Token:** [AGENT-0031]  
+**Branch:** `fix/s3-503-service-unavailable`  
+**Commits ahead of origin/main:** 8
+**Source:** `docs/AI_IMPROVEMENT_ANALYSIS_REPORT.md` (695 lines, 36 items, ~962 hours)
+
+#### Git Preflight
+
+| Check | Status |
+|-------|--------|
+| Behind origin/main | 0 ✅ |
+| Ahead of origin/main | 8 |
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+
+#### Full Backlog from AI Improvement Analysis Report
+
+**Summary:** 36 items totaling ~962 hours estimated work
+
+##### 🔴 P0 Critical (~200 hours)
+
+| ID | Category | Description | Effort | Status |
+|----|----------|-------------|--------|--------|
+| FEATURE-001 | Feature | Real-Time Notifications (WebSocket) | 40h | 📋 TODO |
+| PERF-001 | Performance | Database Query Optimization | 32h | 🔄 IN PROGRESS |
+| TEST-001 | Test | Superadmin Route Tests | 24h | 📋 TODO |
+| TEST-002 | Test | Billing Module Unit Tests | 40h | 📋 TODO |
+| PERF-002 | Performance | Background Job System | 24h | 📋 TODO |
+| SEC-001 | Security | Enhanced API Rate Limiting | 16h | 📋 TODO |
+| TEST-003 | Test | FM Domain Test Coverage | 24h | 📋 TODO |
+
+##### 🟠 P1 High (~452 hours)
+
+| ID | Category | Description | Effort | Status |
+|----|----------|-------------|--------|--------|
+| UX-001 | UX | Error Boundary with Recovery | 24h | 📋 TODO |
+| UX-002 | UX | Progressive Loading States | 32h | 📋 TODO |
+| UX-003 | UX | Form Autosave | 24h | 📋 TODO |
+| AUTO-001 | Automation | CI/CD Pipeline Enhancements | 40h | 📋 TODO |
+| AUTO-002 | Automation | Automated Database Migrations | 32h | 📋 TODO |
+| AUTO-003 | Automation | Feature Flag Management System | 24h | 📋 TODO |
+| COMP-001 | Compliance | ZATCA Phase 2 Compliance | 80h | 📋 TODO |
+| COMP-002 | Compliance | Ejar Platform Integration | 60h | 📋 TODO |
+| TD-001 | Tech Debt | Standardize db.collection() Usage | 24h | 🔄 IN PROGRESS |
+| TD-002 | Tech Debt | API Error Response Consistency | 16h | 📋 TODO |
+| TD-003 | Tech Debt | Remove Deprecated Code Paths | 16h | 📋 TODO |
+| BI-003 | BI | Advanced Analytics Dashboard | 40h | 📋 TODO |
+| OBS-001 | Observability | Comprehensive Logging Framework | 24h | 📋 TODO |
+| OBS-002 | Observability | APM Integration (Sentry/NewRelic) | 16h | 📋 TODO |
+
+##### 🟡 P2 Medium (~308 hours)
+
+| ID | Category | Description | Effort | Status |
+|----|----------|-------------|--------|--------|
+| UX-004 | UX | Dark Mode Implementation | 40h | 📋 TODO |
+| BI-001 | BI | Custom Report Builder | 60h | 📋 TODO |
+| BI-002 | BI | Data Export Enhancements | 24h | 📋 TODO |
+| DEV-001 | DevEx | API Documentation Portal | 40h | 📋 TODO |
+| DEV-002 | DevEx | Developer Onboarding Guide | 24h | 📋 TODO |
+| DEV-003 | DevEx | Component Storybook | 32h | 📋 TODO |
+| SCALE-001 | Scalability | Horizontal Scaling Preparation | 40h | 📋 TODO |
+| SCALE-002 | Scalability | CDN and Asset Optimization | 24h | 📋 TODO |
+| MOBILE-001 | Mobile | Mobile-First Responsive Redesign | 24h | 📋 TODO |
+
+##### 🟢 P3 Low (~2 hours)
+
+| ID | Category | Description | Effort | Status |
+|----|----------|-------------|--------|--------|
+| BUG-002 | Bug | vitest.config.ts TS strict errors | 2h | 📋 TODO |
+
+---
+
+#### Work Session Progress
+
+##### PERF-001 + TD-001: Database Query Optimization
+
+**Objective:** Replace hardcoded `db.collection()` strings with centralized `COLLECTIONS` constants
+
+**Audit Results:**
+- **Report claimed:** 33 db.collection() calls
+- **Actual count:** 628 calls in 86 files (report was inaccurate)
+- **Hardcoded strings in API routes:** 3 found (`fm_bids`, `zatca_credentials`, `zatca_submissions`)
+
+**Files Fixed (4 files):**
+
+1. **`lib/db/collection-names.ts`** - Added 3 new constants:
+   - `FM_BIDS: "fm_bids"`
+   - `ZATCA_CREDENTIALS: "zatca_credentials"`
+   - `ZATCA_SUBMISSIONS: "zatca_submissions"`
+
+2. **`app/api/finance/zatca/onboarding/route.ts`**:
+   - Replaced 2× `"zatca_credentials"` → `COLLECTIONS.ZATCA_CREDENTIALS`
+
+3. **`app/api/finance/zatca/submit/route.ts`**:
+   - Replaced 1× `"zatca_credentials"` → `COLLECTIONS.ZATCA_CREDENTIALS`
+   - Replaced 2× `"zatca_submissions"` → `COLLECTIONS.ZATCA_SUBMISSIONS`
+
+4. **`app/api/fm/providers/route.ts`**:
+   - Replaced 1× `"fm_bids"` → `COLLECTIONS.FM_BIDS`
+
+**Commit:** `fa7257551` - "fix(db): Add ZATCA + FM_BIDS collection constants, replace hardcoded strings [AGENT-0031]"
+
+**Analysis Notes:**
+- Many `db.collection()` calls are intentionally direct access (superadmin cross-tenant, services)
+- Top files: `bi-dashboard.ts` (48), `lease-service.ts` (33), `inspection-service.ts` (29)
+- God-mode route (19 calls) is intentional for superadmin cross-tenant access
+
+**Status:** ✅ API route hardcoded strings fixed | 📋 Service files remain (lower priority, correct design)
+
+---
+
 ### 2026-01-05 13:00 (Asia/Riyadh) — SMART REMEDIATION REPORT REVIEW [AGENT-0023]
 
 **Agent Token:** [AGENT-0023]  
