@@ -12,6 +12,9 @@ export const COLLECTIONS = {
   USERS: "users",
   PROPERTIES: "properties",
   WORK_ORDERS: "workorders",
+  // TODO: DATA-001 - Investigate/migrate work_orders vs workorders inconsistency
+  // Some code uses "work_orders" (underscore) - this needs data migration investigation
+  WORK_ORDERS_UNDERSCORE: "work_orders", // Legacy naming - used in bi-dashboard, fm services
   CATEGORIES: "categories",
   VENDORS: "vendors",
   PRODUCTS: "products",
@@ -133,6 +136,8 @@ export const COLLECTIONS = {
   KILL_SWITCH_EVENTS: "kill_switch_events",
   TENANT_SNAPSHOTS: "tenant_snapshots",
   GHOST_SESSIONS: "ghost_sessions",
+  RESTORE_JOBS: "restore_jobs",
+  TIME_TRAVEL_REQUESTS: "time_travel_requests",
   
   // Auth / Security collections
   ACCOUNT_LOCKOUTS: "account_lockouts",

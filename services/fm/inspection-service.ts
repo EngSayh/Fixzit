@@ -904,7 +904,8 @@ export async function createWorkOrderFromFinding(
       updatedAt: new Date(),
     };
     
-    const result = await db.collection("work_orders").insertOne(workOrder);
+    // TD-001: Using WORK_ORDERS_UNDERSCORE for now - DATA-001 tracks migration to unified name
+    const result = await db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).insertOne(workOrder);
     
     // Update finding with work order ID
     await db.collection(INSPECTIONS_COLLECTION).updateOne(

@@ -17,6 +17,7 @@ import { ObjectId, type WithId, type Document } from "mongodb";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collection-names";
 
 // ============================================================================
 // Types & Interfaces
@@ -903,7 +904,8 @@ export async function autoGenerateWorkOrders(
     
     for (const rec of highPriorityRecs) {
       // Check if work order already exists
-      const existingWO = await db.collection("work_orders").findOne({
+      // TD-001: Using WORK_ORDERS_UNDERSCORE for now - DATA-001 tracks migration to unified name
+      const existingWO = await db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).findOne({
         orgId,
         propertyId: rec.propertyId,
         source: "predictive_maintenance",
@@ -933,7 +935,7 @@ export async function autoGenerateWorkOrders(
           updatedAt: new Date(),
         };
         
-        const result = await db.collection("work_orders").insertOne(workOrder);
+        const result = await db.collection(COLLECTIONS.WORK_ORDERS_UNDERSCORE).insertOne(workOrder);
         workOrderIds.push(result.insertedId.toString());
       }
     }
