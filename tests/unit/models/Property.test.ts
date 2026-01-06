@@ -71,6 +71,9 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  // Ensure connection is ready before each test (CI sharding can cause disconnection)
+  await ensureMongoConnection();
+  
   clearTenantContext();
 
   // Clear module cache to force fresh import

@@ -68,6 +68,9 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  // Ensure connection is ready before each test (CI sharding can cause disconnection)
+  await ensureMongoConnection();
+  
   clearTenantContext();
   
   // Clear model from mongoose cache using proper API
