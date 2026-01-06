@@ -200,6 +200,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
+      # Cache MongoMemoryServer binaries
+      - name: Cache MongoMemoryServer binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongodb-binaries-7.0.24
+          restore-keys: |
+            ${{ runner.os }}-mongodb-binaries-
+      
+      # Pre-download MongoDB binary to avoid race condition
+      - name: Pre-download MongoDB binary
+        run: |
+          node -e "
+            const { MongoBinary } = require('mongodb-memory-server');
+            MongoBinary.getPath().then(p => console.log('MongoDB binary ready:', p)).catch(e => console.log('Download skipped:', e.message));
+          "
+        continue-on-error: true
+      
       - name: Run model tests
         run: pnpm vitest run --project=server tests/models tests/**/models --reporter=dot
         env:
