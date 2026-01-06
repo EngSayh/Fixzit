@@ -724,6 +724,35 @@ Missing collection constants in `lib/db/collection-names.ts`:
 - [ ] GitHub CI (pending)
 - [ ] Merge to main
 
+##### Additional PERF-001 Fix: .lean() Optimization
+
+**Objective:** Add `.lean()` to read-only Mongoose queries for 5-10x performance improvement
+
+**Files Fixed:**
+1. **`app/api/invoices/route.ts`** (line 297-302):
+   - Added `.lean()` to `Invoice.find(match)` query
+   - Comment: `// PERF-001: Read-only query optimization`
+
+**Commit:** `42e82d493` - "perf(api): Add .lean() to Invoice.find() for read-only optimization [AGENT-0031]"
+
+**Analysis Notes:**
+- Audited 10 API routes with `.find()` calls
+- Most already have `.lean()` (rfqs, slas, vendors, onboarding, issues, export-jobs)
+- Only invoices route was missing it
+- Native `db.collection()` calls don't need `.lean()` (already efficient)
+
+##### BUG-002 Verification: vitest.config.ts TS errors
+
+**Status:** ✅ VERIFIED - NOT AN ISSUE
+
+**Evidence:**
+- `pnpm typecheck` passes (0 errors)
+- `tsconfig.json` has `skipLibCheck: true` (ignores node_modules errors)
+- Vite/Vitest type definition errors are external to project code
+- Build and tests pass successfully
+
+**Conclusion:** Report item was false positive due to running tsc directly on vitest.config.ts without project tsconfig.
+
 ---
 
 ### 2026-01-05 13:00 (Asia/Riyadh) — SMART REMEDIATION REPORT REVIEW [AGENT-0023]
