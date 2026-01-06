@@ -31,34 +31,54 @@ type FieldErrors = {
 };
 
 /**
- * Debug info component - shows middleware redirect diagnostics
- * Only visible when query params are present from failed auth
+ * Session status component - shows user-friendly messages when redirected to login
+ * Only visible when reason query param is present from middleware redirect
  */
-function AuthDebugInfo() {
+function SessionStatusMessage() {
   const searchParams = useSearchParams();
   
   // Handle null searchParams (shouldn't happen with Suspense but TypeScript requires check)
   if (!searchParams) return null;
   
   const reason = searchParams.get('reason');
-  const hadCookie = searchParams.get('had_cookie');
-  const cookieLen = searchParams.get('cookie_len');
-  const hasHeader = searchParams.get('hdr');
-  const hasSecret = searchParams.get('sec');
-  const decodeError = searchParams.get('err');
 
-  // Only show if there's debug info
-  if (!reason && !hadCookie) return null;
+  // Only show if there's a redirect reason
+  if (!reason) return null;
+
+  // User-friendly messages based on reason
+  const getMessage = () => {
+    switch (reason) {
+      case 'expired':
+        return {
+          title: 'Session Expired',
+          message: 'Your session has expired. Please log in again to continue.',
+          icon: '⏰',
+        };
+      case 'decode_failed':
+        return {
+          title: 'Session Invalid',
+          message: 'Your session could not be verified. Please log in again.',
+          icon: '🔒',
+        };
+      case 'no_cookie':
+      default:
+        return {
+          title: 'Login Required',
+          message: 'Please log in to access the superadmin dashboard.',
+          icon: '🔐',
+        };
+    }
+  };
+
+  const { title, message, icon } = getMessage();
 
   return (
-    <div className="mb-4 p-3 rounded bg-amber-950/50 border border-amber-700 text-xs text-amber-200">
-      <div className="font-semibold mb-1">Auth Debug (middleware redirect):</div>
-      <div>reason: {reason || 'none'} {reason === 'no_cookie' && '(cookie not sent by browser)'} {reason === 'decode_failed' && '(cookie sent but JWT decode failed)'} {reason === 'expired' && '(session expired)'}</div>
-      <div>had_cookie: {hadCookie || '?'}</div>
-      <div>cookie_len: {cookieLen || '?'}</div>
-      <div>cookie_header: {hasHeader || '?'}</div>
-      <div>jwt_secret_available: {hasSecret === '1' ? '✅ yes' : hasSecret === '0' ? '❌ NO' : '?'}</div>
-      {decodeError && <div>decode_error: {decodeError}</div>}
+    <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border text-sm">
+      <div className="flex items-center gap-2 font-medium text-foreground mb-1">
+        <span>{icon}</span>
+        <span>{title}</span>
+      </div>
+      <p className="text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -178,7 +198,7 @@ export default function SuperadminLoginPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <Suspense fallback={null}>
-              <AuthDebugInfo />
+              <SessionStatusMessage />
             </Suspense>
             {error && (
               <Alert variant="destructive">
