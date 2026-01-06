@@ -19,6 +19,49 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-06 — MULTI-BRANCH CI MONITORING SESSION [AGENT-0031]
+
+**Agent Token:** [AGENT-0031]  
+**Branch:** `feat/ats-in-house-default-enabled` (currently), also worked on `fix/s3-503-service-unavailable`
+**Commits ahead of main:** 4
+
+#### Git Preflight
+
+| Check | Status |
+|-------|--------|
+| Behind origin/main | 0 ✅ |
+| Ahead of origin/main | 4 |
+| `pnpm typecheck` | ✅ 0 errors |
+
+#### Active PRs Monitored
+
+| PR | Branch | Title | CI Status |
+|----|--------|-------|-----------|
+| #662 | feat/ats-in-house-default-enabled | feat(ats): Enable in-house ATS by default | 🔄 Pending |
+| #663 | fix/s3-503-service-unavailable | fix(storage): STG-REM-001 Normalize S3 | 🔄 Pending |
+| #664 | feat/filterpresets-marketplace-integration | FilterPresetsDropdown + Select styling | 🔄 Pending |
+| #669 | fix/i18n-missing-translation-keys | fix(i18n): Add missing translation keys | 🔄 Pending |
+
+#### Work Completed (from previous AGENT-0031 session on fix/s3-503-service-unavailable)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| **PERF-001/TD-001** | ✅ Complete | Fixed API route collection strings, added `.lean()` to invoices |
+| **BUG-002** | ✅ Verified | vitest.config.ts errors are false positive |
+| **PERF-003** | ✅ Verified | Timer cleanup already implemented in all components |
+
+#### Commits Made [AGENT-0031] on fix/s3-503-service-unavailable
+
+| Commit | Message |
+|--------|---------|
+| `fa7257551` | fix(db): Add ZATCA + FM_BIDS collection constants |
+| `9ea32e49f` | docs(ssot): Log AI Improvement Analysis backlog |
+| `42e82d493` | perf(api): Add .lean() to Invoice.find() |
+| `3e86ec9f0` | docs(ssot): Update PERF-001 progress + BUG-002 verification |
+| `be2b97d6a` | docs(ssot): Add PERF-003 timer cleanup verification |
+
+---
+
 ### 2026-01-07 14:15 (Asia/Riyadh) — SYSTEM IMPROVEMENT ANALYSIS REPORT VERIFICATION [AGENT-0012]
 
 **Agent Token:** [AGENT-0012]  
