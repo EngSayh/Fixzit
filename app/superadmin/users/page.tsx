@@ -212,6 +212,7 @@ export default function SuperadminUsersPage() {
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (orgFilter !== "all") params.set("orgId", orgFilter);
       if (userTypeFilter !== "all") params.set("userType", userTypeFilter);
+      if (roleFilter !== "all") params.set("role", roleFilter);
 
       const response = await fetch(`/api/superadmin/users?${params}`, {
         credentials: "include",
@@ -234,7 +235,7 @@ export default function SuperadminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, statusFilter, orgFilter, userTypeFilter]);
+  }, [page, limit, search, statusFilter, orgFilter, userTypeFilter, roleFilter]);
 
   // Fetch organizations for filter
   const fetchOrganizations = useCallback(async () => {
