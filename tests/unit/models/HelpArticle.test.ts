@@ -2,8 +2,9 @@
  * Unit tests for HelpArticle model.
  * Framework: Vitest with MongoDB Memory Server
  *
- * ✅ FIXED: Uses global mongoose connection from vitest.setup.ts
- * ✅ NO redundant MongoMemoryServer - vitest.setup.ts handles it
+ * ✅ Uses REAL MongoDB Memory Server
+ * ✅ Tests with real database operations
+ * ✅ No mocking
  * 
  * Tests validate:
  * - Schema: required fields, defaults, enums, indexes, timestamps
@@ -12,24 +13,62 @@
  * - Validation rules
  */
  
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from "vitest";
 import mongoose from 'mongoose';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
 
 // Model will be imported dynamically per test
 let HelpArticle: mongoose.Model<any>;
+let localMongoServer: MongoMemoryServer | null = null;
 
-beforeEach(async () => {
-  // Wait for mongoose connection (global setup provides it)
-  const maxWaitMs = 15000;
+/**
+ * Wait for mongoose connection to be ready (max 10s).
+ * If not connected after timeout, starts a local MongoMemoryServer.
+ */
+async function ensureMongoConnection(maxWaitMs = 10000): Promise<void> {
   const start = Date.now();
+
+  // First, wait for global setup to potentially connect
   while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWaitMs) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
+
+  // If still not connected, start our own MongoMemoryServer
+  if (mongoose.connection.readyState !== 1) {
+    if (!localMongoServer) {
+      localMongoServer = await MongoMemoryServer.create({
+        instance: {
+          dbName: "fixzit-test-helparticle",
+          launchTimeout: 60000,
+        },
+      });
+      const uri = localMongoServer.getUri();
+      await mongoose.connect(uri, { autoCreate: true, autoIndex: true });
+    }
+  }
+
+  // Final check
   if (mongoose.connection.readyState !== 1) {
     throw new Error(`Mongoose not connected - readyState: ${mongoose.connection.readyState}`);
   }
+}
+
+beforeAll(async () => {
+  await ensureMongoConnection();
+});
+
+afterAll(async () => {
+  // Cleanup local server if we started one
+  if (localMongoServer) {
+    await mongoose.disconnect();
+    await localMongoServer.stop();
+    localMongoServer = null;
+  }
+});
+
+beforeEach(async () => {
+  clearTenantContext();
   
   // Clear model from mongoose cache using proper API
   if (mongoose.connection.models.HelpArticle) {
