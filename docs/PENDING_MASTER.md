@@ -22,7 +22,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 ### 2026-01-08 (Asia/Riyadh) — PR Batch Review & Comment Resolution [AGENT-0010]
 
 **Agent Token:** `[AGENT-0010]`  
-**Branch:** `fix/lint-collections-baseline`  
+**Branch:** `fix/lint-collections-baseline` (and all PR branches)  
 **PRs Reviewed:** #670, #669, #664, #663, #662
 
 #### Session Actions
@@ -31,50 +31,62 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
    - Review 3630857426: Dismissed (comments addressed, no blocking changes)
    - Review 3631005199: Dismissed (suggestions for improvement, not blocking)
 
-2. **Applied Code Fixes (commit 45f463c93)**
+2. **Applied Code Fixes to PR #670 (commits 45f463c93, fc8b16bbf)**
    - `vitest.setup.ts`: Fixed hasExternalMongo detection logic (was contradictory AND → proper OR)
    - `scripts/lint-collections.js`: Added 'services' folder to default scan roots
+   - Migrated 9 hardcoded collection literals in services/ to COLLECTIONS.* constants
+   - Added 3 new constants: SELLER_NOTIFICATIONS, TRAINING_SESSIONS, CONSENTS
 
-3. **Local CI Verification**
+3. **Applied Code Fixes to PR #664 (commit fb357d7de)**
+   - `app/superadmin/users/page.tsx`: Wired roleFilter to fetchUsers API call + added to deps
+
+4. **Applied Code Fixes to PR #663 (commit 5b5fd2bbc)**
+   - `app/api/upload/verify-metadata/route.ts`: Changed S3NotConfiguredError status from 501 to 503
+
+5. **Applied Code Fixes to PR #662 (commit e629bd98e)**
+   - `lib/config/constants.ts`: Added DEFAULT_PLATFORM_ORG_ID constant
+   - `app/api/ats/public-post/route.ts`: Use publicJobsOrgId fallback chain
+
+6. **Local CI Verification (all PRs)**
    - `pnpm typecheck`: ✅ 0 errors
-   - `pnpm lint`: ✅ 0 errors
-   - `pnpm vitest run tests/unit/models`: ✅ 91 tests pass
+   - `pnpm lint`: ✅ 0 errors (warnings only)
+   - `pnpm run lint:collections`: ✅ No hardcoded literals
 
-#### PR Comments Summary
+#### PR Comments Summary (FINAL STATUS)
 
 | PR | Total Comments | Actionable | Status |
 |----|----------------|------------|--------|
-| #670 | 30+ | 2 (fixed) | ✅ Comments addressed |
+| #670 | 30+ | 2+9 (fixed) | ✅ All comments addressed |
 | #669 | 3 | 0 (suggestions only) | ✅ No action needed |
-| #664 | 1 | 1 (roleFilter not wired) | ⚠️ Enhancement suggestion |
-| #663 | 3 | 1 (501→503 inconsistency) | ⚠️ Enhancement suggestion |
-| #662 | 2 | 1 (hardcoded org fallback) | ⚠️ Enhancement suggestion |
+| #664 | 1 | 1 (fixed) | ✅ roleFilter wired to API |
+| #663 | 3 | 1 (fixed) | ✅ 501→503 consistency fixed |
+| #662 | 2 | 1 (fixed) | ✅ Constant added, fallback chain improved |
 
-#### PR #670 Actionable Comments (FIXED)
+#### Files Modified Across All PRs
 
-| Comment | Fix Applied |
-|---------|-------------|
-| hasExternalMongo logic contradictory | Changed to proper OR check for localhost/127.0.0.1 |
-| lint-collections.js missing services folder | Added 'services' to default roots array |
+**PR #670:**
+- `lib/db/collection-names.ts` (+3 constants)
+- `vitest.setup.ts` (hasExternalMongo logic)
+- `scripts/lint-collections.js` (services folder)
+- `services/souq/settlements/withdrawal-service.ts`
+- `services/souq/claims/refund-processor.ts`
+- `services/souq/claims/investigation-service.ts`
+- `services/reports/bi-dashboard.ts`
+- `services/notifications/seller-notification-service.ts`
+- `services/compliance/pdpl-service.ts`
 
-#### Other PRs: Suggestions (Not Blocking)
+**PR #664:**
+- `app/superadmin/users/page.tsx` (roleFilter API wiring)
 
-**PR #669 - i18n translations:**
-- Type assertions on filter presets (suggestion for runtime validation)
-- Arabic plural forms (enhancement for i18n quality)
-- Status: Suggestions only, no code changes required to merge
+**PR #663:**
+- `app/api/upload/verify-metadata/route.ts` (501→503)
 
-**PR #664 - FilterPresetsDropdown:**
-- roleFilter state defined but not wired to API call
-- Status: Valid enhancement, but not blocking - UI control present
+**PR #662:**
+- `lib/config/constants.ts` (DEFAULT_PLATFORM_ORG_ID)
+- `app/api/ats/public-post/route.ts` (fallback chain)
 
-**PR #663 - S3 error handling:**
-- GET endpoint uses 501, POST uses 503 for same error - inconsistency
-- Status: Valid fix, but not blocking
-
-**PR #662 - ATS in-house:**
-- "fixzit-platform" hardcoded fallback should be a constant
-- Status: Valid enhancement, but not blocking
+**PR #669:**
+- No changes needed (suggestions only)
 
 #### Merge Blockers
 
