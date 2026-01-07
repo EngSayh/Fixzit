@@ -57,7 +57,7 @@ function SuperadminLanguageDropdown() {
       aria-label={t("i18n.selectLanguageLabel")}
       value={active.language}
       onValueChange={handleChange}
-      className="min-w-[160px] h-10 bg-card text-foreground border-border pe-9 ps-3"
+      className="min-w-[160px] h-10 bg-muted text-foreground border-input pe-9 ps-3"
       data-testid="superadmin-language-dropdown"
     >
       {ENABLED_LOCALES.map((option) => (
