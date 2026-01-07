@@ -63,9 +63,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Security Audit (prod, high severity)
+        if: env.CI_LITE != 'true'
         run: pnpm audit --prod --audit-level=high
 
       - name: Translation Audit
+        if: env.CI_LITE != 'true'
         run: node scripts/audit-translations.mjs || echo "::warning::Translation audit found missing keys - continuing build"
         continue-on-error: true
 
@@ -80,6 +82,7 @@ jobs:
         continue-on-error: false
 
       - name: 🔒 Assert non-production MongoDB
+        if: env.CI_LITE != 'true'
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
@@ -91,6 +94,7 @@ jobs:
           pnpm tsx scripts/assert-nonprod-mongo.ts
 
       - name: Ensure Mongo Indexes (idempotent)
+        if: env.CI_LITE != 'true'
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
@@ -102,6 +106,7 @@ jobs:
           pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
 
       - name: Run Tests
+        if: env.CI_LITE != 'true'
         run: |
           export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit-test}"
           pnpm test:models || echo "::warning::Tests failed - MongoDB not available in CI. Full E2E tests run separately."
@@ -110,6 +115,7 @@ jobs:
           NODE_ENV: test
 
       - name: Check Code Coverage
+        if: env.CI_LITE != 'true'
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             COVERAGE=$(node -p "const summary=require('./coverage/coverage-summary.json'); summary?.total?.lines?.pct ?? 0")
@@ -149,9 +155,10 @@ jobs:
       # See: https://github.com/EngSayh/Fixzit/pull/656 [AGENT-0008]
 
       - name: Upload Coverage Reports
-        if: always()
+        if: env.CI_LITE != 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.node-version }}
           path: coverage
           retention-days: 7
+

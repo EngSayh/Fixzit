@@ -10,6 +10,9 @@ on:
     # Run nightly at 2 AM UTC for RBAC E2E tests
     - cron: '0 2 * * *'
 
+env:
+  CI_LITE: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+
 # Prevent concurrent runs for same PR/ref - saves CI resources
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -103,6 +106,7 @@ jobs:
         run: node scripts/waivers-validate.mjs
 
       - name: API scan (factory/NextAuth aware)
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           case "${{ steps.pm.outputs.manager }}" in
@@ -112,6 +116,7 @@ jobs:
           esac
 
       - name: i18n audit (docs/translations)
+        if: env.CI_LITE != 'true'
         shell: bash
         continue-on-error: true
         run: |
@@ -122,6 +127,7 @@ jobs:
           esac
 
       - name: i18n scan (TranslationContext aware)
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           case "${{ steps.pm.outputs.manager }}" in
@@ -131,6 +137,7 @@ jobs:
           esac
 
       - name: i18n scan (locale usage)
+        if: env.CI_LITE != 'true'
         shell: bash
         continue-on-error: true  # Non-blocking - 390+ keys need translation (tracked in backlog)
         run: |
@@ -150,6 +157,7 @@ jobs:
           echo "Run locally with: node scripts/fixzit-agent.mjs --report"
 
       - name: Delta & Regression checks
+        if: env.CI_LITE != 'true'
         shell: bash
         run: node scripts/scan-delta.mjs
 
@@ -182,6 +190,7 @@ jobs:
           esac
 
       - name: 🔒 Assert non-production MongoDB
+        if: env.CI_LITE != 'true'
         shell: bash
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
@@ -198,6 +207,7 @@ jobs:
           esac
 
       - name: Ensure Mongo Indexes (idempotent)
+        if: env.CI_LITE != 'true'
         shell: bash
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
@@ -224,32 +234,41 @@ jobs:
           mkdir -p .artifacts
           status=0
 
-          # Run only unit/model tests (E2E tests require environment setup)
-          # Use test:models:ci script which runs sequentially to avoid race conditions
-          # when downloading MongoDB binaries in parallel
-          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models:ci']?0:1)" 2>/dev/null; then
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
             case "${{ steps.pm.outputs.manager }}" in
-              pnpm) pnpm test:models:ci || status=$? ;;
-              yarn) yarn test:models:ci || status=$? ;;
-              *) npm run test:models:ci || status=$? ;;
-            esac
-          elif node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models']?0:1)" 2>/dev/null; then
-            case "${{ steps.pm.outputs.manager }}" in
-              pnpm) pnpm test:models || status=$? ;;
-              yarn) yarn test:models || status=$? ;;
-              *) npm run test:models || status=$? ;;
-            esac
-          elif node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.test?0:1)" 2>/dev/null; then
-            echo "::warning::No test:models script found. Falling back to test script."
-            echo "Note: E2E tests may fail without proper environment variables."
-            case "${{ steps.pm.outputs.manager }}" in
-              pnpm) pnpm test || status=$? ;;
-              yarn) yarn test || status=$? ;;
-              *) npm test || status=$? ;;
+              pnpm) pnpm vitest run --changed "origin/${{ github.base_ref }}" --reporter=dot --passWithNoTests || status=$? ;;
+              yarn) yarn vitest run --changed "origin/${{ github.base_ref }}" --reporter=dot --passWithNoTests || status=$? ;;
+              *) npx vitest run --changed "origin/${{ github.base_ref }}" --reporter=dot --passWithNoTests || status=$? ;;
             esac
           else
-            echo "No test script found in package.json. Skipping unit tests."
-            echo "Note: E2E tests with Playwright run separately (qa:e2e script exists)."
+            # Run only unit/model tests (E2E tests require environment setup)
+            # Use test:models:ci script which runs sequentially to avoid race conditions
+            # when downloading MongoDB binaries in parallel
+            if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models:ci']?0:1)" 2>/dev/null; then
+              case "${{ steps.pm.outputs.manager }}" in
+                pnpm) pnpm test:models:ci || status=$? ;;
+                yarn) yarn test:models:ci || status=$? ;;
+                *) npm run test:models:ci || status=$? ;;
+              esac
+            elif node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models']?0:1)" 2>/dev/null; then
+              case "${{ steps.pm.outputs.manager }}" in
+                pnpm) pnpm test:models || status=$? ;;
+                yarn) yarn test:models || status=$? ;;
+                *) npm run test:models || status=$? ;;
+              esac
+            elif node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.test?0:1)" 2>/dev/null; then
+              echo "::warning::No test:models script found. Falling back to test script."
+              echo "Note: E2E tests may fail without proper environment variables."
+              case "${{ steps.pm.outputs.manager }}" in
+                pnpm) pnpm test || status=$? ;;
+                yarn) yarn test || status=$? ;;
+                *) npm test || status=$? ;;
+              esac
+            else
+              echo "No test script found in package.json. Skipping unit tests."
+              echo "Note: E2E tests with Playwright run separately (qa:e2e script exists)."
+            fi
           fi
 
           # Collect test artifacts if they exist
@@ -274,6 +293,7 @@ jobs:
 
       # ---------- OpenAPI (generate or validate) ----------
       - name: Build/Validate OpenAPI
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p .artifacts
@@ -293,6 +313,7 @@ jobs:
 
       # ---------- Postman Collection (from OpenAPI) ----------
       - name: Export Postman Collection
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p .artifacts
@@ -311,6 +332,7 @@ jobs:
 
       # ---------- RBAC Matrix (CSV) ----------
       - name: Generate RBAC CSV
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p .artifacts
@@ -324,6 +346,7 @@ jobs:
 
       # ---------- RBAC Parity Check ----------
       - name: RBAC Parity Check
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p .artifacts
@@ -343,6 +366,7 @@ jobs:
 
       # ---------- Lighthouse CI (static export if available) ----------
       - name: Lighthouse CI
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p lhci_reports .artifacts
@@ -371,6 +395,7 @@ jobs:
       # Policy: Block high+ CVEs to prevent known exploitable vulnerabilities from deploying
       # Note: Moderate/low vulns generate warnings but don't block (tracked in dep-audit.json)
       - name: Dependency Audit
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p .artifacts
@@ -398,6 +423,7 @@ jobs:
 
       # ---------- k6 Smoke (package only) ----------
       - name: Prepare k6 Scripts
+        if: env.CI_LITE != 'true'
         shell: bash
         run: |
           mkdir -p .artifacts
@@ -812,3 +838,4 @@ jobs:
             echo ""
             echo "[Download report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
           } >> "$GITHUB_STEP_SUMMARY"
+

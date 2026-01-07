@@ -224,7 +224,7 @@ export default function PropertiesInspectionsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted border-input text-foreground">
+            <select className="w-full h-8 px-3 py-1.5 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted text-foreground">
               {propertyOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {t(option.key, option.fallback)}
@@ -233,7 +233,7 @@ export default function PropertiesInspectionsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted border-input text-foreground">
+            <select className="w-full h-8 px-3 py-1.5 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted text-foreground">
               {inspectionTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {t(option.key, option.fallback)}
@@ -242,7 +242,7 @@ export default function PropertiesInspectionsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted border-input text-foreground">
+            <select className="w-full h-8 px-3 py-1.5 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted text-foreground">
               {inspectionStatusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {t(option.key, option.fallback)}
