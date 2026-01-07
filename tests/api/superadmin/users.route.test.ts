@@ -249,4 +249,18 @@ describe("SuperAdmin Users List API", () => {
       expect(data.users[0]).toHaveProperty("orgName");
     });
   });
+
+  describe("Error Handling", () => {
+    it("should return 500 when database query fails", async () => {
+      mockGetSuperadminSession.mockResolvedValue({ username: "superadmin", email: "admin@fixzit.sa" });
+      mockUserAggregate.mockRejectedValueOnce(new Error("Database connection failed"));
+
+      const request = createRequest();
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.error).toBeDefined();
+    });
+  });
 });

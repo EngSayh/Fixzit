@@ -162,7 +162,7 @@ export default function SuperadminUsersPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, orgFilter, userTypeFilter]);
+  }, [statusFilter, orgFilter, userTypeFilter, roleFilter]);
 
   // ============================================================================
   // Selection Handlers

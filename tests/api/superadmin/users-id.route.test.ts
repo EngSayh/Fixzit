@@ -214,6 +214,7 @@ describe("SuperAdmin Single User API", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
+      expect(data.error).toBeDefined();
     });
 
     it("should return 400 for invalid JSON body", async () => {
@@ -231,6 +232,22 @@ describe("SuperAdmin Single User API", () => {
       expect(response.status).toBe(400);
       expect(data.error).toContain("Invalid JSON");
     });
+
+    it("should return 404 when updating non-existent user", async () => {
+      mockGetSuperadminSession.mockResolvedValue({ username: "superadmin", email: "admin@fixzit.sa" });
+      mockUserFindByIdAndUpdate.mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue(null),
+        }),
+      });
+
+      const request = createRequest("PATCH", { status: "SUSPENDED" });
+      const response = await PATCH(request, createParams());
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toContain("not found");
+    });
   });
 
   describe("DELETE /api/superadmin/users/[id]", () => {
@@ -243,6 +260,29 @@ describe("SuperAdmin Single User API", () => {
 
       expect(response.status).toBe(401);
       expect(data.error).toContain("Unauthorized");
+    });
+
+    it("should delete user successfully", async () => {
+      mockGetSuperadminSession.mockResolvedValue({ username: "superadmin", email: "admin@fixzit.sa" });
+
+      const request = createRequest("DELETE");
+      const response = await DELETE(request, createParams());
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it("should return 404 when deleting non-existent user", async () => {
+      mockGetSuperadminSession.mockResolvedValue({ username: "superadmin", email: "admin@fixzit.sa" });
+      mockUserFindByIdAndDelete.mockResolvedValueOnce(null);
+
+      const request = createRequest("DELETE");
+      const response = await DELETE(request, createParams());
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toContain("not found");
     });
   });
 });
