@@ -1101,7 +1101,29 @@ Mandatory Branch Discipline (2-device safe)
 
 Never work directly on main.
 
-Branch format: agent/<AGENT-TOKEN>/<ISSUE-KEY>/<short-slug>.
+**Branch Naming Convention (MANDATORY for PRs):**
+```
+Fixzit-v<VERSION>-<YYYYMMDD>-<HHMM>-<short-slug>
+
+Examples:
+- Fixzit-v2.0.28-20260107-1430-ui-consolidation
+- Fixzit-v2.0.28-20260107-1545-auth-rbac-fix
+- Fixzit-v2.0.28-20260108-0900-billing-tests
+```
+
+**Branch Name Components:**
+| Component | Format | Example |
+|-----------|--------|----------|
+| Project | `Fixzit` | `Fixzit` |
+| Version | `v<MAJOR>.<MINOR>.<PATCH>` | `v2.0.28` |
+| Date | `YYYYMMDD` | `20260107` |
+| Time | `HHMM` (24h, Asia/Riyadh) | `1430` |
+| Slug | `kebab-case` (2-4 words) | `ui-consolidation` |
+
+**Legacy format (still valid for agent work branches):**
+```
+agent/<AGENT-TOKEN>/<ISSUE-KEY>/<short-slug>
+```
 
 One active branch per device per issue (avoid parallel edits of same files).
 
@@ -1215,31 +1237,67 @@ No static override codes or secrets may be stored in the repo.
 
 #### 5.8.1 Terminal Naming Convention (MANDATORY)
 
-**All terminals MUST be named for easy identification and tracking.**
+**All terminals MUST be named for easy identification and tracking. No unnamed/unknown terminals allowed.**
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ⚠️ TERMINAL NAMING IS NON-NEGOTIABLE                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Every terminal MUST have:                                              │
+│   1. Agent Token: [AGENT-XXXX]                                         │
+│   2. Purpose: What the terminal is for                                 │
+│                                                                        │
+│ Unnamed terminals = AUTO-FAIL (cannot trace work, wastes effort)       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+**Required Terminal Naming Format:**
+```
+[AGENT-XXXX] Purpose
+
+Examples:
+- [AGENT-0005] Git Operations
+- [AGENT-0005] TypeCheck + Lint
+- [AGENT-0005] Test Runner
+- [AGENT-0005] Build Verification
+- [AGENT-0005] bg: Dev Server Watch
+```
 
 | Terminal Type | Naming Pattern | Example |
 |--------------|----------------|---------|
 | **Dev Server** | `Fixzit Local` | `Fixzit Local` |
-| **Agent Work** | `[AGENT-XXXX]` | `[AGENT-0008]` |
-| **Agent + Context** | `[AGENT-XXXX] Context` | `[AGENT-0008] TypeCheck` |
-| **Background Task** | `[AGENT-XXXX] bg: Task` | `[AGENT-0008] bg: Tests` |
+| **Agent Main** | `[AGENT-XXXX] Purpose` | `[AGENT-0008] Git Operations` |
+| **TypeCheck/Lint** | `[AGENT-XXXX] TypeCheck` | `[AGENT-0008] TypeCheck + Lint` |
+| **Tests** | `[AGENT-XXXX] Tests` | `[AGENT-0008] Test Runner` |
+| **Build** | `[AGENT-XXXX] Build` | `[AGENT-0008] Build Verification` |
+| **Background** | `[AGENT-XXXX] bg: Task` | `[AGENT-0008] bg: File Watch` |
 
 **Terminal Naming Rules:**
 
-1. **Dev Server Terminal:** Always named `Fixzit Local`
-2. **Agent Terminals:** Must include agent token `[AGENT-XXXX]`
-3. **Visibility:** Named terminals appear in VS Code terminal dropdown
-4. **Tracking:** Named terminals enable quick identification of ownership
+1. **Dev Server Terminal:** Always named `Fixzit Local` (reserved, never change)
+2. **Agent Terminals:** MUST include `[AGENT-XXXX]` + purpose description
+3. **Purpose Required:** Every terminal must state what it's for (Git, TypeCheck, Tests, Build, etc.)
+4. **No "Unknown" Terminals:** If you see an unnamed terminal, it's orphaned — clean it up
+5. **Visibility:** Named terminals appear in VS Code terminal dropdown for easy tracking
 
 **At Session Start (MANDATORY):**
 ```powershell
-# Agent MUST rename their terminal immediately after creation
-$host.UI.RawUI.WindowTitle = "[AGENT-XXXX]"
-# OR use VS Code terminal API to set name
+# Agent MUST name their terminal immediately after creation
+# PowerShell:
+$host.UI.RawUI.WindowTitle = "[AGENT-XXXX] Purpose"
+
+# Example:
+$host.UI.RawUI.WindowTitle = "[AGENT-0005] Git Operations"
 ```
+
+**Forbidden Terminal Names:**
+- ❌ `powershell` (default, unnamed)
+- ❌ `pwsh` (default, unnamed)
+- ❌ `bash` / `zsh` (default, unnamed)
+- ❌ `[AGENT-XXXX]` alone (missing purpose)
+- ❌ Any terminal without agent token (except Fixzit Local)
 
 **Benefits:**
 - ✅ Easy identification of which agent owns which terminal
+- ✅ Clear purpose prevents scattered/wasted effort
 - ✅ Quick cleanup of orphaned terminals by token
 - ✅ Dev server always visible as "Fixzit Local"
 - ✅ Terminals appear in VS Code dropdown for user visibility
