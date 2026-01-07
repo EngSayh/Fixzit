@@ -186,31 +186,31 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
               value={typeFilter}
               onValueChange={setTypeFilter}
               placeholder={auto("Asset Type", "filters.type")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-                <SelectItem value="">
-                  {auto("All Types", "filters.allTypes")}
+              <SelectItem value="">
+                {auto("All Types", "filters.allTypes")}
+              </SelectItem>
+              {ASSET_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
                 </SelectItem>
-                {ASSET_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
-                  </SelectItem>
-                ))}
+              ))}
             </Select>
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
               placeholder={auto("Status", "filters.status")}
-              className="w-48"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-                <SelectItem value="">
-                  {auto("All Status", "filters.allStatus")}
+              <SelectItem value="">
+                {auto("All Status", "filters.allStatus")}
+              </SelectItem>
+              {ASSET_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
                 </SelectItem>
-                {ASSET_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
-                  </SelectItem>
-                ))}
+              ))}
             </Select>
           </div>
         </CardContent>
@@ -641,12 +641,13 @@ function CreateAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                  {ASSET_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
-                    </SelectItem>
-                  ))}
+                {ASSET_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />
@@ -766,12 +767,13 @@ function CreateAssetForm({
               onValueChange={field.onChange}
               disabled={isSubmitting}
               placeholder={auto("Select status", "form.placeholders.status")}
+              className="w-full bg-muted border-input text-foreground"
             >
-                {ASSET_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
-                  </SelectItem>
-                ))}
+              {ASSET_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                </SelectItem>
+              ))}
             </Select>
           )}
         />
@@ -793,12 +795,13 @@ function CreateAssetForm({
                 "Select criticality",
                 "form.placeholders.criticality",
               )}
+              className="w-full bg-muted border-input text-foreground"
             >
-                {ASSET_CRITICALITY_LEVELS.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
-                  </SelectItem>
-                ))}
+              {ASSET_CRITICALITY_LEVELS.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
+                </SelectItem>
+              ))}
             </Select>
           )}
         />
@@ -913,12 +916,13 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select type", "form.placeholders.type")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                  {ASSET_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
-                    </SelectItem>
-                  ))}
+                {ASSET_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />
@@ -961,12 +965,13 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select status", "form.placeholders.status")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                  {ASSET_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
-                    </SelectItem>
-                  ))}
+                {ASSET_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />
@@ -984,12 +989,13 @@ function EditAssetForm({
                 onValueChange={field.onChange}
                 disabled={isSubmitting}
                 placeholder={auto("Select criticality", "form.placeholders.criticality")}
+                className="w-full bg-muted border-input text-foreground"
               >
-                  {ASSET_CRITICALITY_LEVELS.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
-                    </SelectItem>
-                  ))}
+                {ASSET_CRITICALITY_LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
+                  </SelectItem>
+                ))}
               </Select>
             )}
           />

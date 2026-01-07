@@ -171,39 +171,45 @@ export default function DirectoryPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-4 md:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={auto(
-              "Search by name, code, or job title...",
-              "search.placeholder",
-            )}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="ps-10"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={statusFilter === "all" ? "default" : "outline"}
-            onClick={() => setStatusFilter("all")}
-            aria-label={t("common.allAria", "Show all employees")}
-          >
-            {t("common.all", "All")}
-          </Button>
-          {statusOptions.map((option) => (
-            <Button
-              key={option.value}
-              variant={statusFilter === option.value ? "default" : "outline"}
-              onClick={() => setStatusFilter(option.value)}
-              aria-label={t("common.filterByAria", `Filter by ${option.label}`)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={auto(
+                  "Search by name, code, or job title...",
+                  "search.placeholder",
+                )}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Row 2: Filter buttons - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant={statusFilter === "all" ? "default" : "outline"}
+                onClick={() => setStatusFilter("all")}
+                aria-label={t("common.allAria", "Show all employees")}
+              >
+                {t("common.all", "All")}
+              </Button>
+              {statusOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  variant={statusFilter === option.value ? "default" : "outline"}
+                  onClick={() => setStatusFilter(option.value)}
+                  aria-label={t("common.filterByAria", `Filter by ${option.label}`)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {error && (
         <div className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive md:flex-row md:items-center md:justify-between">

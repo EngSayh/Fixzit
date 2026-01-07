@@ -12,9 +12,6 @@ export const COLLECTIONS = {
   USERS: "users",
   PROPERTIES: "properties",
   WORK_ORDERS: "workorders",
-  // TODO: DATA-001 - Investigate/migrate work_orders vs workorders inconsistency
-  // Some code uses "work_orders" (underscore) - this needs data migration investigation
-  WORK_ORDERS_UNDERSCORE: "work_orders", // Legacy naming - used in bi-dashboard, fm services
   CATEGORIES: "categories",
   VENDORS: "vendors",
   PRODUCTS: "products",
@@ -27,8 +24,6 @@ export const COLLECTIONS = {
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
   AUDIT_LOGS: "auditLogs",
-  // TODO: DATA-002 - Investigate audit_logs vs auditLogs naming inconsistency
-  AUDIT_LOGS_UNDERSCORE: "audit_logs", // Used in enterprise-security.ts for chain integrity
   
   // Admin + org
   ORGANIZATIONS: "organizations",
@@ -37,13 +32,6 @@ export const COLLECTIONS = {
   EMAIL_LOGS: "email_logs",
   PAYMENTS: "payments",
   AQAR_PAYMENTS: "aqar_payments",
-  
-  // Financial / Accounting collections
-  TRANSACTIONS: "transactions",
-  FINANCE_PAYMENTS: "finance_payments",
-  FM_FINANCIAL_TRANSACTIONS: "fm_financial_transactions",
-  PAYROLL_RUNS: "payroll_runs",
-  FEEDBACK: "feedback",
   
   // ATS module
   ATS_JOBS: "jobs",
@@ -101,8 +89,8 @@ export const COLLECTIONS = {
   SOUQ_RMAS: "souq_rmas",
   SOUQ_REFUNDS: "souq_refunds",
   
-  // Souq marketplace collections - Notifications
-  SELLER_NOTIFICATIONS: "seller_notifications",
+  // Finance / Escrow collections
+  FINANCE_ESCROW_EVENTS: "finance_escrow_events",
   
   // QA collections
   QA_LOGS: "qa_logs",
@@ -114,17 +102,6 @@ export const COLLECTIONS = {
   AQAR_VIEWED_LISTINGS: "aqar_viewed_listings",
   AQAR_INQUIRIES: "aqar_inquiries",
   AQAR_SYNC_LOG: "aqar_sync_log",
-  
-  // Aqar tenant screening collections
-  SCREENING_APPLICATIONS: "screening_applications",
-  APPLICANTS: "applicants",
-  PAYMENT_HISTORY: "payment_history",
-  EVICTION_RECORDS: "eviction_records",
-  LEASES: "leases",
-  LEASE_SEQUENCES: "lease_sequences",
-  
-  // Notifications / Queue
-  NOTIFICATION_QUEUE: "notification_queue",
   
   // Errors / telemetry
   ERROR_EVENTS: "error_events",
@@ -155,49 +132,68 @@ export const COLLECTIONS = {
   
   // Superadmin / System collections
   TRIAL_REQUESTS: "trial_requests",
+  TIME_TRAVEL_REQUESTS: "time_travel_requests",
+  RESTORE_JOBS: "restore_jobs",
+  BLOCKED_IPS: "blocked_ips",
+  SECURITY_ALERTS: "security_alerts",
+  AUTH_LOGS: "auth_logs",
+  AUDIT_LOGS_UNDERSCORE: "audit_logs",
+  AUDIT_LOGS_ARCHIVE: "audit_logs_archive",
   MFA_APPROVALS: "mfa_approvals",
   KILL_SWITCH_EVENTS: "kill_switch_events",
   TENANT_SNAPSHOTS: "tenant_snapshots",
   GHOST_SESSIONS: "ghost_sessions",
-  RESTORE_JOBS: "restore_jobs",
-  TIME_TRAVEL_REQUESTS: "time_travel_requests",
   
   // Auth / Security collections
   ACCOUNT_LOCKOUTS: "account_lockouts",
-  AUTH_LOGS: "auth_logs",
-  BLOCKED_IPS: "blocked_ips",
   LOGIN_ATTEMPTS: "login_attempts",
   MFA_PENDING: "mfa_pending",
-  SECURITY_ALERTS: "security_alerts",
+  PASSWORD_HISTORY: "password_history",
   SESSIONS: "sessions",
   TRUSTED_DEVICES: "trusted_devices",
-  PASSWORD_HISTORY: "password_history",
-  ORGANIZATION_SETTINGS: "organization_settings",
-  
-  // FM (Facility Management) collections
-  FM_BIDS: "fm_bids",
-  
-  // Training collections
-  TRAINING_SESSIONS: "trainingsessions",
-  
-  // Compliance / PDPL collections
   CONSENTS: "consents",
   
-  // Finance / ZATCA collections
-  ZATCA_CREDENTIALS: "zatca_credentials",
-  ZATCA_SUBMISSIONS: "zatca_submissions",
-  FINANCE_ESCROW_EVENTS: "finance_escrow_events",
+  // HR / Payroll collections
+  APPLICANTS: "applicants",
+  PAYROLL_RUNS: "payroll_runs",
+  TRAINING_SESSIONS: "training_sessions",
+  SCREENING_APPLICATIONS: "screening_applications",
+  
+  // Finance collections
   EXPENSES: "expenses",
+  FINANCE_PAYMENTS: "finance_payments",
+  PAYMENT_HISTORY: "payment_history",
+  TRANSACTIONS: "transactions",
+  PURCHASE_ORDERS: "purchase_orders",
+  CURRENCY_RATES: "currency_rates",
   
-  // Admin / Audit collections (DATA-003: audit_logs_archive for archival)
-  AUDIT_LOGS_ARCHIVE: "audit_logs_archive",
-  
-  // CRM collections (DATA-004: support_tickets vs supporttickets inconsistency)
+  // FM additional collections
+  FM_FINANCIAL_TRANSACTIONS: "fm_financial_transactions",
+  LEASES: "leases",
+  LEASE_SEQUENCES: "lease_sequences",
+  EVICTION_RECORDS: "eviction_records",
+  WORK_ORDERS_UNDERSCORE: "work_orders",
   SUPPORT_TICKETS_UNDERSCORE: "support_tickets",
+  
+  // Notifications
+  NOTIFICATION_QUEUE: "notification_queue",
+  SELLER_NOTIFICATIONS: "seller_notifications",
+  
+  // Feedback
+  FEEDBACK: "feedback",
+  
+  // Organization
+  ORGANIZATION_SETTINGS: "organization_settings",
   
   // Issue tracker (SSOT)
   ISSUES: "issues",
-  ISSUE_EVENTS: "issue_events",
+  
+  // FM (Facility Management) additional collections
+  FM_BIDS: "fm_bids",
+  
+  // ZATCA (Saudi e-invoicing) collections
+  ZATCA_CREDENTIALS: "zatca_credentials",
+  ZATCA_SUBMISSIONS: "zatca_submissions",
 } as const;
 
 // Type for collection names

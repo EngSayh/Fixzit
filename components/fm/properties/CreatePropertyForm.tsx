@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem } from "@/components/ui/select";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
 import { Loader2 } from "lucide-react";
@@ -148,7 +148,9 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
             value={formData.type}
             onValueChange={(val) => setFormData({ ...formData, type: val })}
             placeholder={t("fm.properties.selectType", "Select type")}
+            className="w-full bg-muted border-input text-foreground"
           >
+            <SelectContent>
               <SelectItem value="RESIDENTIAL">
                 {t("fm.properties.residential", "Residential")}
               </SelectItem>
@@ -162,6 +164,7 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
                 {t("fm.properties.mixedUse", "Mixed Use")}
               </SelectItem>
               <SelectItem value="LAND">{t("fm.properties.land", "Land")}</SelectItem>
+            </SelectContent>
           </Select>
         </div>
       </div>

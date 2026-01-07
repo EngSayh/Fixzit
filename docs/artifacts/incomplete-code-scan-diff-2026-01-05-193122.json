@@ -1,0 +1,51 @@
+﻿{
+    "generatedAt":  "2026-01-05T19:31+03:00",
+    "priorSource":  "docs/artifacts/incomplete-code-scan-current-2026-01-04-1857.json",
+    "currentSource":  "docs/artifacts/incomplete-code-scan-current-2026-01-05-193122.json",
+    "added":  [
+
+              ],
+    "removed":  [
+                    {
+                        "key":  "tests-unit-marketplace-productslist-filterpresets-todo",
+                        "title":  "Enable FilterPresetsDropdown integration test (Marketplace ProductsList)",
+                        "category":  "missing_test",
+                        "priority":  "P3",
+                        "status":  "open",
+                        "effort":  "S",
+                        "location":  "tests/unit/components/marketplace/ProductsList.query.test.tsx:92",
+                        "sourcePath":  "tests/unit/components/marketplace/ProductsList.query.test.tsx",
+                        "sourceRef":  "scan:incomplete-code:2026-01-04T18:57+03:00 [AGENT-TEMP-20260104T1857]",
+                        "evidenceSnippet":  "// TODO: Enable when FilterPresetsDropdown is integrated into ProductsList",
+                        "description":  "Test is skipped pending FilterPresetsDropdown wiring into ProductsList; enable once integrated."
+                    },
+                    {
+                        "key":  "tests-unit-aqar-propertieslist-filterpresets-todo",
+                        "title":  "Enable FilterPresetsDropdown integration test (Aqar PropertiesList)",
+                        "category":  "missing_test",
+                        "priority":  "P3",
+                        "status":  "open",
+                        "effort":  "S",
+                        "location":  "tests/unit/components/aqar/PropertiesList.query.test.tsx:96",
+                        "sourcePath":  "tests/unit/components/aqar/PropertiesList.query.test.tsx",
+                        "sourceRef":  "scan:incomplete-code:2026-01-04T18:57+03:00 [AGENT-TEMP-20260104T1857]",
+                        "evidenceSnippet":  "// TODO: Enable when FilterPresetsDropdown is integrated into PropertiesList",
+                        "description":  "Test is skipped pending FilterPresetsDropdown wiring into PropertiesList; enable once integrated."
+                    }
+                ],
+    "unchanged":  [
+                      {
+                          "key":  "tests-services-returns-service-test-todo-integration-suite",
+                          "title":  "Move returns-service transaction test to integration suite",
+                          "category":  "missing_test",
+                          "priority":  "P3",
+                          "status":  "open",
+                          "effort":  "M",
+                          "location":  "tests/services/returns-service.test.ts:210",
+                          "sourcePath":  "tests/services/returns-service.test.ts",
+                          "sourceRef":  "scan:incomplete-code:2026-01-05T19:31+03:00 [AGENT-TEMP-20260105T1825]",
+                          "evidenceSnippet":  "// TODO: Move to integration test suite that runs with MongoDB replica set.",
+                          "description":  "Skipped unit test requires replica set; move to integration suite or provide dedicated test harness."
+                      }
+                  ]
+}

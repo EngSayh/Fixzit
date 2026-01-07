@@ -684,27 +684,27 @@ export default function NotificationsPage() {
       </div>
 
       <div className="card">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-48">
-            <div className="relative">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={t(
-                  "notifications.search.placeholder",
-                  "Search notifications...",
-                )}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full ps-10 pe-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
+        <div className="flex flex-col gap-4">
+          {/* Row 1: Search input - full width */}
+          <div className="relative flex-1">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={t(
+                "notifications.search.placeholder",
+                "Search notifications...",
+              )}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
           </div>
-          <div className="flex-1 min-w-48">
+          {/* Row 2: Filter dropdowns - horizontal */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full sm:w-48 px-3 py-2 bg-muted border-input text-foreground rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="all">
                 {t("notifications.filters.all", "All Notifications")}

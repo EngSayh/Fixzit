@@ -1,102 +1,137 @@
-# CodeRabbit AI Code Review Configuration
-# DEV-003: AI-powered code review for Fixzit
-# @author [AGENT-0041]
-# @created 2026-01-07
+# CodeRabbit Configuration for Fixzit
+# AI-powered code review integration
+# Created by [AGENT-0039]
 
-version: 2
+version: "2"
 
+# Review settings
 reviews:
-  # Enable automatic reviews on PRs
+  # Enable auto-review on PRs
   auto_review:
     enabled: true
-    drafts: false  # Don't review draft PRs
-    base_branches:
-      - main
-      - develop
+    # Review drafts as well
+    drafts: false
+    # Base branch to compare against
+    base_branch: "main"
 
-  # Review settings
-  request_changes_workflow: false
+  # Review profile - thorough for production code
+  profile: "assertive"
+
+  # Request changes on high severity issues
+  request_changes_workflow: true
+
+  # High-level summary at the end of review
   high_level_summary: true
+
+  # Generate poem/fun summary (disabled for professional reviews)
   poem: false
+
+  # Review hints
   review_status: true
-  collapse_walkthrough: false
-  path_instructions: []
 
-  # Language-specific settings
-  language: en
+  # Path-based instructions
+  path_instructions:
+    # API routes - focus on security and multi-tenancy
+    - path: "app/api/**"
+      instructions: |
+        - Verify all database queries include org_id or tenant scoping
+        - Check for proper authentication via requireAuth/getSessionOrThrow
+        - Ensure rate limiting is applied where needed
+        - Validate input with Zod schemas
+        - Check for proper error handling (no silent catches)
 
-# Domain-specific review instructions
-instructions:
-  # Multi-tenancy enforcement
-  - pattern: "**/*.ts"
-    instructions: |
-      - Verify all database queries include org_id/orgId scoping
-      - Check for cross-tenant data leakage risks
-      - Ensure RBAC is enforced server-side, not just UI
+    # Components - focus on UI/UX and accessibility
+    - path: "components/**"
+      instructions: |
+        - Verify RTL support using logical CSS properties (ps-*, pe-*, ms-*, me-*)
+        - Check for proper use of design system tokens
+        - Ensure accessibility (aria-labels, keyboard navigation)
+        - Verify 'use client' directive for hooks
 
-  # API routes security
-  - pattern: "app/api/**/*.ts"
-    instructions: |
-      - Verify authentication is checked (getServerSession)
-      - Check rate limiting is applied
-      - Ensure proper error handling (no sensitive data in responses)
-      - Verify input validation with Zod or similar
+    # Models - focus on schema integrity
+    - path: "models/**"
+      instructions: |
+        - Verify org_id field is required for multi-tenant collections
+        - Check for proper indexes on frequently queried fields
+        - Ensure timestamps (createdAt, updatedAt) are present
+        - Validate enum values match domain requirements
 
-  # Finance/ZATCA compliance
-  - pattern: "**/*finance*/**/*.ts"
-    instructions: |
-      - Check ZATCA e-invoicing compliance requirements
-      - Verify VAT calculations are accurate
-      - Ensure audit trail for all financial operations
+    # Services - focus on business logic
+    - path: "services/**"
+      instructions: |
+        - Verify proper error handling and logging
+        - Check for tenant isolation in all operations
+        - Ensure transactions are used for multi-document operations
+        - Validate business rules match domain requirements
 
-  - pattern: "**/*zatca*/**/*.ts"
-    instructions: |
-      - Verify Phase 2 compliance (signing, clearance, reporting)
-      - Check certificate handling security
-      - Ensure proper error handling for ZATCA API calls
+    # Finance domain - extra compliance scrutiny
+    - path: "domain/finance/**"
+      instructions: |
+        - Verify ZATCA compliance for Saudi e-invoicing
+        - Check VAT calculations (15% standard rate)
+        - Ensure audit trail for all financial operations
+        - Validate currency handling (SAR default)
 
-  # RTL/i18n requirements
-  - pattern: "**/*.tsx"
-    instructions: |
-      - Check for RTL-safe CSS (use ps-/pe-/ms-/me- instead of pl-/pr-/ml-/mr-)
-      - Verify text direction handling for Arabic content
-      - Ensure all user-facing strings use i18n keys
+    # Tests - ensure coverage
+    - path: "tests/**"
+      instructions: |
+        - Verify test isolation (no shared state)
+        - Check for proper mocking of external services
+        - Ensure both success and error paths are tested
+        - Validate tenant scoping in test fixtures
 
-  # Security-sensitive files
-  - pattern: "**/auth/**/*.ts"
-    instructions: |
-      - Check for timing-safe comparisons in credential checks
-      - Verify session handling security
-      - Ensure MFA flows are properly implemented
-
-  - pattern: "**/lib/security/**/*.ts"
-    instructions: |
-      - Verify encryption/decryption implementations
-      - Check for secure random number generation
-      - Ensure no hardcoded secrets or keys
-
-  # Test files
-  - pattern: "tests/**/*.ts"
-    instructions: |
-      - Verify tests cover multi-tenant isolation
-      - Check for proper mocking of external services
-      - Ensure edge cases are covered
-
-# Files to ignore
-ignore:
-  - "*.md"
-  - "*.json"
-  - "*.yaml"
-  - "*.yml"
-  - ".next/**"
-  - "node_modules/**"
-  - "dist/**"
-  - "build/**"
-  - "coverage/**"
-  - "*.d.ts"
-  - "i18n/generated/**"
-  - "i18n/chunks/**"
+# Language settings
+language: "en-US"
 
 # Chat settings
 chat:
+  # Allow interactive review
   auto_reply: true
+
+# Tool integrations
+tools:
+  # Enable ESLint integration
+  eslint:
+    enabled: true
+
+  # Enable TypeScript checks
+  typescript:
+    enabled: true
+
+# Ignore patterns
+path_filters:
+  # Exclude generated files
+  - "!**/*.gen.ts"
+  - "!**/generated/**"
+  - "!.next/**"
+  - "!node_modules/**"
+  - "!pnpm-lock.yaml"
+  - "!**/dist/**"
+  - "!**/build/**"
+  - "!playwright-report/**"
+  - "!coverage/**"
+
+  # Exclude documentation (manual review)
+  - "!docs/**/*.md"
+
+  # Exclude config files (low risk)
+  - "!*.config.js"
+  - "!*.config.ts"
+  - "!*.config.mjs"
+
+# Early access features
+early_access: false
+
+# Knowledge base
+knowledge_base:
+  # Reference key documents
+  learnings:
+    scope: "auto"
+
+  # Custom instructions from repository
+  jira:
+    enabled: false
+
+  # GitHub issues integration
+  issues:
+    enabled: true

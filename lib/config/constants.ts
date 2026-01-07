@@ -27,6 +27,13 @@ class ConfigurationError extends Error {
   }
 }
 
+/**
+ * Default platform organization ID used when no PLATFORM_ORG_ID is configured.
+ * This should only be used in development/testing environments.
+ * Production should always have PLATFORM_ORG_ID configured.
+ */
+export const DEFAULT_PLATFORM_ORG_ID = "fixzit-platform";
+
 export function validateAwsConfig(env: NodeJS.ProcessEnv): void {
   // Skip validation in browser context
   if (IS_BROWSER) {
@@ -437,7 +444,8 @@ export const Config = {
    * Feature Flags
    */
   features: {
-    atsEnabled: getBoolean("ATS_ENABLED", false),
+    // ATS is in-house implementation - enabled by default
+    atsEnabled: getBoolean("ATS_ENABLED", true),
     platformOrgId: getOptional("PLATFORM_ORG_ID"),
     publicJobsOrgId: getOptional("PUBLIC_JOBS_ORG_ID"),
   },

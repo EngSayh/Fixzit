@@ -530,12 +530,12 @@ export function FmVendorsList({
             <label className="block text-sm font-medium mb-2">
               {t("vendor.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("common.all", "All Status")} className="bg-muted border-input text-foreground">
-                {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
-                    {t(`status.${opt.value.toLowerCase() || "all"}`, opt.label)}
-                  </SelectItem>
-                ))}
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("common.all", "All Status")} className="w-full bg-muted border-input text-foreground">
+              {STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                  {t(`status.${opt.value.toLowerCase() || "all"}`, opt.label)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="flex gap-2 pt-4">

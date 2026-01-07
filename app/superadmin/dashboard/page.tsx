@@ -387,7 +387,7 @@ export default function SuperadminDashboardPage() {
               onValueChange={setSelectedTenant}
               disabled={tenantsLoading}
               placeholder={t("superadmin.dashboard.selectTenant", "Filter by tenant")}
-              className="w-[200px]"
+              className="w-full sm:w-48 bg-muted border-input text-foreground"
             >
               <SelectItem value="all">
                 {t("superadmin.dashboard.allTenants", "All Tenants")}

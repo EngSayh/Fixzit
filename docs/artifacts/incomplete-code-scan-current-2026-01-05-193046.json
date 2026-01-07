@@ -1,0 +1,17 @@
+﻿{
+    "issues":  [
+                   {
+                       "key":  "tests-services-returns-service-test-ts-move-to-integration-test-suite-that-runs-with-mongodb-replica-se",
+                       "title":  "Move to integration test suite that runs with MongoDB replica set.",
+                       "category":  "missing_test",
+                       "priority":  "P3",
+                       "status":  "open",
+                       "effort":  "M",
+                       "location":  "tests\\services\\returns-service.test.ts:210",
+                       "sourcePath":  "tests\\services\\returns-service.test.ts",
+                       "sourceRef":  "scan:incomplete-code:2026-01-05T19:30+03:00 [AGENT-TEMP-20260105T1825]",
+                       "evidenceSnippet":  "// TODO: Move to integration test suite that runs with MongoDB replica set.",
+                       "description":  "Move to integration test suite that runs with MongoDB replica set."
+                   }
+               ]
+}

@@ -156,10 +156,10 @@ describe("S3 Configuration Module", () => {
   });
 
   describe("S3NotConfiguredError", () => {
-    it("has correct statusCode property", () => {
+    it("has correct statusCode property (503 Service Unavailable)", () => {
       const error = new S3NotConfiguredError(["AWS_REGION"]);
       
-      expect(error.statusCode).toBe(501);
+      expect(error.statusCode).toBe(503);
     });
 
     it("serializes to JSON with correct format", () => {
@@ -168,9 +168,9 @@ describe("S3 Configuration Module", () => {
       
       expect(json).toEqual({
         error: "S3_NOT_CONFIGURED",
-        message: "S3 file storage is not configured on this server",
-        required: ["AWS_REGION", "AWS_S3_BUCKET", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"],
-        missing: ["AWS_REGION", "AWS_S3_BUCKET"],
+        message: "File storage service is temporarily unavailable. Please contact support.",
+        code: "SERVICE_UNAVAILABLE",
+        retryable: true,
       });
     });
   });

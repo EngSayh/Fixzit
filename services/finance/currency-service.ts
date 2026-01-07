@@ -15,6 +15,7 @@
 
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 
 // ============================================================================
 // Types & Configuration
@@ -86,8 +87,7 @@ const FALLBACK_RATES: Record<string, Record<string, number>> = {
 async function getCachedRates(base: string): Promise<CachedRates | null> {
   try {
     const db = await getDatabase();
-    // Currency rates collection - not in COLLECTIONS constant yet
-    const cached = await db.collection("currency_rates").findOne({
+    const cached = await db.collection(COLLECTIONS.CURRENCY_RATES).findOne({
       base,
       expiresAt: { $gt: new Date() },
     });
@@ -118,8 +118,7 @@ async function setCachedRates(
     const db = await getDatabase();
     const now = new Date();
 
-    // Currency rates collection - not in COLLECTIONS constant yet
-    await db.collection("currency_rates").updateOne(
+    await db.collection(COLLECTIONS.CURRENCY_RATES).updateOne(
       { base },
       {
         $set: {

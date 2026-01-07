@@ -182,11 +182,12 @@ export default function CatalogPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Search and Filters */}
-        <div className="mb-6">
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="flex-1 relative">
+        <div className="mb-6 bg-card border border-border rounded-lg p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
               <Search
-                className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5"
+                className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5"
                 aria-hidden="true"
               />
               <input
@@ -197,19 +198,19 @@ export default function CatalogPage() {
                 )}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                className="w-full ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground py-3 border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
                 aria-label={t(
                   "souq.catalog.searchAriaLabel",
                   "Search products, categories, or vendors",
                 )}
               />
             </div>
-
-            <div className="flex gap-3">
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                className="w-full sm:w-48 px-4 py-3 bg-muted border-input text-foreground rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
                 aria-label={t(
                   "souq.catalog.filterByCategory",
                   "Filter by category",
@@ -227,7 +228,7 @@ export default function CatalogPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                className="w-full sm:w-48 px-4 py-3 bg-muted border-input text-foreground rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
                 aria-label={t("souq.catalog.sortBy", "Sort products by")}
               >
                 <option value="relevance">

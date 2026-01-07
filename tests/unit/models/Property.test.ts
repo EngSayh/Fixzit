@@ -31,12 +31,12 @@ let localMongoServer: MongoMemoryServer | null = null;
  */
 async function ensureMongoConnection(maxWaitMs = 10000): Promise<void> {
   const start = Date.now();
-  
+
   // First, wait for global setup to potentially connect
   while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWaitMs) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
+
   // If still not connected, start our own MongoMemoryServer
   if (mongoose.connection.readyState !== 1) {
     if (!localMongoServer) {
@@ -47,18 +47,13 @@ async function ensureMongoConnection(maxWaitMs = 10000): Promise<void> {
         },
       });
       const uri = localMongoServer.getUri();
-      await mongoose.connect(uri, {
-        autoCreate: true,
-        autoIndex: true,
-      });
+      await mongoose.connect(uri, { autoCreate: true, autoIndex: true });
     }
   }
-  
+
   // Final check
   if (mongoose.connection.readyState !== 1) {
-    throw new Error(
-      `Mongoose not connected - readyState: ${mongoose.connection.readyState}`
-    );
+    throw new Error(`Mongoose not connected - readyState: ${mongoose.connection.readyState}`);
   }
 }
 
@@ -67,7 +62,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Cleanup local MongoMemoryServer if we started one
+  // Cleanup local server if we started one
   if (localMongoServer) {
     await mongoose.disconnect();
     await localMongoServer.stop();
@@ -76,7 +71,9 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  // Connection is ensured by beforeAll
+  // Ensure connection is ready before each test (CI sharding can cause disconnection)
+  await ensureMongoConnection();
+  
   clearTenantContext();
 
   // Clear module cache to force fresh import

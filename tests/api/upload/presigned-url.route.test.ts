@@ -199,7 +199,7 @@ describe.sequential("API /api/upload/presigned-url", () => {
   });
 
   describe("S3 Configuration", () => {
-    it("returns 501 when S3 is not configured", async () => {
+    it("returns 503 when S3 is not configured", async () => {
       s3Configured = false;
       setMockUser({
         id: "user-123",
@@ -222,8 +222,8 @@ describe.sequential("API /api/upload/presigned-url", () => {
       );
       const res = await POST(req);
 
-      // Expected: 501 when S3 is not configured
-      expect(res.status).toBe(501);
+      // Expected: 503 Service Unavailable when S3 is not configured
+      expect(res.status).toBe(503);
     });
   });
 

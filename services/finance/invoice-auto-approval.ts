@@ -182,8 +182,7 @@ async function checkPOMatch(
   if (!poNumber) return false;
 
   const db = await getDatabase();
-  // Purchase orders collection - not in COLLECTIONS constant yet
-  const po = await db.collection("purchase_orders").findOne({
+  const po = await db.collection(COLLECTIONS.PURCHASE_ORDERS).findOne({
     orgId,
     poNumber,
     status: { $in: ["APPROVED", "OPEN"] },

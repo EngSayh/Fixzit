@@ -18,6 +18,10 @@ type SessionUser = {
 let mockSession: { user: SessionUser } | null = null;
 let mockHasAllowedRole: boolean = true;
 
+// Module-scoped state for PayrollService mocks
+let mockPayrollRun: unknown = null;
+let mockUpdateCalcResult: unknown = null;
+
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
@@ -38,12 +42,12 @@ vi.mock("@/lib/auth/role-guards", () => ({
   hasAllowedRole: vi.fn(() => mockHasAllowedRole),
 }));
 
-// Mock PayrollService
+// Mock PayrollService with module-scoped state (survives vi.resetModules)
 vi.mock("@/server/services/hr/payroll.service", () => ({
   PayrollService: {
-    getById: vi.fn(),
+    getById: vi.fn(async () => mockPayrollRun),
     calculatePayrollRun: vi.fn(),
-    updateCalculation: vi.fn(),
+    updateCalculation: vi.fn(async () => mockUpdateCalcResult),
   },
 }));
 
@@ -123,6 +127,8 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
       },
     };
     mockHasAllowedRole = true;
+    mockPayrollRun = null; // Reset to null (not found)
+    mockUpdateCalcResult = null; // Reset update result
     vi.clearAllMocks();
   });
 
@@ -165,7 +171,7 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   });
 
   it("returns 404 when payroll run not found", async () => {
-    vi.mocked(PayrollService.getById).mockResolvedValue(null as never);
+    mockPayrollRun = null;
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -177,11 +183,11 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   });
 
   it("returns 400 when payroll run is not DRAFT", async () => {
-    vi.mocked(PayrollService.getById).mockResolvedValue({
+    mockPayrollRun = {
       _id: mockPayrollRunId,
       status: "PROCESSING",
       orgId: mockOrgId,
-    } as never);
+    };
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -200,13 +206,13 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     };
     
     // Mock payroll run with periodStart and periodEnd (required for aggregate query)
-    vi.mocked(PayrollService.getById).mockResolvedValue({
+    mockPayrollRun = {
       _id: mockPayrollRunId,
       status: "DRAFT",
       orgId: mockOrgId,
       periodStart: new Date("2024-01-01"),
       periodEnd: new Date("2024-01-31"),
-    } as never);
+    };
     
     // Mock employees - must have active employees for calculation
     const mockEmployees = [
@@ -224,13 +230,12 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     ] as never);
     
     // Mock successful payroll update
-    const mockUpdatedRun = {
+    mockUpdateCalcResult = {
       _id: mockPayrollRunId,
       status: "IN_REVIEW",
       orgId: mockOrgId,
       totals: { grossPay: 22000, netPay: 19855 },
     };
-    vi.mocked(PayrollService.updateCalculation).mockResolvedValue(mockUpdatedRun as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -252,13 +257,13 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     };
     
     // Mock payroll run with periodStart and periodEnd
-    vi.mocked(PayrollService.getById).mockResolvedValue({
+    mockPayrollRun = {
       _id: mockPayrollRunId,
       status: "DRAFT",
       orgId: mockOrgId,
       periodStart: new Date("2024-01-01"),
       periodEnd: new Date("2024-01-31"),
-    } as never);
+    };
     
     // Mock employees - must have active employees for calculation
     const mockEmployees = [
@@ -274,13 +279,12 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     ] as never);
     
     // Mock successful payroll update
-    const mockUpdatedRun = {
+    mockUpdateCalcResult = {
       _id: mockPayrollRunId,
       status: "IN_REVIEW",
       orgId: mockOrgId,
       totals: { grossPay: 8000, netPay: 7220 },
     };
-    vi.mocked(PayrollService.updateCalculation).mockResolvedValue(mockUpdatedRun as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",

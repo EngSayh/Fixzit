@@ -42,7 +42,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -1029,7 +1032,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[120px] bg-muted border-input text-foreground">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
               {statusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -1037,7 +1040,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               ))}
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[120px] bg-muted border-input text-foreground">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-full sm:w-40 bg-muted border-input text-foreground">
               {priorityOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -1045,7 +1048,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               ))}
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[120px] bg-muted border-input text-foreground">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-full sm:w-40 bg-muted border-input text-foreground">
               {categoryOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -1657,7 +1660,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-status">{t("superadmin.issues.form.status", "Status")}</Label>
-                <Select defaultValue={selectedIssue.status} className="mt-1 bg-muted border-input text-foreground" placeholder={getStatusLabel(selectedIssue.status)}>
+                <Select defaultValue={selectedIssue.status} placeholder={t("superadmin.issues.form.status", "Status")} className="mt-1 w-full sm:w-40 bg-muted border-input text-foreground">
                   {statusOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -1667,7 +1670,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-priority">{t("superadmin.issues.form.priority", "Priority")}</Label>
-                <Select defaultValue={selectedIssue.priority} className="mt-1 bg-muted border-input text-foreground" placeholder={getPriorityLabel(selectedIssue.priority)}>
+                <Select defaultValue={selectedIssue.priority} placeholder={t("superadmin.issues.form.priority", "Priority")} className="mt-1 w-full sm:w-40 bg-muted border-input text-foreground">
                   {priorityOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}

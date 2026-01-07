@@ -1,0 +1,28 @@
+{
+  "issues": [
+    {
+      "key": "FEAT-USERS-001",
+      "title": "Enhanced superadmin users page with comprehensive user management",
+      "category": "FEAT",
+      "priority": "P1",
+      "status": "CLOSED",
+      "location": "app/superadmin/users/page.tsx",
+      "sourcePath": "app/superadmin/users/page.tsx",
+      "sourceRef": "AGENT-0012",
+      "evidenceSnippet": "Added: User ID column, User Type column (Individual/Company), Phone column, Last Login column, Module Access column (togglable), Role filter dropdown, Group By dropdown (None/Organization/Role/Status), Show Module Access toggle. Enhanced View Details dialog with User ID, Full ID, User Type badge, Sub-Role, Department, and Module Access section.",
+      "description": "User requested comprehensive user management features including: User ID display, Module access indicator, Group by company toggle, User Type column, Phone and Last Login columns. All features implemented."
+    },
+    {
+      "key": "FIX-SELECT-001",
+      "title": "Fixed all 152 Select components with consistent className",
+      "category": "BUG",
+      "priority": "P1",
+      "status": "CLOSED",
+      "location": "components/ui/select.tsx",
+      "sourcePath": "app/**/*.tsx, components/**/*.tsx",
+      "sourceRef": "AGENT-0012",
+      "evidenceSnippet": "Applied className=\"w-full sm:w-40 bg-muted border-input text-foreground\" to all 152 Select components across the codebase. Achieved 100% coverage from initial 38.8% (93/152 missing).",
+      "description": "User reported dropdown styling issues on /superadmin/issues page. Audit revealed 152 Select components, only 59 had proper className. Fixed all 152 to have consistent styling."
+    }
+  ]
+}

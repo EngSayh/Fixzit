@@ -34,7 +34,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
@@ -206,7 +209,7 @@ function QuotaEditDialog({
                 applyPlanDefaults(v);
               }}
               placeholder="Select plan"
-              className="bg-muted border-input text-foreground"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectItem value="starter">Starter</SelectItem>
               <SelectItem value="professional">Professional</SelectItem>

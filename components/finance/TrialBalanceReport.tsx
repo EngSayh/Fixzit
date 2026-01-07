@@ -406,6 +406,7 @@ export default function TrialBalanceReport({
                 onValueChange={(v) => setYear(parseInt(v, 10))}
                 disabled={loading}
                 placeholder={t("finance.selectYear", "Select year")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {[...Array(5)].map((_, i) => {
                   const y = new Date().getFullYear() - i;
@@ -426,6 +427,7 @@ export default function TrialBalanceReport({
                 onValueChange={(v) => setPeriod(parseInt(v, 10))}
                 disabled={loading}
                 placeholder={t("finance.selectPeriod", "Select period")}
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {[...Array(12)].map((_, i) => (
                   <SelectItem key={i + 1} value={String(i + 1)}>

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   Users, Search, Shield, AlertTriangle, RefreshCw,
@@ -68,6 +69,8 @@ export default function SuperadminSupportPage() {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [impersonateDialogOpen, setImpersonateDialogOpen] = useState(false);
   const [impersonationReason, setImpersonationReason] = useState("");
@@ -216,26 +219,65 @@ export default function SuperadminSupportPage() {
         </TabsList>
 
         {/* User Lookup Tab */}
-        <TabsContent value="users">
+        <TabsContent value="users" className="space-y-4">
+          {/* Filters */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                {/* Search row */}
+                <div className="relative flex-1">
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by email, name, or phone..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                {/* Filter row */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select 
+                    value={roleFilter} 
+                    onValueChange={setRoleFilter}
+                    placeholder="Role"
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  >
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="USER">User</SelectItem>
+                    <SelectItem value="GUEST">Guest</SelectItem>
+                  </Select>
+                  
+                  <Select 
+                    value={statusFilter} 
+                    onValueChange={setStatusFilter}
+                    placeholder="Status"
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  >
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </Select>
+                  
+                  <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("common.search", "Search for users")} title={t("common.search", "Search for users")}>
+                    <Search className="h-4 w-4 me-2" />Search
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Results Card */}
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">
               <CardTitle className="text-foreground">User Search</CardTitle>
               <CardDescription className="text-muted-foreground">Find users by email, name, or phone</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="flex gap-2 mb-4">
-                <Input
-                  placeholder="Search by email, name, or phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="bg-muted border-input text-foreground"
-                />
-                <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("common.search", "Search for users")} title={t("common.search", "Search for users")}>
-                  <Search className="h-4 w-4 me-2" />Search
-                </Button>
-              </div>
-              
               {users.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Users className="h-12 w-12 text-muted-foreground mb-4" />

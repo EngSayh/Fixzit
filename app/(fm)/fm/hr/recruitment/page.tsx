@@ -8,7 +8,10 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2 } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
@@ -328,12 +331,13 @@ export default function AtsJobsPage() {
                 setStatusFilter(value as typeof statusFilter)
               }
               placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="flex-1">
@@ -344,12 +348,13 @@ export default function AtsJobsPage() {
               value={jobTypeFilter}
               onValueChange={(value) => setJobTypeFilter(value)}
               placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-                {jobTypeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+              {jobTypeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
         </CardContent>

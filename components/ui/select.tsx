@@ -63,7 +63,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   onValueChange?: (value: string) => void;
   /** (Optional) A placeholder to display. Renders a disabled first option. */
   placeholder?: string;
-  /** (Optional) Class name for the wrapper div. */
+  /** (Optional) Additional class names for the wrapper div. */
   wrapperClassName?: string;
 }
 
@@ -116,16 +116,15 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     }
 
     return (
-      <div className={`relative w-full ${wrapperClassName}`}>
+      <div className={`relative ${className} ${wrapperClassName}`.trim()}>
         <select
           ref={ref}
           className={`
             flex h-8 w-full items-center justify-between rounded-md border border-input
             bg-muted px-3 py-1.5 text-sm text-foreground appearance-none
-            ring-offset-white 
+            ring-offset-background 
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 
             disabled:cursor-not-allowed disabled:opacity-50
-            ${className}
           `}
           onChange={handleChange}
           {...selectProps}
@@ -144,7 +143,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {children}
         </select>
         <ChevronDown
-          className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+          className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
           aria-hidden="true"
         />
       </div>
@@ -177,7 +176,7 @@ export const SelectItem: React.FC<SelectItemProps> = ({
     <option
       className={`
         cursor-pointer select-none py-1.5 text-sm outline-none
-        bg-muted text-foreground
+        bg-card text-foreground
         disabled:text-gray-400
         ${className}
       `}

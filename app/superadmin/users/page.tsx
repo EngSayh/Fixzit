@@ -8,7 +8,7 @@
  * @module app/superadmin/users/page
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import {
   Users,
@@ -80,6 +80,8 @@ interface UserData {
   role?: string;
   professional?: {
     role?: string;
+    subRole?: string;
+    department?: string;
   };
   personal?: {
     firstName?: string;
@@ -91,7 +93,12 @@ interface UserData {
   isSuperAdmin?: boolean;
   createdAt: string;
   lastLogin?: string;
+  code?: string;
+  userType?: "individual" | "company";
 }
+
+// Group by options
+type GroupByOption = "none" | "organization" | "role" | "status";
 
 interface Organization {
   _id: string;
@@ -143,6 +150,9 @@ export default function SuperadminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [userTypeFilter, setUserTypeFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [groupBy, setGroupBy] = useState<GroupByOption>("none");
+  const [showModuleAccess, setShowModuleAccess] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
 
@@ -202,6 +212,7 @@ export default function SuperadminUsersPage() {
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (orgFilter !== "all") params.set("orgId", orgFilter);
       if (userTypeFilter !== "all") params.set("userType", userTypeFilter);
+      if (roleFilter !== "all") params.set("role", roleFilter);
 
       const response = await fetch(`/api/superadmin/users?${params}`, {
         credentials: "include",
@@ -224,7 +235,7 @@ export default function SuperadminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, statusFilter, orgFilter, userTypeFilter]);
+  }, [page, limit, search, statusFilter, orgFilter, userTypeFilter, roleFilter]);
 
   // Fetch organizations for filter
   const fetchOrganizations = useCallback(async () => {
@@ -574,6 +585,80 @@ export default function SuperadminUsersPage() {
     return user.professional?.role || user.role || "—";
   };
 
+  // Get module access badges for a user based on their role
+  const getModuleAccessBadges = (user: UserData) => {
+    const role = (user.professional?.role || user.role || "") as UserRoleType;
+    const permissions = RBAC_ROLE_PERMISSIONS[role];
+    
+    if (!permissions) {
+      return <span className="text-xs text-muted-foreground">No modules</span>;
+    }
+    
+    const accessibleModules = RBAC_MODULES.filter(mod => {
+      const perm = permissions[mod.id];
+      return perm && (perm.view || perm.create || perm.edit || perm.delete);
+    });
+    
+    if (accessibleModules.length === 0) {
+      return <span className="text-xs text-muted-foreground">No modules</span>;
+    }
+    
+    // Show first 3 modules + count
+    const displayed = accessibleModules.slice(0, 3);
+    const remaining = accessibleModules.length - 3;
+    
+    return (
+      <>
+        {displayed.map(mod => (
+          <Badge 
+            key={mod.id} 
+            variant="outline" 
+            className="text-xs bg-green-500/10 text-green-400 border-green-500/30"
+          >
+            {mod.label.split(" ")[0]}
+          </Badge>
+        ))}
+        {remaining > 0 && (
+          <Badge 
+            variant="outline" 
+            className="text-xs bg-muted text-muted-foreground border-input"
+          >
+            +{remaining}
+          </Badge>
+        )}
+      </>
+    );
+  };
+
+  // Group users by the selected grouping option
+  const groupedUsers = useMemo(() => {
+    if (groupBy === "none") return null;
+    
+    const groups: Record<string, UserData[]> = {};
+    
+    users.forEach(user => {
+      let key: string;
+      switch (groupBy) {
+        case "organization":
+          key = user.orgName || "No Organization";
+          break;
+        case "role":
+          key = user.professional?.role || user.role || "No Role";
+          break;
+        case "status":
+          key = user.status;
+          break;
+        default:
+          key = "Other";
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(user);
+    });
+    
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [users, groupBy]);
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -702,6 +787,53 @@ export default function SuperadminUsersPage() {
                   </SelectItem>
                 ))}
               </Select>
+              
+              <Select 
+                value={roleFilter} 
+                onValueChange={setRoleFilter}
+                placeholder="Role"
+                className="w-full sm:w-44 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="all">All Roles</SelectItem>
+                {CANONICAL_ROLES.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            
+            {/* Group By & Display Options */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center border-t border-border pt-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground whitespace-nowrap">Group By:</Label>
+                <Select 
+                  value={groupBy} 
+                  onValueChange={(v) => setGroupBy(v as GroupByOption)}
+                  placeholder="Group By"
+                  className="w-40 bg-muted border-input text-foreground"
+                >
+                  <SelectItem value="none">No Grouping</SelectItem>
+                  <SelectItem value="organization">Organization</SelectItem>
+                  <SelectItem value="role">Role</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2 ms-0 sm:ms-4">
+                <Checkbox
+                  id="showModuleAccess"
+                  checked={showModuleAccess}
+                  onCheckedChange={(checked) => setShowModuleAccess(checked === true)}
+                  className="border-input data-[state=checked]:bg-blue-600"
+                />
+                <Label 
+                  htmlFor="showModuleAccess" 
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Show Module Access
+                </Label>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -760,15 +892,207 @@ export default function SuperadminUsersPage() {
                       </button>
                     </TableHead>
                     <TableHead className="text-muted-foreground">User</TableHead>
+                    <TableHead className="text-muted-foreground w-24">User ID</TableHead>
+                    <TableHead className="text-muted-foreground">Type</TableHead>
                     <TableHead className="text-muted-foreground">Role</TableHead>
                     <TableHead className="text-muted-foreground">Status</TableHead>
                     <TableHead className="text-muted-foreground">Organization</TableHead>
-                    <TableHead className="text-muted-foreground">Created</TableHead>
+                    <TableHead className="text-muted-foreground">Phone</TableHead>
+                    <TableHead className="text-muted-foreground">Last Login</TableHead>
+                    {showModuleAccess && (
+                      <TableHead className="text-muted-foreground">Module Access</TableHead>
+                    )}
                     <TableHead className="text-muted-foreground text-end">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {groupBy !== "none" && groupedUsers ? (
+                    // Grouped view
+                    groupedUsers.map(([groupName, groupUsers]) => (
+                      <React.Fragment key={groupName}>
+                        {/* Group Header Row */}
+                        <TableRow className="bg-muted/50 border-border hover:bg-muted/70">
+                          <TableCell colSpan={showModuleAccess ? 11 : 10} className="py-2">
+                            <div className="flex items-center gap-2">
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-semibold text-foreground">{groupName}</span>
+                              <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-input">
+                                {groupUsers.length} user{groupUsers.length !== 1 ? "s" : ""}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {/* Group Users */}
+                        {groupUsers.map((user) => (
+                          <TableRow
+                            key={user._id}
+                            className={`border-border hover:bg-muted/50 ${selectedIds.has(user._id) ? "bg-blue-900/20" : ""}`}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedIds.has(user._id)}
+                                onCheckedChange={() => toggleSelect(user._id)}
+                                className="border-input data-[state=checked]:bg-blue-600"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-foreground">{getUserName(user)}</span>
+                                  {user.isSuperAdmin && (
+                                    <span title="Super Admin">
+                                      <Shield className="h-4 w-4 text-yellow-500" aria-hidden="true" />
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs font-mono text-muted-foreground" title={user._id}>
+                                {user.code || user._id.slice(-8)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className={user.userType === "company" 
+                                  ? "bg-purple-500/20 text-purple-400 border-purple-500/30" 
+                                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                }
+                              >
+                                {user.userType === "company" ? (
+                                  <><Building2 className="h-3 w-3 me-1" />Company</>
+                                ) : (
+                                  <>Individual</>
+                                )}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-muted-foreground border-input">
+                                {getUserRole(user)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={`${STATUS_COLORS[user.status] || ""} flex items-center gap-1 w-fit`}
+                              >
+                                {STATUS_ICONS[user.status]}
+                                {user.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                {user.orgName || "—"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-muted-foreground text-sm">
+                                {user.personal?.phone || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-muted-foreground text-sm">
+                                {user.lastLogin ? formatDate(user.lastLogin) : "Never"}
+                              </span>
+                            </TableCell>
+                            {showModuleAccess && (
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1 max-w-xs">
+                                  {getModuleAccessBadges(user)}
+                                </div>
+                              </TableCell>
+                            )}
+                            <TableCell className="text-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                    aria-label={t("superadmin.users.rowActions", `Actions for user ${user.email}`)}
+                                    title={t("superadmin.users.rowActions", `Actions for ${user.email}`)}
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-muted border-input">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedUser(user);
+                                      setViewDialogOpen(true);
+                                    }}
+                                    className="text-muted-foreground hover:bg-muted/80"
+                                  >
+                                    <Eye className="h-4 w-4 me-2" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedUser(user);
+                                      setEditStatusDialogOpen(true);
+                                    }}
+                                    className="text-muted-foreground hover:bg-muted/80"
+                                  >
+                                    <Edit className="h-4 w-4 me-2" />
+                                    Change Status
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedUser(user);
+                                      setNewRole((user.professional?.role || user.role || "") as UserRoleType);
+                                      setEditRoleDialogOpen(true);
+                                    }}
+                                    className="text-muted-foreground hover:bg-muted/80"
+                                  >
+                                    <Shield className="h-4 w-4 me-2" />
+                                    Edit Role
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedUser(user);
+                                      setPermissionsDialogOpen(true);
+                                    }}
+                                    className="text-muted-foreground hover:bg-muted/80"
+                                  >
+                                    <KeyRound className="h-4 w-4 me-2" />
+                                    View Permissions
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedUser(user);
+                                      setPermissionOverrides({});
+                                      setExpandedModules(new Set());
+                                      setEditPermissionsDialogOpen(true);
+                                    }}
+                                    className="text-muted-foreground hover:bg-muted/80"
+                                  >
+                                    <KeyRound className="h-4 w-4 me-2" />
+                                    Edit Permissions
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-input" />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSingleNotificationUserId(user._id);
+                                      setNotificationDialogOpen(true);
+                                    }}
+                                    className="text-muted-foreground hover:bg-muted/80"
+                                  >
+                                    <Mail className="h-4 w-4 me-2" />
+                                    Send Notification
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    // Regular view (no grouping)
+                    users.map((user) => (
                     <TableRow
                       key={user._id}
                       className={`border-border hover:bg-muted/50 ${selectedIds.has(user._id) ? "bg-blue-900/20" : ""}`}
@@ -794,6 +1118,26 @@ export default function SuperadminUsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <span className="text-xs font-mono text-muted-foreground" title={user._id}>
+                          {user.code || user._id.slice(-8)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={user.userType === "company" 
+                            ? "bg-purple-500/20 text-purple-400 border-purple-500/30" 
+                            : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                          }
+                        >
+                          {user.userType === "company" ? (
+                            <><Building2 className="h-3 w-3 me-1" />Company</>
+                          ) : (
+                            <>Individual</>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline" className="text-muted-foreground border-input">
                           {getUserRole(user)}
                         </Badge>
@@ -815,9 +1159,21 @@ export default function SuperadminUsersPage() {
                       </TableCell>
                       <TableCell>
                         <span className="text-muted-foreground text-sm">
-                          {formatDate(user.createdAt)}
+                          {user.personal?.phone || "—"}
                         </span>
                       </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground text-sm">
+                          {user.lastLogin ? formatDate(user.lastLogin) : "Never"}
+                        </span>
+                      </TableCell>
+                      {showModuleAccess && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {getModuleAccessBadges(user)}
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className="text-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -900,7 +1256,8 @@ export default function SuperadminUsersPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -959,6 +1316,14 @@ export default function SuperadminUsersPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <p className="text-sm text-muted-foreground">User ID</p>
+                  <p className="font-mono text-sm">{selectedUser.code || selectedUser._id.slice(-8)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Full ID</p>
+                  <p className="font-mono text-xs text-muted-foreground truncate" title={selectedUser._id}>{selectedUser._id}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{getUserName(selectedUser)}</p>
                 </div>
@@ -967,8 +1332,28 @@ export default function SuperadminUsersPage() {
                   <p className="font-medium">{selectedUser.email}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">User Type</p>
+                  <Badge 
+                    variant="outline" 
+                    className={selectedUser.userType === "company" 
+                      ? "bg-purple-500/20 text-purple-400 border-purple-500/30" 
+                      : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                    }
+                  >
+                    {selectedUser.userType === "company" ? "Company" : "Individual"}
+                  </Badge>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Role</p>
                   <p className="font-medium">{getUserRole(selectedUser)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Sub-Role</p>
+                  <p className="font-medium">{selectedUser.professional?.subRole || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Department</p>
+                  <p className="font-medium">{selectedUser.professional?.department || "—"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
@@ -985,12 +1370,20 @@ export default function SuperadminUsersPage() {
                   <p className="font-medium">{selectedUser.personal?.phone || "—"}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">Last Login</p>
+                  <p className="font-medium">{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : "Never"}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Created</p>
                   <p className="font-medium">{formatDate(selectedUser.createdAt)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Login</p>
-                  <p className="font-medium">{formatDate(selectedUser.lastLogin)}</p>
+              </div>
+              
+              {/* Module Access Section */}
+              <div className="border-t border-border pt-4">
+                <p className="text-sm font-medium text-foreground mb-2">Module Access</p>
+                <div className="flex flex-wrap gap-1">
+                  {getModuleAccessBadges(selectedUser)}
                 </div>
               </div>
             </div>
@@ -1353,7 +1746,7 @@ export default function SuperadminUsersPage() {
                 value={createUserForm.role}
                 onValueChange={(value) => setCreateUserForm((prev) => ({ ...prev, role: value as UserRoleType }))}
                 placeholder={t("superadmin.users.selectRole", "Select a role")}
-                className="bg-muted border-input"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {CANONICAL_ROLES.map((role) => (
                   <SelectItem key={role} value={role}>
@@ -1369,7 +1762,7 @@ export default function SuperadminUsersPage() {
                 value={createUserForm.orgId}
                 onValueChange={(value) => setCreateUserForm((prev) => ({ ...prev, orgId: value }))}
                 placeholder={t("superadmin.users.selectOrg", "Select organization (optional)")}
-                className="bg-muted border-input"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectItem value="">{t("superadmin.users.noOrg", "No organization")}</SelectItem>
                 {organizations.map((org) => (
@@ -1444,7 +1837,7 @@ export default function SuperadminUsersPage() {
                 value={newRole}
                 onValueChange={(value) => setNewRole(value as UserRoleType)}
                 placeholder={t("superadmin.users.selectRole", "Select a role")}
-                className="bg-muted border-input"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {CANONICAL_ROLES.map((role) => (
                   <SelectItem key={role} value={role}>

@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -231,7 +234,7 @@ export default function SettingsPage() {
                   <Label htmlFor="language">
                     {t("settings.preferences.language", "Language")}
                   </Label>
-                  <Select defaultValue="ar" placeholder={t("settings.preferences.language", "Language")} className="bg-muted border-input text-foreground">
+                  <Select defaultValue="ar" placeholder={t("settings.preferences.language", "Language")} className="w-full sm:w-40 bg-muted border-input text-foreground">
                     <SelectItem value="en">
                       {t("settings.preferences.english", "English")}
                     </SelectItem>
@@ -244,7 +247,7 @@ export default function SettingsPage() {
                   <Label htmlFor="timezone">
                     {t("settings.preferences.timezone", "Timezone")}
                   </Label>
-                  <Select defaultValue="Asia/Riyadh" placeholder={t("settings.preferences.timezone", "Timezone")} className="bg-muted border-input text-foreground">
+                  <Select defaultValue="Asia/Riyadh" placeholder={t("settings.preferences.timezone", "Timezone")} className="w-full sm:w-40 bg-muted border-input text-foreground">
                     <SelectItem value="Asia/Riyadh">
                       {t(
                         "settings.preferences.riyadh",
@@ -264,7 +267,7 @@ export default function SettingsPage() {
                     value={currency}
                     onValueChange={(value) => setCurrency(value as CurrencyCode)}
                     placeholder={t("settings.preferences.currency", "Currency")}
-                    className="bg-muted border-input text-foreground"
+                    className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
                     {options.map((option) => (
                       <SelectItem key={option.code} value={option.code}>
@@ -283,7 +286,7 @@ export default function SettingsPage() {
                   <Label htmlFor="theme">
                     {t("settings.preferences.theme", "Theme")}
                   </Label>
-                  <Select defaultValue="light" placeholder={t("settings.preferences.theme", "Theme")} className="bg-muted border-input text-foreground">
+                  <Select defaultValue="light" placeholder={t("settings.preferences.theme", "Theme")} className="w-full sm:w-40 bg-muted border-input text-foreground">
                     <SelectItem value="light">
                       {t("settings.preferences.light", "Light")}
                     </SelectItem>
