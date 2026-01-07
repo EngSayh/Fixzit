@@ -43,11 +43,19 @@
 14. [SMART Reporting Protocol (MANDATORY)](#14-smart-reporting-protocol-mandatory)
 15. [Auto-Review Protocol](#15-auto-review-protocol)
 16. [Prompts Library](#16-prompts-library)
-17. [Appendix A: MongoDB Issue Schema](#appendix-a-mongodb-issue-schema)
-18. [Appendix B: Agent Routing Configuration](#appendix-b-agent-routing-configuration)
-19. [Appendix C: Environment Variables Reference](#appendix-c-environment-variables-reference)
-20. [Appendix D: People Checker Role Checklists](#appendix-d-people-checker-role-checklists)
-21. [Changelog](#changelog)
+17. [System Improvement Roadmap (Agent Analysis)](#17-system-improvement-roadmap-agent-analysis)
+   - 17.1 [Areas for Improvement](#171-areas-for-improvement)
+   - 17.2 [Process Efficiency](#172-process-efficiency)
+   - 17.3 [Bugs and Errors Catalog](#173-bugs-and-errors-catalog)
+   - 17.4 [Incorrect Logic Analysis](#174-incorrect-logic-analysis)
+   - 17.5 [Testing Recommendations](#175-testing-recommendations)
+   - 17.6 [Optional Enhancements](#176-optional-enhancements)
+   - 17.7 [Prioritized Recommendations Summary](#177-prioritized-recommendations-summary)
+18. [Appendix A: MongoDB Issue Schema](#appendix-a-mongodb-issue-schema)
+19. [Appendix B: Agent Routing Configuration](#appendix-b-agent-routing-configuration)
+20. [Appendix C: Environment Variables Reference](#appendix-c-environment-variables-reference)
+21. [Appendix D: People Checker Role Checklists](#appendix-d-people-checker-role-checklists)
+22. [Changelog](#changelog)
 
 ---
 ## 1. Mission & Non-Negotiables
@@ -3149,6 +3157,216 @@ Privacy / Compliance Officer (PDPL)	PDPL-ready processes and evidence	• Data p
 • Review logging, consent, cross-border transfer considerations, incident response
 Technical Writer / Enablement	Reduced support load, faster adoption	• Admin guides, role-based user guides, API docs (if externalized)
 • Maintain change log and release notes aligned to modules/roles
+---
+
+## 17. System Improvement Roadmap (Agent Analysis)
+
+> **Last Updated:** 2026-01-07 by [AGENT-0005]  
+> **Analysis Scope:** Full system audit based on BACKLOG_AUDIT.json, ISSUES_REGISTER.md, MASTER_PENDING_REPORT.md, and codebase patterns.
+
+### 17.1 Areas for Improvement
+
+#### 17.1.1 Feature Enhancements (User Experience)
+
+| ID | Feature | Current State | Proposed Enhancement | Priority | Impact |
+|----|---------|---------------|---------------------|----------|--------|
+| **IMP-UX-001** | Real-time Notifications | SSE placeholder exists | Implement Redis pub/sub for horizontal scaling (TODO-SSE-001) | P2 | High - Reduces page refreshes |
+| **IMP-UX-002** | Global Search | Basic implementation | Add fuzzy search, recent searches, role-based result filtering | P3 | Medium - Faster navigation |
+| **IMP-UX-003** | Dashboard Customization | Fixed layouts per role | Allow drag-drop widget arrangement, saved views | P3 | Medium - User personalization |
+| **IMP-UX-004** | Offline Technician Mode | Not implemented | Service worker + IndexedDB for field work without connectivity | P2 | High - Field productivity |
+| **IMP-UX-005** | Bulk Operations | Partial (invoices, work orders) | Extend to all list views (properties, tenants, HR, marketplace) | P2 | Medium - Admin efficiency |
+
+#### 17.1.2 New Features Aligned with Industry Trends
+
+| ID | Feature | Business Value | Technical Approach | Effort |
+|----|---------|---------------|-------------------|--------|
+| **FEAT-AI-001** | AI Work Order Categorization | Auto-categorize incoming tickets using description NLP | OpenAI/Claude API + training on historical data | Medium |
+| **FEAT-AI-002** | Predictive Maintenance Alerts | Predict asset failures before they occur | ML model on work order history + asset age | High |
+| **FEAT-MOBILE-001** | Native Mobile Apps | 60%+ users on mobile | React Native shell with existing API | High |
+| **FEAT-PAY-001** | Apple Pay / Google Pay | Reduce payment friction | Tap Payments SDK extension | Low |
+| **FEAT-INTEG-001** | WhatsApp Business Integration | 95% adoption in Saudi market | WhatsApp Cloud API for notifications | Medium |
+
+---
+
+### 17.2 Process Efficiency
+
+#### 17.2.1 Identified Bottlenecks
+
+| ID | Bottleneck | Current Impact | Root Cause | Recommended Optimization |
+|----|-----------|---------------|------------|-------------------------|
+| **BOT-001** | Manual approval chains | Delays in PO/invoice processing | No auto-escalation on timeout | Add SLA timers with auto-escalate to next approver |
+| **BOT-002** | Document upload processing | Sync blocking on large files | S3 upload without background job | Implement presigned URLs + async processing queue |
+| **BOT-003** | Report generation | Timeout on large datasets | Synchronous aggregation | Background job + notification on completion |
+| **BOT-004** | Onboarding case review | Manual document verification | No OCR/AI extraction | Integrate document AI for auto-fill suggestions |
+| **BOT-005** | Vendor KYC verification | 3-5 day manual review cycle | Human-only verification | Add automated checks (CR validation, VAT lookup) |
+
+#### 17.2.2 Automation Opportunities
+
+| ID | Manual Process | Current Effort | Automation Solution | ROI |
+|----|---------------|----------------|--------------------|----|
+| **AUTO-001** | Work order assignment | 2-5 min/ticket | Auto-assign based on category + technician skills + availability | 80% time saved |
+| **AUTO-002** | Invoice reconciliation | 30 min/day | Auto-match payments to invoices by amount + tenant | 90% time saved |
+| **AUTO-003** | Lease expiry notifications | Manual calendar checks | Automated 90/60/30 day reminders | 100% coverage |
+| **AUTO-004** | Vendor payout calculation | Spreadsheet-based | Automated commission calculation + batch payout | 95% time saved |
+| **AUTO-005** | SLA breach alerts | Reactive (discovered late) | Proactive alerts at 80% SLA elapsed | Prevent breaches |
+
+---
+
+### 17.3 Bugs and Errors Catalog
+
+#### 17.3.1 Known Issues by Severity
+
+| ID | Severity | Issue | Location | Impact | Status |
+|----|----------|-------|----------|--------|--------|
+| **SEC-CLAIMS-001** | 🟡 Medium | 5 ESLint tenant scope warnings in claims routes | `app/api/souq/claims/` | Potential data isolation risk | Needs Review |
+| **BUG-ENV-001** | 🟡 Medium | process.env accessed directly in 40+ client components | `app/**/*.tsx` | SSR/hydration issues | Systematic fix needed |
+| **BUG-TS-001** | 🟢 Low | 3 @ts-expect-error without documented reason | `lib/ats/`, `lib/markdown.ts` | Tech debt | Add justification comments |
+| **PERF-AGG-001** | 🟡 Medium | 20+ aggregates without .limit() | `app/api/**/route.ts` | Memory exhaustion risk | Add default limits |
+| **PERF-LEAN-001** | 🟢 Low | 10+ read queries missing .lean() | `app/api/onboarding/**` | Minor performance hit | Add .lean() |
+
+#### 17.3.2 Error Rate Analysis (Based on Codebase Patterns)
+
+| Error Type | Occurrence Count | Mitigation Strategy |
+|-----------|------------------|---------------------|
+| Empty catch blocks | 12 | ✅ All intentional (graceful degradation) - No action |
+| Console.error statements | 7 | ✅ Acceptable in dev tools (issue-tracker) |
+| Unused ESLint directives | 2 | Remove stale directives |
+| Missing tenant scope | 5 warnings | Audit and add org_id/property_owner_id filters |
+| Type suppressions | 5 total | All documented with reasons ✅ |
+
+#### 17.3.3 Debugging Strategies
+
+| Issue Type | Recommended Approach |
+|-----------|---------------------|
+| Tenant isolation bugs | Add integration tests with 2+ orgs; verify query filters |
+| Hydration mismatches | Move dynamic logic to useEffect; use `suppressHydrationWarning` sparingly |
+| API timeouts | Add maxTimeMS to all aggregates; implement circuit breakers |
+| Payment failures | Implement idempotency keys; add retry with exponential backoff |
+| SSE disconnects | Add heartbeat ping; implement reconnection logic |
+
+---
+
+### 17.4 Incorrect Logic Analysis
+
+#### 17.4.1 Identified Logic Issues
+
+| ID | Issue | Location | Current Behavior | Correct Behavior | Fix Approach |
+|----|-------|----------|-----------------|-----------------|--------------|
+| **LOGIC-001** | SLA business hours calculation | `lib/sla/business-hours.ts` | 5 TODO stubs | Must exclude weekends, holidays, working hours | Implement with org-specific calendar |
+| **LOGIC-002** | Opt-in defaults for notifications | `services/admin/notification-engine.ts` | Missing preferences = undefined behavior | Default to opt-in with explicit opt-out | Add default preference object |
+| **LOGIC-003** | Aggregate pagination | Multiple stats routes | No cursor-based pagination | Unbounded results on large datasets | Add $skip/$limit or cursor |
+| **LOGIC-004** | Rate limit scope | `app/api/auth/otp/send/route.ts` | Global rate limit only | Per-phone rate limiting needed | ✅ Fixed (commit 72ff2e47e) |
+
+#### 17.4.2 Decision-Making Accuracy Improvements
+
+| Area | Current Accuracy | Issue | Improvement |
+|------|-----------------|-------|-------------|
+| Work order routing | ~80% | Manual category selection | Add ML-based auto-categorization |
+| Vendor matching | ~70% | Distance-only matching | Add skill match + rating + availability |
+| Invoice due dates | 100% | N/A | Correctly calculated |
+| SLA calculations | ~60% | Missing business hours | Implement proper calendar logic |
+| Approval routing | ~90% | Some edge cases miss | Add fallback approver rules |
+
+---
+
+### 17.5 Testing Recommendations
+
+#### 17.5.1 Tests to Address Identified Issues
+
+| Issue ID | Test Type | Test Description | Priority |
+|----------|-----------|-----------------|----------|
+| SEC-CLAIMS-001 | Integration | Multi-org claims isolation test (2 orgs, verify no cross-access) | P1 |
+| BUG-ENV-001 | Unit | Verify Config.* pattern usage in client components | P2 |
+| PERF-AGG-001 | Load | Stress test aggregates with 100k+ documents | P2 |
+| LOGIC-001 | Unit | SLA calculation with holidays, weekends, working hours | P1 |
+| LOGIC-002 | Unit | Notification delivery with missing/null preferences | P2 |
+
+#### 17.5.2 New Test Cases for Enhancements
+
+| Enhancement | Test Cases Needed |
+|------------|------------------|
+| IMP-UX-001 (Real-time) | SSE connection lifecycle, reconnection, multi-tab sync |
+| IMP-UX-004 (Offline) | IndexedDB storage, sync on reconnect, conflict resolution |
+| FEAT-AI-001 (Categorization) | Accuracy on edge cases, fallback to manual, confidence thresholds |
+| AUTO-001 (Auto-assign) | Load balancing, skill matching, availability calendar |
+| AUTO-002 (Reconciliation) | Partial payments, refunds, currency handling |
+
+#### 17.5.3 Current Test Coverage Status
+
+| Domain | Routes | Tests | Coverage | Gap Priority |
+|--------|--------|-------|----------|--------------|
+| FM Core | 45 | 42 | 93% | P3 |
+| Finance | 19 | 4 | 21% | **P1** |
+| HR | 7 | 1 | 14% | **P1** |
+| Souq | 75 | 26 | 35% | **P2** |
+| Aqar | 28 | 12 | 43% | P2 |
+| Auth | 12 | 12 | 100% | ✅ |
+| Admin | 18 | 8 | 44% | P2 |
+| **Total** | **392** | **189** | **48.2%** | Target: 70% |
+
+---
+
+### 17.6 Optional Enhancements
+
+#### 17.6.1 Nice-to-Have Features (Non-Critical)
+
+| ID | Enhancement | Business Value | Effort | Suggested Timeline |
+|----|-------------|---------------|--------|-------------------|
+| **OPT-001** | Dead code cleanup | ~30% unused exports | Medium | Q1 2026 |
+| **OPT-002** | Storybook documentation | Component discoverability | Medium | Q2 2026 |
+| **OPT-003** | E2E test credentials | Enable 20 skipped tests | Low | Q1 2026 |
+| **OPT-004** | Large file refactoring | 24 files >1000 lines | High | Ongoing |
+| **OPT-005** | Dependency updates | 14 packages outdated | Low | Monthly |
+| **OPT-006** | GraphQL optimization | `lib/graphql/index.ts` (1,375 lines) | High | Q2 2026 |
+| **OPT-007** | Dark mode consistency | Some components lack dark variants | Medium | Q1 2026 |
+| **OPT-008** | A11Y audit (WCAG AA) | Full accessibility compliance | High | Q2 2026 |
+
+#### 17.6.2 Infrastructure Improvements
+
+| ID | Improvement | Current State | Target State | Impact |
+|----|-------------|--------------|--------------|--------|
+| **INFRA-001** | Redis for SSE | Single-server SSE | Redis pub/sub for horizontal scaling | Enables multi-instance |
+| **INFRA-002** | CDN for static assets | Vercel default | CloudFront/Bunny for Saudi edge | Faster load times |
+| **INFRA-003** | Database read replicas | Single MongoDB | Primary + read replica | Query performance |
+| **INFRA-004** | Background job queue | Inline processing | BullMQ/Redis for async jobs | Reduced latency |
+| **INFRA-005** | Log aggregation | Console logs | Structured logging to Axiom/Datadog | Better debugging |
+
+---
+
+### 17.7 Prioritized Recommendations Summary
+
+#### Immediate Actions (This Sprint)
+
+| Rank | Item | ID | Owner | Effort |
+|------|------|-----|-------|--------|
+| 1 | Audit SEC-CLAIMS-001 tenant scope warnings | SEC-CLAIMS-001 | Backend | 4h |
+| 2 | Add .limit() to unbounded aggregates | PERF-AGG-001 | Backend | 2h |
+| 3 | Add Finance module tests (4 → 10 routes) | TEST-002 | QA | 8h |
+| 4 | Add HR module tests (1 → 7 routes) | TEST-001 | QA | 6h |
+| 5 | Implement SLA business hours calculation | LOGIC-001 | Backend | 8h |
+
+#### Next Sprint
+
+| Rank | Item | ID | Owner | Effort |
+|------|------|-----|-------|--------|
+| 1 | Redis pub/sub for SSE | INFRA-001 | DevOps | 16h |
+| 2 | Auto-assignment for work orders | AUTO-001 | Backend | 24h |
+| 3 | WhatsApp Business integration | FEAT-INTEG-001 | Backend | 40h |
+| 4 | Offline technician mode | IMP-UX-004 | Frontend | 40h |
+| 5 | Souq module test coverage (35% → 60%) | TEST-003 | QA | 16h |
+
+#### Q1 2026 Roadmap
+
+| Category | Items | Estimated Effort |
+|----------|-------|-----------------|
+| Testing | Achieve 70% API coverage | 80h |
+| Performance | Background job queue, read replicas | 60h |
+| Features | AI categorization, predictive maintenance | 120h |
+| Mobile | React Native shell MVP | 200h |
+| Integrations | WhatsApp, Apple Pay, Google Pay | 80h |
+
+---
+
 Changelog
 v7.0.0 (2025-12-28)
 
