@@ -89,6 +89,9 @@ export const COLLECTIONS = {
   SOUQ_RMAS: "souq_rmas",
   SOUQ_REFUNDS: "souq_refunds",
   
+  // Finance / Escrow collections
+  FINANCE_ESCROW_EVENTS: "finance_escrow_events",
+  
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
@@ -129,10 +132,56 @@ export const COLLECTIONS = {
   
   // Superadmin / System collections
   TRIAL_REQUESTS: "trial_requests",
+  TIME_TRAVEL_REQUESTS: "time_travel_requests",
+  RESTORE_JOBS: "restore_jobs",
+  BLOCKED_IPS: "blocked_ips",
+  SECURITY_ALERTS: "security_alerts",
+  AUTH_LOGS: "auth_logs",
+  AUDIT_LOGS_UNDERSCORE: "audit_logs",
+  AUDIT_LOGS_ARCHIVE: "audit_logs_archive",
   MFA_APPROVALS: "mfa_approvals",
   KILL_SWITCH_EVENTS: "kill_switch_events",
   TENANT_SNAPSHOTS: "tenant_snapshots",
   GHOST_SESSIONS: "ghost_sessions",
+  
+  // Auth / Security collections
+  ACCOUNT_LOCKOUTS: "account_lockouts",
+  LOGIN_ATTEMPTS: "login_attempts",
+  MFA_PENDING: "mfa_pending",
+  PASSWORD_HISTORY: "password_history",
+  SESSIONS: "sessions",
+  TRUSTED_DEVICES: "trusted_devices",
+  CONSENTS: "consents",
+  
+  // HR / Payroll collections
+  APPLICANTS: "applicants",
+  PAYROLL_RUNS: "payroll_runs",
+  TRAINING_SESSIONS: "training_sessions",
+  SCREENING_APPLICATIONS: "screening_applications",
+  
+  // Finance collections
+  EXPENSES: "expenses",
+  FINANCE_PAYMENTS: "finance_payments",
+  PAYMENT_HISTORY: "payment_history",
+  TRANSACTIONS: "transactions",
+  
+  // FM additional collections
+  FM_FINANCIAL_TRANSACTIONS: "fm_financial_transactions",
+  LEASES: "leases",
+  LEASE_SEQUENCES: "lease_sequences",
+  EVICTION_RECORDS: "eviction_records",
+  WORK_ORDERS_UNDERSCORE: "work_orders",
+  SUPPORT_TICKETS_UNDERSCORE: "support_tickets",
+  
+  // Notifications
+  NOTIFICATION_QUEUE: "notification_queue",
+  SELLER_NOTIFICATIONS: "seller_notifications",
+  
+  // Feedback
+  FEEDBACK: "feedback",
+  
+  // Organization
+  ORGANIZATION_SETTINGS: "organization_settings",
   
   // Issue tracker (SSOT)
   ISSUES: "issues",
