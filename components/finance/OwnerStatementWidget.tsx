@@ -23,18 +23,32 @@ interface OwnerStatementResponse {
   }>;
 }
 
+// Helper to get default date values (called client-side only)
+const getDefaultDates = () => {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .slice(0, 10);
+  const to = now.toISOString().slice(0, 10);
+  return { from, to };
+};
+
 export default function OwnerStatementWidget() {
   const { t } = useTranslation();
   const [propertyId, setPropertyId] = useState("");
-  const [from, setFrom] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .slice(0, 10),
-  );
-  const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
+  // Initialize with empty strings to avoid hydration mismatch, then set on mount
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [data, setData] = useState<OwnerStatementResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Set default dates on client-side mount to avoid hydration mismatch
+  useEffect(() => {
+    const defaults = getDefaultDates();
+    setFrom(defaults.from);
+    setTo(defaults.to);
+  }, []);
 
   const canLoad = propertyId.trim().length > 0;
 

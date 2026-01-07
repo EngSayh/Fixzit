@@ -14,7 +14,7 @@
  */
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "@/components/ui/icons";
 
@@ -124,19 +124,30 @@ export function ArabicCalendar({
 }: ArabicCalendarProps) {
   const isRTL = locale === "ar";
   const [calendarType, setCalendarType] = useState<CalendarType>(initialType);
-  const [viewDate, setViewDate] = useState(() => value || new Date());
+  // Use value prop or null initially to avoid hydration mismatch from new Date()
+  const [viewDate, setViewDate] = useState<Date | null>(value || null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Set viewDate to current date on client mount if not provided via value prop
+  useEffect(() => {
+    if (!viewDate && !value) {
+      setViewDate(new Date());
+    }
+  }, [viewDate, value]);
 
   const weekdays = isRTL ? WEEKDAYS_AR : WEEKDAYS_EN;
   const months = calendarType === "hijri"
     ? (isRTL ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN)
     : (isRTL ? MONTHS_AR : MONTHS_EN);
 
+  // Use a default date for calculations when viewDate is null (during SSR)
+  const effectiveViewDate = viewDate || new Date(2020, 0, 1); // Safe fallback for SSR
+
   // Calculate calendar grid
   const calendarDays = useMemo(() => {
     const days: Array<{ date: Date; isCurrentMonth: boolean; hijri?: HijriDate }> = [];
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
+    const year = effectiveViewDate.getFullYear();
+    const month = effectiveViewDate.getMonth();
     
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
@@ -162,9 +173,9 @@ export function ArabicCalendar({
     }
     
     return days;
-  }, [viewDate]);
+  }, [effectiveViewDate]);
 
-  const currentHijri = gregorianToHijri(viewDate);
+  const currentHijri = gregorianToHijri(effectiveViewDate);
 
   const isDateDisabled = (date: Date): boolean => {
     if (minDate && date < minDate) return true;
@@ -195,7 +206,10 @@ export function ArabicCalendar({
   };
 
   const navigateMonth = (delta: number) => {
-    setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+    setViewDate(prev => {
+      const current = prev || new Date();
+      return new Date(current.getFullYear(), current.getMonth() + delta, 1);
+    });
   };
 
   const handleDateClick = (date: Date) => {
@@ -249,11 +263,11 @@ export function ArabicCalendar({
               <p className="font-semibold text-neutral-800">
                 {calendarType === "hijri"
                   ? `${months[currentHijri.month - 1]} ${currentHijri.year}`
-                  : `${months[viewDate.getMonth()]} ${viewDate.getFullYear()}`}
+                  : `${months[effectiveViewDate.getMonth()]} ${effectiveViewDate.getFullYear()}`}
               </p>
               {calendarType === "hijri" && (
                 <p className="text-xs text-neutral-500">
-                  {MONTHS_AR[viewDate.getMonth()]} {viewDate.getFullYear()}
+                  {MONTHS_AR[effectiveViewDate.getMonth()]} {effectiveViewDate.getFullYear()}
                 </p>
               )}
             </div>

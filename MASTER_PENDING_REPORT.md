@@ -415,7 +415,7 @@ This roadmap consolidates all identified improvements, bugs, compliance gaps, an
 | ID | Issue | Location | Effort | Status |
 |----|-------|----------|--------|--------|
 | BUG-LAYOUT-001 | Layout breaks - pages missing header/sidebar | Multiple pages | 8h | ✅ FALSE POSITIVE - Audit shows unified ClientLayout + AppShell on all routes |
-| BUG-HYDRATION-001 | React hydration errors (server/client DOM mismatch) | Global shell | 4h | ⬜ TODO - Needs runtime testing |
+| BUG-HYDRATION-001 | React hydration errors (server/client DOM mismatch) | Global shell | 4h | ✅ FIXED - Date state init moved to useEffect |
 | BUG-CONSOLE-001 | Console errors on page load (0-error target) | Various | 4h | ⬜ TODO - Console logs in error handlers are acceptable |
 | BUG-FILE-UPLOAD-001 | File upload errors for work order attachments | WO attachments | 4h | ⬜ TODO - Needs runtime testing |
 
