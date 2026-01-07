@@ -5,16 +5,43 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2026-01-07T22:30:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2026-01-07T23:45:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v5.5 (System Organizer + Duplicate & Rate-Limit + **Similar Issue Scanner** + **Deep Verification**)  
-**Branch:** feat/superadmin-users-improvements-AGENT-0007  
-**Commit:** (pending)  
-**Last Work:** Superadmin Roles Page Enhancement - Jan 07, 2026  
+**Branch:** feat/platform-improvements-sprint-0-4  
+**Commit:** d37ec2641  
+**Last Work:** Platform Improvements Phase 0-1 (PR #680) - Jan 07, 2026  
 **MongoDB Status:** Synced via /api/issues/import (2026-01-07 14:42 +03:00)  
 **Verification Status:** ✅ **100% VERIFIED** (TypeScript: 0 errors, ESLint: 0 errors)  
-**Working Tree:** Modified  
+**Working Tree:** Clean  
 **Test Count:** 479 test files, 392 API routes, 189 API tests  
 **Similar Issue Groups:** 18 patterns indexed (100 total issues tracked)
+
+---
+
+## 2026-01-07 23:45 - Platform Improvements Phase 0-1 [AGENT-TEMP-20250214T1230]
+
+### 🚀 PR #680: Security, I18N, RTL Improvements
+
+**Branch:** `feat/platform-improvements-sprint-0-4`
+
+**Issues Resolved:**
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Rate Limit Enforcement (SEC-P0) | 42 routes / 33 files | ✅ RESOLVED |
+| Hardcoded Locale (I18N-P1-005) | 7 superadmin pages | ✅ RESOLVED |
+| UTF-8 BOM CSV (I18N-P1-003) | 3 export pages | ✅ RESOLVED |
+| Button type default (I18N-P1-004) | 1 component | ✅ RESOLVED |
+| RTL compliance (public/fm.html) | 1 file | ✅ RESOLVED |
+| Locale utilities (lib/utils.ts) | 3 functions added | ✅ RESOLVED |
+
+**Similarity Groups Closed:**
+- GROUP 1: Rate Limiting Not Enforced → 7/7 resolved
+- GROUP 4: Hardcoded Locale in formatDate → 4/4 resolved  
+- GROUP 5: Missing type="button" → 4/4 resolved
+- GROUP 14: CSV Export Missing UTF-8 BOM → 2/2 resolved
+
+**Verification:** TypeScript 0 errors, ESLint 0 errors
 
 ---
 
@@ -292,9 +319,9 @@ The following issues should be marked as `resolved` in the MongoDB Issue Tracker
 |----------|-----|-------|--------|--------|
 | P0 | PR-678-001 | Silent catch in fetchAuditLogs/fetchErrorLogs | Qodo | ⬜ TODO |
 | P0 | PR-678-002 | Consolidate audit stats queries to $facet | Qodo, CodeRabbit | ⬜ TODO |
-| P1 | PR-678-003 | Add UTF-8 BOM to CSV export | CodeRabbit | ⬜ TODO |
-| P1 | PR-678-004 | Add `type="button"` to interactive buttons | CodeRabbit, Biome | ⬜ TODO |
-| P1 | PR-678-005 | Fix hardcoded locale in formatDate functions | CodeRabbit | ⬜ TODO |
+| P1 | PR-678-003 | Add UTF-8 BOM to CSV export | CodeRabbit | ✅ DONE (PR #680) |
+| P1 | PR-678-004 | Add `type="button"` to interactive buttons | CodeRabbit, Biome | ✅ DONE (PR #680) |
+| P1 | PR-678-005 | Fix hardcoded locale in formatDate functions | CodeRabbit | ✅ DONE (PR #680) |
 | P1 | PR-678-006 | Wrap hardcoded strings in t() for i18n | CodeRabbit | ⬜ TODO |
 | P2 | PR-678-007 | Add aria-labels to icon-only buttons | CodeRabbit | ⬜ TODO |
 | P2 | PR-678-008 | Fix label htmlFor associations | CodeRabbit, Biome | ⬜ TODO |
@@ -329,17 +356,17 @@ This registry indexes ALL issues across the system regardless of status (open, i
 ### 🔗 SIMILARITY GROUP 1: Rate Limiting Not Enforced
 **Pattern:** `enforceRateLimit()` return value ignored → throttling ineffective  
 **Canonical Issue:** SEC-20260107-001  
-**Similar Issues:** 7
+**Similar Issues:** 7 → **ALL RESOLVED**
 
 | ID | Status | Location | First Seen | Resolution |
 |----|--------|----------|------------|------------|
-| SEC-20260107-001 | 🔴 Open | `app/api/wallet/top-up/route.ts:47` | 2026-01-07 | — |
-| SEC-RL-002 | 🔴 Open | `app/api/compliance/policies/route.ts:133` | 2026-01-07 | — |
-| SEC-RL-003 | 🔴 Open | `app/api/cms/pages/[slug]/route.ts:32` | 2026-01-07 | — |
-| SEC-RL-004 | 🔴 Open | `app/api/wallet/route.ts:24` | 2026-01-07 | — |
-| SEC-RL-005 | 🔴 Open | `app/api/wallet/payment-methods/route.ts:47` | 2026-01-07 | — |
-| SEC-RL-006 | 🔴 Open | `app/api/organization/settings/route.ts` | 2026-01-07 | — |
-| SEC-RL-007 | 🔴 Open | `app/api/docs/openapi/route.ts` | 2026-01-07 | — |
+| SEC-20260107-001 | 🟢 Resolved | `app/api/wallet/top-up/route.ts:47` | 2026-01-07 | PR #680 |
+| SEC-RL-002 | 🟢 Resolved | `app/api/compliance/policies/route.ts:133` | 2026-01-07 | PR #680 |
+| SEC-RL-003 | 🟢 Resolved | `app/api/cms/pages/[slug]/route.ts:32` | 2026-01-07 | PR #680 |
+| SEC-RL-004 | 🟢 Resolved | `app/api/wallet/route.ts:24` | 2026-01-07 | PR #680 |
+| SEC-RL-005 | 🟢 Resolved | `app/api/wallet/payment-methods/route.ts:47` | 2026-01-07 | PR #680 |
+| SEC-RL-006 | 🟢 Resolved | `app/api/organization/settings/route.ts` | 2026-01-07 | PR #680 |
+| SEC-RL-007 | 🟢 Resolved | `app/api/docs/openapi/route.ts` | 2026-01-07 | PR #680 |
 
 **Systematic Fix:** Wrap in `withRateLimit()` helper that returns early, or add lint rule requiring `const rl = enforceRateLimit` + guard.
 
@@ -394,14 +421,14 @@ This registry indexes ALL issues across the system regardless of status (open, i
 ### 🔗 SIMILARITY GROUP 4: Hardcoded Locale in formatDate
 **Pattern:** `formatDate` uses hardcoded `"en-US"` instead of user locale  
 **Canonical Issue:** PR-678-005  
-**Similar Issues:** 4
+**Similar Issues:** 4 → **ALL RESOLVED**
 
 | ID | Status | Location | First Seen | Resolution |
 |----|--------|----------|------------|------------|
-| PR-678-005 | 🔴 Open | Multiple components | 2026-01-07 | — |
-| DATE-DLG-001 | 🔴 Open | `UserDialogs.tsx:50-57` | 2026-01-07 | — |
-| DATE-ROW-001 | 🔴 Open | `UserRow.tsx:59-66` | 2026-01-07 | — |
-| DATE-LOG-001 | 🔴 Open | Various log/audit components | 2026-01-07 | — |
+| PR-678-005 | 🟢 Resolved | Multiple components | 2026-01-07 | PR #680 |
+| DATE-DLG-001 | 🟢 Resolved | `UserDialogs.tsx:50-57` | 2026-01-07 | PR #680 |
+| DATE-ROW-001 | 🟢 Resolved | `UserRow.tsx:59-66` | 2026-01-07 | PR #680 |
+| DATE-LOG-001 | 🟢 Resolved | Various log/audit components | 2026-01-07 | PR #680 |
 
 **Systematic Fix:** Pass `locale` from `useI18n()` or router to all `formatDate` calls.
 
@@ -410,16 +437,16 @@ This registry indexes ALL issues across the system regardless of status (open, i
 ### 🔗 SIMILARITY GROUP 5: Missing `type="button"` on Buttons
 **Pattern:** Interactive buttons without explicit `type` → may submit forms accidentally  
 **Canonical Issue:** PR-678-004  
-**Similar Issues:** 6
+**Similar Issues:** 6 → **ALL RESOLVED**
 
 | ID | Status | Location | First Seen | Resolution |
 |----|--------|----------|------------|------------|
-| PR-678-004 | 🔴 Open | Multiple components | 2026-01-07 | — |
-| BTN-AUD-001 | 🔴 Open | `AuditTrailTab.tsx:149-161` | 2026-01-07 | — |
-| BTN-TBL-001 | 🔴 Open | `UsersTable.tsx:161-175` (select-all) | 2026-01-07 | — |
+| PR-678-004 | 🟢 Resolved | Button component default | 2026-01-07 | PR #680 |
+| BTN-AUD-001 | 🟢 Resolved | `AuditTrailTab.tsx:149-161` | 2026-01-07 | PR #680 |
+| BTN-TBL-001 | 🟢 Resolved | `UsersTable.tsx:161-175` (select-all) | 2026-01-07 | PR #680 |
 | A11Y-LABEL-001 | 🟢 Resolved | 13 buttons aria-label mismatch | 2026-01-01 | Commit 62b1b1426 |
 
-**Systematic Fix:** Add `type="button"` to all non-submit buttons; add ESLint rule.
+**Systematic Fix:** Added `type="button"` as default in Button component (components/ui/button.tsx).
 
 ---
 
@@ -556,12 +583,12 @@ This registry indexes ALL issues across the system regardless of status (open, i
 ### 🔗 SIMILARITY GROUP 14: CSV Export Missing UTF-8 BOM
 **Pattern:** CSV blobs without UTF-8 BOM → Excel encoding issues  
 **Canonical Issue:** PR-678-003  
-**Similar Issues:** 2
+**Similar Issues:** 2 → **ALL RESOLVED**
 
 | ID | Status | Location | First Seen | Resolution |
 |----|--------|----------|------------|------------|
-| PR-678-003 | 🔴 Open | `BulkActionsHeader.tsx:91-92` | 2026-01-07 | — |
-| CSV-EXP-001 | 🔴 Open | Other export functions | 2026-01-07 | — |
+| PR-678-003 | 🟢 Resolved | `BulkActionsHeader.tsx:91-92` | 2026-01-07 | PR #680 |
+| CSV-EXP-001 | 🟢 Resolved | issues, user-logs, impersonate/history pages | 2026-01-07 | PR #680 |
 
 **Systematic Fix:** Prepend `\uFEFF` BOM to all CSV exports.
 
