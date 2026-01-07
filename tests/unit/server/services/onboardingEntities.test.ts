@@ -5,8 +5,25 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Do NOT mock mongoose globally - it conflicts with MongoMemoryServer in vitest.setup.ts
-// Instead, mock specific models and utilities as needed
+// Create mock session that implements the mongoose ClientSession interface
+const mockSession = {
+  startTransaction: vi.fn(),
+  commitTransaction: vi.fn().mockResolvedValue(undefined),
+  abortTransaction: vi.fn().mockResolvedValue(undefined),
+  endSession: vi.fn().mockResolvedValue(undefined),
+  inTransaction: vi.fn().mockReturnValue(true),
+  withTransaction: vi.fn(),
+};
+
+// CRITICAL: Mock mongoose.startSession() to prevent actual DB connection
+// This is the ROOT CAUSE of the 600s timeout in CI
+vi.mock('mongoose', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('mongoose')>();
+  return {
+    ...actual,
+    startSession: vi.fn().mockResolvedValue(mockSession),
+  };
+});
 
 // Mock mongoose-compat types to provide ObjectId without full mongoose mock
 vi.mock("@/types/mongoose-compat", () => ({
@@ -45,6 +62,11 @@ vi.mock('@/server/models/SupportTicket', () => ({
 describe('onboardingEntities', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset mock session state
+    mockSession.startTransaction.mockClear();
+    mockSession.commitTransaction.mockClear();
+    mockSession.abortTransaction.mockClear();
+    mockSession.endSession.mockClear();
   });
 
   describe('ticketMessages', () => {
