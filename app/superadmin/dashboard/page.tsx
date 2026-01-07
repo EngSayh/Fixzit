@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -581,34 +582,34 @@ export default function SuperadminDashboardPage() {
         <CardContent>
           <div className="flex flex-wrap gap-3">
             <Button variant="outline" asChild>
-              <a href="/superadmin/tenants" aria-label={t("superadmin.nav.tenants", "Manage Tenants")} title={t("superadmin.nav.tenants", "Manage Tenants")}>
+              <Link href="/superadmin/tenants" aria-label={t("superadmin.nav.tenants", "Manage Tenants")} title={t("superadmin.nav.tenants", "Manage Tenants")}>
                 <Building2 className="h-4 w-4 me-2" />
                 {t("superadmin.nav.tenants", "Manage Tenants")}
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/users" aria-label={t("superadmin.nav.users", "Manage Users")} title={t("superadmin.nav.users", "Manage Users")}>
+              <Link href="/superadmin/users" aria-label={t("superadmin.nav.users", "Manage Users")} title={t("superadmin.nav.users", "Manage Users")}>
                 <Users className="h-4 w-4 me-2" />
                 {t("superadmin.nav.users", "Manage Users")}
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/jobs" aria-label={t("superadmin.nav.jobs", "Background Jobs")} title={t("superadmin.nav.jobs", "Background Jobs")}>
+              <Link href="/superadmin/jobs" aria-label={t("superadmin.nav.jobs", "Background Jobs")} title={t("superadmin.nav.jobs", "Background Jobs")}>
                 <Calendar className="h-4 w-4 me-2" />
                 {t("superadmin.nav.jobs", "Background Jobs")}
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/integrations" aria-label={t("superadmin.nav.integrations", "Integrations")} title={t("superadmin.nav.integrations", "Integrations")}>
+              <Link href="/superadmin/integrations" aria-label={t("superadmin.nav.integrations", "Integrations")} title={t("superadmin.nav.integrations", "Integrations")}>
                 <Webhook className="h-4 w-4 me-2" />
                 {t("superadmin.nav.integrations", "Integrations")}
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" asChild>
-              <a href="/superadmin/audit" aria-label={t("superadmin.nav.audit", "Audit Logs")} title={t("superadmin.nav.audit", "Audit Logs")}>
+              <Link href="/superadmin/audit" aria-label={t("superadmin.nav.audit", "Audit Logs")} title={t("superadmin.nav.audit", "Audit Logs")}>
                 <FileText className="h-4 w-4 me-2" />
                 {t("superadmin.nav.audit", "Audit Logs")}
-              </a>
+              </Link>
             </Button>
           </div>
         </CardContent>

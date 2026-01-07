@@ -3,6 +3,9 @@
  * @module app/superadmin/users/[id]/components/types
  */
 
+// Re-export STATUS_COLORS from parent to avoid duplication
+export { STATUS_COLORS } from "../../components/types";
+
 export interface UserDetail {
   _id: string;
   email: string;
@@ -114,10 +117,4 @@ export interface ModuleAccessItem {
   actions?: string[];
 }
 
-// Status badge colors
-export const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-500/20 text-green-400 border-green-500/30",
-  PENDING: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  INACTIVE: "bg-muted text-muted-foreground border-input",
-  SUSPENDED: "bg-red-500/20 text-red-400 border-red-500/30",
-};
+// STATUS_COLORS is re-exported from ../../components/types to avoid duplication

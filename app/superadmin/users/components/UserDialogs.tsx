@@ -47,9 +47,9 @@ import { STATUS_COLORS } from "./types";
 // Helpers
 // ============================================================================
 
-function formatDate(dateStr?: string): string {
+function formatDate(dateStr?: string, locale: string = "en-US"): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",

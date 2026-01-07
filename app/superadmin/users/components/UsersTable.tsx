@@ -159,6 +159,7 @@ export function UsersTable({
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="w-12 text-muted-foreground">
                     <button
+                      type="button"
                       onClick={onToggleSelectAll}
                       onKeyDown={handleKeyDownSelectAll}
                       className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"

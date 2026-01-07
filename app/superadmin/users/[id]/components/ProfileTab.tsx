@@ -133,7 +133,7 @@ export function ProfileTab({ user, formatDate, formatDateTime }: ProfileTabProps
               <p className="font-medium">{user.professional?.department || "—"}</p>
             </div>
             <div>
-              <Label className="text-muted-foreground">{t("user.professional.title", "Title")}</Label>
+              <Label className="text-muted-foreground">{t("user.professional.jobTitle", "Job Title")}</Label>
               <p className="font-medium">{user.professional?.title || "—"}</p>
             </div>
             <div>

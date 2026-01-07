@@ -6,6 +6,7 @@
 "use client";
 
 import React from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { Search } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,8 @@ export function UserFilters({
   onShowModuleAccessChange,
   organizations,
 }: UserFiltersProps) {
+  const { t } = useI18n();
+
   return (
     <Card className="bg-card border-border">
       <CardContent className="p-4">
@@ -74,11 +77,11 @@ export function UserFilters({
               placeholder="Status"
               className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="INACTIVE">Inactive</SelectItem>
-              <SelectItem value="SUSPENDED">Suspended</SelectItem>
+              <SelectItem value="all">{t("superadmin.users.allStatus", "All Status")}</SelectItem>
+              <SelectItem value="ACTIVE">{t("common.status.active", "Active")}</SelectItem>
+              <SelectItem value="PENDING">{t("common.status.pending", "Pending")}</SelectItem>
+              <SelectItem value="INACTIVE">{t("common.status.inactive", "Inactive")}</SelectItem>
+              <SelectItem value="SUSPENDED">{t("common.status.suspended", "Suspended")}</SelectItem>
             </Select>
             
             <Select 
@@ -87,7 +90,7 @@ export function UserFilters({
               placeholder="Organization"
               className="w-full sm:w-48 bg-muted border-input text-foreground"
             >
-              <SelectItem value="all">All Organizations</SelectItem>
+              <SelectItem value="all">{t("superadmin.users.allOrganizations", "All Organizations")}</SelectItem>
               {organizations.map((org, idx) => (
                 <SelectItem key={org._id || `org-${idx}`} value={org._id || `org-${idx}`}>
                   {org.name}
@@ -114,7 +117,7 @@ export function UserFilters({
               placeholder="Role"
               className="w-full sm:w-44 bg-muted border-input text-foreground"
             >
-              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="all">{t("superadmin.users.allRoles", "All Roles")}</SelectItem>
               {CANONICAL_ROLES.map((role) => (
                 <SelectItem key={role} value={role}>
                   {role.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}

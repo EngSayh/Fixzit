@@ -88,8 +88,9 @@ function exportUsersToCSV(users: UserData[]): void {
     )
   ].join("\n");
 
-  // Download
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  // Add UTF-8 BOM for Excel compatibility (especially for Arabic text)
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
@@ -165,7 +166,7 @@ export function BulkActionsHeader({
         title={t("superadmin.users.exportCSV", "Export users to CSV")}
       >
         <Download className="h-4 w-4 me-2" />
-        Export CSV
+        {t("superadmin.users.exportCSV", "Export CSV")}
       </Button>
       <Button
         variant="default"

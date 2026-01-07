@@ -130,11 +130,11 @@ export function ActivityLogTab({
               placeholder="Date Range"
               className="w-36 bg-muted border-input"
             >
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="all">All time</SelectItem>
+              <SelectItem value="today">{t("common.dateRange.today", "Today")}</SelectItem>
+              <SelectItem value="7d">{t("common.dateRange.last7Days", "Last 7 days")}</SelectItem>
+              <SelectItem value="30d">{t("common.dateRange.last30Days", "Last 30 days")}</SelectItem>
+              <SelectItem value="90d">{t("common.dateRange.last90Days", "Last 90 days")}</SelectItem>
+              <SelectItem value="all">{t("common.dateRange.allTime", "All time")}</SelectItem>
             </Select>
           </div>
         </div>
@@ -219,6 +219,7 @@ export function ActivityLogTab({
                         variant="ghost"
                         size="sm"
                         onClick={() => onViewLog(log)}
+                        aria-label={t("user.activity.viewDetails", "View log details")}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>

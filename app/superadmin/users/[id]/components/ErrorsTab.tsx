@@ -77,7 +77,7 @@ export function ErrorsTab({ logs, formatDateTime }: ErrorsTabProps) {
                         </Badge>
                       )}
                       <span className="text-sm text-muted-foreground">
-                        {log.result.errorMessage || "Unknown error"}
+                        {log.result.errorMessage || t("common.unknownError", "Unknown error")}
                       </span>
                     </div>
                   </TableCell>

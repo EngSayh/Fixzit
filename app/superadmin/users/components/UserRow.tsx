@@ -56,9 +56,9 @@ interface UserRowProps {
   showModuleAccess: boolean;
 }
 
-function formatDate(dateStr?: string): string {
+function formatDate(dateStr?: string, locale: string = "en-US"): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -251,35 +251,35 @@ export function UserRow({
               className="text-muted-foreground hover:bg-muted/80"
             >
               <Eye className="h-4 w-4 me-2" />
-              View Details
+              {t("superadmin.users.viewDetails", "View Details")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onEditStatus(user)}
               className="text-muted-foreground hover:bg-muted/80"
             >
               <Edit className="h-4 w-4 me-2" />
-              Change Status
+              {t("superadmin.users.changeStatus", "Change Status")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onEditRole(user)}
               className="text-muted-foreground hover:bg-muted/80"
             >
               <Shield className="h-4 w-4 me-2" />
-              Edit Role
+              {t("superadmin.users.editRole", "Edit Role")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onViewPermissions(user)}
               className="text-muted-foreground hover:bg-muted/80"
             >
               <KeyRound className="h-4 w-4 me-2" />
-              View Permissions
+              {t("superadmin.users.viewPermissions", "View Permissions")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onEditPermissions(user)}
               className="text-muted-foreground hover:bg-muted/80"
             >
               <KeyRound className="h-4 w-4 me-2" />
-              Edit Permissions
+              {t("superadmin.users.editPermissions", "Edit Permissions")}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-input" />
             <DropdownMenuItem
@@ -287,7 +287,7 @@ export function UserRow({
               className="text-muted-foreground hover:bg-muted/80"
             >
               <Mail className="h-4 w-4 me-2" />
-              Send Notification
+              {t("superadmin.users.sendNotification", "Send Notification")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

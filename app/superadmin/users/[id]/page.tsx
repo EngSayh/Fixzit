@@ -162,7 +162,8 @@ export default function SuperadminUserDetailPage() {
         setAuditLogs([]);
         setAuditPagination(null);
       }
-    } catch {
+    } catch (_err) {
+      // Silent catch - empty list is acceptable fallback for audit logs
       setAuditLogs([]);
     } finally {
       setLogsLoading(false);

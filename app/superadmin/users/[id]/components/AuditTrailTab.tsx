@@ -147,6 +147,7 @@ export function AuditTrailTab({
                 const Icon = getActionIcon(log.action);
                 return (
                   <button
+                    type="button"
                     key={log._id}
                     onClick={() => onLogClick(log)}
                     onKeyDown={(e) => {
