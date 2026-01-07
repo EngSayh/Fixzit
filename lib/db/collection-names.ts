@@ -164,6 +164,8 @@ export const COLLECTIONS = {
   FINANCE_PAYMENTS: "finance_payments",
   PAYMENT_HISTORY: "payment_history",
   TRANSACTIONS: "transactions",
+  PURCHASE_ORDERS: "purchase_orders",
+  CURRENCY_RATES: "currency_rates",
   
   // FM additional collections
   FM_FINANCIAL_TRANSACTIONS: "fm_financial_transactions",
