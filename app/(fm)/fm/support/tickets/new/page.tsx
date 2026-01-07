@@ -15,12 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
@@ -267,15 +262,11 @@ export default function NewSupportTicketPage() {
                     "fields.module.placeholder",
                   )}
                 >
-                  <SelectTrigger>
-                  </SelectTrigger>
-                  <SelectContent>
                     {MODULE_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
                         {auto(MODULE_LABELS[option], `modules.${option}`)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
               <div>
@@ -286,15 +277,11 @@ export default function NewSupportTicketPage() {
                     updateField("priority", value as PriorityOption)
                   }
                 >
-                  <SelectTrigger>
-                  </SelectTrigger>
-                  <SelectContent>
                     {PRIORITY_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
                         {auto(PRIORITY_LABELS[option], `priorities.${option}`)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
             </div>

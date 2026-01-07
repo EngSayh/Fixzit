@@ -5,12 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { toast } from "sonner";
 import {
@@ -1157,8 +1152,6 @@ export default function RouteMetricsPage() {
         <CardContent className="overflow-x-auto space-y-4">
           <div className="flex flex-wrap gap-3 items-center">
             <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-48">
-              <SelectTrigger></SelectTrigger>
-              <SelectContent>
                 <SelectItem value="all">
                   {auto("All modules", "aliases.filter.all")}
                 </SelectItem>
@@ -1167,7 +1160,6 @@ export default function RouteMetricsPage() {
                     {module}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
             <Input
               value={aliasQuery}

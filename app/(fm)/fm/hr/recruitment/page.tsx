@@ -8,12 +8,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2 } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
@@ -334,15 +329,11 @@ export default function AtsJobsPage() {
               }
               placeholder={t("hr.ats.jobs.filters.statusLabel", "Status")}
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 {statusOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
           <div className="flex-1">
@@ -354,15 +345,11 @@ export default function AtsJobsPage() {
               onValueChange={(value) => setJobTypeFilter(value)}
               placeholder={t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 {jobTypeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
         </CardContent>

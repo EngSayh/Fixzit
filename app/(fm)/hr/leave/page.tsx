@@ -11,12 +11,7 @@ import { Loader2, Check, X, CalendarPlus } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 
 type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
@@ -482,9 +477,6 @@ export default function LeavePage() {
                       "Select leave type",
                     )}
                   >
-                    <SelectTrigger>
-                    </SelectTrigger>
-                    <SelectContent>
                       {leaveTypes.map((type) => (
                         <SelectItem key={type._id} value={type._id}>
                           {type.name} ({type.code})
@@ -493,7 +485,6 @@ export default function LeavePage() {
                             : ""}
                         </SelectItem>
                       ))}
-                    </SelectContent>
                   </Select>
                 )}
                 <p className="text-xs text-muted-foreground">

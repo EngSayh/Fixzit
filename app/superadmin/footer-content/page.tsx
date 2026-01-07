@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -808,23 +808,17 @@ export default function SuperadminFooterContentPage() {
                 <div className="space-y-2">
                   <Label>Provider</Label>
                   <Select value={chatbotSettings.provider} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, provider: v as ChatbotSettings["provider"] })} placeholder="Select provider" className="bg-muted border-input">
-                    <SelectTrigger></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internal">Internal (Fixzit AI)</SelectItem>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                      <SelectItem value="custom">Custom API</SelectItem>
-                    </SelectContent>
+                    <SelectItem value="internal">Internal (Fixzit AI)</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                    <SelectItem value="custom">Custom API</SelectItem>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Position</Label>
                   <Select value={chatbotSettings.position} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, position: v as ChatbotSettings["position"] })} placeholder="Select position" className="bg-muted border-input">
-                    <SelectTrigger></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                      <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                    </SelectContent>
+                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -1126,15 +1120,12 @@ export default function SuperadminFooterContentPage() {
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select value={policyForm.type} onValueChange={(v) => setPolicyForm({ ...policyForm, type: v as PolicyPage["type"] })} placeholder="Select type" className="bg-muted border-input">
-                  <SelectTrigger></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="privacy">Privacy Policy</SelectItem>
-                    <SelectItem value="terms">Terms of Service</SelectItem>
-                    <SelectItem value="refund">Refund Policy</SelectItem>
-                    <SelectItem value="cookie">Cookie Policy</SelectItem>
-                    <SelectItem value="accessibility">Accessibility</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
+                  <SelectItem value="privacy">Privacy Policy</SelectItem>
+                  <SelectItem value="terms">Terms of Service</SelectItem>
+                  <SelectItem value="refund">Refund Policy</SelectItem>
+                  <SelectItem value="cookie">Cookie Policy</SelectItem>
+                  <SelectItem value="accessibility">Accessibility</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </Select>
               </div>
             </div>
@@ -1183,13 +1174,10 @@ export default function SuperadminFooterContentPage() {
             <div className="space-y-2">
               <Label>Section</Label>
               <Select value={linkForm.section} onValueChange={(v) => setLinkForm({ ...linkForm, section: v as FooterLink["section"] })} placeholder="Select section" className="bg-muted border-input">
-                <SelectTrigger></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="company">Company</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                  <SelectItem value="legal">Legal</SelectItem>
-                  <SelectItem value="social">Social</SelectItem>
-                </SelectContent>
+                <SelectItem value="company">Company</SelectItem>
+                <SelectItem value="support">Support</SelectItem>
+                <SelectItem value="legal">Legal</SelectItem>
+                <SelectItem value="social">Social</SelectItem>
               </Select>
             </div>
             <div className="flex items-center gap-6">

@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { 
@@ -155,13 +155,8 @@ export default function SuperadminReportsPage() {
       <Card className="bg-card border-border">
         <CardContent className="p-4">
           <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px] bg-muted border-input text-foreground">
-            <SelectTrigger>
-              {categoryFilter === "all" ? "All Categories" : categoryFilter}
-            </SelectTrigger>
-            <SelectContent className="bg-muted border-input">
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
-            </SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
           </Select>
         </CardContent>
       </Card>

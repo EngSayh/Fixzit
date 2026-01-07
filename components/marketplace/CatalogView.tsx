@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/icons";
 import { STORAGE_KEYS } from "@/config/constants";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -300,14 +300,12 @@ export default function CatalogView({
                 value={category}
                 onValueChange={(value) => setCategory(value)}
               >
-                <SelectContent>
                   <SelectItem value="">{allCategoriesLabel}</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.slug || cat.id}>
                       {cat.name}
                     </SelectItem>
                   ))}
-                </SelectContent>
               </Select>
               <Input
                 type="number"

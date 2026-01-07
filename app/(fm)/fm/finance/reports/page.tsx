@@ -12,12 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { ExternalLink, Loader2, Plus } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -331,14 +326,11 @@ function CreateReportDialog({
               {auto("Report Type", "fields.type")}
             </label>
             <Select value={type} onValueChange={setType} disabled={isSubmitting} placeholder="Select report type">
-              <SelectTrigger id="report-type"></SelectTrigger>
-              <SelectContent>
                 {reportTypes.map((rt) => (
                   <SelectItem key={rt.value} value={rt.value}>
                     {rt.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
 
@@ -347,14 +339,11 @@ function CreateReportDialog({
               {auto("Format", "fields.format")}
             </label>
             <Select value={format} onValueChange={setFormat} disabled={isSubmitting} placeholder="Select format">
-              <SelectTrigger id="report-format"></SelectTrigger>
-              <SelectContent>
                 {formats.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     {f.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
 

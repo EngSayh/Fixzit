@@ -34,12 +34,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
@@ -212,14 +207,10 @@ function QuotaEditDialog({
               }}
               placeholder="Select plan"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="starter">Starter</SelectItem>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
+              <SelectItem value="starter">Starter</SelectItem>
+              <SelectItem value="professional">Professional</SelectItem>
+              <SelectItem value="enterprise">Enterprise</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
             </Select>
           </div>
 

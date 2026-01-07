@@ -7,13 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Search,
   Download,
@@ -536,17 +530,12 @@ export function FmVendorsList({
             <label className="block text-sm font-medium mb-2">
               {t("vendor.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder={t("common.all", "All Status")} />
-              </SelectTrigger>
-              <SelectContent>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("common.all", "All Status")}>
                 {STATUS_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
                     {t(`status.${opt.value.toLowerCase() || "all"}`, opt.label)}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2 pt-4">

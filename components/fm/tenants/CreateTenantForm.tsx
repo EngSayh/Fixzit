@@ -4,12 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 
@@ -187,9 +182,6 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder={t("fm.properties.selectType", "Select type")}
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               <SelectItem value="INDIVIDUAL">
                 {t("fm.tenants.individual", "Individual")}
               </SelectItem>
@@ -199,7 +191,6 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
               <SelectItem value="GOVERNMENT">
                 {t("fm.tenants.government", "Government")}
               </SelectItem>
-            </SelectContent>
           </Select>
         </div>
       </div>

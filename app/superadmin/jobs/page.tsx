@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -189,12 +189,8 @@ export default function SuperadminJobsPage() {
               placeholder="Job Type"
               className="w-[120px]"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
-              </SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
             </Select>
             <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0} aria-label={t("superadmin.jobs.process", "Process pending jobs")} title={t("superadmin.jobs.process", "Process pending jobs")}>
               {processing ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Processing...</> : <><Play className="h-4 w-4 me-2" />Process Jobs</>}

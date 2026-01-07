@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   Zap, RefreshCw, Search, AlertCircle, CheckCircle, XCircle, 
@@ -164,11 +164,8 @@ export default function SuperadminFeaturesPage() {
               <Input placeholder="Search flags..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px] bg-muted border-input text-foreground">
-              <SelectTrigger></SelectTrigger>
-              <SelectContent className="bg-muted border-input">
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (<SelectItem key={cat} value={cat!}>{cat}</SelectItem>))}
-              </SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (<SelectItem key={cat} value={cat!}>{cat}</SelectItem>))}
             </Select>
           </div>
         </CardContent>

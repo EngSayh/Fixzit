@@ -12,12 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import ClientDate from "@/components/ClientDate";
 import {
@@ -282,9 +277,6 @@ export default function OrdersPage() {
         </div>
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter} className="w-40">
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               <SelectItem value="all">
                 {t("common.all", "All Status")}
               </SelectItem>
@@ -300,7 +292,6 @@ export default function OrdersPage() {
               <SelectItem value="completed">
                 {t("status.completed", "Completed")}
               </SelectItem>
-            </SelectContent>
           </Select>
         </div>
       </div>

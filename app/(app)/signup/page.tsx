@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   UserPlus,
   Mail,
@@ -364,15 +359,12 @@ export default function SignupPage() {
                   placeholder="Select account type"
                   className="h-10"
                 >
-                  <SelectTrigger></SelectTrigger>
-                  <SelectContent>
                     {/* ✅ FIXED: Use imported SIGNUP_USER_TYPES with t() for labels */}
                     {SIGNUP_USER_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {t(type.labelKey)} - {t(type.descriptionKey)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
 

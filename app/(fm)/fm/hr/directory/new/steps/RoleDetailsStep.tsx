@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { EmployeeDraft, Lookups, TranslateFn } from "../types";
@@ -60,15 +55,11 @@ export default function RoleDetailsStep({
             "Select department",
           )}
         >
-          <SelectTrigger>
-          </SelectTrigger>
-          <SelectContent>
             {lookups.departments.map((department) => (
               <SelectItem key={department} value={department}>
                 {department}
               </SelectItem>
             ))}
-          </SelectContent>
         </Select>
       </div>
 
@@ -90,15 +81,11 @@ export default function RoleDetailsStep({
               "Select type",
             )}
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               {lookups.employmentTypes.map((employmentType) => (
                 <SelectItem key={employmentType} value={employmentType}>
                   {employmentType}
                 </SelectItem>
               ))}
-            </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
@@ -115,15 +102,11 @@ export default function RoleDetailsStep({
               "Select model",
             )}
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               {lookups.workModels.map((workModel) => (
                 <SelectItem key={workModel} value={workModel}>
                   {workModel}
                 </SelectItem>
               ))}
-            </SelectContent>
           </Select>
         </div>
       </div>

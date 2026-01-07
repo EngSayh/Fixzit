@@ -4,12 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
@@ -259,16 +254,12 @@ export default function AttendancePage() {
               onValueChange={(value) => setSelectedEmployee(value)}
               placeholder={t("hr.attendance.selectPlaceholder", "Choose employee")}
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 {employees.map((employee) => (
                   <SelectItem key={employee._id} value={employee._id}>
                     {employee.employeeCode} — {employee.firstName}{" "}
                     {employee.lastName}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
           <div className="flex gap-4 flex-1 flex-wrap md:flex-nowrap">
@@ -307,15 +298,11 @@ export default function AttendancePage() {
                 }
                 placeholder={t("hr.attendance.filters.status", "Status")}
               >
-                <SelectTrigger>
-                </SelectTrigger>
-                <SelectContent>
                   {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
-                </SelectContent>
               </Select>
             </div>
             <div className="flex-1 min-w-[180px]">
@@ -331,15 +318,11 @@ export default function AttendancePage() {
                 }
                 placeholder={t("hr.attendance.filters.source", "Source")}
               >
-                <SelectTrigger>
-                </SelectTrigger>
-                <SelectContent>
                   {sourceOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
-                </SelectContent>
               </Select>
             </div>
           </div>

@@ -18,12 +18,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Check, Upload } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -349,12 +344,8 @@ export function SetupWizard() {
                   }
                   placeholder="Select language"
                 >
-                  <SelectTrigger id="language">
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ar">العربية (Arabic)</SelectItem>
-                  </SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ar">العربية (Arabic)</SelectItem>
                 </Select>
               </div>
 
@@ -367,14 +358,10 @@ export function SetupWizard() {
                   }
                   placeholder="Select currency"
                 >
-                  <SelectTrigger id="currency">
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SAR">SAR - Saudi Riyal</SelectItem>
-                    <SelectItem value="AED">AED - UAE Dirham</SelectItem>
-                    <SelectItem value="USD">USD - US Dollar</SelectItem>
-                    <SelectItem value="EUR">EUR - Euro</SelectItem>
-                  </SelectContent>
+                  <SelectItem value="SAR">SAR - Saudi Riyal</SelectItem>
+                  <SelectItem value="AED">AED - UAE Dirham</SelectItem>
+                  <SelectItem value="USD">USD - US Dollar</SelectItem>
+                  <SelectItem value="EUR">EUR - Euro</SelectItem>
                 </Select>
               </div>
 
@@ -387,14 +374,10 @@ export function SetupWizard() {
                   }
                   placeholder="Select timezone"
                 >
-                  <SelectTrigger id="timezone">
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Asia/Riyadh">Asia/Riyadh (GMT+3)</SelectItem>
-                    <SelectItem value="Asia/Dubai">Asia/Dubai (GMT+4)</SelectItem>
-                    <SelectItem value="Europe/London">Europe/London (GMT+0)</SelectItem>
-                    <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
-                  </SelectContent>
+                  <SelectItem value="Asia/Riyadh">Asia/Riyadh (GMT+3)</SelectItem>
+                  <SelectItem value="Asia/Dubai">Asia/Dubai (GMT+4)</SelectItem>
+                  <SelectItem value="Europe/London">Europe/London (GMT+0)</SelectItem>
+                  <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
                 </Select>
               </div>
             </div>

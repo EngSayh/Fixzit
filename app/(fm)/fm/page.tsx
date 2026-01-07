@@ -11,12 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Search,
   Download,
@@ -317,9 +312,6 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
         </div>
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={handleStatusFilterChange} className="w-40">
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               <SelectItem value="all">
                 {t("common.all", "All Status")}
               </SelectItem>
@@ -333,7 +325,6 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
               <SelectItem value="draft">
                 {t("status.draft", "Draft")}
               </SelectItem>
-            </SelectContent>
           </Select>
           <Button
             variant="outline"

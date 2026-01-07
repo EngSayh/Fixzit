@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,14 +43,11 @@ export default function CompensationNotesStep({
               "Select compensation type",
             )}
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
               {lookups.compensationTypes.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
                 </SelectItem>
               ))}
-            </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">

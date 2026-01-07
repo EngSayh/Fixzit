@@ -16,12 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -187,9 +182,6 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
               placeholder={auto("Status", "filters.status")}
               className="w-48"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="">
                   {auto("All Status", "filters.allStatus")}
                 </SelectItem>
@@ -211,7 +203,6 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
                 <SelectItem value="CANCELLED">
                   {auto("Cancelled", "filters.statusOptions.cancelled")}
                 </SelectItem>
-              </SelectContent>
             </Select>
             <Select
               value={categoryFilter}
@@ -219,9 +210,6 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
               placeholder={auto("Category", "filters.category")}
               className="w-48"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="">
                   {auto("All Categories", "filters.allCategories")}
                 </SelectItem>
@@ -240,7 +228,6 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
                 <SelectItem value="Equipment">
                   {auto("Equipment", "filters.categories.equipment")}
                 </SelectItem>
-              </SelectContent>
             </Select>
           </div>
         </CardContent>
@@ -673,9 +660,6 @@ function CreateRFQForm({
               "form.placeholders.category",
             )}
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               <SelectItem value="Construction">
                 {auto("Construction", "form.categories.construction")}
               </SelectItem>
@@ -691,7 +675,6 @@ function CreateRFQForm({
               <SelectItem value="Equipment">
                 {auto("Equipment", "form.categories.equipment")}
               </SelectItem>
-            </SelectContent>
           </Select>
         </div>
       </div>

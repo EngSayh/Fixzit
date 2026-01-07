@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -178,15 +173,11 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                   )}
                   required
                 >
-                  <SelectTrigger id="reportType">
-                  </SelectTrigger>
-                  <SelectContent>
                     {REPORT_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {auto(type.label, `types.${type.value}`)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
 
@@ -222,15 +213,11 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                     }
                   }}
                 >
-                  <SelectTrigger id="dateRange">
-                  </SelectTrigger>
-                  <SelectContent>
                     {DATE_RANGES.map((range) => (
                       <SelectItem key={range.value} value={range.value}>
                         {auto(range.label, `dateRanges.${range.value}`)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
 
@@ -304,15 +291,11 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                   {auto("Output Format", "fields.format")}
                 </Label>
                 <Select value={format} onValueChange={setFormat}>
-                  <SelectTrigger id="format">
-                  </SelectTrigger>
-                  <SelectContent>
                     {FORMATS.map((fmt) => (
                       <SelectItem key={fmt.value} value={fmt.value}>
                         {auto(fmt.label, `formats.${fmt.value}`)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
 

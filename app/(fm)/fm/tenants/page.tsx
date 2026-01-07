@@ -15,12 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -187,9 +182,6 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
               </div>
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")} className="w-48">
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="">
                   {t("fm.properties.allTypes", "All Types")}
                 </SelectItem>
@@ -202,7 +194,6 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
                 <SelectItem value="GOVERNMENT">
                   {t("fm.tenants.government", "Government")}
                 </SelectItem>
-              </SelectContent>
             </Select>
           </div>
         </CardContent>

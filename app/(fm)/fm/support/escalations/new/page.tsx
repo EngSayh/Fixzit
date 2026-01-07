@@ -14,12 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
@@ -228,15 +223,11 @@ function NewEscalationContent({
                     updateField("severity", value as SeverityOption)
                   }
                 >
-                  <SelectTrigger>
-                  </SelectTrigger>
-                  <SelectContent>
                     {SEVERITIES.map((option) => (
                       <SelectItem key={option} value={option}>
                         {auto(option, `severities.${option}`)}
                       </SelectItem>
                     ))}
-                  </SelectContent>
                 </Select>
               </div>
               <div>
@@ -461,15 +452,11 @@ function NewEscalationContent({
                   updateField("preferredChannel", value as ChannelOption)
                 }
               >
-                <SelectTrigger>
-                </SelectTrigger>
-                <SelectContent>
                   {CHANNELS.map((option) => (
                     <SelectItem key={option} value={option}>
                       {auto(option, `channels.${option}`)}
                     </SelectItem>
                   ))}
-                </SelectContent>
               </Select>
             </div>
           </CardContent>

@@ -31,12 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -361,14 +356,10 @@ export default function CustomerRequestsPage() {
                       onValueChange={(v) => setNewRequest({ ...newRequest, requestType: v })}
                       placeholder="Select type..."
                     >
-                      <SelectTrigger>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="feature_request">Feature Request</SelectItem>
-                        <SelectItem value="bug_report">Bug Report</SelectItem>
-                        <SelectItem value="incident">Incident</SelectItem>
-                        <SelectItem value="question">Question</SelectItem>
-                      </SelectContent>
+                      <SelectItem value="feature_request">Feature Request</SelectItem>
+                      <SelectItem value="bug_report">Bug Report</SelectItem>
+                      <SelectItem value="incident">Incident</SelectItem>
+                      <SelectItem value="question">Question</SelectItem>
                     </Select>
                   </div>
                 </div>
@@ -397,14 +388,10 @@ export default function CustomerRequestsPage() {
                       onValueChange={(v) => setNewRequest({ ...newRequest, severity: v })}
                       placeholder="Select severity..."
                     >
-                      <SelectTrigger>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
                     </Select>
                   </div>
                   <div>
@@ -414,15 +401,11 @@ export default function CustomerRequestsPage() {
                       onValueChange={(v) => setNewRequest({ ...newRequest, channel: v })}
                       placeholder="Select channel..."
                     >
-                      <SelectTrigger>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="web">Web</SelectItem>
-                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="phone">Phone</SelectItem>
-                        <SelectItem value="support_portal">Support Portal</SelectItem>
-                      </SelectContent>
+                      <SelectItem value="web">Web</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="support_portal">Support Portal</SelectItem>
                     </Select>
                   </div>
                 </div>
@@ -508,50 +491,34 @@ export default function CustomerRequestsPage() {
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="triaged">Triaged</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="released">Released</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="new">New</SelectItem>
+              <SelectItem value="triaged">Triaged</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="released">Released</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
             </Select>
             <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity" className="w-[120px]">
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Severity</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Severity</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-[120px]">
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="feature_request">Feature Request</SelectItem>
-                <SelectItem value="bug_report">Bug Report</SelectItem>
-                <SelectItem value="incident">Incident</SelectItem>
-                <SelectItem value="question">Question</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="feature_request">Feature Request</SelectItem>
+              <SelectItem value="bug_report">Bug Report</SelectItem>
+              <SelectItem value="incident">Incident</SelectItem>
+              <SelectItem value="question">Question</SelectItem>
             </Select>
             <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[120px]">
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Channels</SelectItem>
-                <SelectItem value="web">Web</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
-                <SelectItem value="support_portal">Support Portal</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Channels</SelectItem>
+              <SelectItem value="web">Web</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="phone">Phone</SelectItem>
+              <SelectItem value="support_portal">Support Portal</SelectItem>
             </Select>
             <Input
               placeholder="Tenant ID..."

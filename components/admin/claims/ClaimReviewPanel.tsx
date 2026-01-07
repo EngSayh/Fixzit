@@ -13,12 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +35,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  Filter,
   Image as ImageIcon,
   Search,
   Shield,
@@ -528,31 +522,17 @@ export default function ClaimReviewPanel() {
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="الحالة" className="w-full md:w-[200px]">
-              <SelectTrigger>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="all">جميع الحالات</SelectItem>
                 <SelectItem value="pending-decision">بانتظار القرار</SelectItem>
                 <SelectItem value="under-investigation">قيد التحقيق</SelectItem>
                 <SelectItem value="under-appeal">قيد الاستئناف</SelectItem>
-              </SelectContent>
             </Select>
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="الأولوية" className="w-full md:w-[200px]">
-              <SelectTrigger>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="all">جميع الأولويات</SelectItem>
                 <SelectItem value="high">عالية</SelectItem>
                 <SelectItem value="medium">متوسطة</SelectItem>
                 <SelectItem value="low">منخفضة</SelectItem>
-              </SelectContent>
             </Select>
           </div>
 
@@ -720,8 +700,6 @@ export default function ClaimReviewPanel() {
                     onValueChange={handleOutcomeChange}
                     placeholder="اختر القرار"
                   >
-                    <SelectTrigger></SelectTrigger>
-                    <SelectContent>
                       <SelectItem value="approve-full">
                         موافقة كاملة (Full Refund)
                       </SelectItem>
@@ -729,7 +707,6 @@ export default function ClaimReviewPanel() {
                         موافقة جزئية (Partial Refund)
                       </SelectItem>
                       <SelectItem value="reject">رفض (Reject Claim)</SelectItem>
-                    </SelectContent>
                   </Select>
                 </div>
 

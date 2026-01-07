@@ -16,12 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -181,9 +176,6 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
               placeholder={auto("Project Type", "filters.type")}
               className="w-48"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="">
                   {auto("All Types", "filters.allTypes")}
                 </SelectItem>
@@ -202,7 +194,6 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
                 <SelectItem value="DEMOLITION">
                   {auto("Demolition", "filters.types.demolition")}
                 </SelectItem>
-              </SelectContent>
             </Select>
             <Select
               value={statusFilter}
@@ -210,9 +201,6 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
               placeholder={auto("Status", "filters.status")}
               className="w-48"
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 <SelectItem value="">
                   {auto("All Status", "filters.allStatus")}
                 </SelectItem>
@@ -237,7 +225,6 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
                 <SelectItem value="CLOSED">
                   {auto("Closed", "status.closed")}
                 </SelectItem>
-              </SelectContent>
             </Select>
           </div>
         </CardContent>
@@ -601,9 +588,6 @@ function CreateProjectForm({
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder={auto("Select type", "placeholders.type")}
           >
-            <SelectTrigger>
-            </SelectTrigger>
-            <SelectContent>
               <SelectItem value="NEW_CONSTRUCTION">
                 {auto("New Construction", "options.newConstruction")}
               </SelectItem>
@@ -619,7 +603,6 @@ function CreateProjectForm({
               <SelectItem value="DEMOLITION">
                 {auto("Demolition", "options.demolition")}
               </SelectItem>
-            </SelectContent>
           </Select>
         </div>
       </div>

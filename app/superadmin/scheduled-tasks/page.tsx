@@ -33,13 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   RefreshCw, 
@@ -499,18 +493,13 @@ export default function ScheduledTasksPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-[120px]">
-          <SelectTrigger>
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="reports">Reports</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
-            <SelectItem value="sync">Sync</SelectItem>
-            <SelectItem value="cleanup">Cleanup</SelectItem>
-            <SelectItem value="notifications">Notifications</SelectItem>
-          </SelectContent>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px]">
+          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="reports">Reports</SelectItem>
+          <SelectItem value="maintenance">Maintenance</SelectItem>
+          <SelectItem value="sync">Sync</SelectItem>
+          <SelectItem value="cleanup">Cleanup</SelectItem>
+          <SelectItem value="notifications">Notifications</SelectItem>
         </Select>
       </div>
 

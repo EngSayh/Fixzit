@@ -13,12 +13,7 @@ import React from "react";
 import { Search, XCircle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -146,17 +141,12 @@ export function CompactFilterBar({
           {/* Dropdowns */}
           {dropdowns?.map((dropdown, index) => (
             <React.Fragment key={dropdown.id}>
-              <Select value={dropdown.value} onValueChange={dropdown.onChange} className={cn("text-xs bg-background border-input", dropdown.width || "w-[110px]")}>
-                <SelectTrigger>
-                  {dropdown.value === "all" ? dropdown.placeholder : dropdown.options.find(o => o.value === dropdown.value)?.label}
-                </SelectTrigger>
-                <SelectContent>
-                  {dropdown.options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select value={dropdown.value} onValueChange={dropdown.onChange} placeholder={dropdown.placeholder} className={cn("text-xs bg-background border-input", dropdown.width || "w-[110px]")}>
+                {dropdown.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </Select>
               {/* Divider between dropdowns and actions */}
               {index === dropdowns.length - 1 && actions?.length && (
@@ -248,17 +238,12 @@ export function SimpleFilterBar({
 
           {/* Filters */}
           {filters?.map((filter) => (
-            <Select key={filter.id} value={filter.value} onValueChange={filter.onChange} className={cn("text-xs bg-muted border-input", filter.width || "w-[130px]")}>
-              <SelectTrigger>
-                {filter.value === "all" ? filter.placeholder : filter.options.find(o => o.value === filter.value)?.label}
-              </SelectTrigger>
-              <SelectContent>
-                {filter.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select key={filter.id} value={filter.value} onValueChange={filter.onChange} placeholder={filter.placeholder} className={cn("text-xs bg-muted border-input", filter.width || "w-[130px]")}>
+              {filter.options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           ))}
 

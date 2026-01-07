@@ -9,12 +9,7 @@ import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
@@ -267,15 +262,11 @@ export default function ComplianceAuditsPage() {
               }
               placeholder={auto("All statuses", "filters.status.all")}
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 {STATUS_FILTERS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {auto(option.label, option.translationKey)}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
@@ -289,15 +280,11 @@ export default function ComplianceAuditsPage() {
               }
               placeholder={auto("All risk levels", "filters.risk.all")}
             >
-              <SelectTrigger>
-              </SelectTrigger>
-              <SelectContent>
                 {RISK_FILTERS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {auto(option.label, option.translationKey)}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">

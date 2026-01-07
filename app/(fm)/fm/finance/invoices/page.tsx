@@ -16,12 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Pagination } from "@/components/ui/pagination";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -358,7 +353,6 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
               placeholder={t("fm.properties.status", "Status")}
               className="w-48"
             >
-              <SelectContent>
                 <SelectItem value="">
                   {t("common.all", "All Status")}
                 </SelectItem>
@@ -383,7 +377,6 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
                 <SelectItem value="CANCELLED">
                   {t("fm.invoices.cancelled", "Cancelled")}
                 </SelectItem>
-              </SelectContent>
             </Select>
             <Select
               value={typeFilter}
@@ -391,7 +384,6 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
               placeholder={t("fm.properties.type", "Type")}
               className="w-48"
             >
-              <SelectContent>
                 <SelectItem value="">
                   {t("fm.properties.allTypes", "All Types")}
                 </SelectItem>
@@ -410,7 +402,6 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
                 <SelectItem value="MAINTENANCE">
                   {t("fm.invoices.maintenance", "Maintenance")}
                 </SelectItem>
-              </SelectContent>
             </Select>
           </div>
         </CardContent>
@@ -876,8 +867,6 @@ function CreateInvoiceForm({
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder="Select invoice type"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
               <SelectItem value="SALES">
                 {t("fm.invoices.sales", "Sales")}
               </SelectItem>
@@ -893,7 +882,6 @@ function CreateInvoiceForm({
               <SelectItem value="MAINTENANCE">
                 {t("fm.invoices.maintenance", "Maintenance")}
               </SelectItem>
-            </SelectContent>
           </Select>
         </div>
         <div>
@@ -907,13 +895,10 @@ function CreateInvoiceForm({
             }
             placeholder="Select currency"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
               <SelectItem value="SAR">SAR</SelectItem>
               <SelectItem value="USD">USD</SelectItem>
               <SelectItem value="EUR">EUR</SelectItem>
               <SelectItem value="AED">AED</SelectItem>
-            </SelectContent>
           </Select>
         </div>
       </div>
