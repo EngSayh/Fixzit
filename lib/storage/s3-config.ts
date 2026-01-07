@@ -99,10 +99,11 @@ export function assertS3Configured(): S3Config {
 
 /**
  * Custom error for S3 configuration issues
+ * HTTP 503 = Service Unavailable (configuration is fixable, not permanent)
  */
 export class S3NotConfiguredError extends Error {
   public readonly missing: string[];
-  public readonly statusCode = 501;
+  public readonly statusCode = 503;
   
   constructor(missing: string[]) {
     super("S3_NOT_CONFIGURED");
@@ -113,9 +114,9 @@ export class S3NotConfiguredError extends Error {
   toJSON() {
     return {
       error: "S3_NOT_CONFIGURED",
-      message: "S3 file storage is not configured on this server",
-      required: ["AWS_REGION", "AWS_S3_BUCKET", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"],
-      missing: this.missing,
+      message: "File storage service is temporarily unavailable. Please contact support.",
+      code: "SERVICE_UNAVAILABLE",
+      retryable: true,
     };
   }
 }

@@ -75,13 +75,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check S3 configuration
+    // Check S3 configuration (returns 503 if not configured)
     let s3Config;
     try {
       s3Config = assertS3Configured();
     } catch (error) {
       if (error instanceof S3NotConfiguredError) {
-        return createSecureResponse(error.toJSON(), 501, req);
+        return createSecureResponse(error.toJSON(), 503, req);
       }
       throw error;
     }

@@ -29,7 +29,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,

@@ -187,7 +187,7 @@ export default function SuperadminJobsPage() {
               value={typeFilter} 
               onValueChange={setTypeFilter}
               placeholder="Job Type"
-              className="w-[120px] bg-muted border-input text-foreground"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
             >
               <SelectItem value="all">All Types</SelectItem>
               {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}

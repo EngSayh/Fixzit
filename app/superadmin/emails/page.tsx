@@ -482,7 +482,7 @@ export default function EmailTemplatesPage() {
             className="ps-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px] bg-muted border-input text-foreground">
+        <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
           <SelectItem value="all">All Categories</SelectItem>
           <SelectItem value="auth">Authentication</SelectItem>
           <SelectItem value="billing">Billing</SelectItem>

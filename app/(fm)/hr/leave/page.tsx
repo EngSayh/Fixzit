@@ -11,7 +11,10 @@ import { Loader2, Check, X, CalendarPlus } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 
 type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
@@ -476,15 +479,16 @@ export default function LeavePage() {
                       "hr.leave.form.leaveTypePlaceholder",
                       "Select leave type",
                     )}
+                    className="w-full bg-muted border-input text-foreground"
                   >
-                      {leaveTypes.map((type) => (
-                        <SelectItem key={type._id} value={type._id}>
-                          {type.name} ({type.code})
-                          {typeof type.annualEntitlementDays === "number"
-                            ? ` • ${type.annualEntitlementDays}${t("hr.leave.form.leaveTypeDaysSuffix", "d")}`
-                            : ""}
-                        </SelectItem>
-                      ))}
+                    {leaveTypes.map((type) => (
+                      <SelectItem key={type._id} value={type._id}>
+                        {type.name} ({type.code})
+                        {typeof type.annualEntitlementDays === "number"
+                          ? ` • ${type.annualEntitlementDays}${t("hr.leave.form.leaveTypeDaysSuffix", "d")}`
+                          : ""}
+                      </SelectItem>
+                    ))}
                   </Select>
                 )}
                 <p className="text-xs text-muted-foreground">

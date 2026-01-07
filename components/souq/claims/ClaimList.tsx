@@ -358,8 +358,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               value={statusFilter}
               onValueChange={handleStatusFilter}
               placeholder="الحالة (Status)"
-              className="ps-9"
-              wrapperClassName="w-full"
+              className="w-full ps-9"
             >
               <SelectItem value="all">جميع الحالات (All)</SelectItem>
               {STATUS_FILTER_OPTIONS.map((opt) => (
@@ -377,8 +376,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               value={typeFilter}
               onValueChange={handleTypeFilter}
               placeholder="النوع (Type)"
-              className="ps-9"
-              wrapperClassName="w-full"
+              className="w-full ps-9"
             >
               {TYPE_FILTER_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>

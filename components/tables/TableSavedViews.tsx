@@ -25,7 +25,7 @@ export function TableSavedViews({ views, value, onChange }: TableSavedViewsProps
       value={value}
       onValueChange={(val) => onChange?.(val)}
       placeholder="Saved views"
-      className="min-w-[180px]"
+      className="min-w-[180px] bg-muted border-input text-foreground"
     >
       {views.map((view) => (
         <SelectItem key={view.id} value={view.id}>

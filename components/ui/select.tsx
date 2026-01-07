@@ -63,7 +63,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   onValueChange?: (value: string) => void;
   /** (Optional) A placeholder to display. Renders a disabled first option. */
   placeholder?: string;
-  /** (Optional) Class name for the wrapper div. */
+  /** (Optional) Additional class names for the wrapper div. */
   wrapperClassName?: string;
 }
 
@@ -116,7 +116,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     }
 
     return (
-      <div className={`relative w-full ${wrapperClassName}`}>
+      <div className={`relative ${className} ${wrapperClassName}`.trim()}>
         <select
           ref={ref}
           className={`
@@ -125,7 +125,6 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ring-offset-white 
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 
             disabled:cursor-not-allowed disabled:opacity-50
-            ${className}
           `}
           onChange={handleChange}
           {...selectProps}

@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -172,13 +175,13 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                     "fields.typePlaceholder",
                   )}
                   required
-                  className="bg-muted border-input text-foreground"
+                  className="w-full bg-muted border-input text-foreground"
                 >
-                    {REPORT_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {auto(type.label, `types.${type.value}`)}
-                      </SelectItem>
-                    ))}
+                  {REPORT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {auto(type.label, `types.${type.value}`)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
 
@@ -213,13 +216,13 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                       setEndDate("");
                     }
                   }}
-                  className="bg-muted border-input text-foreground"
+                  className="w-full bg-muted border-input text-foreground"
                 >
-                    {DATE_RANGES.map((range) => (
-                      <SelectItem key={range.value} value={range.value}>
-                        {auto(range.label, `dateRanges.${range.value}`)}
-                      </SelectItem>
-                    ))}
+                  {DATE_RANGES.map((range) => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {auto(range.label, `dateRanges.${range.value}`)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
 
@@ -292,12 +295,12 @@ function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
                 <Label htmlFor="format">
                   {auto("Output Format", "fields.format")}
                 </Label>
-                <Select value={format} onValueChange={setFormat} className="bg-muted border-input text-foreground">
-                    {FORMATS.map((fmt) => (
-                      <SelectItem key={fmt.value} value={fmt.value}>
-                        {auto(fmt.label, `formats.${fmt.value}`)}
-                      </SelectItem>
-                    ))}
+                <Select value={format} onValueChange={setFormat} className="w-full bg-muted border-input text-foreground">
+                  {FORMATS.map((fmt) => (
+                    <SelectItem key={fmt.value} value={fmt.value}>
+                      {auto(fmt.label, `formats.${fmt.value}`)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
 

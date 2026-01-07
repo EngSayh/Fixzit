@@ -154,7 +154,7 @@ export default function SuperadminReportsPage() {
       {/* Filter */}
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-[120px] bg-muted border-input text-foreground">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
             <SelectItem value="all">All Categories</SelectItem>
             {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
           </Select>

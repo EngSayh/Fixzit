@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-01-05T13:33:50+03:00",
+  "baseline": "docs/artifacts/todo-scan-2026-01-05-125922.json",
+  "current": "docs/artifacts/todo-scan-2026-01-05-133350.json",
+  "summary": {
+    "added": 1,
+    "resolved": 4,
+    "current": 2516,
+    "baseline": 2519
+  },
+  "fileChanges": [
+    {
+      "file": ".\\app\\superadmin\\issues\\page.tsx",
+      "added": [],
+      "resolved": [
+        {
+          "key": "todo-marker-app-superadmin-issues-page-tsx-l1037",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\issues\\page.tsx:1037",
+          "location": ".\\app\\superadmin\\issues\\page.tsx:1037"
+        },
+        {
+          "key": "todo-marker-app-superadmin-issues-page-tsx-l1050",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\issues\\page.tsx:1050",
+          "location": ".\\app\\superadmin\\issues\\page.tsx:1050"
+        },
+        {
+          "key": "todo-marker-app-superadmin-issues-page-tsx-l1063",
+          "title": "Marker 'placeholder' in .\\app\\superadmin\\issues\\page.tsx:1063",
+          "location": ".\\app\\superadmin\\issues\\page.tsx:1063"
+        }
+      ]
+    },
+    {
+      "file": ".\\lib\\qa\\sanitize.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "todo-marker-lib-qa-sanitize-ts-l78",
+          "title": "Marker 'xxx' in .\\lib\\qa\\sanitize.ts:78",
+          "location": ".\\lib\\qa\\sanitize.ts:78"
+        }
+      ]
+    },
+    {
+      "file": ".\\scripts\\ssot-log-commands.ps1",
+      "added": [
+        {
+          "key": "todo-marker-scripts-ssot-log-commands-ps1-l220",
+          "title": "Marker 'not implemented' in .\\scripts\\ssot-log-commands.ps1:220",
+          "location": ".\\scripts\\ssot-log-commands.ps1:220"
+        }
+      ],
+      "resolved": []
+    }
+  ]
+}

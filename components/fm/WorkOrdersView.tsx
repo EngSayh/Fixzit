@@ -681,7 +681,7 @@ export function WorkOrdersView({
                     setPage(1);
                   }}
                   placeholder={statusPlaceholder}
-                  className="min-w-[160px]"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectItem value="">{statusAllLabel}</SelectItem>
                   {STATUS_OPTIONS.map((status) => (
@@ -697,7 +697,7 @@ export function WorkOrdersView({
                     setPage(1);
                   }}
                   placeholder={priorityPlaceholder}
-                  className="min-w-[160px]"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectItem value="">{priorityAllLabel}</SelectItem>
                   {PRIORITY_OPTIONS.map((priority) => (
@@ -805,6 +805,7 @@ export function WorkOrdersView({
                 setStatusFilter(value);
                 setPage(1);
               }}
+              className="w-full bg-muted border-input text-foreground"
             >
               <SelectItem value="">{statusAllLabel}</SelectItem>
               {STATUS_OPTIONS.map((status) => (
@@ -824,6 +825,7 @@ export function WorkOrdersView({
                 setPriorityFilter(value);
                 setPage(1);
               }}
+              className="w-full bg-muted border-input text-foreground"
             >
               <SelectItem value="">{priorityAllLabel}</SelectItem>
               {PRIORITY_OPTIONS.map((priority) => (
@@ -1284,6 +1286,7 @@ function WorkOrderCreateDialog({
                   "workOrders.create.form.priorityPlaceholder",
                   "Select priority",
                 )}
+                className="w-full bg-muted border-input text-foreground"
               >
                 {PRIORITY_OPTIONS.map((priority) => (
                   <SelectItem key={priority} value={priority}>

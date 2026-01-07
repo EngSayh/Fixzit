@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-01-05T13:29:05+03:00",
+  "baseline": "docs/artifacts/incomplete-code-scan-2026-01-05-125922.json",
+  "current": "docs/artifacts/incomplete-code-scan-2026-01-05-132905.json",
+  "summary": {
+    "added": 0,
+    "resolved": 5,
+    "current": 10,
+    "baseline": 15
+  },
+  "fileChanges": [
+    {
+      "file": "app/api/files/resumes/presign/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "resumes-presign-returns-501-when-s3-not-configured-feature-app-api-files-resumes",
+          "title": "Resumes presign returns 501 when S3 not configured",
+          "location": "app/api/files/resumes/presign/route.ts:57"
+        }
+      ]
+    },
+    {
+      "file": "app/api/onboarding/[caseId]/documents/request-upload/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "onboarding-documents-request-upload-returns-501-when-storage-not-configured-feat",
+          "title": "Onboarding documents request-upload returns 501 when storage not configured",
+          "location": "app/api/onboarding/[caseId]/documents/request-upload/route.ts:52"
+        }
+      ]
+    },
+    {
+      "file": "app/api/upload/presigned-url/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "upload-presigned-url-returns-501-when-s3-not-configured-feature-app-api-upload-p",
+          "title": "Upload presigned-url returns 501 when S3 not configured",
+          "location": "app/api/upload/presigned-url/route.ts:76"
+        }
+      ]
+    },
+    {
+      "file": "app/api/upload/scan/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "upload-scan-endpoint-returns-501-when-s3-not-configured-feature-app-api-upload-s",
+          "title": "Upload scan endpoint returns 501 when S3 not configured",
+          "location": "app/api/upload/scan/route.ts:84"
+        }
+      ]
+    },
+    {
+      "file": "app/api/work-orders/[id]/attachments/presign/route.ts",
+      "added": [],
+      "resolved": [
+        {
+          "key": "work-order-attachments-presign-returns-501-when-s3-not-configured-feature-app-ap",
+          "title": "Work order attachments presign returns 501 when S3 not configured",
+          "location": "app/api/work-orders/[id]/attachments/presign/route.ts:60"
+        }
+      ]
+    }
+  ]
+}

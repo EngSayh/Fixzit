@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import ClientDate from "@/components/ClientDate";
 import {
@@ -276,22 +279,22 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">
-                {t("common.all", "All Status")}
-              </SelectItem>
-              <SelectItem value="draft">
-                {t("status.draft", "Draft")}
-              </SelectItem>
-              <SelectItem value="submitted">
-                {t("status.submitted", "Submitted")}
-              </SelectItem>
-              <SelectItem value="approved">
-                {t("status.approved", "Approved")}
-              </SelectItem>
-              <SelectItem value="completed">
-                {t("status.completed", "Completed")}
-              </SelectItem>
+          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <SelectItem value="all">
+              {t("common.all", "All Status")}
+            </SelectItem>
+            <SelectItem value="draft">
+              {t("status.draft", "Draft")}
+            </SelectItem>
+            <SelectItem value="submitted">
+              {t("status.submitted", "Submitted")}
+            </SelectItem>
+            <SelectItem value="approved">
+              {t("status.approved", "Approved")}
+            </SelectItem>
+            <SelectItem value="completed">
+              {t("status.completed", "Completed")}
+            </SelectItem>
           </Select>
         </div>
       </div>

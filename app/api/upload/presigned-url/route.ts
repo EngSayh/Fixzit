@@ -73,12 +73,12 @@ export async function POST(req: NextRequest) {
     }
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 
-    // Check S3 configuration (returns 501 if not configured)
+    // Check S3 configuration (returns 503 if not configured)
     try {
       assertS3Configured();
     } catch (error) {
       if (error instanceof S3NotConfiguredError) {
-        return createSecureResponse(error.toJSON(), 501, req);
+        return createSecureResponse(error.toJSON(), 503, req);
       }
       throw error;
     }
