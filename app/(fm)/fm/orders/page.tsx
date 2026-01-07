@@ -14,9 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import ClientDate from "@/components/ClientDate";
@@ -268,46 +266,38 @@ export default function OrdersPage() {
       </div>
 
       {/* Search and Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Row 1: Search input - full width */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t("common.search", "Search orders...")}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            {/* Row 2: Filter dropdowns - horizontal */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {t("common.all", "All Status")}
-                  </SelectItem>
-                  <SelectItem value="draft">
-                    {t("status.draft", "Draft")}
-                  </SelectItem>
-                  <SelectItem value="submitted">
-                    {t("status.submitted", "Submitted")}
-                  </SelectItem>
-                  <SelectItem value="approved">
-                    {t("status.approved", "Approved")}
-                  </SelectItem>
-                  <SelectItem value="completed">
-                    {t("status.completed", "Completed")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("common.search", "Search orders...")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="ps-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <SelectItem value="all">
+              {t("common.all", "All Status")}
+            </SelectItem>
+            <SelectItem value="draft">
+              {t("status.draft", "Draft")}
+            </SelectItem>
+            <SelectItem value="submitted">
+              {t("status.submitted", "Submitted")}
+            </SelectItem>
+            <SelectItem value="approved">
+              {t("status.approved", "Approved")}
+            </SelectItem>
+            <SelectItem value="completed">
+              {t("status.completed", "Completed")}
+            </SelectItem>
+          </Select>
+        </div>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="purchase">

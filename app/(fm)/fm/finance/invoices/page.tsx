@@ -18,9 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Pagination } from "@/components/ui/pagination";
@@ -38,7 +36,6 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  XCircle,
 } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
@@ -336,99 +333,79 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
       </div>
 
       {/* Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Row 1: Search input - full width */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t(
-                  "fm.invoices.searchInvoices",
-                  "Search by invoice number or customer...",
-                )}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder={t(
+                    "fm.invoices.searchInvoices",
+                    "Search by invoice number or customer...",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-10"
+                />
+              </div>
             </div>
-            {/* Row 2: Filter dropdowns - horizontal */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-              >
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                  {t("fm.properties.status", "Status")}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    {t("common.all", "All Status")}
-                  </SelectItem>
-                  <SelectItem value="DRAFT">
-                    {t("fm.invoices.draft", "Draft")}
-                  </SelectItem>
-                  <SelectItem value="SENT">
-                    {t("fm.invoices.sent", "Sent")}
-                  </SelectItem>
-                  <SelectItem value="VIEWED">
-                    {t("fm.invoices.viewed", "Viewed")}
-                  </SelectItem>
-                  <SelectItem value="APPROVED">
-                    {t("fm.vendors.approved", "Approved")}
-                  </SelectItem>
-                  <SelectItem value="PAID">
-                    {t("fm.invoices.paid", "Paid")}
-                  </SelectItem>
-                  <SelectItem value="OVERDUE">
-                    {t("fm.invoices.overdue", "Overdue")}
-                  </SelectItem>
-                  <SelectItem value="CANCELLED">
-                    {t("fm.invoices.cancelled", "Cancelled")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={typeFilter}
-                onValueChange={setTypeFilter}
-              >
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                  {t("fm.properties.type", "Type")}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    {t("fm.properties.allTypes", "All Types")}
-                  </SelectItem>
-                  <SelectItem value="SALES">
-                    {t("fm.invoices.sales", "Sales")}
-                  </SelectItem>
-                <SelectItem value="PURCHASE">
-                  {t("fm.invoices.purchase", "Purchase")}
-                </SelectItem>
-                <SelectItem value="RENTAL">
-                  {t("fm.invoices.rental", "Rental")}
-                </SelectItem>
-                <SelectItem value="SERVICE">
-                  {t("fm.invoices.service", "Service")}
-                </SelectItem>
-                <SelectItem value="MAINTENANCE">
-                  {t("fm.invoices.maintenance", "Maintenance")}
-                </SelectItem>
-              </SelectContent>
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              placeholder={t("fm.properties.status", "Status")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
+            >
+              <SelectItem value="">
+                {t("common.all", "All Status")}
+              </SelectItem>
+              <SelectItem value="DRAFT">
+                {t("fm.invoices.draft", "Draft")}
+              </SelectItem>
+              <SelectItem value="SENT">
+                {t("fm.invoices.sent", "Sent")}
+              </SelectItem>
+              <SelectItem value="VIEWED">
+                {t("fm.invoices.viewed", "Viewed")}
+              </SelectItem>
+              <SelectItem value="APPROVED">
+                {t("fm.vendors.approved", "Approved")}
+              </SelectItem>
+              <SelectItem value="PAID">
+                {t("fm.invoices.paid", "Paid")}
+              </SelectItem>
+              <SelectItem value="OVERDUE">
+                {t("fm.invoices.overdue", "Overdue")}
+              </SelectItem>
+              <SelectItem value="CANCELLED">
+                {t("fm.invoices.cancelled", "Cancelled")}
+              </SelectItem>
             </Select>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setStatusFilter("");
-                  setTypeFilter("");
-                  setSearch("");
-                }}
-              >
-                <XCircle className="h-4 w-4 me-2" />
-                {t("common.clear", "Clear")}
-              </Button>
-            </div>
+            <Select
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              placeholder={t("fm.properties.type", "Type")}
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
+            >
+              <SelectItem value="">
+                {t("fm.properties.allTypes", "All Types")}
+              </SelectItem>
+              <SelectItem value="SALES">
+                {t("fm.invoices.sales", "Sales")}
+              </SelectItem>
+              <SelectItem value="PURCHASE">
+                {t("fm.invoices.purchase", "Purchase")}
+              </SelectItem>
+              <SelectItem value="RENTAL">
+                {t("fm.invoices.rental", "Rental")}
+              </SelectItem>
+              <SelectItem value="SERVICE">
+                {t("fm.invoices.service", "Service")}
+              </SelectItem>
+              <SelectItem value="MAINTENANCE">
+                {t("fm.invoices.maintenance", "Maintenance")}
+              </SelectItem>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -892,26 +869,23 @@ function CreateInvoiceForm({
             value={formData.type}
             onValueChange={(value) => setFormData({ ...formData, type: value })}
             placeholder="Select invoice type"
-            className="w-full sm:w-40 bg-muted border-input text-foreground"
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SALES">
-                {t("fm.invoices.sales", "Sales")}
-              </SelectItem>
-              <SelectItem value="PURCHASE">
-                {t("fm.invoices.purchase", "Purchase")}
-              </SelectItem>
-              <SelectItem value="RENTAL">
-                {t("fm.invoices.rental", "Rental")}
-              </SelectItem>
-              <SelectItem value="SERVICE">
-                {t("fm.invoices.service", "Service")}
-              </SelectItem>
-              <SelectItem value="MAINTENANCE">
-                {t("fm.invoices.maintenance", "Maintenance")}
-              </SelectItem>
-            </SelectContent>
+            <SelectItem value="SALES">
+              {t("fm.invoices.sales", "Sales")}
+            </SelectItem>
+            <SelectItem value="PURCHASE">
+              {t("fm.invoices.purchase", "Purchase")}
+            </SelectItem>
+            <SelectItem value="RENTAL">
+              {t("fm.invoices.rental", "Rental")}
+            </SelectItem>
+            <SelectItem value="SERVICE">
+              {t("fm.invoices.service", "Service")}
+            </SelectItem>
+            <SelectItem value="MAINTENANCE">
+              {t("fm.invoices.maintenance", "Maintenance")}
+            </SelectItem>
           </Select>
         </div>
         <div>
@@ -924,15 +898,12 @@ function CreateInvoiceForm({
               setFormData({ ...formData, currency: value })
             }
             placeholder="Select currency"
-            className="w-full sm:w-40 bg-muted border-input text-foreground"
+            className="w-full bg-muted border-input text-foreground"
           >
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SAR">SAR</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="EUR">EUR</SelectItem>
-              <SelectItem value="AED">AED</SelectItem>
-            </SelectContent>
+            <SelectItem value="SAR">SAR</SelectItem>
+            <SelectItem value="USD">USD</SelectItem>
+            <SelectItem value="EUR">EUR</SelectItem>
+            <SelectItem value="AED">AED</SelectItem>
           </Select>
         </div>
       </div>

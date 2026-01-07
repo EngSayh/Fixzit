@@ -15,7 +15,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
@@ -261,13 +264,13 @@ export default function NewSupportTicketPage() {
                     "Select a module",
                     "fields.module.placeholder",
                   )}
-                  className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  className="w-full bg-muted border-input text-foreground"
                 >
-                    {MODULE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {auto(MODULE_LABELS[option], `modules.${option}`)}
-                      </SelectItem>
-                    ))}
+                  {MODULE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {auto(MODULE_LABELS[option], `modules.${option}`)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div>
@@ -277,13 +280,13 @@ export default function NewSupportTicketPage() {
                   onValueChange={(value: string) =>
                     updateField("priority", value as PriorityOption)
                   }
-                  className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  className="w-full bg-muted border-input text-foreground"
                 >
-                    {PRIORITY_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {auto(PRIORITY_LABELS[option], `priorities.${option}`)}
-                      </SelectItem>
-                    ))}
+                  {PRIORITY_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {auto(PRIORITY_LABELS[option], `priorities.${option}`)}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
             </div>

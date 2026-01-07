@@ -120,34 +120,19 @@ export default function SuperadminVendorsPage() {
 
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Search row */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t("superadmin.vendors.searchPlaceholder", "Search vendors...")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            {/* Filter row */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("superadmin.vendors.typePlaceholder", "Type")} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                <SelectItem value="all">{t("superadmin.vendors.allTypes", "All Types")}</SelectItem>
-                {VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.vendors.statusPlaceholder", "Status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                <SelectItem value="all">{t("superadmin.vendors.allStatus", "All Status")}</SelectItem>
-                <SelectItem value="ACTIVE">{t("superadmin.vendors.active", "Active")}</SelectItem>
-                <SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem>
-                <SelectItem value="SUSPENDED">{t("common.suspended", "Suspended")}</SelectItem>
-              </Select>
-              <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.vendors.search", "Search vendors")} title={t("superadmin.vendors.search", "Search vendors")}>
-                <Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}
-              </Button>
-            </div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]"><Input placeholder={t("superadmin.vendors.searchPlaceholder", "Search vendors...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("superadmin.vendors.typePlaceholder", "Type")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectItem value="all">{t("superadmin.vendors.allTypes", "All Types")}</SelectItem>
+              {VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.vendors.statusPlaceholder", "Status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectItem value="all">{t("superadmin.vendors.allStatus", "All Status")}</SelectItem>
+              <SelectItem value="ACTIVE">{t("superadmin.vendors.active", "Active")}</SelectItem>
+              <SelectItem value="INACTIVE">{t("common.inactive", "Inactive")}</SelectItem>
+              <SelectItem value="SUSPENDED">{t("common.suspended", "Suspended")}</SelectItem>
+            </Select>
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" aria-label={t("superadmin.vendors.search", "Search vendors")} title={t("superadmin.vendors.search", "Search vendors")}><Search className="h-4 w-4 me-2" />{t("superadmin.vendors.search", "Search")}</Button>
           </div>
         </CardContent>
       </Card>

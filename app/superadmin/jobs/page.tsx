@@ -12,7 +12,6 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
@@ -64,7 +63,6 @@ export default function SuperadminJobsPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -153,11 +151,7 @@ export default function SuperadminJobsPage() {
   const total = stats.pending + stats.processing + stats.completed + stats.failed;
   const successRate = total > 0 ? ((stats.completed / total) * 100).toFixed(1) : "0";
 
-  const filteredJobs = jobs.filter(j => {
-    const matchesType = typeFilter === "all" || j.type === typeFilter;
-    const matchesSearch = search === "" || j.type.toLowerCase().includes(search.toLowerCase()) || j.status.toLowerCase().includes(search.toLowerCase());
-    return matchesType && matchesSearch;
-  });
+  const filteredJobs = typeFilter === "all" ? jobs : jobs.filter(j => j.type === typeFilter);
 
   return (
     <div className="p-6 space-y-6">
@@ -185,36 +179,23 @@ export default function SuperadminJobsPage() {
         <Card><CardContent className="p-4"><div className="flex flex-col"><p className="text-muted-foreground text-sm mb-1">Success Rate</p><Progress value={Number(successRate)} className="h-2 mb-1" /><p className="text-foreground font-bold">{successRate}%</p></div></CardContent></Card>
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card border-border">
+      {/* Process Controls */}
+      <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Search row */}
-            <div className="relative flex-1">
-              <Cog className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t("superadmin.jobs.search", "Search jobs...")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            {/* Filter row */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select 
-                value={typeFilter} 
-                onValueChange={setTypeFilter}
-                placeholder="Job Type"
-                className="w-full sm:w-40 bg-muted border-input text-foreground"
-              >
-                <SelectItem value="all">All Types</SelectItem>
-                {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
-              </Select>
-              <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0} aria-label={t("superadmin.jobs.process", "Process pending jobs")} title={t("superadmin.jobs.process", "Process pending jobs")}>
-                {processing ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Processing...</> : <><Play className="h-4 w-4 me-2" />Process Jobs</>}
-              </Button>
-              <span className="text-muted-foreground text-sm self-center">{stats.pending} jobs waiting</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Select 
+              value={typeFilter} 
+              onValueChange={setTypeFilter}
+              placeholder="Job Type"
+              className="w-full sm:w-40 bg-muted border-input text-foreground"
+            >
+              <SelectItem value="all">All Types</SelectItem>
+              {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
+            </Select>
+            <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0} aria-label={t("superadmin.jobs.process", "Process pending jobs")} title={t("superadmin.jobs.process", "Process pending jobs")}>
+              {processing ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Processing...</> : <><Play className="h-4 w-4 me-2" />Process Jobs</>}
+            </Button>
+            <span className="text-muted-foreground text-sm">{stats.pending} jobs waiting</span>
           </div>
         </CardContent>
       </Card>

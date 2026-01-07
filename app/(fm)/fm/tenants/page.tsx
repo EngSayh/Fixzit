@@ -17,9 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from "@/components/skeletons";
@@ -169,43 +167,37 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
       </div>
 
       {/* Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Row 1: Search input - full width */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t(
-                  "fm.tenants.searchTenants",
-                  "Search tenants...",
-                )}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder={t(
+                    "fm.tenants.searchTenants",
+                    "Search tenants...",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-10"
+                />
+              </div>
             </div>
-            {/* Row 2: Filter dropdowns - horizontal */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    {t("fm.properties.allTypes", "All Types")}
-                  </SelectItem>
-                  <SelectItem value="INDIVIDUAL">
-                    {t("fm.tenants.individual", "Individual")}
-                  </SelectItem>
-                  <SelectItem value="COMPANY">
-                    {t("fm.tenants.company", "Company")}
-                  </SelectItem>
-                  <SelectItem value="GOVERNMENT">
-                    {t("fm.tenants.government", "Government")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.tenants.tenantType", "Tenant Type")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectItem value="">
+                {t("fm.properties.allTypes", "All Types")}
+              </SelectItem>
+              <SelectItem value="INDIVIDUAL">
+                {t("fm.tenants.individual", "Individual")}
+              </SelectItem>
+              <SelectItem value="COMPANY">
+                {t("fm.tenants.company", "Company")}
+              </SelectItem>
+              <SelectItem value="GOVERNMENT">
+                {t("fm.tenants.government", "Government")}
+              </SelectItem>
+            </Select>
           </div>
         </CardContent>
       </Card>

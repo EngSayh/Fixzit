@@ -140,7 +140,7 @@ export function ExportCenterDrawer({
                   id="format"
                   value={format}
                   onValueChange={(value) => setFormat(value as "csv" | "xlsx")}
-                  className="w-full sm:w-40 bg-muted border-input text-foreground"
+                  className="w-full bg-muted border-input text-foreground"
                 >
                   <SelectItem value="csv">CSV (fast)</SelectItem>
                   <SelectItem value="xlsx">Excel</SelectItem>

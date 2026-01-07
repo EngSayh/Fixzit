@@ -34,7 +34,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { 
@@ -446,23 +449,16 @@ export default function WebhooksPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Search row */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t("superadmin.webhooks.search", "Search webhooks...")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={t("superadmin.webhooks.search", "Search webhooks...")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ps-9"
+        />
+      </div>
 
       {/* Webhooks Table */}
       <Card>
@@ -633,11 +629,11 @@ export default function WebhooksPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("superadmin.webhooks.retryPolicy", "Retry Policy")}</Label>
-<Select
+                <Select
                   value={formData.retryPolicy}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, retryPolicy: v as typeof formData.retryPolicy }))}
-                  placeholder="Select policy"
-                  className="mt-1 w-full bg-muted border-input text-foreground"
+                  placeholder="Retry Policy"
+                  className="w-full sm:w-40 bg-muted border-input text-foreground"
                 >
                   <SelectItem value="none">No Retry</SelectItem>
                   <SelectItem value="linear">Linear</SelectItem>

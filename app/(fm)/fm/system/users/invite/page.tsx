@@ -9,9 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
@@ -160,23 +158,19 @@ export default function InviteUserPage() {
                 <Select value={role} onValueChange={setRole} placeholder={auto(
                         "Select a role...",
                         "fields.rolePlaceholder",
-                      )} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                  <SelectTrigger id="role">
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">
-                      {auto("Administrator", "roles.admin")}
-                    </SelectItem>
-                    <SelectItem value="manager">
-                      {auto("Manager", "roles.manager")}
-                    </SelectItem>
-                    <SelectItem value="technician">
-                      {auto("Technician", "roles.technician")}
-                    </SelectItem>
-                    <SelectItem value="viewer">
-                      {auto("Viewer", "roles.viewer")}
-                    </SelectItem>
-                  </SelectContent>
+                      )} className="w-full bg-muted border-input text-foreground">
+                  <SelectItem value="admin">
+                    {auto("Administrator", "roles.admin")}
+                  </SelectItem>
+                  <SelectItem value="manager">
+                    {auto("Manager", "roles.manager")}
+                  </SelectItem>
+                  <SelectItem value="technician">
+                    {auto("Technician", "roles.technician")}
+                  </SelectItem>
+                  <SelectItem value="viewer">
+                    {auto("Viewer", "roles.viewer")}
+                  </SelectItem>
                 </Select>
               </div>
 

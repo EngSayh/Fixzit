@@ -185,10 +185,10 @@ export default function SuperadminImportExportPage() {
                 <CardContent className="p-4 space-y-4">
                   <div>
                     <Label className="text-muted-foreground mb-2 block">Format</Label>
-                    <Select value={exportFormat} onValueChange={setExportFormat} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                      <SelectItem value="json">JSON</SelectItem>
-                      <SelectItem value="csv">CSV (ZIP)</SelectItem>
-                    </Select>
+                    <Select value={exportFormat} onValueChange={setExportFormat} placeholder="Select format" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                        <SelectItem value="json">JSON</SelectItem>
+                        <SelectItem value="csv">CSV (ZIP)</SelectItem>
+                      </Select>
                   </div>
 
                   <div className="bg-muted p-3 rounded-lg">

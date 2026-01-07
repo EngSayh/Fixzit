@@ -11,7 +11,10 @@ import { Loader2, Check, X, CalendarPlus } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+} from "@/components/ui/select";
 
 type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
@@ -303,49 +306,40 @@ export default function LeavePage() {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setFormOpen((prev) => !prev)}
-          aria-label={t("hr.leave.actions.newRequest", "New Leave Request")}
-        >
-          <CalendarPlus className="h-4 w-4 me-2" />
-          {t("hr.leave.actions.newRequest", "New Leave Request")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setFormOpen((prev) => !prev)}
+            aria-label={t("hr.leave.actions.newRequest", "New Leave Request")}
+          >
+            <CalendarPlus className="h-4 w-4 me-2" />
+            {t("hr.leave.actions.newRequest", "New Leave Request")}
+          </Button>
+          {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
+            (status) => (
+              <Button
+                key={status}
+                variant={filter === status ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleFilterChange(status)}
+                aria-label={status === "ALL"
+                  ? t("hr.leave.filter.all", "All")
+                  : t(
+                      leaveStatusLabels[status].key,
+                      leaveStatusLabels[status].fallback,
+                    )}
+              >
+                {status === "ALL"
+                  ? t("hr.leave.filter.all", "All")
+                  : t(
+                      leaveStatusLabels[status].key,
+                      leaveStatusLabels[status].fallback,
+                    )}
+              </Button>
+            ),
+          )}
+        </div>
       </div>
-
-      {/* Filter Bar */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Row 1: Filter buttons - horizontal */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
-                (status) => (
-                  <Button
-                    key={status}
-                    variant={filter === status ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleFilterChange(status)}
-                    aria-label={status === "ALL"
-                      ? t("hr.leave.filter.all", "All")
-                      : t(
-                          leaveStatusLabels[status].key,
-                          leaveStatusLabels[status].fallback,
-                        )}
-                  >
-                    {status === "ALL"
-                      ? t("hr.leave.filter.all", "All")
-                      : t(
-                          leaveStatusLabels[status].key,
-                          leaveStatusLabels[status].fallback,
-                        )}
-                  </Button>
-                ),
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {requests.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -485,16 +479,16 @@ export default function LeavePage() {
                       "hr.leave.form.leaveTypePlaceholder",
                       "Select leave type",
                     )}
-                    className="w-full sm:w-40 bg-muted border-input text-foreground"
+                    className="w-full bg-muted border-input text-foreground"
                   >
-                      {leaveTypes.map((type) => (
-                        <SelectItem key={type._id} value={type._id}>
-                          {type.name} ({type.code})
-                          {typeof type.annualEntitlementDays === "number"
-                            ? ` • ${type.annualEntitlementDays}${t("hr.leave.form.leaveTypeDaysSuffix", "d")}`
-                            : ""}
-                        </SelectItem>
-                      ))}
+                    {leaveTypes.map((type) => (
+                      <SelectItem key={type._id} value={type._id}>
+                        {type.name} ({type.code})
+                        {typeof type.annualEntitlementDays === "number"
+                          ? ` • ${type.annualEntitlementDays}${t("hr.leave.form.leaveTypeDaysSuffix", "d")}`
+                          : ""}
+                      </SelectItem>
+                    ))}
                   </Select>
                 )}
                 <p className="text-xs text-muted-foreground">

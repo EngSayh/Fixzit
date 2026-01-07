@@ -13,9 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   Search,
@@ -303,58 +301,50 @@ function FMPageContent({ supportBanner }: FMPageContentProps) {
       </div>
 
       {/* Search and Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            {/* Row 1: Search input - full width */}
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t("common.search", "Search...")}
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            {/* Row 2: Filter dropdowns - horizontal */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {t("common.all", "All Status")}
-                  </SelectItem>
-                  <SelectItem value="active">
-                    {t("status.active", "Active")}
-                  </SelectItem>
-                  <SelectItem value="pending">
-                    {t("status.pending", "Pending")}
-                  </SelectItem>
-                  <SelectItem value="open">{t("status.open", "Open")}</SelectItem>
-                  <SelectItem value="draft">
-                    {t("status.draft", "Draft")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSubmit}
-                disabled={!isDirty}
-                className="bg-success text-white hover:bg-success/90"
-                aria-label={t("common.save", "Save")}
-              >
-                {t("common.save", "Save")}
-              </Button>
-              <Button variant="outline" size="sm" aria-label={t("common.export", "Export")}>
-                <Download className="h-4 w-4 me-2" />
-                {t("common.export", "Export")}
-              </Button>
-            </div>
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("common.search", "Search...")}
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="ps-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange} placeholder={t("common.all", "All Status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <SelectItem value="all">
+              {t("common.all", "All Status")}
+            </SelectItem>
+            <SelectItem value="active">
+              {t("status.active", "Active")}
+            </SelectItem>
+            <SelectItem value="pending">
+              {t("status.pending", "Pending")}
+            </SelectItem>
+            <SelectItem value="open">{t("status.open", "Open")}</SelectItem>
+            <SelectItem value="draft">
+              {t("status.draft", "Draft")}
+            </SelectItem>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!isDirty}
+            className="bg-success text-white hover:bg-success/90"
+            aria-label={t("common.save", "Save")}
+          >
+            {t("common.save", "Save")}
+          </Button>
+          <Button variant="outline" size="sm" aria-label={t("common.export", "Export")}>
+            <Download className="h-4 w-4 me-2" />
+            {t("common.export", "Export")}
+          </Button>
+        </div>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="catalog">

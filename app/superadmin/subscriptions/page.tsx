@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Search } from "@/components/ui/icons";
+import { SimpleFilterBar } from "@/components/ui/compact-filter-bar";
 import {
   Wallet, RefreshCw, Eye, Edit, Plus, Trash2,
   Users, Building2, Crown, Star, Sparkles, Check, X,
@@ -557,39 +557,34 @@ export default function SuperadminSubscriptionsPage() {
 
         {/* Subscriptions Tab */}
         <TabsContent value="subscriptions" className="space-y-4">
-          {/* Filters */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex flex-col gap-4">
-                {/* Search row */}
-                <div className="relative flex-1">
-                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search subscriptions..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-                  />
-                </div>
-                {/* Filter row */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                    placeholder="All Statuses"
-                    className="w-full sm:w-40 bg-muted border-input text-foreground"
-                  >
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="trial">Trial</SelectItem>
-                    <SelectItem value="past_due">Past Due</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SimpleFilterBar
+            search={{
+              value: search,
+              onChange: setSearch,
+              placeholder: "Search subscriptions...",
+            }}
+            filters={[
+              {
+                id: "status",
+                value: statusFilter,
+                placeholder: "All Statuses",
+                options: [
+                  { value: "all", label: "All Statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "trial", label: "Trial" },
+                  { value: "past_due", label: "Past Due" },
+                  { value: "cancelled", label: "Cancelled" },
+                  { value: "expired", label: "Expired" },
+                ],
+                onChange: setStatusFilter,
+                width: "w-[140px]",
+              },
+            ]}
+            onClear={() => {
+              setSearch("");
+              setStatusFilter("all");
+            }}
+          />
 
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">
@@ -748,7 +743,7 @@ export default function SuperadminSubscriptionsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency" className="mt-1 w-full bg-muted border-input text-foreground">
+                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency" className="w-full sm:w-40 bg-muted border-input text-foreground">
                   <SelectItem value="SAR">SAR</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                   <SelectItem value="EUR">EUR</SelectItem>
@@ -848,8 +843,7 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update subscription status");
                         }
                       }}
-                      placeholder="Status"
-                      className="mt-1 w-full bg-muted border-input text-foreground"
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="trial">Trial</SelectItem>
@@ -882,8 +876,7 @@ export default function SuperadminSubscriptionsPage() {
                           toast.error("Failed to update billing cycle");
                         }
                       }}
-                      placeholder="Billing Cycle"
-                      className="mt-1 w-full bg-muted border-input text-foreground"
+                      className="w-full sm:w-40 bg-muted border-input text-foreground"
                     >
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="annual">Annual</SelectItem>

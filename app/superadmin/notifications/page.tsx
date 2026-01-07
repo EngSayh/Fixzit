@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { 
-  Bell, RefreshCw, Send, Eye, ChevronLeft, ChevronRight, Search,
+  Bell, RefreshCw, Send, Eye, ChevronLeft, ChevronRight,
   Mail, MessageSquare, Smartphone, Clock, AlertCircle, CheckCircle, XCircle,
 } from "@/components/ui/icons";
 
@@ -72,7 +72,6 @@ export default function SuperadminNotificationsPage() {
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [sendForm, setSendForm] = useState({ title: "", message: "", channels: ["email"] });
   const [sending, setSending] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -173,35 +172,16 @@ export default function SuperadminNotificationsPage() {
         </TabsList>
 
         <TabsContent value="history" className="space-y-4">
-          {/* Filters */}
-          <Card className="bg-card border-border">
+          <Card>
             <CardContent className="p-4">
-              <div className="flex flex-col gap-4">
-                {/* Search row */}
-                <div className="relative flex-1">
-                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t("superadmin.notifications.search", "Search notifications...")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
-                  />
-                </div>
-                {/* Filter row */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Select 
-                    value={channelFilter} 
-                    onValueChange={setChannelFilter} 
-                    placeholder="All Channels"
-                    className="w-full sm:w-40 bg-muted border-input text-foreground"
-                  >
-                    <SelectItem value="all">All Channels</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="sms">SMS</SelectItem>
-                    <SelectItem value="push">Push</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  </Select>
-                </div>
+              <div className="flex gap-4">
+                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <SelectItem value="all">All Channels</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="sms">SMS</SelectItem>
+                  <SelectItem value="push">Push</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </Select>
               </div>
             </CardContent>
           </Card>
