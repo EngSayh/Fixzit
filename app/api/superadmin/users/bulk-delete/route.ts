@@ -12,6 +12,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
+import { AuditLogModel } from "@/server/models/AuditLog";
 import { isValidObjectId, Types } from "mongoose";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
@@ -149,6 +150,35 @@ export async function POST(request: NextRequest) {
         } 
       }
     );
+
+    // Create audit log entry for bulk delete [AGENT-0007]
+    try {
+      await AuditLogModel.create({
+        orgId: targetOrgId,
+        action: "bulk_user_delete",
+        entityType: "USER",
+        entityId: "bulk",
+        entityName: `Bulk Delete: ${result.modifiedCount} users`,
+        userId: session.username,
+        userName: session.username,
+        userEmail: session.username,
+        userRole: "SUPER_ADMIN",
+        description: `Superadmin ${session.username} bulk deleted ${result.modifiedCount} users`,
+        result: { success: true, modifiedCount: result.modifiedCount },
+        context: {
+          ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown",
+          userAgent: request.headers.get("user-agent") || "unknown",
+        },
+        metadata: {
+          userIds,
+          targetOrgId,
+          requestedCount: userIds.length,
+          deletedCount: result.modifiedCount,
+        },
+      });
+    } catch (auditErr) {
+      logger.warn("Failed to persist bulk delete audit log", { error: auditErr });
+    }
 
     logger.info("Bulk user delete completed", {
       superadminUsername: session.username,

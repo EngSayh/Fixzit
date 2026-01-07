@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
 import {
   Users,
@@ -137,6 +138,7 @@ const USER_TYPES = [
 
 export default function SuperadminUsersPage() {
   const { t } = useI18n();
+  const router = useRouter();
 
   // State
   const [users, setUsers] = useState<UserData[]>([]);
@@ -1021,8 +1023,7 @@ export default function SuperadminUsersPage() {
                                 <DropdownMenuContent align="end" className="bg-muted border-input">
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      setSelectedUser(user);
-                                      setViewDialogOpen(true);
+                                      router.push(`/superadmin/users/${user._id}`);
                                     }}
                                     className="text-muted-foreground hover:bg-muted/80"
                                   >
@@ -1190,8 +1191,7 @@ export default function SuperadminUsersPage() {
                           <DropdownMenuContent align="end" className="bg-muted border-input">
                             <DropdownMenuItem
                               onClick={() => {
-                                setSelectedUser(user);
-                                setViewDialogOpen(true);
+                                router.push(`/superadmin/users/${user._id}`);
                               }}
                               className="text-muted-foreground hover:bg-muted/80"
                             >
