@@ -244,7 +244,7 @@ export function PaymentMethodCard({
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align={isRTL ? "start" : "end"}>
+              <DropdownMenuContent align={isRTL ? "start" : "end"} className="bg-muted border-input">
                 {onSetDefault && !isDefault && !isExpired && (
                   <DropdownMenuItem onClick={() => onSetDefault(id)}>
                     <Star className="w-4 h-4 me-2" />

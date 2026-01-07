@@ -184,7 +184,7 @@ export function CardList<TData extends Record<string, unknown>>({
         )}
         
         {sortOptions && sortOptions.length > 0 && (
-          <Select value={currentSort} onValueChange={onSortChange} placeholder="Sort by..." className="w-[120px]">
+          <Select value={currentSort} onValueChange={onSortChange} placeholder="Sort by..." className="w-[120px] bg-muted border-input text-foreground">
             {sortOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}

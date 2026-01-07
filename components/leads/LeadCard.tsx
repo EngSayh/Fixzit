@@ -266,7 +266,7 @@ export function LeadCard({
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align={isRTL ? "start" : "end"}>
+          <DropdownMenuContent align={isRTL ? "start" : "end"} className="bg-muted border-input">
             <DropdownMenuItem onClick={() => onViewDetails?.(lead)}>
               {isRTL ? "عرض التفاصيل" : "View Details"}
             </DropdownMenuItem>
