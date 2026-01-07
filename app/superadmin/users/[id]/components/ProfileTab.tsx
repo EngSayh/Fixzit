@@ -85,15 +85,20 @@ export function ProfileTab({ user, formatDate, formatDateTime }: ProfileTabProps
               <Label className="text-muted-foreground">{t("user.userType", "User Type")}</Label>
               <Badge 
                 variant="outline" 
-                className={user.userType === "company" 
-                  ? "bg-purple-500/20 text-purple-400 border-purple-500/30" 
-                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                className={
+                  user.userType === "company"
+                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                    : user.userType === "individual"
+                      ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                      : "bg-muted text-muted-foreground border-input"
                 }
               >
                 {user.userType === "company" ? (
                   <><Building2 className="h-3 w-3 me-1" />Company</>
-                ) : (
+                ) : user.userType === "individual" ? (
                   <>Individual</>
+                ) : (
+                  <>—</>
                 )}
               </Badge>
             </div>

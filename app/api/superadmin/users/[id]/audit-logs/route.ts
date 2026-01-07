@@ -33,7 +33,7 @@ const querySchema = z.object({
 });
 
 interface RouteParams {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 /**
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { id: userId } = await params;
+    const { id: userId } = params;
 
     if (!mongoose.isValidObjectId(userId)) {
       return NextResponse.json(

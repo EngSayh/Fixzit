@@ -108,11 +108,11 @@ describe("SuperAdmin Users List API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSuperadminSession.mockReset();
+    mockUserAggregate.mockReset();
+    mockUserCountDocuments.mockReset();
   });
   
-  afterAll(() => {
-    vi.resetModules();
-  });
+  // Note: vi.resetModules() removed - can cause cross-suite side effects
 
   describe("GET /api/superadmin/users", () => {
     it("should return 401 when not authenticated", async () => {
@@ -244,9 +244,9 @@ describe("SuperAdmin Users List API", () => {
 
       expect(response.status).toBe(200);
       // Users should have orgName field populated
-      if (data.users.length > 0 && data.users[0].orgId) {
-        expect(data.users[0]).toHaveProperty("orgName");
-      }
+      expect(data.users.length).toBeGreaterThan(0);
+      expect(data.users[0].orgId).toBeDefined();
+      expect(data.users[0]).toHaveProperty("orgName");
     });
   });
 });

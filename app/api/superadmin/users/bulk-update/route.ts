@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     try {
       await AuditLogModel.create({
         orgId: targetOrgId,
-        action: "bulk_user_update",
+        action: "UPDATE", // Valid ActionType enum value (previously used non-enum "bulk_user_update")
         entityType: "USER",
         entityId: "bulk",
         entityName: `Bulk Update: ${result.modifiedCount} users`,

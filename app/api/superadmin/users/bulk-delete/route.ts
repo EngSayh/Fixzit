@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     try {
       await AuditLogModel.create({
         orgId: targetOrgId,
-        action: "bulk_user_delete",
+        action: "DELETE", // Valid ActionType enum value (previously used non-enum "bulk_user_delete")
         entityType: "USER",
         entityId: "bulk",
         entityName: `Bulk Delete: ${result.modifiedCount} users`,
@@ -170,6 +170,8 @@ export async function POST(request: NextRequest) {
           userAgent: request.headers.get("user-agent") || "unknown",
         },
         metadata: {
+          isBulkOperation: true, // Flag to identify bulk operations
+          bulkAction: "bulk_user_delete",
           userIds,
           targetOrgId,
           requestedCount: userIds.length,

@@ -182,7 +182,9 @@ export function ActivityLogTab({
                     <TableCell>
                       <div className="flex flex-col text-sm">
                         {log.context?.endpoint && (
-                          <span className="font-mono text-xs">{log.context.method} {log.context.endpoint}</span>
+                          <span className="font-mono text-xs">
+                            {log.context?.method ? `${log.context.method} ` : ""}{log.context.endpoint}
+                          </span>
                         )}
                         {log.context?.ipAddress && (
                           <span className="text-muted-foreground flex items-center gap-1">

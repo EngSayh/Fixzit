@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
         },
         {
           $project: {
+            _id: 1,
             email: 1,
             status: 1,
             role: 1,

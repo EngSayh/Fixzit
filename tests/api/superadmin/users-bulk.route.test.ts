@@ -155,7 +155,7 @@ describe("SuperAdmin Bulk Users Operations API", () => {
 
     it("should return 429 when rate limited", async () => {
       mockGetSuperadminSession.mockResolvedValue({ username: "superadmin", email: "admin@fixzit.sa" });
-      mockSmartRateLimit.mockResolvedValueOnce({ success: false });
+      mockSmartRateLimit.mockResolvedValueOnce({ allowed: false });
 
       const request = createDeleteRequest({ userIds: validUserIds });
       const response = await bulkDelete(request);
@@ -173,6 +173,7 @@ describe("SuperAdmin Bulk Users Operations API", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
+      expect(data.error).toBeDefined();
     });
 
     it("should return 400 when userIds contains invalid IDs", async () => {
@@ -183,6 +184,7 @@ describe("SuperAdmin Bulk Users Operations API", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
+      expect(data.error).toBeDefined();
     });
 
     it("should prevent deletion of superadmin users", async () => {
@@ -238,6 +240,7 @@ describe("SuperAdmin Bulk Users Operations API", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
+      expect(data.error).toBeDefined();
     });
 
     it("should prevent status update of superadmin users", async () => {

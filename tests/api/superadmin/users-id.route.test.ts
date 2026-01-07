@@ -54,9 +54,11 @@ const {
     }),
     mockUserFindByIdAndDelete: vi.fn().mockResolvedValue(mockUser),
     mockOrgFindById: vi.fn().mockReturnValue({
+      // Support both Organization.findById(id).select("name").lean() and Organization.findById(id).lean()
       select: vi.fn().mockReturnValue({
         lean: vi.fn().mockResolvedValue({ _id: "org_1", name: "Acme Corp" }),
       }),
+      lean: vi.fn().mockResolvedValue({ _id: "org_1", name: "Acme Corp" }),
     }),
   };
 });
@@ -121,11 +123,13 @@ describe("SuperAdmin Single User API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSuperadminSession.mockReset();
+    mockUserFindById.mockReset();
+    mockUserFindByIdAndUpdate.mockReset();
+    mockUserFindByIdAndDelete.mockReset();
+    mockOrgFindById.mockReset();
   });
   
-  afterAll(() => {
-    vi.resetModules();
-  });
+  // Note: vi.resetModules() removed - can cause cross-suite side effects
 
   describe("GET /api/superadmin/users/[id]", () => {
     it("should return 401 when not authenticated", async () => {

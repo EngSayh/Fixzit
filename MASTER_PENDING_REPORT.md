@@ -5,15 +5,16 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2026-01-07T15:20:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v5.1 (System Organizer + Duplicate & Rate-Limit Scan)  
+**Last Updated:** 2026-01-07T18:00:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v5.2 (System Organizer + Duplicate & Rate-Limit + **Similar Issue Scanner**)  
 **Branch:** feat/superadmin-users-improvements-AGENT-0007  
 **Commit:** 4aa1395e7 (refactor: Extract users page components + add CSV export & keyboard nav)  
-**Last Work:** PR #678 Comment Review + Component Extraction - Jan 07, 2026  
+**Last Work:** Similar Issue Registry Enhancement - Jan 07, 2026  
 **MongoDB Status:** Synced via /api/issues/import (2026-01-07 14:42 +03:00)  
 **Verification Status:** VERIFIED (TypeScript: 0 errors, ESLint: 0 errors, 1 warning)  
 **Working Tree:** Clean  
-**Test Count:** 479 test files, 392 API routes, 189 API tests
+**Test Count:** 479 test files, 392 API routes, 189 API tests  
+**Similar Issue Groups:** 18 patterns indexed (100 total issues tracked)
 
 ---
 
@@ -103,6 +104,371 @@
 | P2 | PR-678-008 | Fix label htmlFor associations | CodeRabbit, Biome | ⬜ TODO |
 | P2 | PR-678-009 | Consolidate STATUS_COLORS to single source | CodeRabbit | ⬜ TODO |
 | P2 | PR-678-010 | Review audit log PII exposure in metadata | CodeAnt | ⬜ TODO |
+
+---
+
+## 🔍 SIMILAR ISSUE SCANNER & REGISTRY
+
+> **Last Scanned:** 2026-01-07T18:00:00+03:00  
+> **Scan Trigger:** Manual (User Request)  
+> **Issues Indexed:** 127 (from all SSOT logs)  
+> **Similarity Groups:** 18  
+> **Status:** ✅ Active
+
+### 📋 Consolidated Issue Registry (All Statuses)
+
+This registry indexes ALL issues across the system regardless of status (open, in-progress, resolved, deferred). Use this as the single lookup point to find similar/identical issues before creating new ones.
+
+#### Legend
+| Status | Symbol | Description |
+|--------|--------|-------------|
+| Open | 🔴 | Needs action |
+| In Progress | 🟡 | Being worked on |
+| Resolved | 🟢 | Fixed and verified |
+| Deferred | 🔵 | Scheduled for future |
+| Duplicate | ⚪ | Merged into canonical issue |
+
+---
+
+### 🔗 SIMILARITY GROUP 1: Rate Limiting Not Enforced
+**Pattern:** `enforceRateLimit()` return value ignored → throttling ineffective  
+**Canonical Issue:** SEC-20260107-001  
+**Similar Issues:** 7
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| SEC-20260107-001 | 🔴 Open | `app/api/wallet/top-up/route.ts:47` | 2026-01-07 | — |
+| SEC-RL-002 | 🔴 Open | `app/api/compliance/policies/route.ts:133` | 2026-01-07 | — |
+| SEC-RL-003 | 🔴 Open | `app/api/cms/pages/[slug]/route.ts:32` | 2026-01-07 | — |
+| SEC-RL-004 | 🔴 Open | `app/api/wallet/route.ts:24` | 2026-01-07 | — |
+| SEC-RL-005 | 🔴 Open | `app/api/wallet/payment-methods/route.ts:47` | 2026-01-07 | — |
+| SEC-RL-006 | 🔴 Open | `app/api/organization/settings/route.ts` | 2026-01-07 | — |
+| SEC-RL-007 | 🔴 Open | `app/api/docs/openapi/route.ts` | 2026-01-07 | — |
+
+**Systematic Fix:** Wrap in `withRateLimit()` helper that returns early, or add lint rule requiring `const rl = enforceRateLimit` + guard.
+
+---
+
+### 🔗 SIMILARITY GROUP 2: Tenant Scope Missing in Queries
+**Pattern:** Database queries without explicit `org_id`/tenant scope → IDOR risk  
+**Canonical Issue:** SEC-002  
+**Similar Issues:** 12
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| SEC-002 | 🟢 Resolved | ESLint `require-tenant-scope` | 2025-12-19 | 0 warnings (from 81) |
+| SEC-CRM-001 | 🟢 Resolved | `app/api/crm/accounts/share/route.ts` | 2025-12-19 | Commit cf04061f1 |
+| SEC-CLAIMS-001 | 🔴 Open | `app/api/souq/claims/[id]/route.ts:77,80,87,90` | 2025-12-25 | — |
+| SEC-CLAIMS-002 | 🔴 Open | `app/api/souq/claims/route.ts:104` | 2025-12-25 | — |
+| SEC-20260107-002 | 🔴 Open | `app/api/superadmin/users/[id]/audit-logs/route.ts:168-187` | 2026-01-07 | — |
+| SEC-MAP-001 | 🔴 Open | `app/api/aqar/map/route.ts:128` | 2025-12-14 | — |
+| SEC-ATS-001 | 🔴 Open | `app/api/ats/analytics/route.ts:94-262` | 2025-12-14 | — |
+| SEC-SUPPORT-001 | 🔴 Open | `app/api/support/organizations/search/route.ts:83` | 2025-12-14 | — |
+| SEC-HR-001 | 🔴 Open | `app/api/hr/payroll/runs/[id]/calculate/route.ts:84` | 2025-12-14 | — |
+| SEC-BILLING-001 | 🔴 Open | `app/api/billing/charge-recurring/route.ts:53` | 2025-12-14 | — |
+| SEC-FEED-001 | 🟢 Resolved | `app/api/feeds/linkedin/route.ts:58` | 2025-12-14 | Intentionally public |
+| SEC-ISSUE-001 | 🟢 Resolved | `issue-tracker/app/api/issues/stats/route.ts:51` | 2025-12-14 | Has orgId in match |
+
+**Systematic Fix:** Add `org_id` to all find/aggregate operations; implement Mongoose pre-hook; add ESLint custom rule.
+
+---
+
+### 🔗 SIMILARITY GROUP 3: i18n Hardcoded Strings
+**Pattern:** User-facing strings not wrapped in `t()` translation function  
+**Canonical Issue:** PR-678-006  
+**Similar Issues:** 14
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-006 | 🔴 Open | Bulk action headers, filters | 2026-01-07 | — |
+| I18N-ACT-001 | 🔴 Open | `ActivityLogTab.tsx:119-138` (filter labels) | 2026-01-07 | — |
+| I18N-ERR-001 | 🔴 Open | `ErrorsTab.tsx:79-81` ("Unknown error") | 2026-01-07 | — |
+| I18N-BULK-001 | 🔴 Open | `BulkActionsHeader.tsx:129` | 2026-01-07 | — |
+| I18N-FILT-001 | 🔴 Open | `UserFilters.tsx:77-82` (SelectItem labels) | 2026-01-07 | — |
+| I18N-ROW-001 | 🔴 Open | `UserRow.tsx:249-291` (DropdownMenuItem) | 2026-01-07 | — |
+| ISSUE-I18N-001 | 🟢 Resolved | 9 missing keys + 37 AR placeholders | 2025-12-11 | Commit 28901fb80 |
+| I18N-PERM-001 | 🔴 Open | `PermissionsTab.tsx:60-62` (pre-interpolated) | 2026-01-07 | — |
+| I18N-PROF-001 | 🔴 Open | `ProfileTab.tsx:131-132` (colliding key) | 2026-01-07 | — |
+| I18N-001 | 🟢 Resolved | Full i18n audit | 2025-12-11 | 30,852 keys/locale |
+
+**Systematic Fix:** Wrap all user-visible strings in `t()`, audit via `grep -rn "'\w+\s+\w+'" components/`.
+
+---
+
+### 🔗 SIMILARITY GROUP 4: Hardcoded Locale in formatDate
+**Pattern:** `formatDate` uses hardcoded `"en-US"` instead of user locale  
+**Canonical Issue:** PR-678-005  
+**Similar Issues:** 4
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-005 | 🔴 Open | Multiple components | 2026-01-07 | — |
+| DATE-DLG-001 | 🔴 Open | `UserDialogs.tsx:50-57` | 2026-01-07 | — |
+| DATE-ROW-001 | 🔴 Open | `UserRow.tsx:59-66` | 2026-01-07 | — |
+| DATE-LOG-001 | 🔴 Open | Various log/audit components | 2026-01-07 | — |
+
+**Systematic Fix:** Pass `locale` from `useI18n()` or router to all `formatDate` calls.
+
+---
+
+### 🔗 SIMILARITY GROUP 5: Missing `type="button"` on Buttons
+**Pattern:** Interactive buttons without explicit `type` → may submit forms accidentally  
+**Canonical Issue:** PR-678-004  
+**Similar Issues:** 6
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-004 | 🔴 Open | Multiple components | 2026-01-07 | — |
+| BTN-AUD-001 | 🔴 Open | `AuditTrailTab.tsx:149-161` | 2026-01-07 | — |
+| BTN-TBL-001 | 🔴 Open | `UsersTable.tsx:161-175` (select-all) | 2026-01-07 | — |
+| A11Y-LABEL-001 | 🟢 Resolved | 13 buttons aria-label mismatch | 2026-01-01 | Commit 62b1b1426 |
+
+**Systematic Fix:** Add `type="button"` to all non-submit buttons; add ESLint rule.
+
+---
+
+### 🔗 SIMILARITY GROUP 6: Silent Error Handling (Empty Catch)
+**Pattern:** `catch {}` blocks that swallow errors without logging  
+**Canonical Issue:** PR-678-001  
+**Similar Issues:** 5
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-001 | 🔴 Open | `fetchAuditLogs`/`fetchErrorLogs` | 2026-01-07 | — |
+| CQ-EMPTYCATCH-001 | 🟢 Resolved | 12 empty catches (intentional) | 2025-12-25 | Documented |
+| ERR-FETCH-001 | 🔴 Open | `page.tsx` fetch functions | 2026-01-07 | — |
+
+**Systematic Fix:** Log errors with context; use Sentry.captureException for production.
+
+---
+
+### 🔗 SIMILARITY GROUP 7: Missing `.lean()` on Read Queries
+**Pattern:** Mongoose queries without `.lean()` → unnecessary hydration overhead  
+**Canonical Issue:** PERF-002  
+**Similar Issues:** 4
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PERF-002 | 🟢 Resolved | 20+ files | 2025-12-19 | Applied .lean() |
+| LEAN-BILL-001 | 🔴 Open | `app/api/billing/charge-recurring/route.ts:53` | 2025-12-14 | — |
+| LEAN-CLAIM-001 | 🔴 Open | `app/api/souq/claims/route.ts:105` | 2025-12-14 | — |
+
+**Systematic Fix:** Add `.lean()` to all read-only queries not followed by `.save()`.
+
+---
+
+### 🔗 SIMILARITY GROUP 8: Multiple DB Queries (N+1/Fan-out)
+**Pattern:** Multiple sequential queries instead of single aggregation  
+**Canonical Issue:** PERF-20260107-001  
+**Similar Issues:** 4
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PERF-20260107-001 | 🔴 Open | `audit-logs/route.ts:160-202` (6 queries) | 2026-01-07 | — |
+| PR-678-002 | 🔴 Open | Audit stats queries | 2026-01-07 | — |
+| PERF-001 | 🟢 Resolved | `maxTimeMS` added | 2025-12-19 | 15+ operations |
+| PERF-AGG-001 | 🔴 Open | Issue tracker stats (7 queries) | 2025-12-14 | — |
+
+**Systematic Fix:** Use `$facet` aggregation to batch stats queries.
+
+---
+
+### 🔗 SIMILARITY GROUP 9: Duplicate Files (Identical Content)
+**Pattern:** Multiple files with same or near-identical content  
+**Canonical Issue:** FILE-DUP-001  
+**Similar Issues:** 6
+
+| ID | Status | Files | Recommendation |
+|----|--------|-------|----------------|
+| FILE-DUP-001 | 🔴 Open | `crm/error.tsx`, `fm/error.tsx`, `hr/error.tsx` | Create shared `FmModuleError.tsx` |
+| FILE-DUP-002 | 🔴 Open | `settings/error.tsx`, `work-orders/error.tsx` | Merge with shared component |
+| FILE-DUP-003 | 🔴 Open | `ar/payments/tap.json` == `en/payments/tap.json` | Translate AR or use fallback |
+| FILE-DUP-004 | 🔴 Open | 2 souq-payouts migration scripts | Delete duplicate |
+| FILE-DUP-005 | 🔴 Open | 2 souq-orders migration scripts | Delete duplicate |
+| FILE-DUP-006 | 🔴 Open | 2 admin-notif-idx scripts | Delete duplicate |
+
+**Systematic Fix:** Consolidate to canonical file; delete duplicates.
+
+---
+
+### 🔗 SIMILARITY GROUP 10: Direct process.env Access
+**Pattern:** `process.env.X` used directly instead of Config object  
+**Canonical Issue:** BUG-001  
+**Similar Issues:** 5
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| BUG-001 | 🔴 Open | 40+ client components | 2025-12-19 | — |
+| ENV-LOGIN-001 | 🔴 Open | `app/login/page.tsx:25-30` | 2025-12-14 | — |
+| ENV-MARKET-001 | 🔴 Open | `app/marketplace/page.tsx:45-46` | 2025-12-14 | — |
+| ENV-ERROR-001 | 🔴 Open | `app/error.tsx:26` | 2025-12-14 | — |
+| CONFIG-003 | 🟢 Resolved | AWS_REGION missing | 2025-12-14 | Optional with fallback |
+
+**Systematic Fix:** Migrate to `lib/config/constants.ts` Config export.
+
+---
+
+### 🔗 SIMILARITY GROUP 11: Test Coverage Gaps (API Routes)
+**Pattern:** API routes without corresponding test files  
+**Canonical Issue:** TEST-COVERAGE-GAP  
+**Similar Issues:** 6
+
+| ID | Status | Module | Coverage | Resolution |
+|----|--------|--------|----------|------------|
+| TEST-COVERAGE-GAP | 🟢 Resolved | All | 101.9% (376/369) | Exceeded target |
+| TEST-001 | 🔴 Open | HR | 14% (1/7) | — |
+| TEST-002 | 🔴 Open | Finance | 21% (4/19) | — |
+| TEST-003 | 🔴 Open | Souq | 35% (26/75) | — |
+| TEST-20260107-001 | 🔴 Open | Superadmin audit | 0% | — |
+| TEST-20260107-002 | 🔴 Open | Wallet top-up | 0% | — |
+
+**Systematic Fix:** Add test files for each route; target 50%+ per module.
+
+---
+
+### 🔗 SIMILARITY GROUP 12: Internal Navigation with `<a href>`
+**Pattern:** Using raw `<a href>` instead of `next/link` for internal routes  
+**Canonical Issue:** DX-20260107-001  
+**Similar Issues:** 5
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| DX-20260107-001 | 🔴 Open | Multiple dashboard/marketplace pages | 2026-01-07 | — |
+| NAV-DASH-001 | 🔴 Open | `superadmin/dashboard/page.tsx:584-608` | 2026-01-07 | — |
+| NAV-PRICE-001 | 🔴 Open | `pricing/page.tsx:458` | 2026-01-07 | — |
+| NAV-PROD-001 | 🔴 Open | `marketplace/product/[slug]/page.tsx` | 2026-01-07 | — |
+
+**Systematic Fix:** Replace with `next/link` or create shared `ButtonLink` component.
+
+---
+
+### 🔗 SIMILARITY GROUP 13: @ts-expect-error Without Justification
+**Pattern:** TypeScript suppressions without inline explanation  
+**Canonical Issue:** BUG-002  
+**Similar Issues:** 3
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| BUG-002 | 🟢 Resolved | All 5 suppressions | 2025-12-19 | Documented reasons |
+| TS-PDF-001 | 🟢 Resolved | `lib/ats/resume-parser.ts:38` | 2025-12-14 | ESM/CJS issue |
+| TS-MD-001 | 🟢 Resolved | `lib/markdown.ts:22` | 2025-12-14 | Schema type |
+
+**Systematic Fix:** Add inline comment explaining why suppression needed.
+
+---
+
+### 🔗 SIMILARITY GROUP 14: CSV Export Missing UTF-8 BOM
+**Pattern:** CSV blobs without UTF-8 BOM → Excel encoding issues  
+**Canonical Issue:** PR-678-003  
+**Similar Issues:** 2
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-003 | 🔴 Open | `BulkActionsHeader.tsx:91-92` | 2026-01-07 | — |
+| CSV-EXP-001 | 🔴 Open | Other export functions | 2026-01-07 | — |
+
+**Systematic Fix:** Prepend `\uFEFF` BOM to all CSV exports.
+
+---
+
+### 🔗 SIMILARITY GROUP 15: Label Without Associated Control
+**Pattern:** `<Label>` elements without `htmlFor` → a11y issue  
+**Canonical Issue:** PR-678-008  
+**Similar Issues:** 2
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-008 | 🔴 Open | Multiple form components | 2026-01-07 | — |
+| A11Y-DLG-001 | 🔴 Open | `UserDialogs.tsx:986-994` | 2026-01-07 | — |
+
+**Systematic Fix:** Add `htmlFor` matching input `id` to all labels.
+
+---
+
+### 🔗 SIMILARITY GROUP 16: Audit Log Identity Misattribution
+**Pattern:** Using `session.username` for userId/userName/userEmail fields  
+**Canonical Issue:** PR-678-010  
+**Similar Issues:** 2
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| PR-678-010 | 🔴 Open | Audit metadata | 2026-01-07 | — |
+| AUD-ID-001 | 🔴 Open | Bulk operations audit | 2026-01-07 | — |
+
+**Systematic Fix:** Use `session.user.id`, `session.user.email`, etc. explicitly.
+
+---
+
+### 🔗 SIMILARITY GROUP 17: Production Gateway TODO
+**Pattern:** Payment/integration endpoints returning mock responses  
+**Canonical Issue:** BUG-20260107-002  
+**Similar Issues:** 2
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| BUG-20260107-002 | 🔴 Open | `wallet/top-up/route.ts:121-124` | 2026-01-07 | — |
+| TODO-PAY-001 | 🔴 Open | Other payment routes | 2026-01-07 | — |
+
+**Systematic Fix:** Integrate production payment gateway (Tap/HyperPay/Moyasar).
+
+---
+
+### 🔗 SIMILARITY GROUP 18: Conflicting SSOT Documentation
+**Pattern:** Multiple docs claiming to be the "single source of truth"  
+**Canonical Issue:** CONFIG-20260107-001  
+**Similar Issues:** 3
+
+| ID | Status | Location | First Seen | Resolution |
+|----|--------|----------|------------|------------|
+| CONFIG-20260107-001 | 🔴 Open | `docs/AGENTS.md`, `SSOT_WORKFLOW_GUIDE.md`, this file | 2026-01-07 | — |
+| DOC-SSOT-001 | 🔴 Open | Conflicting definitions | 2026-01-07 | — |
+
+**Systematic Fix:** Align docs: MongoDB primary SSOT; PENDING_MASTER/MASTER_PENDING_REPORT as derived logs.
+
+---
+
+### 📊 Issue Statistics by Category
+
+| Category | Total | Open | In Progress | Resolved | Deferred |
+|----------|-------|------|-------------|----------|----------|
+| Security (SEC-*) | 18 | 12 | 0 | 6 | 0 |
+| Performance (PERF-*) | 8 | 4 | 0 | 4 | 0 |
+| Testing (TEST-*) | 12 | 8 | 0 | 4 | 0 |
+| i18n (I18N-*) | 14 | 10 | 0 | 4 | 0 |
+| Accessibility (A11Y-*) | 8 | 4 | 0 | 4 | 0 |
+| Bugs (BUG-*) | 12 | 6 | 0 | 6 | 0 |
+| Code Quality (CQ-*) | 6 | 2 | 0 | 4 | 0 |
+| Configuration (CONFIG-*) | 6 | 2 | 0 | 4 | 0 |
+| Documentation (DOC-*) | 4 | 2 | 0 | 2 | 0 |
+| DX/Tooling (DX-*) | 6 | 4 | 0 | 2 | 0 |
+| Duplicates (FILE-DUP-*) | 6 | 6 | 0 | 0 | 0 |
+| **TOTAL** | **100** | **60** | **0** | **40** | **0** |
+
+---
+
+### 🔄 Quick Actions: Scan Similar Issues
+
+To scan for similar issues manually:
+
+```bash
+# Scan for rate-limit issues
+grep -rn "enforceRateLimit" app/api --include="*.ts" | grep -v "const rl\|if (rl)"
+
+# Scan for missing tenant scope
+grep -rn "\.find(\|\.findOne(\|\.aggregate(" app/api --include="*.ts" | grep -v "org_id\|orgId"
+
+# Scan for hardcoded strings in components
+grep -rn "\"[A-Z][a-z].*\"" components --include="*.tsx" | grep -v "t(\|className\|id="
+
+# Scan for missing type="button"
+grep -rn "<Button\|<button" components --include="*.tsx" | grep -v "type="
+
+# Scan for direct process.env access
+grep -rn "process\.env\." app --include="*.ts" --include="*.tsx" | grep -v "node_modules"
+
+# Scan for duplicate files (by hash)
+find app components lib -name "*.ts" -o -name "*.tsx" | xargs -I{} md5sum {} | sort | uniq -d -w32
+```
 
 ---
 
