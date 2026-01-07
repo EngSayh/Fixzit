@@ -662,15 +662,24 @@ export default function SuperadminFooterContentPage() {
 
         {/* Policies Tab */}
         <TabsContent value="policies" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
-            </div>
-            <Button onClick={handleNewPolicy} className="bg-primary text-primary-foreground" aria-label={t("superadmin.footerContent.addPolicy", "Add new policy page")} title={t("superadmin.footerContent.addPolicy", "Add new policy page")}>
-              <Plus className="h-4 w-4 me-2" />Add Policy
-            </Button>
-          </div>
+          {/* Filters */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                {/* Search row */}
+                <div className="relative flex-1">
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground" />
+                </div>
+                {/* Action row */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                  <Button onClick={handleNewPolicy} className="bg-primary text-primary-foreground" aria-label={t("superadmin.footerContent.addPolicy", "Add new policy page")} title={t("superadmin.footerContent.addPolicy", "Add new policy page")}>
+                    <Plus className="h-4 w-4 me-2" />Add Policy
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">
@@ -807,7 +816,7 @@ export default function SuperadminFooterContentPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Provider</Label>
-                  <Select value={chatbotSettings.provider} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, provider: v as ChatbotSettings["provider"] })} placeholder="Select provider" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <Select value={chatbotSettings.provider} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, provider: v as ChatbotSettings["provider"] })} placeholder="Select provider" className="mt-1 w-full bg-muted border-input text-foreground">
                     <SelectItem value="internal">Internal (Fixzit AI)</SelectItem>
                     <SelectItem value="openai">OpenAI</SelectItem>
                     <SelectItem value="anthropic">Anthropic Claude</SelectItem>
@@ -816,7 +825,7 @@ export default function SuperadminFooterContentPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Position</Label>
-                  <Select value={chatbotSettings.position} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, position: v as ChatbotSettings["position"] })} placeholder="Select position" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  <Select value={chatbotSettings.position} onValueChange={(v) => setChatbotSettings({ ...chatbotSettings, position: v as ChatbotSettings["position"] })} placeholder="Select position" className="mt-1 w-full bg-muted border-input text-foreground">
                     <SelectItem value="bottom-right">Bottom Right</SelectItem>
                     <SelectItem value="bottom-left">Bottom Left</SelectItem>
                   </Select>
@@ -1119,7 +1128,7 @@ export default function SuperadminFooterContentPage() {
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={policyForm.type} onValueChange={(v) => setPolicyForm({ ...policyForm, type: v as PolicyPage["type"] })} placeholder="Select type" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <Select value={policyForm.type} onValueChange={(v) => setPolicyForm({ ...policyForm, type: v as PolicyPage["type"] })} placeholder="Select type" className="mt-1 w-full bg-muted border-input text-foreground">
                   <SelectItem value="privacy">Privacy Policy</SelectItem>
                   <SelectItem value="terms">Terms of Service</SelectItem>
                   <SelectItem value="refund">Refund Policy</SelectItem>
@@ -1173,7 +1182,7 @@ export default function SuperadminFooterContentPage() {
             </div>
             <div className="space-y-2">
               <Label>Section</Label>
-              <Select value={linkForm.section} onValueChange={(v) => setLinkForm({ ...linkForm, section: v as FooterLink["section"] })} placeholder="Select section" className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <Select value={linkForm.section} onValueChange={(v) => setLinkForm({ ...linkForm, section: v as FooterLink["section"] })} placeholder="Select section" className="mt-1 w-full bg-muted border-input text-foreground">
                 <SelectItem value="company">Company</SelectItem>
                 <SelectItem value="support">Support</SelectItem>
                 <SelectItem value="legal">Legal</SelectItem>

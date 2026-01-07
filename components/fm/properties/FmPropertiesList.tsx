@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -506,24 +506,30 @@ export function FmPropertiesList({
             <label className="block text-sm font-medium mb-2">
               {t("fm.properties.propertyType", "Property Type")}
             </label>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.properties.allTypes", "All Types")} className="w-full bg-muted border-input text-foreground">
-              {TYPE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
-                  {t(`fm.properties.${opt.value.toLowerCase() || "allTypes"}`, opt.label)}
-                </SelectItem>
-              ))}
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t("fm.properties.allTypes", "All Types")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectTrigger></SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                    {t(`fm.properties.${opt.value.toLowerCase() || "allTypes"}`, opt.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
               {t("fm.properties.status", "Status")}
             </label>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("fm.properties.allStatus", "All Status")} className="w-full bg-muted border-input text-foreground">
-              {STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
-                  {t(`fm.properties.status.${opt.value.toLowerCase() || "all"}`, opt.label)}
-                </SelectItem>
-              ))}
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("fm.properties.allStatus", "All Status")} className="w-full sm:w-40 bg-muted border-input text-foreground">
+              <SelectTrigger></SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                    {t(`fm.properties.status.${opt.value.toLowerCase() || "all"}`, opt.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2 pt-4">

@@ -17,8 +17,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { 
   BarChart3, RefreshCw, Download, FileText, Calendar,
-  Clock, CheckCircle, XCircle,
+  Clock, CheckCircle, XCircle, Search,
 } from "@/components/ui/icons";
+import { Input } from "@/components/ui/input";
 
 interface ReportDefinition {
   id: string;
@@ -63,6 +64,7 @@ export default function SuperadminReportsPage() {
   const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const fetchReports = useCallback(async () => {
@@ -126,9 +128,13 @@ export default function SuperadminReportsPage() {
     }
   };
 
-  const filteredDefinitions = REPORT_DEFINITIONS.filter(
-    (r) => categoryFilter === "all" || r.category === categoryFilter
-  );
+  const filteredDefinitions = REPORT_DEFINITIONS.filter((r) => {
+    const matchesSearch = !search || 
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.description.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || r.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const categories = [...new Set(REPORT_DEFINITIONS.map((r) => r.category))];
 
@@ -151,13 +157,33 @@ export default function SuperadminReportsPage() {
         </div>
       </div>
 
-      {/* Filter */}
+      {/* Filters */}
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-full sm:w-40 bg-muted border-input text-foreground">
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
-          </Select>
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search reports..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select 
+                value={categoryFilter} 
+                onValueChange={setCategoryFilter} 
+                placeholder="All Categories"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
+              >
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

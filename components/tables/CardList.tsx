@@ -15,7 +15,13 @@ import React from "react";
 import { IconButton } from "@/components/ui/IconButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChevronRight } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
@@ -184,12 +190,17 @@ export function CardList<TData extends Record<string, unknown>>({
         )}
         
         {sortOptions && sortOptions.length > 0 && (
-          <Select value={currentSort} onValueChange={onSortChange} placeholder="Sort by..." className="w-[120px]">
-            {sortOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
+          <Select value={currentSort} onValueChange={onSortChange} className="w-full sm:w-40 bg-muted border-input text-foreground">
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         )}
       </div>

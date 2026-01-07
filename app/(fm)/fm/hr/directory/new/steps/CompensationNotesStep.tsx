@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  Select,
-  SelectItem,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,13 +42,13 @@ export default function CompensationNotesStep({
               "auto.fm.hr.directory.new.form.compensationType.placeholder",
               "Select compensation type",
             )}
-            className="w-full bg-muted border-input text-foreground"
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
-            {lookups.compensationTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
+              {lookups.compensationTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
           </Select>
         </div>
         <div className="space-y-2">

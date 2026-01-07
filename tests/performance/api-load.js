@@ -1,311 +1,183 @@
 /**
- * @fileoverview k6 Load Test - Normal Expected Traffic
- * @module tests/performance/api-load
+ * Fixzit API Load Test
+ * Sustained load testing for production capacity planning
+ * Created by [AGENT-0039]
  *
- * TEST-PERF: Load test simulating normal user traffic patterns
- * Run with: k6 run tests/performance/api-load.js
+ * Run: k6 run tests/performance/api-load.js
  *
- * @author [AGENT-0041]
- * @created 2026-01-07
+ * This test simulates typical production load patterns
+ * to validate system capacity and identify bottlenecks.
  */
 
-import http from "k6/http";
-import { check, sleep, group } from "k6";
-import { Rate, Trend, Counter } from "k6/metrics";
-import { SharedArray } from "k6/data";
-import { BASE_URL, THRESHOLDS, STAGES, ENDPOINTS, getHeaders, TEST_ORG_ID } from "./config.js";
+import http from 'k6/http';
+import { check, sleep, group } from 'k6';
+import { Rate, Trend, Counter } from 'k6/metrics';
+import { config, getHeaders, endpoints, testData, checkResponse } from './config.js';
 
 // Custom metrics
-const errorRate = new Rate("errors");
-const apiDuration = new Trend("api_duration");
-const businessTransactions = new Counter("business_transactions");
+const errorRate = new Rate('errors');
+const successfulRequests = new Counter('successful_requests');
+const readDuration = new Trend('read_duration');
+const writeDuration = new Trend('write_duration');
 
-// Test configuration
+// Load test options (sustained load)
 export const options = {
-  stages: STAGES.load,
+  stages: config.stages.load,
   thresholds: {
-    ...THRESHOLDS.load,
-    "http_req_duration{name:workOrders}": ["p(95)<800"],
-    "http_req_duration{name:assets}": ["p(95)<800"],
-    "http_req_duration{name:dashboard}": ["p(95)<1500"],
+    http_req_duration: ['p(95)<500', 'p(99)<1000'],
+    http_req_failed: ['rate<0.01'],
+    errors: ['rate<0.01'],
   },
-  insecureSkipTLSVerify: true,
+  // Connection settings for load test
+  noConnectionReuse: false,
+  userAgent: 'Fixzit-K6-LoadTest/1.0',
 };
 
-// Simulated user scenarios with weights
-const SCENARIOS = {
-  browseAssets: 0.30,      // 30% of users browse assets
-  viewWorkOrders: 0.25,    // 25% view work orders
-  checkDashboard: 0.20,    // 20% check dashboard
-  browseProducts: 0.15,    // 15% browse marketplace
-  manageInvoices: 0.10,    // 10% manage invoices
-};
-
-// Setup function
 export function setup() {
-  console.log(`Starting load test against: ${BASE_URL}`);
-  console.log(`Target org: ${TEST_ORG_ID}`);
-
-  // Health check
-  const healthRes = http.get(`${BASE_URL}/api/health`);
-  if (healthRes.status !== 200) {
-    throw new Error(`API not healthy: ${healthRes.status}`);
-  }
-
+  console.log(`📈 Starting Load Test against ${config.baseUrl}`);
   return { startTime: Date.now() };
 }
 
-// Main test function - simulates realistic user behavior
 export default function () {
   const headers = getHeaders();
-  const scenario = selectScenario();
 
-  switch (scenario) {
-    case "browseAssets":
-      browseAssetsScenario(headers);
-      break;
-    case "viewWorkOrders":
-      viewWorkOrdersScenario(headers);
-      break;
-    case "checkDashboard":
-      checkDashboardScenario(headers);
-      break;
-    case "browseProducts":
-      browseProductsScenario(headers);
-      break;
-    case "manageInvoices":
-      manageInvoicesScenario(headers);
-      break;
-  }
-}
+  // Simulate realistic user behavior patterns
+  const scenarios = [
+    { name: 'Browse Products', weight: 40 },
+    { name: 'View Work Orders', weight: 30 },
+    { name: 'Check Properties', weight: 20 },
+    { name: 'Search Products', weight: 10 },
+  ];
 
-function selectScenario() {
-  const rand = Math.random();
+  const totalWeight = scenarios.reduce((sum, s) => sum + s.weight, 0);
+  const random = Math.random() * totalWeight;
   let cumulative = 0;
-  for (const [name, weight] of Object.entries(SCENARIOS)) {
-    cumulative += weight;
-    if (rand <= cumulative) return name;
+  let selectedScenario = scenarios[0].name;
+
+  for (const scenario of scenarios) {
+    cumulative += scenario.weight;
+    if (random <= cumulative) {
+      selectedScenario = scenario.name;
+      break;
+    }
   }
-  return "browseAssets";
+
+  switch (selectedScenario) {
+    case 'Browse Products':
+      browseProducts(headers);
+      break;
+    case 'View Work Orders':
+      viewWorkOrders(headers);
+      break;
+    case 'Check Properties':
+      checkProperties(headers);
+      break;
+    case 'Search Products':
+      searchProducts(headers);
+      break;
+  }
+
+  // Think time between user actions
+  sleep(Math.random() * 2 + 1);
 }
 
-// Scenario: Browse Assets
-function browseAssetsScenario(headers) {
-  group("Browse Assets", function () {
-    // List assets
-    const listRes = http.get(
-      `${BASE_URL}${ENDPOINTS.assets}?limit=20&page=1`,
-      { headers, tags: { name: "assets" } }
-    );
-
-    check(listRes, {
-      "assets list: status 200": (r) => r.status === 200,
-      "assets list: has data": (r) => {
-        try {
-          const body = JSON.parse(r.body);
-          return Array.isArray(body.data || body.assets || body);
-        } catch {
-          return false;
-        }
-      },
-    });
-
-    apiDuration.add(listRes.timings.duration);
-    errorRate.add(listRes.status >= 400);
-    businessTransactions.add(1);
-
-    sleep(randomBetween(1, 3));
-
-    // Filter by type
-    const filterRes = http.get(
-      `${BASE_URL}${ENDPOINTS.assets}?type=PROPERTY&status=ACTIVE&limit=10`,
-      { headers, tags: { name: "assets" } }
-    );
-
-    check(filterRes, {
-      "assets filter: status not 5xx": (r) => r.status < 500,
-    });
-
-    apiDuration.add(filterRes.timings.duration);
-
-    sleep(randomBetween(2, 5));
-  });
-}
-
-// Scenario: View Work Orders
-function viewWorkOrdersScenario(headers) {
-  group("View Work Orders", function () {
-    // List work orders
-    const listRes = http.get(
-      `${BASE_URL}${ENDPOINTS.workOrders}?limit=20&status=OPEN`,
-      { headers, tags: { name: "workOrders" } }
-    );
-
-    check(listRes, {
-      "workOrders list: status 200 or auth": (r) =>
-        r.status === 200 || r.status === 401 || r.status === 403,
-    });
-
-    apiDuration.add(listRes.timings.duration);
-    errorRate.add(listRes.status >= 500);
-    businessTransactions.add(1);
-
-    sleep(randomBetween(2, 4));
-
-    // Get high priority
-    const priorityRes = http.get(
-      `${BASE_URL}${ENDPOINTS.workOrders}?priority=HIGH&limit=10`,
-      { headers, tags: { name: "workOrders" } }
-    );
-
-    apiDuration.add(priorityRes.timings.duration);
-
-    sleep(randomBetween(1, 3));
-  });
-}
-
-// Scenario: Check Dashboard
-function checkDashboardScenario(headers) {
-  group("Check Dashboard", function () {
-    // Main dashboard
-    const dashRes = http.get(
-      `${BASE_URL}${ENDPOINTS.dashboard}`,
-      { headers, tags: { name: "dashboard" } }
-    );
-
-    check(dashRes, {
-      "dashboard: status 200 or auth": (r) =>
-        r.status === 200 || r.status === 401 || r.status === 403,
-      "dashboard: response time < 2s": (r) => r.timings.duration < 2000,
-    });
-
-    apiDuration.add(dashRes.timings.duration);
-    errorRate.add(dashRes.status >= 500);
-    businessTransactions.add(1);
-
-    sleep(randomBetween(3, 6));
-
-    // KPIs
-    const kpiRes = http.get(
-      `${BASE_URL}${ENDPOINTS.kpis}?period=month`,
-      { headers, tags: { name: "dashboard" } }
-    );
-
-    apiDuration.add(kpiRes.timings.duration);
-
-    sleep(randomBetween(2, 4));
-  });
-}
-
-// Scenario: Browse Products (Souq)
-function browseProductsScenario(headers) {
-  group("Browse Products", function () {
+function browseProducts(headers) {
+  group('Browse Products', () => {
     // List products
-    const listRes = http.get(
-      `${BASE_URL}${ENDPOINTS.products}?limit=24&page=1`,
-      { headers, tags: { name: "products" } }
-    );
+    const listRes = http.get(`${config.baseUrl}${endpoints.products.list}?page=1&limit=20`, { headers });
+    readDuration.add(listRes.timings.duration);
 
-    check(listRes, {
-      "products list: status not 5xx": (r) => r.status < 500,
-    });
+    if (check(listRes, checkResponse(listRes, 200))) {
+      successfulRequests.add(1);
 
-    apiDuration.add(listRes.timings.duration);
-    errorRate.add(listRes.status >= 500);
-    businessTransactions.add(1);
-
-    sleep(randomBetween(2, 5));
-
-    // Search products
-    const searchRes = http.get(
-      `${BASE_URL}${ENDPOINTS.products}?search=maintenance&category=TOOLS`,
-      { headers, tags: { name: "products" } }
-    );
-
-    apiDuration.add(searchRes.timings.duration);
-
-    sleep(randomBetween(1, 3));
+      // Parse response and view a random product
+      try {
+        const data = JSON.parse(listRes.body);
+        if (data.products && data.products.length > 0) {
+          const randomProduct = data.products[Math.floor(Math.random() * data.products.length)];
+          if (randomProduct._id) {
+            sleep(0.5);
+            const detailRes = http.get(
+              `${config.baseUrl}${endpoints.products.get(randomProduct._id)}`,
+              { headers }
+            );
+            readDuration.add(detailRes.timings.duration);
+            if (check(detailRes, checkResponse(detailRes, 200))) {
+              successfulRequests.add(1);
+            } else {
+              errorRate.add(1);
+            }
+          }
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    } else {
+      errorRate.add(1);
+    }
   });
 }
 
-// Scenario: Manage Invoices
-function manageInvoicesScenario(headers) {
-  group("Manage Invoices", function () {
-    // List invoices
-    const listRes = http.get(
-      `${BASE_URL}${ENDPOINTS.invoices}?limit=20&status=PENDING`,
-      { headers, tags: { name: "invoices" } }
-    );
+function viewWorkOrders(headers) {
+  group('View Work Orders', () => {
+    const res = http.get(`${config.baseUrl}${endpoints.workOrders.list}?page=1&limit=20`, { headers });
+    readDuration.add(res.timings.duration);
 
-    check(listRes, {
-      "invoices list: status 200 or auth": (r) =>
-        r.status === 200 || r.status === 401 || r.status === 403,
+    const passed = check(res, {
+      'work orders accessible': res.status === 200 || res.status === 401,
+      'response time OK': res.timings.duration < 500,
     });
 
-    apiDuration.add(listRes.timings.duration);
-    errorRate.add(listRes.status >= 500);
-    businessTransactions.add(1);
-
-    sleep(randomBetween(2, 4));
-
-    // Filter by date range
-    const filterRes = http.get(
-      `${BASE_URL}${ENDPOINTS.invoices}?startDate=${getDateDaysAgo(30)}&endDate=${getToday()}`,
-      { headers, tags: { name: "invoices" } }
-    );
-
-    apiDuration.add(filterRes.timings.duration);
-
-    sleep(randomBetween(2, 5));
+    if (passed) {
+      successfulRequests.add(1);
+    } else {
+      errorRate.add(1);
+    }
   });
 }
 
-// Helper functions
-function randomBetween(min, max) {
-  return Math.random() * (max - min) + min;
+function checkProperties(headers) {
+  group('Check Properties', () => {
+    const res = http.get(`${config.baseUrl}${endpoints.properties.list}?page=1&limit=20`, { headers });
+    readDuration.add(res.timings.duration);
+
+    const passed = check(res, {
+      'properties accessible': res.status === 200 || res.status === 401,
+      'response time OK': res.timings.duration < 500,
+    });
+
+    if (passed) {
+      successfulRequests.add(1);
+    } else {
+      errorRate.add(1);
+    }
+  });
 }
 
-function getToday() {
-  return new Date().toISOString().split("T")[0];
+function searchProducts(headers) {
+  group('Search Products', () => {
+    const query = testData.searchQuery();
+    const res = http.get(
+      `${config.baseUrl}${endpoints.products.search}?q=${query.q}&page=${query.page}&limit=${query.limit}`,
+      { headers }
+    );
+    readDuration.add(res.timings.duration);
+
+    if (check(res, checkResponse(res, 200))) {
+      successfulRequests.add(1);
+    } else {
+      errorRate.add(1);
+    }
+  });
 }
 
-function getDateDaysAgo(days) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString().split("T")[0];
-}
-
-// Teardown
 export function teardown(data) {
-  const duration = (Date.now() - data.startTime) / 1000;
-  console.log(`Load test completed in ${duration.toFixed(2)}s`);
+  const duration = ((Date.now() - data.startTime) / 1000 / 60).toFixed(2);
+  console.log(`\n📈 Load test completed in ${duration} minutes`);
 }
 
-// Summary handler
 export function handleSummary(data) {
   return {
-    "tests/performance/results/load-summary.json": JSON.stringify(data, null, 2),
-    stdout: generateTextSummary(data),
+    'tests/performance/results/load-summary.json': JSON.stringify(data, null, 2),
   };
-}
-
-function generateTextSummary(data) {
-  const lines = [];
-  lines.push("=".repeat(70));
-  lines.push("  LOAD TEST SUMMARY");
-  lines.push("=".repeat(70));
-
-  if (data.metrics) {
-    const m = data.metrics;
-    lines.push(`\n  Total Requests:     ${m.http_reqs?.values?.count || 0}`);
-    lines.push(`  Failed Rate:        ${((m.http_req_failed?.values?.rate || 0) * 100).toFixed(2)}%`);
-    lines.push(`  Avg Response Time:  ${(m.http_req_duration?.values?.avg || 0).toFixed(2)}ms`);
-    lines.push(`  P95 Response Time:  ${(m.http_req_duration?.values?.["p(95)"] || 0).toFixed(2)}ms`);
-    lines.push(`  P99 Response Time:  ${(m.http_req_duration?.values?.["p(99)"] || 0).toFixed(2)}ms`);
-    lines.push(`  Throughput:         ${(m.http_reqs?.values?.rate || 0).toFixed(2)} req/s`);
-    lines.push(`  Business Txns:      ${m.business_transactions?.values?.count || 0}`);
-  }
-
-  lines.push("\n" + "=".repeat(70));
-  return lines.join("\n");
 }

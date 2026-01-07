@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
+  SelectContent,
   SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -234,29 +237,39 @@ export default function SettingsPage() {
                   <Label htmlFor="language">
                     {t("settings.preferences.language", "Language")}
                   </Label>
-                  <Select defaultValue="ar" placeholder={t("settings.preferences.language", "Language")} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                    <SelectItem value="en">
-                      {t("settings.preferences.english", "English")}
-                    </SelectItem>
-                    <SelectItem value="ar">
-                      {t("settings.preferences.arabic", "العربية")}
-                    </SelectItem>
+                <Select defaultValue="ar" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                    <SelectTrigger id="language">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">
+                        {t("settings.preferences.english", "English")}
+                      </SelectItem>
+                      <SelectItem value="ar">
+                        {t("settings.preferences.arabic", "العربية")}
+                      </SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="timezone">
                     {t("settings.preferences.timezone", "Timezone")}
                   </Label>
-                  <Select defaultValue="Asia/Riyadh" placeholder={t("settings.preferences.timezone", "Timezone")} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                    <SelectItem value="Asia/Riyadh">
-                      {t(
-                        "settings.preferences.riyadh",
-                        "Asia/Riyadh (GMT+3)",
-                      )}
-                    </SelectItem>
-                    <SelectItem value="UTC">
-                      {t("settings.preferences.utc", "UTC")}
-                    </SelectItem>
+                <Select defaultValue="Asia/Riyadh" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                    <SelectTrigger id="timezone">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Asia/Riyadh">
+                        {t(
+                          "settings.preferences.riyadh",
+                          "Asia/Riyadh (GMT+3)",
+                        )}
+                      </SelectItem>
+                      <SelectItem value="UTC">
+                        {t("settings.preferences.utc", "UTC")}
+                      </SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -265,15 +278,17 @@ export default function SettingsPage() {
                   </Label>
                   <Select
                     value={currency}
-                    onValueChange={(value) => setCurrency(value as CurrencyCode)}
-                    placeholder={t("settings.preferences.currency", "Currency")}
-                    className="w-full sm:w-40 bg-muted border-input text-foreground"
-                  >
-                    {options.map((option) => (
-                      <SelectItem key={option.code} value={option.code}>
-                        {option.flag} {option.code} — {option.name}
-                      </SelectItem>
-                    ))}
+                    onValueChange={(value) => setCurrency(value as CurrencyCode)}                    className="w-full sm:w-40 bg-muted border-input text-foreground"                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map((option) => (
+                        <SelectItem key={option.code} value={option.code}>
+                          {option.flag} {option.code} — {option.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground mt-2">
                     {t(
@@ -286,16 +301,21 @@ export default function SettingsPage() {
                   <Label htmlFor="theme">
                     {t("settings.preferences.theme", "Theme")}
                   </Label>
-                  <Select defaultValue="light" placeholder={t("settings.preferences.theme", "Theme")} className="w-full sm:w-40 bg-muted border-input text-foreground">
-                    <SelectItem value="light">
-                      {t("settings.preferences.light", "Light")}
-                    </SelectItem>
-                    <SelectItem value="dark">
-                      {t("settings.preferences.dark", "Dark")}
-                    </SelectItem>
-                    <SelectItem value="system">
-                      {t("settings.preferences.system", "System")}
-                    </SelectItem>
+                <Select defaultValue="light" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                    <SelectTrigger id="theme">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">
+                        {t("settings.preferences.light", "Light")}
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        {t("settings.preferences.dark", "Dark")}
+                      </SelectItem>
+                      <SelectItem value="system">
+                        {t("settings.preferences.system", "System")}
+                      </SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <Button aria-label={t("settings.preferences.saveLabel", "Save app preferences")}>

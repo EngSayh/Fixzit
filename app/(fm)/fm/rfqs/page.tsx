@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   Select,
+  SelectContent,
   SelectItem,
+  SelectTrigger,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -37,6 +39,7 @@ import {
   Package,
   Wrench,
   Building2,
+  XCircle,
 } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
@@ -162,76 +165,96 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder={auto(
-                    "Search RFQs...",
-                    "filters.searchPlaceholder",
-                  )}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-10"
-                />
-              </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: Search input - full width */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={auto(
+                  "Search RFQs...",
+                  "filters.searchPlaceholder",
+                )}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              placeholder={auto("Status", "filters.status")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-              <SelectItem value="">
-                {auto("All Status", "filters.allStatus")}
-              </SelectItem>
-              <SelectItem value="DRAFT">
-                {auto("Draft", "filters.statusOptions.draft")}
-              </SelectItem>
-              <SelectItem value="PUBLISHED">
-                {auto("Published", "filters.statusOptions.published")}
-              </SelectItem>
-              <SelectItem value="BIDDING">
-                {auto("Bidding", "filters.statusOptions.bidding")}
-              </SelectItem>
-              <SelectItem value="CLOSED">
-                {auto("Closed", "filters.statusOptions.closed")}
-              </SelectItem>
-              <SelectItem value="AWARDED">
-                {auto("Awarded", "filters.statusOptions.awarded")}
-              </SelectItem>
-              <SelectItem value="CANCELLED">
-                {auto("Cancelled", "filters.statusOptions.cancelled")}
-              </SelectItem>
-            </Select>
-            <Select
-              value={categoryFilter}
-              onValueChange={setCategoryFilter}
-              placeholder={auto("Category", "filters.category")}
-              className="w-full sm:w-40 bg-muted border-input text-foreground"
-            >
-              <SelectItem value="">
-                {auto("All Categories", "filters.allCategories")}
-              </SelectItem>
-              <SelectItem value="Construction">
-                {auto("Construction", "filters.categories.construction")}
-              </SelectItem>
-              <SelectItem value="Maintenance">
-                {auto("Maintenance", "filters.categories.maintenance")}
-              </SelectItem>
-              <SelectItem value="Supplies">
-                {auto("Supplies", "filters.categories.supplies")}
-              </SelectItem>
-              <SelectItem value="Services">
-                {auto("Services", "filters.categories.services")}
-              </SelectItem>
-              <SelectItem value="Equipment">
-                {auto("Equipment", "filters.categories.equipment")}
-              </SelectItem>
-            </Select>
+            {/* Row 2: Filter dropdowns - horizontal */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  {auto("Status", "filters.status")}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    {auto("All Status", "filters.allStatus")}
+                  </SelectItem>
+                  <SelectItem value="DRAFT">
+                    {auto("Draft", "filters.statusOptions.draft")}
+                  </SelectItem>
+                  <SelectItem value="PUBLISHED">
+                    {auto("Published", "filters.statusOptions.published")}
+                  </SelectItem>
+                  <SelectItem value="BIDDING">
+                    {auto("Bidding", "filters.statusOptions.bidding")}
+                  </SelectItem>
+                  <SelectItem value="CLOSED">
+                    {auto("Closed", "filters.statusOptions.closed")}
+                  </SelectItem>
+                  <SelectItem value="AWARDED">
+                    {auto("Awarded", "filters.statusOptions.awarded")}
+                  </SelectItem>
+                  <SelectItem value="CANCELLED">
+                    {auto("Cancelled", "filters.statusOptions.cancelled")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={categoryFilter}
+                onValueChange={setCategoryFilter}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
+                  {auto("Category", "filters.category")}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    {auto("All Categories", "filters.allCategories")}
+                  </SelectItem>
+                  <SelectItem value="Construction">
+                    {auto("Construction", "filters.categories.construction")}
+                  </SelectItem>
+                  <SelectItem value="Maintenance">
+                    {auto("Maintenance", "filters.categories.maintenance")}
+                  </SelectItem>
+                  <SelectItem value="Supplies">
+                    {auto("Supplies", "filters.categories.supplies")}
+                  </SelectItem>
+                  <SelectItem value="Services">
+                    {auto("Services", "filters.categories.services")}
+                  </SelectItem>
+                  <SelectItem value="Equipment">
+                    {auto("Equipment", "filters.categories.equipment")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("");
+                  setCategoryFilter("");
+                  setSearch("");
+                }}
+              >
+                <XCircle className="h-4 w-4 me-2" />
+                {auto("Clear", "filters.clear")}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -662,23 +685,27 @@ function CreateRFQForm({
               "Select category",
               "form.placeholders.category",
             )}
-            className="w-full bg-muted border-input text-foreground"
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
-            <SelectItem value="Construction">
-              {auto("Construction", "form.categories.construction")}
-            </SelectItem>
-            <SelectItem value="Maintenance">
-              {auto("Maintenance", "form.categories.maintenance")}
-            </SelectItem>
-            <SelectItem value="Supplies">
-              {auto("Supplies", "form.categories.supplies")}
-            </SelectItem>
-            <SelectItem value="Services">
-              {auto("Services", "form.categories.services")}
-            </SelectItem>
-            <SelectItem value="Equipment">
-              {auto("Equipment", "form.categories.equipment")}
-            </SelectItem>
+            <SelectTrigger>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Construction">
+                {auto("Construction", "form.categories.construction")}
+              </SelectItem>
+              <SelectItem value="Maintenance">
+                {auto("Maintenance", "form.categories.maintenance")}
+              </SelectItem>
+              <SelectItem value="Supplies">
+                {auto("Supplies", "form.categories.supplies")}
+              </SelectItem>
+              <SelectItem value="Services">
+                {auto("Services", "form.categories.services")}
+              </SelectItem>
+              <SelectItem value="Equipment">
+                {auto("Equipment", "form.categories.equipment")}
+              </SelectItem>
+            </SelectContent>
           </Select>
         </div>
       </div>

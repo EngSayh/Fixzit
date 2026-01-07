@@ -262,7 +262,8 @@ export default function SuperadminTenantsPage() {
       {/* Filters */}
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -272,22 +273,25 @@ export default function SuperadminTenantsPage() {
                 className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="TRIAL">Trial</SelectItem>
-              <SelectItem value="SUSPENDED">Suspended</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              <SelectItem value="EXPIRED">Expired</SelectItem>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="CORPORATE">Corporate</SelectItem>
-              <SelectItem value="GOVERNMENT">Government</SelectItem>
-              <SelectItem value="INDIVIDUAL">Individual</SelectItem>
-              <SelectItem value="NONPROFIT">Non-Profit</SelectItem>
-              <SelectItem value="STARTUP">Startup</SelectItem>
-            </Select>
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="TRIAL">Trial</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                <SelectItem value="EXPIRED">Expired</SelectItem>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="CORPORATE">Corporate</SelectItem>
+                <SelectItem value="GOVERNMENT">Government</SelectItem>
+                <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                <SelectItem value="NONPROFIT">Non-Profit</SelectItem>
+                <SelectItem value="STARTUP">Startup</SelectItem>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

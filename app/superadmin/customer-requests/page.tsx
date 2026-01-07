@@ -31,10 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectItem,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -358,7 +355,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.requestType}
                       onValueChange={(v) => setNewRequest({ ...newRequest, requestType: v })}
                       placeholder="Select type..."
-                      className="w-full sm:w-40 bg-muted border-input text-foreground"
+                      className="mt-1 w-full bg-muted border-input text-foreground"
                     >
                       <SelectItem value="feature_request">Feature Request</SelectItem>
                       <SelectItem value="bug_report">Bug Report</SelectItem>
@@ -391,7 +388,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.severity}
                       onValueChange={(v) => setNewRequest({ ...newRequest, severity: v })}
                       placeholder="Select severity..."
-                      className="w-full sm:w-40 bg-muted border-input text-foreground"
+                      className="mt-1 w-full bg-muted border-input text-foreground"
                     >
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
@@ -405,7 +402,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.channel}
                       onValueChange={(v) => setNewRequest({ ...newRequest, channel: v })}
                       placeholder="Select channel..."
-                      className="w-full sm:w-40 bg-muted border-input text-foreground"
+                      className="mt-1 w-full bg-muted border-input text-foreground"
                     >
                       <SelectItem value="web">Web</SelectItem>
                       <SelectItem value="whatsapp">WhatsApp</SelectItem>
@@ -482,56 +479,58 @@ export default function CustomerRequestsPage() {
       )}
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search requests..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ps-9"
-                />
-              </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* Search row */}
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search requests..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="triaged">Triaged</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="released">Released</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </Select>
-            <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">All Severity</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="feature_request">Feature Request</SelectItem>
-              <SelectItem value="bug_report">Bug Report</SelectItem>
-              <SelectItem value="incident">Incident</SelectItem>
-              <SelectItem value="question">Question</SelectItem>
-            </Select>
-            <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-full sm:w-40 bg-muted border-input text-foreground">
-              <SelectItem value="all">All Channels</SelectItem>
-              <SelectItem value="web">Web</SelectItem>
-              <SelectItem value="whatsapp">WhatsApp</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-              <SelectItem value="phone">Phone</SelectItem>
-              <SelectItem value="support_portal">Support Portal</SelectItem>
-            </Select>
-            <Input
-              placeholder="Tenant ID..."
-              value={tenantFilter}
-              onChange={(e) => setTenantFilter(e.target.value)}
-              className="w-[150px]"
-            />
+            {/* Filter row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="triaged">Triaged</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="released">Released</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </Select>
+              <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Severity</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="feature_request">Feature Request</SelectItem>
+                <SelectItem value="bug_report">Bug Report</SelectItem>
+                <SelectItem value="incident">Incident</SelectItem>
+                <SelectItem value="question">Question</SelectItem>
+              </Select>
+              <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-full sm:w-40 bg-muted border-input text-foreground">
+                <SelectItem value="all">All Channels</SelectItem>
+                <SelectItem value="web">Web</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="support_portal">Support Portal</SelectItem>
+              </Select>
+              <Input
+                placeholder="Tenant ID..."
+                value={tenantFilter}
+                onChange={(e) => setTenantFilter(e.target.value)}
+                className="w-full sm:w-40 bg-muted border-input text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

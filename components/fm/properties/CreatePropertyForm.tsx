@@ -148,7 +148,7 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
             value={formData.type}
             onValueChange={(val) => setFormData({ ...formData, type: val })}
             placeholder={t("fm.properties.selectType", "Select type")}
-            className="w-full bg-muted border-input text-foreground"
+            className="w-full sm:w-40 bg-muted border-input text-foreground"
           >
               <SelectItem value="RESIDENTIAL">
                 {t("fm.properties.residential", "Residential")}

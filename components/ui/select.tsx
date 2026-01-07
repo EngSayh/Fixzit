@@ -120,9 +120,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           className={`
-            flex h-8 w-full items-center justify-between rounded-md border border-input
-            bg-muted px-3 py-1.5 text-sm text-foreground appearance-none
-            ring-offset-white 
+            flex h-8 w-full items-center justify-between rounded-md border border-border
+            bg-card px-3 py-1.5 text-sm text-foreground appearance-none
+            ring-offset-background 
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 
             disabled:cursor-not-allowed disabled:opacity-50
           `}
@@ -143,7 +143,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {children}
         </select>
         <ChevronDown
-          className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+          className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
           aria-hidden="true"
         />
       </div>
@@ -176,7 +176,7 @@ export const SelectItem: React.FC<SelectItemProps> = ({
     <option
       className={`
         cursor-pointer select-none py-1.5 text-sm outline-none
-        bg-muted text-foreground
+        bg-card text-foreground
         disabled:text-gray-400
         ${className}
       `}

@@ -54,6 +54,10 @@ jobs:
       
       - name: Run ESLint
         run: pnpm lint
+
+      - name: Check TODO/FIXME markers
+        run: node scripts/check-todo-markers.js --changed
+        continue-on-error: true  # Warn but don't fail during rollout
       
       - name: Run tests (changed files only)
         run: pnpm vitest run --changed HEAD~1 --reporter=dot
