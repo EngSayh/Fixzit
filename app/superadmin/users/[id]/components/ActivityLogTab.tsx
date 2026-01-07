@@ -113,16 +113,16 @@ export function ActivityLogTab({
             <Select
               value={actionFilter}
               onValueChange={onActionFilterChange}
-              placeholder="Action"
+              placeholder={t("user.activity.filterAction", "Action")}
               className="w-36 bg-muted border-input"
             >
-              <SelectItem value="all">All Actions</SelectItem>
-              <SelectItem value="LOGIN">Login</SelectItem>
-              <SelectItem value="LOGOUT">Logout</SelectItem>
-              <SelectItem value="CREATE">Create</SelectItem>
-              <SelectItem value="UPDATE">Update</SelectItem>
-              <SelectItem value="DELETE">Delete</SelectItem>
-              <SelectItem value="READ">Read</SelectItem>
+              <SelectItem value="all">{t("user.activity.allActions", "All Actions")}</SelectItem>
+              <SelectItem value="LOGIN">{t("user.activity.action.login", "Login")}</SelectItem>
+              <SelectItem value="LOGOUT">{t("user.activity.action.logout", "Logout")}</SelectItem>
+              <SelectItem value="CREATE">{t("user.activity.action.create", "Create")}</SelectItem>
+              <SelectItem value="UPDATE">{t("user.activity.action.update", "Update")}</SelectItem>
+              <SelectItem value="DELETE">{t("user.activity.action.delete", "Delete")}</SelectItem>
+              <SelectItem value="READ">{t("user.activity.action.read", "Read")}</SelectItem>
             </Select>
             <Select
               value={dateRangeFilter}
@@ -203,9 +203,9 @@ export function ActivityLogTab({
                         }
                       >
                         {log.result?.success !== false ? (
-                          <><CheckCircle className="h-3 w-3 me-1" />Success</>
+                          <><CheckCircle className="h-3 w-3 me-1" />{t("common.status.success", "Success")}</>
                         ) : (
-                          <><XCircle className="h-3 w-3 me-1" />Error</>
+                          <><XCircle className="h-3 w-3 me-1" />{t("common.status.error", "Error")}</>
                         )}
                       </Badge>
                     </TableCell>

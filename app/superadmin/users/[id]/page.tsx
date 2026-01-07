@@ -72,7 +72,6 @@ export default function SuperadminUserDetailPage() {
   const [user, setUser] = useState<UserDetail | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stats collected for future dashboard widget
   const [_stats, setStats] = useState<ActivityStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);

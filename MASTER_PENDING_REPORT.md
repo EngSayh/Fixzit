@@ -345,11 +345,11 @@ The following issues should be marked as `resolved` in the MongoDB Issue Tracker
 | P1 | PR-678-003 | Add UTF-8 BOM to CSV export | CodeRabbit | ✅ DONE (PR #680) |
 | P1 | PR-678-004 | Add `type="button"` to interactive buttons | CodeRabbit, Biome | ✅ DONE (PR #680) |
 | P1 | PR-678-005 | Fix hardcoded locale in formatDate functions | CodeRabbit | ✅ DONE (PR #680) |
-| P1 | PR-678-006 | Wrap hardcoded strings in t() for i18n | CodeRabbit | ⬜ TODO |
-| P2 | PR-678-007 | Add aria-labels to icon-only buttons | CodeRabbit | ⬜ TODO |
+| P1 | PR-678-006 | Wrap hardcoded strings in t() for i18n | CodeRabbit | ✅ DONE (PR #680) |
+| P2 | PR-678-007 | Add aria-labels to icon-only buttons | CodeRabbit | ✅ DONE (already in code) |
 | P2 | PR-678-008 | Fix label htmlFor associations | CodeRabbit, Biome | ✅ DONE (PR #680) |
-| P2 | PR-678-009 | Consolidate STATUS_COLORS to single source | CodeRabbit | ⬜ TODO |
-| P2 | PR-678-010 | Review audit log PII exposure in metadata | CodeAnt | ⬜ TODO |
+| P2 | PR-678-009 | Consolidate STATUS_COLORS to single source | CodeRabbit | ✅ DONE (already consolidated) |
+| P2 | PR-678-010 | Review audit log PII exposure in metadata | CodeAnt | ⬜ DEFERRED (requires security audit) |
 
 ---
 
