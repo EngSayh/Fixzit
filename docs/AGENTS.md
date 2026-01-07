@@ -600,6 +600,14 @@ Output Required:
   □ Error boundary implemented
   □ Fallback UI defined
 
+4.2.6.1 UI Review Addendum (Local CI + SMART Report)
+
+Applies to any UI change (components, styles, layouts, copy, or accessibility).
+
+- Default to local CI verification; do not rely on GitHub CI unless explicitly required.
+- Run at minimum: pnpm typecheck, pnpm lint, and any relevant UI tests locally.
+- Provide a SMART UI review summary per Section 14, including evidence (screenshots/logs), tests run, and risk notes.
+
 4.2.7 Mobile Engineer Gate (If Mobile-Impacting)
 
 Role Mission: Mobile apps for Tenant/Technician/Owner/Corporate — ensure fix works on mobile.
@@ -1542,6 +1550,7 @@ Canonical backlog extraction workflow: Section 13.3 — Pending Backlog Extracto
 │  • Force merging with unresolved comments                               │
 │  • Dismissing review comments without addressing                        │
 │  • Merging with failing CI checks                                       │
+│  • Merging with unresolved conflicts                                    │
 │  • Bypassing branch protection rules                                    │
 │  • Using admin override to merge blocked PRs                            │
 │  • Marking "Ready to Merge" before Codex APPROVED                       │
@@ -1671,6 +1680,15 @@ All required pages exist and contain mock data (no empty placeholders).
 Google Maps integrated live where required.
 
 Role-based module visibility enforced; no leakage.
+
+11.6 UI Review Standards (Single Source)
+
+This section supersedes Incoming/SKILL.md and any other UI instruction files. Use docs/AGENTS.md as the only source.
+
+UI review requirements:
+- Apply 4.2.3 UX/UI Lead Gate, 4.2.6 Frontend Gate, and 11.5 Global UI Governance Baseline.
+- Default to local CI verification (pnpm typecheck, pnpm lint, and relevant UI tests). Use GitHub CI only when explicitly required.
+- Provide a SMART UI review summary per Section 14 with evidence (screenshots/logs), tests run, and risk notes.
 
 12. Error Handling Standards
 12.1 Error Code Format
