@@ -44,9 +44,6 @@ const DeletePaymentMethodSchema = z.object({
  * List all saved payment methods for user
  */
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "wallet:payment-methods:list" });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -55,6 +52,10 @@ export async function GET(request: NextRequest) {
     if (!userId || !tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Per-user rate limiting for payment endpoints (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: `wallet:payment-methods:list:${userId}` });
+    if (rateLimitResponse) return rateLimitResponse;
 
     await connectDB();
 
@@ -103,9 +104,6 @@ export async function GET(request: NextRequest) {
  * Save new payment method (from gateway token)
  */
 export async function POST(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "wallet:payment-methods:create" });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -114,6 +112,10 @@ export async function POST(request: NextRequest) {
     if (!userId || !tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Per-user rate limiting for payment endpoints (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: `wallet:payment-methods:create:${userId}` });
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Parse and validate body
     let body: unknown;
@@ -201,9 +203,6 @@ export async function POST(request: NextRequest) {
  * Remove a saved payment method
  */
 export async function DELETE(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "wallet:payment-methods:delete" });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -212,6 +211,10 @@ export async function DELETE(request: NextRequest) {
     if (!userId || !tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Per-user rate limiting for payment endpoints (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: `wallet:payment-methods:delete:${userId}` });
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Parse and validate body
     let body: unknown;

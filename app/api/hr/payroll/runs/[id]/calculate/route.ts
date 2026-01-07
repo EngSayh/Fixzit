@@ -49,9 +49,6 @@ export async function POST(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
-  const rateLimitResponse = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:calculate" });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -59,7 +56,11 @@ export async function POST(
     }
 
     // 🔒 STRICT v4.1: Payroll requires HR roles - supports subRole pattern
-    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string; id?: string };
+    
+    // Per-user rate limiting for payroll PII endpoints (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: `hr:payroll:calculate:${session.user.id}` });
+    if (rateLimitResponse) return rateLimitResponse;
     if (!hasAllowedRole(user.role, user.subRole, PAYROLL_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }

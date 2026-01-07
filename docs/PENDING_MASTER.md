@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-07T19:00:00+03:00
+  Last-Sync: 2026-01-08T00:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,38 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T00:30 (Asia/Riyadh) — Sprint: PR #680 Review Comments Resolution [AGENT-0005]
+
+**Agent Token:** [AGENT-0005]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Modified (pending commit)
+
+#### Sprint Summary
+
+Addressed 7 unresolved PR review comments from CodeRabbit and Gemini reviews.
+
+#### Issues Resolved
+
+| ID | File | Issue | Resolution |
+|----|------|-------|------------|
+| SEC-RL-PM-001 | `wallet/payment-methods/route.ts` | Per-IP rate limiting → per-user | ✅ Moved auth before rate limit, scoped by userId for GET/POST/DELETE |
+| SEC-RL-PROFILE-001 | `user/profile/route.ts` | Missing PATCH rate limit | ✅ Added per-user rate limiting to PATCH handler |
+| SEC-RL-TICKETS-001 | `support/tickets/[id]/route.ts` | Per-IP rate limiting → per-user | ✅ Moved auth before rate limit, scoped by user.id |
+| SEC-RL-REFERRAL-001 | `referrals/my-code/route.ts` | Per-IP rate limiting → per-user | ✅ Moved auth before rate limit, scoped by session.user.id |
+| SEC-RL-PAYROLL-001 | `hr/payroll/runs/[id]/calculate/route.ts` | Per-IP rate limiting → per-user | ✅ Moved auth before rate limit, scoped by session.user.id |
+| SEC-TOCTOU-001 | `leads/route.ts` | TOCTOU in PATCH update | ✅ Changed findByIdAndUpdate → findOneAndUpdate with org_id filter |
+| I18N-RTF-001 | `lib/utils.ts` | formatRelativeTime missing months/years | ✅ Extended to handle month/year units for larger time spans |
+
+#### CI Verification
+
+| Check | Status |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 warnings |
 
 ---
 

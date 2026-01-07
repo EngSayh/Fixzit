@@ -111,7 +111,8 @@ export function formatDateTimeLocale(
 }
 
 /**
- * Format a relative time (e.g., "2 hours ago", "in 3 days")
+ * Format a relative time (e.g., "2 hours ago", "in 3 days", "1 month ago")
+ * Extended to handle months and years for larger time spans (Gemini review)
  * 
  * @param dateStr - ISO date string or Date object
  * @param locale - User locale
@@ -132,13 +133,17 @@ export function formatRelativeTime(
     const diffMin = Math.round(diffSec / 60);
     const diffHour = Math.round(diffMin / 60);
     const diffDay = Math.round(diffHour / 24);
+    const diffMonth = Math.round(diffDay / 30.44); // Average days in a month
+    const diffYear = Math.round(diffDay / 365.25); // Account for leap years
     
     const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
     
     if (Math.abs(diffSec) < 60) return rtf.format(diffSec, "second");
     if (Math.abs(diffMin) < 60) return rtf.format(diffMin, "minute");
     if (Math.abs(diffHour) < 24) return rtf.format(diffHour, "hour");
-    return rtf.format(diffDay, "day");
+    if (Math.abs(diffDay) < 30) return rtf.format(diffDay, "day");
+    if (Math.abs(diffMonth) < 12) return rtf.format(diffMonth, "month");
+    return rtf.format(diffYear, "year");
   } catch {
     return "N/A";
   }

@@ -100,6 +100,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Per-user rate limiting for profile updates (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: `user:profile:write:${session.user.id}` });
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Parse request body
     const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[User Profile]" });
     if (parseError || !body) {

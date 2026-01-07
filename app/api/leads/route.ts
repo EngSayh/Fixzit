@@ -279,8 +279,12 @@ export async function PATCH(request: NextRequest) {
     if (notes) update.notes = notes;
     if (next_follow_up) update.next_follow_up = new Date(next_follow_up);
 
-    // Update lead
-    const lead = await SouqLead.findByIdAndUpdate(id, update, { new: true });
+    // Update lead with tenant scope to prevent TOCTOU (CodeRabbit review)
+    const lead = await SouqLead.findOneAndUpdate(
+      { _id: id, org_id: tenantId },
+      update,
+      { new: true }
+    );
 
     // Log activity for status change
     if (status && status !== existingLead.status) {
