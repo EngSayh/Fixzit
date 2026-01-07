@@ -120,8 +120,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           className={`
-            flex h-8 w-full items-center justify-between rounded-md border border-border
-            bg-card px-3 py-1.5 text-sm text-foreground appearance-none
+            flex h-8 w-full items-center justify-between rounded-md border border-input
+            bg-muted px-3 py-1.5 text-sm text-foreground appearance-none
             ring-offset-background 
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 
             disabled:cursor-not-allowed disabled:opacity-50
