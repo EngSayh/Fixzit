@@ -369,6 +369,6 @@
   },
   "simple-git-hooks": {
     "pre-commit": "bash scripts/git-hooks/pre-commit.sh",
-    "pre-push": "pnpm lint:mongo-unwrap && pnpm typecheck"
+    "pre-push": "bash scripts/git-hooks/pre-push.sh"
   }
 }

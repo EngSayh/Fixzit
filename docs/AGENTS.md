@@ -1103,6 +1103,17 @@ Mandatory Branch Discipline (2-device safe)
 
 Never work directly on main.
 
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🔒 DIRECT PUSH TO MAIN IS BLOCKED — ENFORCED AT MULTIPLE LEVELS        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. GitHub Branch Protection: Requires PR for all changes to main       │
+│ 2. Local Pre-Push Hook: scripts/git-hooks/pre-push.sh blocks pushes    │
+│ 3. simple-git-hooks: Runs validation before every push                 │
+│                                                                         │
+│ ANY attempt to push directly to main will be REJECTED.                  │
+│ The ONLY way to merge to main is via a Pull Request.                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
 **Branch Naming Convention (MANDATORY for PRs):**
 ```
 Fixzit-v<VERSION>-<YYYYMMDD>-<HHMM>-<short-slug>
@@ -1121,6 +1132,17 @@ Examples:
 | Date | `YYYYMMDD` | `20260107` |
 | Time | `HHMM` (24h, Asia/Riyadh) | `1430` |
 | Slug | `kebab-case` (2-4 words) | `ui-consolidation` |
+
+**Required Workflow (NO EXCEPTIONS):**
+```
+1. git checkout -b Fixzit-v2.0.27-$(date +%Y%m%d)-$(date +%H%M)-feature-name
+2. # Make your changes
+3. git add . && git commit -m "type(scope): message [AGENT-XXXX]"
+4. git push origin HEAD
+5. gh pr create --title "..." --body "..."
+6. # Wait for CI + review
+7. # Merge via GitHub UI (squash preferred)
+```
 
 **Legacy format (still valid for agent work branches):**
 ```
