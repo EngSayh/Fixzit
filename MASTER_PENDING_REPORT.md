@@ -5,15 +5,138 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-25T12:50:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v5.0 (System Organizer + Folder Structure Audit)  
-**Branch:** main  
-**Commit:** 96ef97e00 (docs: add Superadmin OrgID reference)  
-**Last Work:** System Organizer Scan - Dec 25, 2025  
-**MongoDB Status:** ⚠️ Not synced this session  
-**Verification Status:** ✅ VERIFIED (479 test files, TypeScript: 0 errors, ESLint: 5 warnings)  
-**Working Tree:** Clean (0 uncommitted changes)  
-**Test Count:** ✅ 479 test files, 392 API routes, 189 API tests
+**Last Updated:** 2026-01-07T14:42:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v5.1 (System Organizer + Duplicate & Rate-Limit Scan)  
+**Branch:** feat/superadmin-users-improvements-AGENT-0007  
+**Commit:** c641edacf (feat(superadmin): Users system improvement - tests, performance, audit [AGENT-0007])  
+**Last Work:** System Scan Update + SSOT Sync - Jan 07, 2026  
+**MongoDB Status:** Synced via /api/issues/import (2026-01-07 14:42 +03:00)  
+**Verification Status:** VERIFIED (TypeScript: 0 errors, ESLint: 5 warnings)  
+**Working Tree:** Dirty (1 modified)  
+**Test Count:** 479 test files, 392 API routes, 189 API tests
+
+---
+
+## 2026-01-07 14:03 - System Scan Update [AGENT-TEMP-20260107T1403]
+
+### Progress Summary
+- **Files/Areas Scanned**: app/, components/, lib/, server/, services/, hooks/, contexts/, config/, i18n/, tests/, scripts/, docs/current + SSOT docs
+- **Issues Identified**: Total 11 (Critical: 0, High: 2, Medium: 7, Low: 2)
+- **Duplicate Groups**: 7 (6 file-level, 1 module-level)
+- **File Organization Issues**: 5
+- **Notes**: Static scan only; MongoDB SSOT synced via /api/issues/import (created 11, updated 0, skipped 0); working tree had 1 modified path; duplicate scan excluded node_modules/.next/docs/archived.
+
+### Current Status & Next Steps (Top 3-5)
+1. Fix rate limiting enforcement by returning `enforceRateLimit` response across affected routes (SEC-20260107-001).
+2. Decide wallet top-up gateway integration path and implement provider flow + webhook (BUG-20260107-002).
+3. Add superadmin audit log tests covering success filter and pagination (TEST-20260107-001).
+4. Consolidate duplicate error pages + migration scripts; remove redundant files (DUP groups).
+5. Resolve SSOT guidance conflict across docs (CONFIG-20260107-001).
+
+---
+
+### CRITICAL & HIGH PRIORITY (Production Readiness)
+
+#### Security
+| ID | Severity | Status | Issue | File:Line | Impact | Fix | Validation |
+|---:|----------|--------|-------|-----------|--------|-----|-----------|
+| SEC-20260107-001 | High | New | `enforceRateLimit` return value ignored -> rate limits not enforced | `app/api/wallet/top-up/route.ts:47`, `app/api/compliance/policies/route.ts:133`, `app/api/cms/pages/[slug]/route.ts:32`, `app/api/wallet/route.ts:24`, `app/api/wallet/payment-methods/route.ts:47` | Abuse/DDoS exposure; throttling ineffective on public or auth routes | Capture response and return early: `const rl = enforceRateLimit(...); if (rl) return rl;` across routes; consider lint rule | `pnpm lint`, targeted API tests |
+| SEC-20260107-002 | Medium | New | Superadmin user audit stats queries lack explicit tenant scope; lint warnings | `app/api/superadmin/users/[id]/audit-logs/route.ts:168-187` | Cross-tenant stats exposure if guard changes; inconsistent lint suppression | Add explicit `orgId` scoping or document cross-tenant intent with per-query lint disable and `assertSuperadmin` helper | `pnpm lint`, add superadmin tests |
+
+#### Production Bugs / Logic Errors
+| ID | Severity | Status | Issue | File:Line | Impact | Fix | Validation |
+|---:|----------|--------|-------|-----------|--------|-----|-----------|
+| BUG-20260107-001 | Medium | New | Success filter uses `query.success` but schema uses `result.success` | `app/api/superadmin/audit-logs/route.ts:70` | `success` filter silently fails; incorrect audit results | Use `query["result.success"]` (match admin route) | Add unit test for `success=true/false` |
+| BUG-20260107-002 | High | New | Wallet top-up returns mock checkout URL; gateway integration TODO | `app/api/wallet/top-up/route.ts:121-124` | Top-up cannot complete real payment; finance flow incomplete | Integrate payment gateway (Tap/HyperPay/Moyasar), create provider session, handle callbacks, update transaction status | Integration test + staging payment flow |
+
+#### Performance
+| ID | Severity | Status | Issue | File:Line | Impact | Fix | Validation |
+|---:|----------|--------|-------|-----------|--------|-----|-----------|
+| PERF-20260107-001 | Medium | New | Audit log stats fan out into 6 DB queries per request | `app/api/superadmin/users/[id]/audit-logs/route.ts:160-202` | Extra DB round trips; slower admin UX under load | Replace with single `$facet` aggregate or cached stats; ensure indexes on `userId` + `timestamp` | Measure response time before/after; `pnpm test` |
+
+#### Missing Tests
+| ID | Severity | Status | Component/Function | File | Gap | Priority | Validation |
+|---:|----------|--------|--------------------|------|-----|----------|------------|
+| TEST-20260107-001 | Medium | New | Superadmin audit logs | `app/api/superadmin/audit-logs/route.ts`, `app/api/superadmin/users/[id]/audit-logs/route.ts` | No API tests covering filters/pagination/auth | High | `pnpm vitest run tests/api/superadmin/audit-logs*.test.ts` |
+| TEST-20260107-002 | Medium | New | Wallet top-up | `app/api/wallet/top-up/route.ts` | No API tests for validation + saved card flow + rate limit | Medium | `pnpm vitest run tests/api/wallet-top-up.route.test.ts` |
+
+---
+
+### Additional Findings (Medium/Low)
+| ID | Severity | Type | Status | Location | Evidence | Fix | Validation |
+|---:|----------|------|--------|----------|----------|-----|------------|
+| CONFIG-20260107-001 | Medium | Config | New | `docs/AGENTS.md:3`, `docs/SSOT_WORKFLOW_GUIDE.md:14`, `MASTER_PENDING_REPORT.md:3-6` | Conflicting SSOT definitions (MongoDB vs PENDING_MASTER) | Align docs: MongoDB primary SSOT; mark PENDING_MASTER/MASTER_PENDING_REPORT as derived; update workflow | Doc review |
+| ORG-20260107-001 | Medium | Organization | New | root layout (`app/`, `pages/`, `issue-tracker/`, `domain/`, `services/`) | Mixed layering/DDD boundaries; `issue-tracker` is separate app at root | Move into `apps/issue-tracker` or `tools/issue-tracker`; clarify `pages/` legacy; consolidate domain/services | Repo organization review |
+| DOC-20260107-001 | Low | Docs | New | `docs/current/README.md:11-13` | Architecture links point to missing `docs/architecture/*` | Update links to actual location or restore docs | Link check |
+| DX-20260107-001 | Low | DX | New | `app/superadmin/dashboard/page.tsx:584-608`, `app/(app)/pricing/page.tsx:458`, `app/(app)/marketplace/product/[slug]/page.tsx:113,159,230`, `components/seller/health/RecommendationsPanel.tsx:162`, `app/[locale]/admin/fm-dashboard/page.tsx:235` | Internal navigation uses `<a href>` in app routes | Replace with `next/link` or shared `ButtonLink` | `pnpm lint` |
+
+### Finding Details (Evidence & Validation)
+| ID | Severity | Type | Status | Location | Evidence | Fix | Validation |
+|---:|----------|------|--------|----------|----------|-----|------------|
+| SEC-20260107-001 | High | Security | New | `app/api/wallet/top-up/route.ts:47`, `app/api/compliance/policies/route.ts:133`, `app/api/cms/pages/[slug]/route.ts:32`, `app/api/wallet/route.ts:24`, `app/api/wallet/payment-methods/route.ts:47` | `enforceRateLimit(...)` return value not handled; helper returns NextResponse | Return rate-limit response; add lint rule | `pnpm lint`, targeted API tests |
+| SEC-20260107-002 | Medium | Security | New | `app/api/superadmin/users/[id]/audit-logs/route.ts:168-187` | `countDocuments({ userId })` + aggregates lack org scope | Add org scope or explicit superadmin guard + suppressions | `pnpm lint`, superadmin tests |
+| BUG-20260107-001 | Medium | Bug | New | `app/api/superadmin/audit-logs/route.ts:70` | `query.success` used; schema field is `result.success` | Switch to `query["result.success"]` | Add filter test |
+| BUG-20260107-002 | High | Bug | New | `app/api/wallet/top-up/route.ts:121-124` | TODO + mock checkout URL returned | Integrate payment gateway flow | Integration + staging tests |
+| PERF-20260107-001 | Medium | Performance | New | `app/api/superadmin/users/[id]/audit-logs/route.ts:160-202` | 6 parallel count/aggregate queries per request | Use `$facet` or cache stats | Measure response time |
+| TEST-20260107-001 | Medium | Test | New | `app/api/superadmin/audit-logs/route.ts`, `app/api/superadmin/users/[id]/audit-logs/route.ts` | No tests matching `tests/api/superadmin/*audit-logs*` | Add API tests | `pnpm vitest run tests/api/superadmin/audit-logs*.test.ts` |
+| TEST-20260107-002 | Medium | Test | New | `app/api/wallet/top-up/route.ts` | No tests referencing wallet top-up | Add API tests | `pnpm vitest run tests/api/wallet-top-up.route.test.ts` |
+| CONFIG-20260107-001 | Medium | Config | New | `docs/AGENTS.md:3`, `docs/SSOT_WORKFLOW_GUIDE.md:14`, `MASTER_PENDING_REPORT.md:3-6` | Conflicting SSOT definitions | Align SSOT docs | Doc review |
+| ORG-20260107-001 | Medium | Organization | New | root layout (`app/`, `pages/`, `issue-tracker/`, `domain/`, `services/`) | Mixed layering/DDD boundaries | Move plan consolidation | Repo organization review |
+| DOC-20260107-001 | Low | Docs | New | `docs/current/README.md:11-13` | Links target missing `docs/architecture/*` | Update links or restore docs | Link check |
+| DX-20260107-001 | Low | DX | New | `app/superadmin/dashboard/page.tsx:584-608`, `app/(app)/pricing/page.tsx:458`, `app/(app)/marketplace/product/[slug]/page.tsx:113,159,230`, `components/seller/health/RecommendationsPanel.tsx:162`, `app/[locale]/admin/fm-dashboard/page.tsx:235` | Internal routes use `<a href>` | Use `next/link` | `pnpm lint` |
+
+---
+
+### Duplicates & Consolidation
+- `FILE-DUP-001` - `app/(fm)/crm/error.tsx`, `app/(fm)/fm/error.tsx`, `app/(fm)/hr/error.tsx` (identical). Canonical: create `components/errors/FmModuleError.tsx`; action: replace with shared component.
+- `FILE-DUP-002` - `app/(fm)/settings/error.tsx`, `app/(fm)/work-orders/error.tsx` (identical). Canonical: `components/errors/FmModuleError.tsx` or shared error page; action: replace.
+- `FILE-DUP-003` - `i18n/chunks/ar/payments/tap.json` == `i18n/chunks/en/payments/tap.json`. Canonical: English file; action: translate Arabic or remove duplicate with fallback strategy.
+- `FILE-DUP-004` - `scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` == `scripts/migrations/2025-12-07-souq-payouts.ts`. Canonical: keep normalized script, delete duplicate.
+- `FILE-DUP-005` - `scripts/migrations/2025-12-10-normalize-souq-orders-orgid.ts` == `scripts/migrations/2025-12-10-souq-orders.ts`. Canonical: keep normalized script, delete duplicate.
+- `FILE-DUP-006` - `scripts/migrations/2025-admin-notif-idx.ts` == `scripts/migrations/2025-create-admin-notifications-indexes.ts`. Canonical: keep one; remove duplicate.
+- `MOD-DUP-001` - Audit log filtering logic duplicated between `app/api/admin/audit-logs/route.ts` and `app/api/superadmin/audit-logs/route.ts`. Canonical: shared `buildAuditLogQuery()` in `server/audit/query.ts`; action: reuse and reduce divergence.
+
+### File Organization (Move Plan)
+| Current Path | Proposed Path | Reason | Risk |
+|-------------|---------------|--------|------|
+| `issue-tracker/` | `apps/issue-tracker/` (or `tools/issue-tracker/`) | Separate Next.js app; clarify monorepo boundaries | Medium (update scripts/paths) |
+| `pages/_app.tsx` | `app/_legacy/_app.tsx` (or remove if unused) | App Router already uses `app/`; reduce routing ambiguity | Medium (verify Next.js routing) |
+| `pages/_document.tsx` | `app/_legacy/_document.tsx` (or remove if unused) | Same as above | Medium |
+| `domain/services/` | `services/domain/` (or consolidate into `domain/`) | Avoid split domain logic across roots | Medium |
+| `Incoming/` | `_artifacts/incoming/` or `docs/archived/incoming/` | Staging folder at root; keep repo clean | Low |
+
+---
+
+### Deep-Dive: Similar Issues Across Codebase (Clusters)
+- **Pattern: Rate-limit helper not handled**
+  - Root cause: `enforceRateLimit` treated as side-effect; return value ignored.
+  - Occurrences: `app/api/wallet/top-up/route.ts`, `app/api/compliance/policies/route.ts`, `app/api/cms/pages/[slug]/route.ts`, `app/api/wallet/route.ts`, `app/api/wallet/payment-methods/route.ts`, `app/api/organization/settings/route.ts`, `app/api/docs/openapi/route.ts`.
+  - Systematic fix: wrap in `withRateLimit()` helper that returns early, or lint rule requiring `const rl = enforceRateLimit` + guard.
+
+- **Pattern: Tenant-scope suppressions in platform-wide routes**
+  - Root cause: mixed superadmin/platform-wide queries and false positives.
+  - Occurrences: `app/api/superadmin/*`, `app/api/auth/*`, `server/cron/usageSyncCron.ts`, `server/utils/gdpr.ts`.
+  - Systematic fix: centralize `assertSuperadmin` guard and `platformQuery()` helper that applies audit logging + explicit lint suppression once.
+
+- **Pattern: Internal navigation with raw `<a href>`**
+  - Root cause: inconsistent use of `Link` inside Button/asChild patterns.
+  - Occurrences: `app/superadmin/dashboard/page.tsx`, `app/(app)/pricing/page.tsx`, `app/(app)/marketplace/product/[slug]/page.tsx`, `components/seller/health/RecommendationsPanel.tsx`, `app/[locale]/admin/fm-dashboard/page.tsx`.
+  - Systematic fix: introduce `ButtonLink` component that wraps `next/link` and standardizes.
+
+---
+
+### Validation Commands (Suggested)
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+### Changelog
+New items added: 11
+Existing items updated: 0
+Items merged: 0
 
 ---
 
@@ -21,8 +144,8 @@
 
 ### 📈 Progress Summary
 - **Files/Areas Scanned**: app/, lib/, server/, services/, components/, tests/
-- **Issues Identified**: Total 8 (Critical: 0, High: 1, Medium: 5, Low: 2)
-- **Duplicate Groups**: 0 (no actionable duplicates detected)
+- **Issues Identified**: Total 11 (Critical: 0, High: 2, Medium: 7, Low: 2)
+- **Duplicate Groups**: 7 (6 file-level, 1 module-level)
 - **File Organization Issues**: 0 (clean domain separation)
 - **Notes**: Full workspace scan; Sentry configured; SAHRECO OrgID=1 documented
 
