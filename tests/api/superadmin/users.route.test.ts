@@ -110,6 +110,25 @@ describe("SuperAdmin Users List API", () => {
     mockGetSuperadminSession.mockReset();
     mockUserAggregate.mockReset();
     mockUserCountDocuments.mockReset();
+    
+    // Re-establish default mock implementations after reset
+    mockUserAggregate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue([
+        {
+          _id: "user_1",
+          email: "john@acme.com",
+          status: "ACTIVE",
+          professional: { role: "ADMIN" },
+          personal: { firstName: "John", lastName: "Doe" },
+          orgId: "org_1",
+          orgName: "Acme Corp",
+          createdAt: new Date("2025-01-01"),
+        },
+      ]),
+    });
+    mockUserCountDocuments.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(1),
+    });
   });
   
   // Note: vi.resetModules() removed - can cause cross-suite side effects
@@ -161,6 +180,10 @@ describe("SuperAdmin Users List API", () => {
 
       expect(response.status).toBe(200);
       expect(mockUserAggregate).toHaveBeenCalled();
+      // Verify the aggregate pipeline includes status filter
+      const pipeline = mockUserAggregate.mock.calls[0][0];
+      const matchStage = pipeline.find((stage: Record<string, unknown>) => stage.$match);
+      expect(matchStage?.$match?.status).toBe("ACTIVE");
     });
 
     it("should apply organization filter", async () => {
@@ -171,6 +194,10 @@ describe("SuperAdmin Users List API", () => {
 
       expect(response.status).toBe(200);
       expect(mockUserAggregate).toHaveBeenCalled();
+      // Verify the aggregate pipeline includes orgId filter
+      const pipeline = mockUserAggregate.mock.calls[0][0];
+      const matchStage = pipeline.find((stage: Record<string, unknown>) => stage.$match);
+      expect(matchStage?.$match?.orgId).toBeDefined();
     });
 
     it("should apply search filter", async () => {
@@ -201,6 +228,15 @@ describe("SuperAdmin Users List API", () => {
 
       expect(response.status).toBe(200);
       expect(mockUserAggregate).toHaveBeenCalled();
+      // Verify the aggregate pipeline includes role filter (uses $or for both role and professional.role)
+      const pipeline = mockUserAggregate.mock.calls[0][0];
+      const matchStage = pipeline.find((stage: Record<string, unknown>) => stage.$match);
+      expect(matchStage?.$match?.$or).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ role: "ADMIN" }),
+          expect.objectContaining({ "professional.role": "ADMIN" }),
+        ])
+      );
     });
 
     it("should apply sorting", async () => {
