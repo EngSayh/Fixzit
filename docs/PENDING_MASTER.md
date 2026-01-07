@@ -59,14 +59,41 @@ Comprehensive audit of Section 17 roadmap items. **23 items audited** across Spr
 | FEAT-PAY-001 | Apple Pay / Google Pay | ✅ EXISTS | `types/wallet.types.ts`: `PaymentMethodType` includes `apple_pay`. `server/models/souq/FeeSchedule.ts` supports `apple_pay`, `stc_pay`. Tap Payments integration handles wallet methods |
 | FEAT-INTEG-001 | WhatsApp Business Integration | ⏫ PARTIAL | Channel infrastructure exists (`server/models/CustomerRequest.ts` supports `whatsapp` channel, env vars for `WHATSAPP_BUSINESS_API_KEY`). Actual API integration is stub. **8h effort** |
 
-#### Sprint 13 Preview: Bugs & Logic Issues
+#### Sprint 13: Bugs & Logic Issues (Full Audit)
 
 | ID | Issue | Result | Evidence |
 |----|-------|--------|----------|
 | BUG-TS-001 | @ts-expect-error without reason | ✅ FALSE POSITIVE | 30+ occurrences found but ALL in test files with proper comments explaining test intent |
 | PERF-LEAN-001 | Missing .lean() on queries | ✅ FALSE POSITIVE | 30+ `.lean()` usages found across production code. Mongoose queries properly optimized |
+| SEC-CLAIMS-001 | Claims tenant scope | ✅ FALSE POSITIVE | Uses `buildOrgScope(orgId)` with documented ESLint justifications (`// eslint-disable-next-line local/require-tenant-scope -- buildOrgScope spread contains orgId scope`) |
+| BUG-ENV-001 | process.env in client | ✅ FALSE POSITIVE | All 20+ uses are `NODE_ENV`, `NEXT_PUBLIC_*`, or test checks - valid client patterns per Next.js |
+| PERF-AGG-001 | .aggregate without .limit() | ✅ FALSE POSITIVE | Aggregates used for stats/facets/group operations (dashboard KPIs, seller health) where limit not applicable |
+| LOGIC-001 | SLA business hours | ✅ EXISTS | `lib/sla/business-hours.ts` with full implementation: `calculateSLADeadline()`, `isBusinessHour()`, `getNextBusinessHourStart()`, `SAUDI_DEFAULTS`. Test file: 262 lines |
+| LOGIC-002 | Notification opt-in defaults | ✅ EXISTS | Proper opt-in pattern: `receiveNotifications: { type: Boolean, default: true }` in FamilyMember, `smsNotifications: { type: Boolean, default: false }` for opt-in SMS |
+| LOGIC-003 | Aggregate pagination | ✅ FALSE POSITIVE | Aggregates for dashboards/stats not paginated lists - proper design pattern |
 
-#### Comprehensive Audit Summary (47 items total)
+#### Sprint 14-16: Optional Enhancements & Infrastructure (Verification)
+
+| ID | Category | Issue | Result | Notes |
+|----|----------|-------|--------|-------|
+| OPT-001 | Optional | Dead code cleanup | ⏸️ FUTURE | ~30% unused exports - Q1 2026 initiative |
+| OPT-002 | Optional | Storybook documentation | ⏸️ FUTURE | Component discoverability - Q2 2026 |
+| OPT-003 | Optional | E2E test credentials | ⏸️ FUTURE | 20 skipped tests need credentials |
+| OPT-004 | Optional | Large file refactoring | ⏸️ FUTURE | 24 files >1000 lines |
+| OPT-005 | Optional | Dependency updates | ⏸️ ONGOING | 14 packages outdated - monthly updates |
+| OPT-006 | Optional | GraphQL optimization | ⏸️ FUTURE | `lib/graphql/index.ts` 1,375 lines |
+| OPT-007 | Optional | Dark mode consistency | ⏸️ FUTURE | Some components lack dark variants |
+| OPT-008 | Optional | A11Y audit (WCAG AA) | ⏸️ FUTURE | Full accessibility compliance - Q2 2026 |
+| INFRA-001 | Infra | Redis for SSE | ⏸️ FUTURE | Single-server → Redis pub/sub |
+| INFRA-002 | Infra | CDN for static assets | ⏸️ FUTURE | CloudFront/Bunny for Saudi edge |
+| INFRA-003 | Infra | Database read replicas | ⏸️ FUTURE | Primary + read replica |
+| INFRA-004 | Infra | Background job queue | ✅ EXISTS | `lib/queues/setup.ts` (309 lines) - BullMQ style queue |
+| INFRA-005 | Infra | Log aggregation | ⏸️ FUTURE | Structured logging to Axiom/Datadog |
+| TEST-001 | Testing | HR tests (1→7 routes) | ⏸️ P1 | 14% coverage → target 60% |
+| TEST-002 | Testing | Finance tests (4→10 routes) | ⏸️ P1 | Priority testing gap |
+| TEST-003 | Testing | Souq tests (35%→60%) | ⏸️ P2 | 16h effort estimated |
+
+#### Comprehensive Audit Summary (69 items total)
 
 | Sprint | Items | Results |
 |--------|-------|---------|
@@ -78,8 +105,9 @@ Comprehensive audit of Section 17 roadmap items. **23 items audited** across Spr
 | **Sprint 10 (Bottlenecks)** | **4** | **3 EXISTS, 1 NOT IMPLEMENTED** |
 | **Sprint 11 (Automation)** | **5** | **5 EXISTS** |
 | **Sprint 12 (Features)** | **5** | **2 EXISTS, 1 PARTIAL, 2 NOT IMPLEMENTED** |
-| **Sprint 13 Preview** | **2** | **2 FALSE POSITIVE** |
-| **Total** | **51** | **12 FP, 27 EXISTS, 2 FIXED, 3 IMPROVED, 1 PARTIAL, 3 NOT IMPLEMENTED, 3 DEFERRED** |
+| **Sprint 13 (Bugs/Logic)** | **8** | **6 FALSE POSITIVE, 2 EXISTS** |
+| **Sprint 14-16 (Opt/Infra/Test)** | **16** | **1 EXISTS, 12 FUTURE, 3 P1/P2** |
+| **Total** | **69** | **18 FP, 32 EXISTS, 2 FIXED, 3 IMPROVED, 1 PARTIAL, 3 NOT IMPL, 4 DEFERRED, 12 FUTURE, 3 P1/P2** |
 
 #### Genuine Gaps Identified (Action Required)
 
