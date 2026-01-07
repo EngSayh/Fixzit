@@ -1,0 +1,59 @@
+#!/bin/bash
+# ============================================================================
+# Fixzit Pre-Push Hook - Block Direct Pushes to Main
+# ============================================================================
+# Per AGENTS.md Section 5.4: "Never work directly on main"
+# All changes MUST go through a PR on a feature branch
+# ============================================================================
+
+# Get the current branch
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# Protected branches (add more if needed)
+protected_branches=("main" "master" "production")
+
+# Check if pushing to a protected branch
+for branch in "${protected_branches[@]}"; do
+    if [ "$current_branch" = "$branch" ]; then
+        echo ""
+        echo "┌─────────────────────────────────────────────────────────────────────────┐"
+        echo "│ ❌ BLOCKED: Direct push to '$branch' is forbidden                       │"
+        echo "├─────────────────────────────────────────────────────────────────────────┤"
+        echo "│ Per AGENTS.md Section 5.4:                                              │"
+        echo "│   • Never work directly on main                                         │"
+        echo "│   • All changes MUST go through a PR                                    │"
+        echo "│                                                                         │"
+        echo "│ Required workflow:                                                      │"
+        echo "│   1. Create branch: Fixzit-vX.X.X-YYYYMMDD-HHMM-<slug>                  │"
+        echo "│   2. Push branch: git push origin <branch-name>                         │"
+        echo "│   3. Create PR: gh pr create                                            │"
+        echo "│   4. Get review + CI green                                              │"
+        echo "│   5. Merge via GitHub UI                                                │"
+        echo "└─────────────────────────────────────────────────────────────────────────┘"
+        echo ""
+        echo "To create a branch from your current commits:"
+        echo "  git checkout -b Fixzit-v2.0.27-$(date +%Y%m%d)-$(date +%H%M)-your-feature"
+        echo "  git push origin HEAD"
+        echo "  gh pr create"
+        echo ""
+        exit 1
+    fi
+done
+
+# Also check the remote ref being pushed to
+while read local_ref local_sha remote_ref remote_sha; do
+    for branch in "${protected_branches[@]}"; do
+        if [[ "$remote_ref" == "refs/heads/$branch" ]]; then
+            echo ""
+            echo "┌─────────────────────────────────────────────────────────────────────────┐"
+            echo "│ ❌ BLOCKED: Cannot push to remote '$branch' directly                    │"
+            echo "├─────────────────────────────────────────────────────────────────────────┤"
+            echo "│ All changes to '$branch' must go through a Pull Request.               │"
+            echo "└─────────────────────────────────────────────────────────────────────────┘"
+            echo ""
+            exit 1
+        fi
+    done
+done
+
+exit 0
