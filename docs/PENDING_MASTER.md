@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-07T09:30:00+03:00
+  Last-Sync: 2026-01-07T10:00:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,30 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-07 10:00 (Asia/Riyadh) — PR Cleanup: Closed All Stale PRs [AGENT-0012]
+
+**Agent Token:** `[AGENT-0012]`  
+**Branch:** `main`
+
+#### Action: Closed All 4 Stale PRs
+
+All remaining open PRs had accumulated 100+ file changes and unresolvable merge conflicts with PENDING_MASTER.md. Closed with proper comments for future re-assessment.
+
+| PR | Title | Reason for Closure |
+|----|-------|-------------------|
+| #664 | feat: FilterPresetsDropdown integration | 100+ files, unmergeable, needs fresh assessment |
+| #663 | fix(storage): STG-REM-001 S3 error 503 | 100+ files, unmergeable, needs fresh assessment |
+| #662 | feat(ats): Enable in-house ATS | Stale, needs re-evaluation on current main |
+| #661 | docs(ssot): Close 15 scan issues | SSOT updates superseded by newer commits |
+
+#### Current State
+
+- **Open PRs:** 0
+- **Local CI:** All passing (typecheck, lint, lint:collections, tests)
+- **Main branch:** Clean and stable
 
 ---
 
