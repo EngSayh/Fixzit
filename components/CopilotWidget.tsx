@@ -574,7 +574,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           <div className="space-y-3">
             <input value={stringValue(values.title)} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
             <textarea value={stringValue(values.description)} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
-            <select value={stringValue(values.priority, 'LOW')} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full h-8 rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <select value={stringValue(values.priority, 'LOW')} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full h-8 rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-muted border-input text-foreground">
               <option value="LOW">{locale === 'ar' ? 'منخفض' : 'Low'}</option>
               <option value="MEDIUM">{locale === 'ar' ? 'متوسط' : 'Medium'}</option>
               <option value="HIGH">{locale === 'ar' ? 'مرتفع' : 'High'}</option>
@@ -612,7 +612,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         return (
           <div className="space-y-3">
             <input value={stringValue(values.ownerId)} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
-            <select value={stringValue(values.period, 'Q1')} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full h-8 rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <select value={stringValue(values.period, 'Q1')} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full h-8 rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-muted border-input text-foreground">
               <option value="YTD">{locale === 'ar' ? 'منذ بداية العام' : 'Year to date'}</option>
               <option value="Q1">Q1</option>
               <option value="Q2">Q2</option>

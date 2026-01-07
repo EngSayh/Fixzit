@@ -182,7 +182,7 @@ export function FloatingBulkActionsBar({
                 </TooltipTrigger>
                 <TooltipContent>Change status</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-48 bg-muted border-input">
                 <DropdownMenuLabel>Set Status</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {Object.entries(statusConfig).map(([key, { label, icon: Icon, color }]) => (
@@ -220,7 +220,7 @@ export function FloatingBulkActionsBar({
                 </TooltipTrigger>
                 <TooltipContent>Change priority</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-48 bg-muted border-input">
                 <DropdownMenuLabel>Set Priority</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {Object.entries(priorityConfig).map(([key, { label, color }]) => (
@@ -260,7 +260,7 @@ export function FloatingBulkActionsBar({
                 </TooltipTrigger>
                 <TooltipContent>Assign to user</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuContent align="start" className="w-56 bg-muted border-input">
                 <DropdownMenuLabel>Assign To</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {availableUsers.length > 0 ? (
@@ -310,7 +310,7 @@ export function FloatingBulkActionsBar({
                 </TooltipTrigger>
                 <TooltipContent>More actions</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 bg-muted border-input">
                 {/* Tags Sub-menu */}
                 {availableTags.length > 0 && (
                   <DropdownMenuSub>

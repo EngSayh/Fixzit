@@ -155,7 +155,7 @@ export default function InviteUserPage() {
                 <Select value={role} onValueChange={setRole} placeholder={auto(
                         "Select a role...",
                         "fields.rolePlaceholder",
-                      )}>
+                      )} className="bg-muted border-input text-foreground">
                     <SelectItem value="admin">
                       {auto("Administrator", "roles.admin")}
                     </SelectItem>

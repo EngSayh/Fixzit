@@ -206,6 +206,7 @@ function QuotaEditDialog({
                 applyPlanDefaults(v);
               }}
               placeholder="Select plan"
+              className="bg-muted border-input text-foreground"
             >
               <SelectItem value="starter">Starter</SelectItem>
               <SelectItem value="professional">Professional</SelectItem>

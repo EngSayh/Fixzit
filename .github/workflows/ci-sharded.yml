@@ -12,6 +12,9 @@ on:
     branches: [main, develop]
   workflow_dispatch: {}
 
+env:
+  CI_LITE: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+
 permissions:
   contents: read
   actions: write
@@ -53,7 +56,14 @@ jobs:
             mongodb-memory-${{ runner.os }}-
 
       - name: 🧪 Run Service Tests
-        run: pnpm vitest run tests/services --reporter=dot --maxWorkers=1
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            pnpm vitest run tests/services --changed "origin/${{ github.base_ref }}" \
+              --reporter=dot --maxWorkers=1 --passWithNoTests
+          else
+            pnpm vitest run tests/services --reporter=dot --maxWorkers=1
+          fi
         timeout-minutes: 10
 
   # Shard 2: API Route Tests
@@ -88,7 +98,14 @@ jobs:
             mongodb-memory-${{ runner.os }}-
 
       - name: 🧪 Run API Tests
-        run: pnpm vitest run tests/api --reporter=dot --maxWorkers=1
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            pnpm vitest run tests/api --changed "origin/${{ github.base_ref }}" \
+              --reporter=dot --maxWorkers=1 --passWithNoTests
+          else
+            pnpm vitest run tests/api --reporter=dot --maxWorkers=1
+          fi
         timeout-minutes: 15
 
   # Shard 3: Unit Tests
@@ -123,7 +140,14 @@ jobs:
             mongodb-memory-${{ runner.os }}-
 
       - name: 🧪 Run Unit Tests
-        run: pnpm vitest run tests/unit --reporter=dot --maxWorkers=1
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            pnpm vitest run tests/unit --changed "origin/${{ github.base_ref }}" \
+              --reporter=dot --maxWorkers=1 --passWithNoTests
+          else
+            pnpm vitest run tests/unit --reporter=dot --maxWorkers=1
+          fi
         timeout-minutes: 10
 
   # TypeScript Check
@@ -195,7 +219,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🧪 QA Bundle (lint + typecheck + vitest)
-        run: pnpm qa
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            pnpm vitest run --changed "origin/${{ github.base_ref }}" \
+              --reporter=dot --maxWorkers=1 --passWithNoTests
+          else
+            pnpm qa
+          fi
 
       - name: 📤 Upload vitest log
         if: always()
@@ -203,6 +234,7 @@ jobs:
         with:
           name: vitest-latest
           path: reports/vitest-latest.log
+          if-no-files-found: ignore
 
   # Summary Job
   ci-summary:

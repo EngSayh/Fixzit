@@ -6,6 +6,9 @@ on:
   push:
     branches: [main, develop]
 
+env:
+  CI_LITE: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+
 jobs:
   qa:
     runs-on: ubuntu-latest
@@ -94,20 +97,37 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p reports
-          NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
-            --project=server --reporter=junit --outputFile=reports/junit-api.xml \
-            --maxWorkers=2 2>&1 | tee reports/vitest-api.log
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
+              --project=server --reporter=junit --outputFile=reports/junit-api.xml \
+              --maxWorkers=2 --changed "origin/${{ github.base_ref }}" \
+              --passWithNoTests 2>&1 | tee reports/vitest-api.log
+          else
+            NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
+              --project=server --reporter=junit --outputFile=reports/junit-api.xml \
+              --maxWorkers=2 2>&1 | tee reports/vitest-api.log
+          fi
           echo "api_exit=$?"
 
       - name: Vitest (Unit shard + JUnit)
         run: |
           set -o pipefail
-          NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
-            --reporter=junit --outputFile=reports/junit-unit.xml \
-            --maxWorkers=2 2>&1 | tee reports/vitest-unit.log
+          if [ "${CI_LITE}" = "true" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
+              --reporter=junit --outputFile=reports/junit-unit.xml \
+              --maxWorkers=2 --changed "origin/${{ github.base_ref }}" \
+              --passWithNoTests 2>&1 | tee reports/vitest-unit.log
+          else
+            NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
+              --reporter=junit --outputFile=reports/junit-unit.xml \
+              --maxWorkers=2 2>&1 | tee reports/vitest-unit.log
+          fi
           echo "unit_exit=$?"
 
       - name: Vitest (Full Run - Evidence Grade)
+        if: env.CI_LITE != 'true'
         timeout-minutes: 30
         run: |
           set -o pipefail
@@ -117,6 +137,7 @@ jobs:
           grep -E "Test Files|Tests|Duration|passed|failed" reports/vitest-full.log | tail -10
 
       - name: Coverage (API scope)
+        if: env.CI_LITE != 'true'
         run: |
           pnpm vitest run tests/api/_smoke --project=server --coverage \
             --coverage.provider=v8 --coverage.reporter=text-summary \

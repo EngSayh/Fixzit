@@ -83,7 +83,7 @@ export default function SystemPage() {
               <label className="block text-sm font-medium text-foreground mb-1">
                 {defaultLanguageLabel}
               </label>
-              <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm">
+              <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md text-sm bg-muted border-input text-foreground">
                 <option>{auto("English", "general.languages.en")}</option>
                 <option>{auto("Arabic", "general.languages.ar")}</option>
               </select>

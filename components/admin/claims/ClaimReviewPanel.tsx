@@ -521,14 +521,14 @@ export default function ClaimReviewPanel() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="الحالة" className="w-full md:w-[200px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="الحالة" className="w-full md:w-[200px] bg-muted border-input text-foreground">
                 <SelectItem value="all">جميع الحالات</SelectItem>
                 <SelectItem value="pending-decision">بانتظار القرار</SelectItem>
                 <SelectItem value="under-investigation">قيد التحقيق</SelectItem>
                 <SelectItem value="under-appeal">قيد الاستئناف</SelectItem>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="الأولوية" className="w-full md:w-[200px]">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder="الأولوية" className="w-full md:w-[200px] bg-muted border-input text-foreground">
                 <SelectItem value="all">جميع الأولويات</SelectItem>
                 <SelectItem value="high">عالية</SelectItem>
                 <SelectItem value="medium">متوسطة</SelectItem>
@@ -699,6 +699,7 @@ export default function ClaimReviewPanel() {
                     value={decisionData.outcome}
                     onValueChange={handleOutcomeChange}
                     placeholder="اختر القرار"
+                    className="bg-muted border-input text-foreground"
                   >
                       <SelectItem value="approve-full">
                         موافقة كاملة (Full Refund)

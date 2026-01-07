@@ -355,6 +355,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.requestType}
                       onValueChange={(v) => setNewRequest({ ...newRequest, requestType: v })}
                       placeholder="Select type..."
+                      className="bg-muted border-input text-foreground"
                     >
                       <SelectItem value="feature_request">Feature Request</SelectItem>
                       <SelectItem value="bug_report">Bug Report</SelectItem>
@@ -387,6 +388,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.severity}
                       onValueChange={(v) => setNewRequest({ ...newRequest, severity: v })}
                       placeholder="Select severity..."
+                      className="bg-muted border-input text-foreground"
                     >
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
@@ -400,6 +402,7 @@ export default function CustomerRequestsPage() {
                       value={newRequest.channel}
                       onValueChange={(v) => setNewRequest({ ...newRequest, channel: v })}
                       placeholder="Select channel..."
+                      className="bg-muted border-input text-foreground"
                     >
                       <SelectItem value="web">Web</SelectItem>
                       <SelectItem value="whatsapp">WhatsApp</SelectItem>
@@ -490,7 +493,7 @@ export default function CustomerRequestsPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-[120px] bg-muted border-input text-foreground">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="new">New</SelectItem>
               <SelectItem value="triaged">Triaged</SelectItem>
@@ -498,21 +501,21 @@ export default function CustomerRequestsPage() {
               <SelectItem value="released">Released</SelectItem>
               <SelectItem value="closed">Closed</SelectItem>
             </Select>
-            <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity" className="w-[120px]">
+            <Select value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity" className="w-[120px] bg-muted border-input text-foreground">
               <SelectItem value="all">All Severity</SelectItem>
               <SelectItem value="critical">Critical</SelectItem>
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="low">Low</SelectItem>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-[120px]">
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type" className="w-[120px] bg-muted border-input text-foreground">
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="feature_request">Feature Request</SelectItem>
               <SelectItem value="bug_report">Bug Report</SelectItem>
               <SelectItem value="incident">Incident</SelectItem>
               <SelectItem value="question">Question</SelectItem>
             </Select>
-            <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[120px]">
+            <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel" className="w-[120px] bg-muted border-input text-foreground">
               <SelectItem value="all">All Channels</SelectItem>
               <SelectItem value="web">Web</SelectItem>
               <SelectItem value="whatsapp">WhatsApp</SelectItem>

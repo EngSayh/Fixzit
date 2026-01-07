@@ -433,7 +433,7 @@ export default function RecruitmentPage() {
                   })}
                 </h2>
                 <div className="flex gap-2">
-                  <select className="h-8 px-3 py-1.5 border rounded-md text-sm">
+                  <select className="h-8 px-3 py-1.5 border rounded-md text-sm bg-muted border-input text-foreground">
                     <option value="all">
                       {auto("All Status", "jobs.filters.all")}
                     </option>
@@ -616,7 +616,7 @@ export default function RecruitmentPage() {
                       </button>
                     </div>
 
-                    <select className="h-8 px-3 py-1.5 border rounded-md text-sm">
+                    <select className="h-8 px-3 py-1.5 border rounded-md text-sm bg-muted border-input text-foreground">
                       <option value="all">
                         {auto("All Stages", "applications.filters.all")}
                       </option>
@@ -800,7 +800,7 @@ export default function RecruitmentPage() {
                     )}
                   </h2>
                   <div className="flex gap-2">
-                    <select className="h-8 px-3 py-1.5 border rounded-md text-sm">
+                    <select className="h-8 px-3 py-1.5 border rounded-md text-sm bg-muted border-input text-foreground">
                       <option value="all">
                         {auto("All Status", "interviews.filters.status.all")}
                       </option>
@@ -826,7 +826,7 @@ export default function RecruitmentPage() {
                         {auto("No Show", "interviews.filters.status.noShow")}
                       </option>
                     </select>
-                    <select className="h-8 px-3 py-1.5 border rounded-md text-sm">
+                    <select className="h-8 px-3 py-1.5 border rounded-md text-sm bg-muted border-input text-foreground">
                       <option value="all">
                         {auto("All Stages", "interviews.filters.stage.all")}
                       </option>

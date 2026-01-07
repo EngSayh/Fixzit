@@ -1151,7 +1151,7 @@ export default function RouteMetricsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto space-y-4">
           <div className="flex flex-wrap gap-3 items-center">
-            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-48">
+            <Select value={moduleFilter} onValueChange={setModuleFilter} placeholder={auto("Filter by module", "aliases.filter.placeholder")} className="w-48 bg-muted border-input text-foreground">
                 <SelectItem value="all">
                   {auto("All modules", "aliases.filter.all")}
                 </SelectItem>

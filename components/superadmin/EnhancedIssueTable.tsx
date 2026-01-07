@@ -217,7 +217,7 @@ function RowActions({ issue: _issue, isHovered, onView, onEdit, onDelete, onDupl
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="bg-muted border-input">
           <DropdownMenuItem onClick={onView} className="gap-2">
             <Eye className="h-4 w-4" />
             View Details
@@ -567,7 +567,7 @@ export function EnhancedIssueTable({
               Columns
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48 bg-muted border-input">
             <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {table

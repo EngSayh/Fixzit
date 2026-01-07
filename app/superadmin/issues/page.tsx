@@ -1657,7 +1657,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-status">{t("superadmin.issues.form.status", "Status")}</Label>
-                <Select defaultValue={selectedIssue.status} className="mt-1" placeholder={getStatusLabel(selectedIssue.status)}>
+                <Select defaultValue={selectedIssue.status} className="mt-1 bg-muted border-input text-foreground" placeholder={getStatusLabel(selectedIssue.status)}>
                   {statusOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -1667,7 +1667,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               </div>
               <div>
                 <Label htmlFor="edit-priority">{t("superadmin.issues.form.priority", "Priority")}</Label>
-                <Select defaultValue={selectedIssue.priority} className="mt-1" placeholder={getPriorityLabel(selectedIssue.priority)}>
+                <Select defaultValue={selectedIssue.priority} className="mt-1 bg-muted border-input text-foreground" placeholder={getPriorityLabel(selectedIssue.priority)}>
                   {priorityOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}

@@ -15,6 +15,9 @@ on:
       - develop
   workflow_dispatch:
 
+env:
+  CI_LITE: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+
 jobs:
   typecheck:
     name: TypeScript Check
@@ -75,6 +78,10 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch PR base
+        if: env.CI_LITE == 'true'
+        run: git fetch origin ${{ github.base_ref }} --depth=1
       
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -107,12 +114,18 @@ jobs:
         continue-on-error: true
       
       - name: Run server tests (shard ${{ matrix.shard }})
-        run: pnpm vitest run --project=server --shard=${{ matrix.shard }} --reporter=dot --coverage
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            pnpm vitest run --project=server --changed "origin/${{ github.base_ref }}" \
+              --shard=${{ matrix.shard }} --reporter=dot --passWithNoTests
+          else
+            pnpm vitest run --project=server --shard=${{ matrix.shard }} --reporter=dot --coverage
+          fi
         env:
           NODE_ENV: test
       
       - name: Upload coverage
-        if: matrix.shard == '1/4'
+        if: matrix.shard == '1/4' && env.CI_LITE != 'true'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -132,6 +145,10 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch PR base
+        if: env.CI_LITE == 'true'
+        run: git fetch origin ${{ github.base_ref }} --depth=1
       
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -164,12 +181,18 @@ jobs:
         continue-on-error: true
       
       - name: Run client tests (shard ${{ matrix.shard }})
-        run: pnpm vitest run --project=client --shard=${{ matrix.shard }} --reporter=dot --coverage
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            pnpm vitest run --project=client --changed "origin/${{ github.base_ref }}" \
+              --shard=${{ matrix.shard }} --reporter=dot --passWithNoTests
+          else
+            pnpm vitest run --project=client --shard=${{ matrix.shard }} --reporter=dot --coverage
+          fi
         env:
           NODE_ENV: test
       
       - name: Upload coverage
-        if: matrix.shard == '1/2'
+        if: matrix.shard == '1/2' && env.CI_LITE != 'true'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -187,6 +210,10 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch PR base
+        if: env.CI_LITE == 'true'
+        run: git fetch origin ${{ github.base_ref }} --depth=1
       
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -219,7 +246,13 @@ jobs:
         continue-on-error: true
       
       - name: Run model tests
-        run: pnpm vitest run --project=server tests/models tests/**/models --reporter=dot
+        run: |
+          if [ "${CI_LITE}" = "true" ]; then
+            pnpm vitest run --project=server tests/models tests/**/models \
+              --changed "origin/${{ github.base_ref }}" --reporter=dot --passWithNoTests
+          else
+            pnpm vitest run --project=server tests/models tests/**/models --reporter=dot
+          fi
         env:
           NODE_ENV: test
 

@@ -124,7 +124,7 @@ export function AtsApplicationsTab({
             </button>
           </div>
 
-          <select className="h-8 px-3 py-1.5 border rounded-md text-sm">
+          <select className="h-8 px-3 py-1.5 border rounded-md text-sm bg-muted border-input text-foreground">
             <option value="all">
               {auto("All Stages", "applications.filters.all")}
             </option>

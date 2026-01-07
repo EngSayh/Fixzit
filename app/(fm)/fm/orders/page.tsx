@@ -276,7 +276,7 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-40">
+          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-40 bg-muted border-input text-foreground">
               <SelectItem value="all">
                 {t("common.all", "All Status")}
               </SelectItem>

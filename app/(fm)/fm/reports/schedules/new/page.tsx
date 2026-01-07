@@ -143,6 +143,7 @@ export default function NewSchedulePage() {
                     "fields.typePlaceholder",
                   )}
                   required
+                  className="bg-muted border-input text-foreground"
                 >
                     {REPORT_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
@@ -173,7 +174,7 @@ export default function NewSchedulePage() {
                   <Calendar className="w-4 h-4" />
                   {auto("Frequency", "fields.frequency")}
                 </Label>
-                <Select value={frequency} onValueChange={setFrequency}>
+                <Select value={frequency} onValueChange={setFrequency} className="bg-muted border-input text-foreground">
                     {FREQUENCIES.map((freq) => (
                       <SelectItem key={freq.value} value={freq.value}>
                         {auto(freq.label, `frequencies.${freq.value}`)}
@@ -199,7 +200,7 @@ export default function NewSchedulePage() {
                 <Label htmlFor="format">
                   {auto("Output Format", "fields.format")}
                 </Label>
-                <Select value={format} onValueChange={setFormat}>
+                <Select value={format} onValueChange={setFormat} className="bg-muted border-input text-foreground">
                     {FORMATS.map((fmt) => (
                       <SelectItem key={fmt.value} value={fmt.value}>
                         {auto(fmt.label, `formats.${fmt.value}`)}

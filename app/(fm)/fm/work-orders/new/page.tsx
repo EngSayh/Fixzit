@@ -364,7 +364,7 @@ export default function NewWorkOrderPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t("workOrders.assignTo", "Assign To")}
                 </label>
-                <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+                <select className="w-full h-8 px-3 py-1.5 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-muted border-input text-foreground">
                   <option value="">
                     {t("workOrders.selectTechnician", "Select Technician")}
                   </option>

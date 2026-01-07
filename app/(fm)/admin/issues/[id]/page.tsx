@@ -512,7 +512,7 @@ export default function AdminIssueDetailPage({
                 <CardContent className="space-y-4">
                   <div>
                     <Label>Status</Label>
-                    <Select value={status} onValueChange={setStatus} placeholder="Select status">
+                    <Select value={status} onValueChange={setStatus} placeholder="Select status" className="bg-muted border-input text-foreground">
                         {STATUS_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
@@ -522,7 +522,7 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority">
+                    <Select value={priority} onValueChange={setPriority} placeholder="Select priority" className="bg-muted border-input text-foreground">
                         {PRIORITY_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value} className={opt.color}>
                             {opt.label}
@@ -532,7 +532,7 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Effort</Label>
-                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort">
+                    <Select value={effort} onValueChange={setEffort} placeholder="Select effort" className="bg-muted border-input text-foreground">
                         {EFFORT_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
@@ -542,7 +542,7 @@ export default function AdminIssueDetailPage({
                   </div>
                   <div>
                     <Label>Category</Label>
-                    <Select value={category} onValueChange={setCategory} placeholder="Select category">
+                    <Select value={category} onValueChange={setCategory} placeholder="Select category" className="bg-muted border-input text-foreground">
                         {CATEGORY_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
