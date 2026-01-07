@@ -353,7 +353,297 @@ The following issues should be marked as `resolved` in the MongoDB Issue Tracker
 
 ---
 
-## 🔍 SIMILAR ISSUE SCANNER & REGISTRY
+## � SYSTEM IMPROVEMENT ROADMAP (v1.0)
+
+> **Created:** 2026-01-08T01:00:00+03:00 (Asia/Riyadh)  
+> **Owner:** [AGENT-TEMP-20250214T1230]  
+> **Status:** 📋 PLANNING  
+> **Source:** Comprehensive system analysis + governance audit
+
+This roadmap consolidates all identified improvements, bugs, compliance gaps, and enhancements into a prioritized action plan.
+
+---
+
+### 📊 ROADMAP SUMMARY
+
+| Category | P0 (Critical) | P1 (High) | P2 (Medium) | P3 (Low) | Total |
+|----------|---------------|-----------|-------------|----------|-------|
+| Bugs & Errors | 4 | 8 | 6 | 2 | 20 |
+| Incorrect Logic | 3 | 5 | 4 | 2 | 14 |
+| Compliance Gaps | 2 | 4 | 3 | 1 | 10 |
+| Process Efficiency | 0 | 6 | 8 | 4 | 18 |
+| Areas for Improvement | 0 | 4 | 6 | 5 | 15 |
+| Testing Gaps | 1 | 5 | 4 | 2 | 12 |
+| Optional Enhancements | 0 | 0 | 4 | 8 | 12 |
+| **TOTAL** | **10** | **32** | **35** | **24** | **101** |
+
+**Effort Estimates:**
+- P0 Items: ~40 hours (2 sprints)
+- P1 Items: ~160 hours (8 sprints)
+- P2 Items: ~200 hours (10 sprints)
+- P3 Items: ~120 hours (6 sprints)
+
+---
+
+### 🔴 P0: CRITICAL (Must Fix Immediately)
+
+#### BUGS-P0: Critical Bugs
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| BUG-LAYOUT-001 | Layout breaks - pages missing header/sidebar | Multiple pages | 8h | ⬜ TODO |
+| BUG-HYDRATION-001 | React hydration errors (server/client DOM mismatch) | Global shell | 4h | ⬜ TODO |
+| BUG-CONSOLE-001 | Console errors on page load (0-error target) | Various | 4h | ⬜ TODO |
+| BUG-FILE-UPLOAD-001 | File upload errors for work order attachments | WO attachments | 4h | ⬜ TODO |
+
+#### LOGIC-P0: Critical Logic Errors
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| LOGIC-RBAC-001 | Users may access data outside their tenant scope | API queries | 8h | ⬜ TODO |
+| LOGIC-APPROVAL-001 | Work order can start without required approval | WO state machine | 4h | ⬜ TODO |
+| LOGIC-FINANCE-001 | Duplicate expense postings on WO reopen/edit | Finance integration | 4h | ⬜ TODO |
+
+#### COMPLIANCE-P0: Critical Compliance
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| COMP-ZATCA-001 | Missing ZATCA e-invoice compliance (QR, signature) | Finance/Invoices | 16h | ⬜ TODO |
+| COMP-RTL-001 | RTL layout violations (misaligned icons, padding) | CSS/Tailwind | 8h | ⬜ TODO |
+| TEST-P0-001 | No E2E tests for Page × Role matrix | Testing infra | 16h | ⬜ TODO |
+
+---
+
+### 🟠 P1: HIGH PRIORITY (Fix This Sprint)
+
+#### BUGS-P1: High Priority Bugs
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| BUG-I18N-001 | ~256 missing translation keys | i18n files | 8h | ⬜ TODO |
+| BUG-SELECT-001 | 93/152 Select components missing consistent styling | Forms | 4h | ⬜ TODO |
+| BUG-NOTIF-001 | Email/SMS notifications not sending (SendGrid/Twilio config) | Notifications | 4h | ⬜ TODO |
+| BUG-STATE-001 | Tickets stuck in "Loading" or incorrect state labels | WO workflow | 4h | ⬜ TODO |
+| BUG-TS-001 | TypeScript `any` types causing potential runtime issues | Various | 8h | ⬜ TODO |
+| BUG-NET-001 | Unhandled 4xx/5xx API responses | Error handling | 4h | ⬜ TODO |
+| BUG-DATE-001 | Arabic dates/numbers not formatting correctly | Locale formatting | 4h | ⬜ TODO |
+| BUG-OVERFLOW-001 | Text overflow and responsive issues in RTL | CSS | 4h | ⬜ TODO |
+
+#### LOGIC-P1: High Priority Logic
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| LOGIC-SLA-001 | SLA timers not triggering breach alerts | SLA scan job | 8h | ⬜ TODO |
+| LOGIC-APPROVAL-002 | Low-cost WOs waiting for senior manager approval | Approval engine | 4h | ⬜ TODO |
+| LOGIC-VALIDATION-001 | WO can be created without Property/Unit association | Form validation | 4h | ⬜ TODO |
+| LOGIC-ROLE-001 | Role capabilities don't match spec (hidden buttons) | RBAC UI | 4h | ⬜ TODO |
+| LOGIC-QUOTE-001 | QA state triggers when org hasn't enabled feature | State machine | 4h | ⬜ TODO |
+
+#### COMPLIANCE-P1: High Priority Compliance
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| COMP-A11Y-001 | Missing alt text and ARIA labels | Components | 8h | ⬜ TODO |
+| COMP-A11Y-002 | Color contrast failures (WCAG AA) | Color palette | 4h | ⬜ TODO |
+| COMP-LANG-001 | Language/currency switchers missing on some pages | App shell | 4h | ⬜ TODO |
+| COMP-BRAND-001 | Off-palette colors still in use (#023047, #F6851F) | CSS audit | 4h | ⬜ TODO |
+
+#### PROCESS-P1: High Priority Automation
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| PROC-DISPATCH-001 | Manual technician assignment (no auto-dispatch) | WO assignment | 16h | ⬜ TODO |
+| PROC-APPROVE-001 | No parallel approval or auto-approval for routine jobs | Approval engine | 8h | ⬜ TODO |
+| PROC-ESCALATE-001 | No SLA breach notifications to management | Notifications | 4h | ⬜ TODO |
+| PROC-FINANCE-001 | WO close doesn't auto-post expense/invoice | Finance bridge | 8h | ⬜ TODO |
+| PROC-MARKET-001 | Marketplace order doesn't auto-create WO | Souq integration | 8h | ⬜ TODO |
+| PROC-HR-001 | Technician job completion not logged to timesheet | HR integration | 4h | ⬜ TODO |
+
+#### IMPROVE-P1: High Priority Improvements
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| IMP-LAYOUT-001 | Enforce single unified layout (Layout Freeze mandate) | App shell | 8h | ⬜ TODO |
+| IMP-I18N-001 | Language selector with country flags and ISO codes | Header | 4h | ⬜ TODO |
+| IMP-TIMELINE-001 | Work order status timeline/progress bar for tenants | WO detail | 8h | ⬜ TODO |
+| IMP-DASHBOARD-001 | Comprehensive dashboard with KPI widgets | Dashboard module | 24h | ⬜ TODO |
+
+#### TESTING-P1: High Priority Testing
+
+| ID | Issue | Location | Effort | Status |
+|----|-------|----------|--------|--------|
+| TEST-E2E-001 | Playwright E2E tests for each role × page | Testing | 24h | ⬜ TODO |
+| TEST-WORKFLOW-001 | WO lifecycle integration test (create → close → invoice) | Testing | 8h | ⬜ TODO |
+| TEST-FINANCE-001 | Financial transaction tests (ledger updates) | Testing | 4h | ⬜ TODO |
+| TEST-RBAC-001 | Automated RBAC permission tests | Testing | 8h | ⬜ TODO |
+| TEST-UNIT-001 | Unit tests for SLA calc, approval engine, org scoping | Testing | 8h | ⬜ TODO |
+
+---
+
+### 🟡 P2: MEDIUM PRIORITY (Next Sprint)
+
+#### BUGS-P2
+
+| ID | Issue | Effort | Status |
+|----|-------|--------|--------|
+| BUG-RESPONSIVE-001 | Broken responsive behavior in RTL mode | 4h | ⬜ TODO |
+| BUG-PLACEHOLDER-001 | English placeholder text showing in Arabic mode | 4h | ⬜ TODO |
+| BUG-CURRENCY-001 | Currency switch not functioning on all pages | 4h | ⬜ TODO |
+| BUG-DROPDOWN-001 | Dropdown styling inconsistencies | 4h | ⬜ TODO |
+| BUG-BUTTON-001 | Mis-styled buttons across forms | 4h | ⬜ TODO |
+| BUG-DIGITS-001 | Arabic-Indic digits not showing in Arabic locale | 4h | ⬜ TODO |
+
+#### LOGIC-P2
+
+| ID | Issue | Effort | Status |
+|----|-------|--------|--------|
+| LOGIC-DELEGATE-001 | No delegation rules for absent approvers | 4h | ⬜ TODO |
+| LOGIC-OWNER-001 | Owner submitting WO for own property still requires approval | 4h | ⬜ TODO |
+| LOGIC-INVOICE-001 | Invoice editable after issuance (should create credit note) | 4h | ⬜ TODO |
+| LOGIC-TAX-001 | VAT calculation accuracy per KSA rules | 4h | ⬜ TODO |
+
+#### COMPLIANCE-P2
+
+| ID | Issue | Effort | Status |
+|----|-------|--------|--------|
+| COMP-AUDIT-001 | No user-facing audit trail viewer | 8h | ⬜ TODO |
+| COMP-FORM-001 | Form inputs missing associated labels | 4h | ⬜ TODO |
+| COMP-FOCUS-001 | "Skip to content" link not moving focus correctly | 2h | ⬜ TODO |
+
+#### PROCESS-P2
+
+| ID | Issue | Effort | Status |
+|----|-------|--------|--------|
+| PROC-PREVENT-001 | No automated preventive maintenance scheduling | 16h | ⬜ TODO |
+| PROC-WEBHOOK-001 | No real-time notifications via WhatsApp | 8h | ⬜ TODO |
+| PROC-PARALLEL-001 | Sequential approvals instead of parallel | 4h | ⬜ TODO |
+| PROC-AUTOAPP-001 | No auto-approval for low-cost routine jobs | 4h | ⬜ TODO |
+| PROC-TIMEOUT-001 | No escalation when approver doesn't respond | 4h | ⬜ TODO |
+| PROC-BATCH-001 | Bulk operations not logging to audit | 4h | ⬜ TODO |
+| PROC-ATTACH-001 | Marketplace order attachments not carried to WO | 4h | ⬜ TODO |
+| PROC-SCHEDULE-001 | Technician scheduling outside working hours allowed | 4h | ⬜ TODO |
+
+#### IMPROVE-P2
+
+| ID | Issue | Effort | Status |
+|----|-------|--------|--------|
+| IMP-TOOLTIP-001 | Tooltips explaining workflow stages (Assessment, Quote, etc.) | 4h | ⬜ TODO |
+| IMP-WIDGET-001 | Draggable, configurable dashboard widgets | 16h | ⬜ TODO |
+| IMP-HELP-001 | In-app help center / knowledge base | 16h | ⬜ TODO |
+| IMP-FEEDBACK-001 | NPS/CSAT survey integration | 8h | ⬜ TODO |
+| IMP-SEARCH-001 | Global search improvements | 8h | ⬜ TODO |
+| IMP-BRANDING-001 | Consistent Fixzit branding enforcement | 4h | ⬜ TODO |
+
+#### TESTING-P2
+
+| ID | Issue | Effort | Status |
+|----|-------|--------|--------|
+| TEST-VISUAL-001 | Visual regression tests (screenshot comparison) | 8h | ⬜ TODO |
+| TEST-EDGE-001 | Edge case tests (max length, special chars, large files) | 8h | ⬜ TODO |
+| TEST-LOAD-001 | Load testing with k6 (concurrent users, spike tests) | 8h | ⬜ TODO |
+| TEST-A11Y-001 | Automated accessibility testing (axe-core) | 4h | ⬜ TODO |
+
+---
+
+### 🟢 P3: LOW PRIORITY (Future Sprints)
+
+#### OPTIONAL ENHANCEMENTS
+
+| ID | Feature | Effort | Category |
+|----|---------|--------|----------|
+| OPT-RATING-001 | Vendor ratings and reviews in Marketplace | 24h | Feature |
+| OPT-IOT-001 | IoT sensor integration for predictive maintenance | 40h | Integration |
+| OPT-EJAR-001 | Ejar integration for tenancy contract validation | 24h | Integration |
+| OPT-BALADIYAH-001 | Baladiyah portal integration for permits | 24h | Integration |
+| OPT-PAYMENT-001 | Mada/STC Pay payment gateway integration | 16h | Integration |
+| OPT-CHATBOT-001 | AI maintenance chatbot for tenants | 40h | AI/ML |
+| OPT-CLASSIFY-001 | AI ticket categorization from description/images | 24h | AI/ML |
+| OPT-PREDICT-001 | Predictive maintenance recommendations | 40h | AI/ML |
+| OPT-WHITELABEL-001 | White-label branding per tenant | 16h | Platform |
+| OPT-PWA-001 | Progressive Web App with offline support | 16h | Mobile |
+| OPT-BID-001 | Bidding and RFQ for marketplace jobs | 24h | Marketplace |
+| OPT-ESCROW-001 | Escrow payments for marketplace transactions | 16h | Finance |
+
+#### ANALYTICS ENHANCEMENTS
+
+| ID | Feature | Effort | Status |
+|----|---------|--------|--------|
+| ANL-BI-001 | Advanced analytics with trend charts | 24h | ⬜ TODO |
+| ANL-BENCH-001 | Cross-property benchmarking | 16h | ⬜ TODO |
+| ANL-VENDOR-001 | Vendor performance dashboards | 8h | ⬜ TODO |
+| ANL-REPORT-001 | Custom report builder | 24h | ⬜ TODO |
+
+---
+
+### 📋 ACTION PLAN BY SPRINT
+
+#### Sprint 1 (Current): P0 Critical Fixes
+**Duration:** 2 weeks | **Effort:** ~40h
+
+1. **BUG-LAYOUT-001**: Fix layout breaks (ensure global header/sidebar renders on all pages)
+2. **BUG-HYDRATION-001**: Resolve React hydration errors
+3. **BUG-CONSOLE-001**: Achieve 0-error console on all pages
+4. **LOGIC-RBAC-001**: Audit all API queries for org_id scoping
+5. **COMP-RTL-001**: Fix RTL layout violations
+
+**Exit Criteria:**
+- [ ] All pages render with unified layout
+- [ ] 0 console errors on page load
+- [ ] All API routes scoped by org_id
+- [ ] RTL mode renders correctly
+
+#### Sprint 2-3: P0 Compliance + P1 Bugs
+**Duration:** 4 weeks | **Effort:** ~80h
+
+1. **COMP-ZATCA-001**: Implement ZATCA e-invoice compliance
+2. **TEST-P0-001**: Set up Playwright E2E infrastructure
+3. **BUG-I18N-001**: Fill 256 missing translation keys
+4. **LOGIC-SLA-001**: Implement SLA breach alerts
+5. **PROC-DISPATCH-001**: Auto-technician dispatch
+
+**Exit Criteria:**
+- [ ] ZATCA-compliant invoices
+- [ ] E2E tests for 5 critical flows
+- [ ] 100% translation coverage
+- [ ] SLA alerts working
+
+#### Sprint 4-6: P1 Automation + P2 Items
+**Duration:** 6 weeks | **Effort:** ~120h
+
+1. **PROC-FINANCE-001**: WO → Finance auto-posting
+2. **IMP-DASHBOARD-001**: KPI dashboard implementation
+3. **IMP-TIMELINE-001**: WO status timeline
+4. **COMP-A11Y-001**: WCAG AA compliance
+5. **TEST-WORKFLOW-001**: Full workflow integration tests
+
+#### Sprint 7-10: P2 Polish + P3 Enhancements
+**Duration:** 8 weeks | **Effort:** ~160h
+
+1. Process automation refinements
+2. Optional integrations (IoT, Ejar, payments)
+3. AI features (chatbot, classification)
+4. Analytics enhancements
+
+---
+
+### 📊 EVIDENCE REQUIREMENTS
+
+For each bug/issue, attach:
+1. **Screenshots** of the error state
+2. **Console logs** (browser DevTools output)
+3. **Network tab** showing failed requests
+4. **Stack traces** for runtime errors
+
+**Verification Protocol (Halt-Fix-Verify):**
+1. Capture T0 screenshot/logs on page load
+2. Capture T1 screenshot/logs after interaction
+3. Fix the issue
+4. Re-capture T0/T1 to verify resolution
+5. No issue is closed without before/after evidence
+
+---
+
+## �🔍 SIMILAR ISSUE SCANNER & REGISTRY
 
 > **Last Scanned:** 2026-01-07T18:00:00+03:00  
 > **Scan Trigger:** Manual (User Request)  
