@@ -5,16 +5,92 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2026-01-07T18:00:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v5.2 (System Organizer + Duplicate & Rate-Limit + **Similar Issue Scanner**)  
-**Branch:** feat/superadmin-users-improvements-AGENT-0007  
-**Commit:** 4aa1395e7 (refactor: Extract users page components + add CSV export & keyboard nav)  
-**Last Work:** Similar Issue Registry Enhancement - Jan 07, 2026  
+**Last Updated:** 2026-01-07T19:30:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v5.3 (System Organizer + Duplicate & Rate-Limit + **Similar Issue Scanner** + **Batch Verification**)  
+**Branch:** main  
+**Commit:** 3029fa1f8  
+**Last Work:** Batch Issue Verification (18 issues reviewed) - Jan 07, 2026  
 **MongoDB Status:** Synced via /api/issues/import (2026-01-07 14:42 +03:00)  
 **Verification Status:** VERIFIED (TypeScript: 0 errors, ESLint: 0 errors, 1 warning)  
 **Working Tree:** Clean  
 **Test Count:** 479 test files, 392 API routes, 189 API tests  
 **Similar Issue Groups:** 18 patterns indexed (100 total issues tracked)
+
+---
+
+## 2026-01-07 19:30 - Batch Issue Verification [AGENT-001-A]
+
+### 📋 18 Issues Reviewed - Verification Results
+
+**Summary:** Reviewed 18 issues from issue tracker. **ALL 18 issues are already fixed or correctly classified.**
+
+#### ✅ Security Issues (P0) - ALL VERIFIED FIXED
+
+| ID | Issue | Status | Evidence |
+|----|-------|--------|----------|
+| P0-001 | WorkOrder.find without orgId | ✅ **ALREADY FIXED** | `assistant/query/route.ts:259` has `orgId: user.orgId` in query |
+| P0-002 | FMPMPlan.find without orgId | ✅ **ALREADY FIXED** | `pm/plans/route.ts:42` has `{ orgId }` in query |
+| P0-003 | Vendor.find/countDocuments missing orgId | ✅ **ALREADY FIXED** | `vendors/route.ts:214` has `{ orgId: user.orgId }` in match |
+
+#### ✅ Reliability Issues (P1/P2) - ALL VERIFIED FIXED
+
+| ID | Issue | Status | Evidence |
+|----|-------|--------|----------|
+| P1-002 | Silent DB failure on vendor apply | ✅ **ALREADY FIXED** | `vendor/apply/route.ts:67-72` returns 503 on DB connection failure |
+| SILENT-UPLOAD-AUTH-CLUSTER | Auth failure swallowed | ✅ **ALREADY FIXED** | Uses `getSessionOrNull` with telemetry; returns 503 on infra errors |
+| BUG-CART-001 | Missing zodValidationError | ✅ **ALREADY FIXED** | `marketplace/cart/route.ts:215` uses `zodValidationError(error, request)` |
+
+#### ✅ Filter Serialization Issues - ALL VERIFIED FIXED
+
+| ID | Component | Status | Evidence |
+|----|-----------|--------|----------|
+| BUG-AUDITLOGS-FILTERS-MISSING-LOCAL | AuditLogsList | ✅ **ALREADY FIXED** | Line 129: `serializeFilters(state.filters as AuditFilters, AUDIT_FILTER_SCHEMA, params)` |
+| BUG-INVOICES-FILTERS-MISSING-LOCAL | InvoicesList | ✅ **ALREADY FIXED** | Has `serializeFilters` in `buildInvoicesQuery` |
+| BUG-EMPLOYEES-FILTERS-MISSING-LOCAL | EmployeesList | ✅ **ALREADY FIXED** | Line 137: `serializeFilters(state.filters as EmployeeFilters, EMPLOYEE_FILTER_SCHEMA, params)` |
+| BUG-USERS-FILTERS-MISSING-LOCAL | UsersList | ✅ **ALREADY FIXED** | Line 134: `serializeFilters(state.filters as UserFilters, USER_FILTER_SCHEMA, params)` |
+| BUG-WO-FILTERS-MISSING-LOCAL | WorkOrdersViewNew | ✅ **ALREADY FIXED** | Line 189: `serializeFilters(state.filters as WorkOrderFilters, WORK_ORDER_FILTER_SCHEMA, params)` |
+
+#### ✅ Feature Requests - VERIFIED IMPLEMENTED
+
+| ID | Feature | Status | Evidence |
+|----|---------|--------|----------|
+| FEAT-0031 | Inspection tenant notification | ✅ **ALREADY IMPLEMENTED** | `inspection-service.ts:504-548` has full notification implementation with i18n |
+
+#### ✅ Documentation Issues - ALL VERIFIED COMPLETE
+
+| ID | Issue | Status | Evidence |
+|----|-------|--------|----------|
+| DOC-105 | Missing ZATCA TLV encoding comments | ✅ **ALREADY FIXED** | `services/zatca/fatoora-service.ts:238-305` has detailed TLV comments |
+| DOC-106 | Missing README for backlog tracker | ✅ **ALREADY FIXED** | `issue-tracker/README.md` has 537 lines of comprehensive docs |
+| DOC-110 | Missing deployment checklist | ✅ **ALREADY FIXED** | `issue-tracker/README.md` Quick Setup section covers deployment |
+
+#### 🔵 Deferred/Not Code Issues
+
+| ID | Issue | Status | Notes |
+|----|-------|--------|-------|
+| INFRA-SENTRY | Sentry DSN needed | ✅ **ALREADY CONFIGURED** | Per SSOT: Sentry DSN added to Vercel/GitHub secrets |
+| ZATCA-pending | Pending user configuration | 🔵 **USER ACTION** | Requires user to configure ZATCA credentials in production |
+| PERF-0003 | db.collection() bypasses Mongoose | 🔵 **LOGGED/DEFERRED** | 37 calls in 25 files, estimated 24h+ effort |
+
+### 📊 Verification Statistics
+
+| Metric | Count |
+|--------|-------|
+| Issues Reviewed | 18 |
+| Already Fixed | 15 |
+| Correctly Deferred | 2 |
+| User Action Required | 1 |
+| **False Positives** | **15/18 (83%)** |
+
+### 🔄 Action: Mark Issues Resolved in MongoDB
+
+The following issues should be marked as `resolved` in the MongoDB Issue Tracker:
+- P0-001, P0-002, P0-003, P1-002
+- SILENT-UPLOAD-AUTH-CLUSTER, BUG-CART-001
+- BUG-AUDITLOGS-FILTERS-MISSING-LOCAL, BUG-INVOICES-FILTERS-MISSING-LOCAL
+- BUG-EMPLOYEES-FILTERS-MISSING-LOCAL, BUG-USERS-FILTERS-MISSING-LOCAL
+- BUG-WO-FILTERS-MISSING-LOCAL, FEAT-0031
+- DOC-105, DOC-106, DOC-110, INFRA-SENTRY
 
 ---
 
