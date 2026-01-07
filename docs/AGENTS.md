@@ -1000,17 +1000,19 @@ These are AUTO-FAIL violations (also reflected in Section 1.2 Non-Negotiables):
 
 Before starting ANY task:
 
-□ 1. Run git preflight (Section 5.4) — repo up to date with origin/main
-□ 2. Read .fixzit/agent-assignments.json — check for conflicts
-□ 3. Execute Pre-Claim SSOT Validation (Section 6)
-□ 4. Claim slot with Agent Token: [AGENT-XXX-Y]
-□ 5. List EXACT files to modify (no wildcards)
-□ 6. Complete applicable Multi-Role Validation Gates (Section 4.2)
-□ 7. Record MRDR (Section 4.2.15) in SSOT issue notes BEFORE coding
-□ 8. Verify git status is clean
-□ 9. Verify worktrees: `git worktree list` (must be single worktree only)
-□ 10. Run: `pnpm typecheck` (must pass)
-□ 11. Run: `pnpm lint` (must pass)
+□ 1. Run Terminal Cleanup Protocol (Section 5.8.7) — clean orphans, protect other agents
+□ 2. Name your terminal: `[AGENT-XXXX] Purpose` (Section 5.8.1)
+□ 3. Run git preflight (Section 5.4) — repo up to date with origin/main
+□ 4. Read .fixzit/agent-assignments.json — check for conflicts
+□ 5. Execute Pre-Claim SSOT Validation (Section 6)
+□ 6. Claim slot with Agent Token: [AGENT-XXX-Y]
+□ 7. List EXACT files to modify (no wildcards)
+□ 8. Complete applicable Multi-Role Validation Gates (Section 4.2)
+□ 9. Record MRDR (Section 4.2.15) in SSOT issue notes BEFORE coding
+□ 10. Verify git status is clean
+□ 11. Verify worktrees: `git worktree list` (must be single worktree only)
+□ 12. Run: `pnpm typecheck` (must pass)
+□ 13. Run: `pnpm lint` (must pass)
 
 
 Announce: [AGENT-XXX-Y] Claimed. Files: <list>
@@ -1397,6 +1399,133 @@ When multiple agents operate in the same workspace:
 2. **Label clearly:** Use `[AGENT-XXX-X]` prefix in terminal names
 3. **Clean up immediately:** Don't wait for session end to clean obvious orphans
 4. **Preserve shared resources:** Never kill the Dev Server terminal (`Dev: Start Server`)
+
+#### 5.8.7 Terminal Cleanup Protocol (MANDATORY AT SESSION START)
+
+**Every agent MUST run this cleanup protocol BEFORE starting any work.**
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🧹 TERMINAL CLEANUP PROTOCOL — RUN FIRST, EVERY SESSION                │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Purpose: Clean orphan terminals while protecting other active agents   │
+│ When: BEFORE any other pre-start checklist items                       │
+│ Goal: Each agent works accurately without overstepping others          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+**Step 1: Identify Your Terminal**
+```powershell
+# Get your current terminal PID
+$currentPID = $PID
+Write-Host "Current Terminal PID: $currentPID"
+```
+
+**Step 2: Check for Active Agents**
+```powershell
+# Read agent-assignments.json to see who else is active
+if (Test-Path ".fixzit/agent-assignments.json") {
+    $assignments = Get-Content ".fixzit/agent-assignments.json" | ConvertFrom-Json
+    $now = Get-Date
+    
+    # Check for non-expired claims (TTL = 60 minutes)
+    $activeAgents = $assignments.activeAgents | Where-Object {
+        $expiry = [DateTime]::Parse($_.claimExpiresAt)
+        $expiry -gt $now
+    }
+    
+    if ($activeAgents.Count -gt 0) {
+        Write-Host "⚠️ Active agents found:" -ForegroundColor Yellow
+        $activeAgents | ForEach-Object {
+            Write-Host "  - $($_.agentId): $($_.currentIssue)" -ForegroundColor Yellow
+        }
+        Write-Host "Do NOT kill terminals that may belong to these agents!"
+    } else {
+        Write-Host "✓ No active agent claims (all expired)" -ForegroundColor Green
+    }
+} else {
+    Write-Host "✓ No agent-assignments.json found" -ForegroundColor Green
+}
+```
+
+**Step 3: List All Terminals**
+```powershell
+# List all PowerShell terminals with their titles
+Get-Process powershell, pwsh -ErrorAction SilentlyContinue | 
+    Select-Object Id, ProcessName, MainWindowTitle |
+    ForEach-Object {
+        $status = if ($_.Id -eq $PID) { "[CURRENT - KEEP]" }
+                  elseif ($_.MainWindowTitle -match '\[AGENT-\d{4}\]') { "[OTHER AGENT - CHECK]" }
+                  else { "[ORPHAN - CAN KILL]" }
+        Write-Host "PID $($_.Id): $($_.MainWindowTitle) $status"
+    }
+```
+
+**Step 4: Protect Dev Server**
+```powershell
+# Verify dev server is running (NEVER kill this)
+$devServerPID = (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess | Select-Object -First 1
+if ($devServerPID) {
+    Write-Host "✓ Dev Server running on PID $devServerPID (port 3000) - PROTECTED" -ForegroundColor Green
+} else {
+    Write-Host "⚠️ Dev Server NOT running! Start with 'pnpm dev'" -ForegroundColor Red
+}
+```
+
+**Step 5: Kill Orphan Terminals (SAFE)**
+```powershell
+# Kill only unnamed terminals (orphans) - NOT other agents
+Get-Process powershell, pwsh -ErrorAction SilentlyContinue | 
+    Where-Object { 
+        $_.Id -ne $PID -and                                    # Not current
+        -not ($_.MainWindowTitle -match '\[AGENT-\d{4}\]')     # Not another agent
+    } | ForEach-Object {
+        Write-Host "Killing orphan PID: $($_.Id)" -ForegroundColor Red
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    }
+```
+
+**Step 6: Name Your Terminal**
+```powershell
+# MANDATORY: Name your terminal with agent token + purpose
+$host.UI.RawUI.WindowTitle = "[AGENT-XXXX] Git Operations"
+
+# Examples:
+$host.UI.RawUI.WindowTitle = "[AGENT-0005] Git Operations"
+$host.UI.RawUI.WindowTitle = "[AGENT-0005] TypeCheck + Lint"
+$host.UI.RawUI.WindowTitle = "[AGENT-0005] Test Runner"
+```
+
+**Step 7: Verify Cleanup**
+```powershell
+# Final check - should only see your terminal + any active agents
+Get-Process powershell, pwsh -ErrorAction SilentlyContinue | 
+    Select-Object Id, MainWindowTitle | Format-Table -AutoSize
+
+# Verify dev server still running
+Test-NetConnection -ComputerName localhost -Port 3000 -WarningAction SilentlyContinue | 
+    Select-Object TcpTestSucceeded
+```
+
+**Quick One-Liner (PowerShell):**
+```powershell
+# Safe orphan cleanup + terminal naming (copy-paste ready)
+$host.UI.RawUI.WindowTitle = "[AGENT-XXXX] Purpose"; Get-Process powershell -EA 0 | Where-Object { $_.Id -ne $PID -and $_.MainWindowTitle -notmatch '\[AGENT-\d{4}\]' } | Stop-Process -Force -EA 0; Write-Host "Cleanup complete. Current PID: $PID"
+```
+
+**Cleanup Rules (NON-NEGOTIABLE):**
+
+| Rule | Action |
+|------|--------|
+| **Unnamed terminals** | KILL (orphans from crashed sessions) |
+| **Terminals with `[AGENT-XXXX]`** | CHECK agent-assignments.json for expiry |
+| **Expired agent terminals** | KILL (claim expired > 60 min ago) |
+| **Active agent terminals** | NEVER KILL (claim still valid) |
+| **Dev Server (port 3000)** | NEVER KILL (protected resource) |
+| **Your current terminal** | NEVER KILL (you need it!) |
+
+**After Cleanup, Announce:**
+```
+[AGENT-XXXX] Terminal cleanup complete. Orphans killed: N. Active agents: [list or none].
+```
 
 ---
 
