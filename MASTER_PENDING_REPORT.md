@@ -422,19 +422,19 @@ This registry indexes ALL issues across the system regardless of status (open, i
 ### 🔗 SIMILARITY GROUP 3: i18n Hardcoded Strings
 **Pattern:** User-facing strings not wrapped in `t()` translation function  
 **Canonical Issue:** PR-678-006  
-**Similar Issues:** 14
+**Similar Issues:** 14 → **MOSTLY RESOLVED**
 
 | ID | Status | Location | First Seen | Resolution |
 |----|--------|----------|------------|------------|
-| PR-678-006 | 🔴 Open | Bulk action headers, filters | 2026-01-07 | — |
-| I18N-ACT-001 | 🔴 Open | `ActivityLogTab.tsx:119-138` (filter labels) | 2026-01-07 | — |
-| I18N-ERR-001 | 🔴 Open | `ErrorsTab.tsx:79-81` ("Unknown error") | 2026-01-07 | — |
-| I18N-BULK-001 | 🔴 Open | `BulkActionsHeader.tsx:129` | 2026-01-07 | — |
-| I18N-FILT-001 | 🔴 Open | `UserFilters.tsx:77-82` (SelectItem labels) | 2026-01-07 | — |
-| I18N-ROW-001 | 🔴 Open | `UserRow.tsx:249-291` (DropdownMenuItem) | 2026-01-07 | — |
+| PR-678-006 | 🟢 Resolved | Bulk action headers, filters | 2026-01-07 | PR #680 |
+| I18N-ACT-001 | 🟢 Resolved | `ActivityLogTab.tsx:119-138` (filter labels) | 2026-01-07 | PR #680 |
+| I18N-ERR-001 | 🟢 Resolved | `ErrorsTab.tsx:79-81` ("Unknown error") | 2026-01-07 | Already had i18n |
+| I18N-BULK-001 | 🟢 Resolved | `BulkActionsHeader.tsx:129` | 2026-01-07 | PR #680 |
+| I18N-FILT-001 | 🟢 Resolved | `UserFilters.tsx:77-82` (SelectItem labels) | 2026-01-07 | Already had i18n |
+| I18N-ROW-001 | 🟢 Resolved | `UserRow.tsx:249-291` (DropdownMenuItem) | 2026-01-07 | Already had i18n |
 | ISSUE-I18N-001 | 🟢 Resolved | 9 missing keys + 37 AR placeholders | 2025-12-11 | Commit 28901fb80 |
-| I18N-PERM-001 | 🔴 Open | `PermissionsTab.tsx:60-62` (pre-interpolated) | 2026-01-07 | — |
-| I18N-PROF-001 | 🔴 Open | `ProfileTab.tsx:131-132` (colliding key) | 2026-01-07 | — |
+| I18N-PERM-001 | � Resolved | `PermissionsTab.tsx:60-62` (pre-interpolated) | 2026-01-07 | PR #680 |
+| I18N-PROF-001 | 🟢 Resolved | `ProfileTab.tsx:131-132` (colliding key) | 2026-01-07 | Already correct |
 | I18N-001 | 🟢 Resolved | Full i18n audit | 2025-12-11 | 30,852 keys/locale |
 
 **Systematic Fix:** Wrap all user-visible strings in `t()`, audit via `grep -rn "'\w+\s+\w+'" components/`.
