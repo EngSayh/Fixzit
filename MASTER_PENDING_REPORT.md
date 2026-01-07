@@ -5,15 +5,104 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2026-01-07T14:42:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2026-01-07T15:20:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v5.1 (System Organizer + Duplicate & Rate-Limit Scan)  
 **Branch:** feat/superadmin-users-improvements-AGENT-0007  
-**Commit:** c641edacf (feat(superadmin): Users system improvement - tests, performance, audit [AGENT-0007])  
-**Last Work:** System Scan Update + SSOT Sync - Jan 07, 2026  
+**Commit:** 4aa1395e7 (refactor: Extract users page components + add CSV export & keyboard nav)  
+**Last Work:** PR #678 Comment Review + Component Extraction - Jan 07, 2026  
 **MongoDB Status:** Synced via /api/issues/import (2026-01-07 14:42 +03:00)  
-**Verification Status:** VERIFIED (TypeScript: 0 errors, ESLint: 5 warnings)  
-**Working Tree:** Dirty (1 modified)  
+**Verification Status:** VERIFIED (TypeScript: 0 errors, ESLint: 0 errors, 1 warning)  
+**Working Tree:** Clean  
 **Test Count:** 479 test files, 392 API routes, 189 API tests
+
+---
+
+## 2026-01-07 15:20 - PR #678 Comment Review [AGENT-0007]
+
+### PR Review Comments Summary (from AI Reviewers)
+
+#### Gemini Code Assist
+**Summary:** Introduced comprehensive user detail page, user-specific audit logs API, performance optimization via MongoDB aggregation, enhanced audit trail for bulk operations, and 30 new tests.
+
+#### Qodo (PR Code Review)
+**Compliance Status:**
+| Check | Status | Notes |
+|-------|--------|-------|
+| Security Compliance | 🟢 PASS | No security concerns identified |
+| Ticket Compliance | ⚪ N/A | No ticket provided |
+| Generic: Meaningful Naming | 🟢 PASS | — |
+| Generic: Input Validation | 🟢 PASS | — |
+| Generic: Error Handling | 🔴 FAIL | Silent fetch failure in page.tsx (empty catch) |
+| Generic: Audit Trails | ⚪ REVIEW | Actor identity uses session.username for userId/userName/userEmail |
+| Generic: Secure Error Handling | ⚪ REVIEW | 404 "User not found" may disclose account existence |
+| Generic: Secure Logging | ⚪ REVIEW | Raw error object logging may expose internal details |
+
+**Code Suggestions:**
+1. **High**: Consolidate stats queries into single `$facet` aggregation
+2. **Medium**: Correct RouteParams interface (remove Promise wrapper from params)
+3. **Low**: Add upper bound to date filter (`$lte: now`)
+4. **Low**: Use `targetOrgObjectId` instead of `targetOrgId` string for audit orgId
+
+#### CodeAnt AI (Nitpicks)
+| Area | Issue | Status |
+|------|-------|--------|
+| Sensitive data exposure | Audit logs may contain PII/tokens in context/changes/metadata | ⬜ Review needed |
+| Possible Misattribution | `session.username` used for userId/userName/userEmail | ⬜ Review needed |
+| Audit field types | orgId as string vs ObjectId mismatch risk | ⬜ Review needed |
+| Identity accuracy | Hardcoded `userRole: "SUPER_ADMIN"` | ⬜ Review needed |
+| Large audit payload | Entire userIds array in metadata may bloat collection | ⬜ Review needed |
+
+#### Copilot Review
+**Files Reviewed:** 10/10
+**Key Observations:**
+- New test suite with 12 tests for users list API
+- New test suite with 9 tests for single user API
+- New test suite with 9 tests for bulk operations
+- Performance optimization: replaced N+1 query with `$lookup` aggregation
+- Added audit log entries for bulk-delete and bulk-update
+
+#### CodeRabbit Review (CHANGES_REQUESTED)
+**Actionable Comments:** 19
+
+**Key i18n Issues:**
+- `ActivityLogTab.tsx:119-138`: Filter labels hardcoded in English
+- `ActivityLogTab.tsx:216-222`: View button lacks aria-label
+- `AuditTrailTab.tsx:149-161`: Button lacks `type="button"`
+- `ErrorsTab.tsx:79-81`: Hardcoded "Unknown error" fallback
+- `PermissionsTab.tsx:60-62`: Translation call with pre-interpolated template
+- `ProfileTab.tsx:131-132`: Colliding i18n key for job title
+- `BulkActionsHeader.tsx:91-92`: CSV blob missing UTF-8 BOM
+- `BulkActionsHeader.tsx:129`: Hardcoded user-facing strings
+- `UserDialogs.tsx:50-57`: formatDate uses hardcoded "en-US" locale
+- `UserDialogs.tsx:986-994`: Label lacks htmlFor association
+- `UserFilters.tsx:77-82`: SelectItem labels hardcoded
+- `UserRow.tsx:59-66`: formatDate hardcoded "en-US"
+- `UserRow.tsx:249-291`: DropdownMenuItem labels hardcoded
+- `UsersTable.tsx:157`: Table has redundant role="grid"
+- `UsersTable.tsx:161-175`: Select-all button missing type="button"
+- `types.ts:117-123`: STATUS_COLORS duplicated
+
+**Accessibility Issues (Biome):**
+- `AuditTrailTab.tsx:149-161`: Button missing explicit type
+- `UserRow.tsx:151-152`: Role can use semantic `<tr>`
+- `UsersTable.tsx:157`: Role can use semantic `<table>`
+- `UsersTable.tsx:161-167`: Button missing explicit type
+- `UserDialogs.tsx:987-994`: Label without associated control
+
+### Action Items from PR Reviews
+
+| Priority | ID | Issue | Source | Status |
+|----------|-----|-------|--------|--------|
+| P0 | PR-678-001 | Silent catch in fetchAuditLogs/fetchErrorLogs | Qodo | ⬜ TODO |
+| P0 | PR-678-002 | Consolidate audit stats queries to $facet | Qodo, CodeRabbit | ⬜ TODO |
+| P1 | PR-678-003 | Add UTF-8 BOM to CSV export | CodeRabbit | ⬜ TODO |
+| P1 | PR-678-004 | Add `type="button"` to interactive buttons | CodeRabbit, Biome | ⬜ TODO |
+| P1 | PR-678-005 | Fix hardcoded locale in formatDate functions | CodeRabbit | ⬜ TODO |
+| P1 | PR-678-006 | Wrap hardcoded strings in t() for i18n | CodeRabbit | ⬜ TODO |
+| P2 | PR-678-007 | Add aria-labels to icon-only buttons | CodeRabbit | ⬜ TODO |
+| P2 | PR-678-008 | Fix label htmlFor associations | CodeRabbit, Biome | ⬜ TODO |
+| P2 | PR-678-009 | Consolidate STATUS_COLORS to single source | CodeRabbit | ⬜ TODO |
+| P2 | PR-678-010 | Review audit log PII exposure in metadata | CodeAnt | ⬜ TODO |
 
 ---
 
