@@ -45,7 +45,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "leads:activities:list" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "leads:activities:list" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();
@@ -110,7 +111,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "leads:activities:create" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "leads:activities:create" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();

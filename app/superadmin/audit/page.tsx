@@ -84,7 +84,7 @@ const ENTITY_TYPES = [
 ];
 
 export default function SuperadminAuditPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +147,7 @@ export default function SuperadminAuditPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString(locale ?? "en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="p-6 space-y-6">

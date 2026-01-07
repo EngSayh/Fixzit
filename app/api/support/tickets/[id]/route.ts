@@ -35,7 +35,9 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "support:tickets:get" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "support:tickets:get" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectToDatabase();
     const { id } = await props.params;

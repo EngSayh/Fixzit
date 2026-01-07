@@ -15,7 +15,9 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
  * Used by ClientSidebar for badge display and dashboard KPIs
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "counters" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "counters" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Offline/CI mode: avoid DB lookups to prevent 500s
     if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {

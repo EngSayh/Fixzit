@@ -14,7 +14,9 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "dev:demo-accounts" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "dev:demo-accounts" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // SECURITY: Demo accounts ONLY allowed in strict development mode
   // Historical context: ENABLED flag allowed production demo mode via env var
   // CRITICAL: This endpoint exposes test credentials and should NEVER be production-accessible

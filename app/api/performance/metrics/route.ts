@@ -19,7 +19,9 @@ import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
-  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "performance:metrics" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "performance:metrics" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // SEC-001: Restrict to SUPER_ADMIN - performance metrics expose internal system info
   try {
     const session = await getSessionUser(req);

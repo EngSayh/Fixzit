@@ -49,7 +49,9 @@ export async function POST(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
-  enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:calculate" });
+  const rateLimitResponse = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:calculate" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {

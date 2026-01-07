@@ -111,7 +111,8 @@ export async function POST(req: NextRequest) {
   if (!IS_TEST_ENV) {
     return notFound();
   }
-  enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "test:projects" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "test:projects" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
@@ -171,7 +172,8 @@ export async function GET(req: NextRequest) {
   if (!IS_TEST_ENV) {
     return notFound();
   }
-  enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "test:projects:list" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "test:projects:list" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();

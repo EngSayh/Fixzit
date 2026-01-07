@@ -19,7 +19,9 @@ import { parseBodySafe } from "@/lib/api/parse-body";
  * List all PM plans with optional filters (tenant-scoped)
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "pm:plans:list" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "pm:plans:list" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let orgId: string;
   try {
     const user = await getSessionUser(request);

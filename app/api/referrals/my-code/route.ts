@@ -18,7 +18,9 @@ import { logger } from "@/lib/logger";
  * Get current user's referral code and statistics with pagination
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "referrals:my-code" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "referrals:my-code" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

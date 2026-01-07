@@ -21,7 +21,8 @@ import { connectMongo as connectDB } from "@/lib/db/mongoose";
  * Get wallet balance and info for authenticated user
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "wallet:get" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "wallet:get" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();
@@ -63,7 +64,8 @@ export async function GET(request: NextRequest) {
  * Create wallet for user (if not exists)
  */
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "wallet:create" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "wallet:create" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();

@@ -60,7 +60,8 @@ const CreateIndicatorSchema = z.object({
  * Get price trends and market data
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "market:get" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "market:get" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();
@@ -165,7 +166,8 @@ export async function GET(request: NextRequest) {
  * Record new price data (admin only)
  */
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "market:create" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "market:create" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();

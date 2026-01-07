@@ -47,7 +47,9 @@ function normalizeUserProfile(user: UserProfileDocument) {
  * @returns User profile data or 401 if not authenticated
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "user:profile" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "user:profile" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const session = await auth();

@@ -29,7 +29,8 @@ import { Types } from "mongoose";
 // ============================================================================
 
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "wallet:transactions" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "wallet:transactions" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();

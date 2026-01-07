@@ -64,7 +64,7 @@ const DEFAULT_INTEGRATIONS: Integration[] = [
 ];
 
 export default function SuperadminIntegrationsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -116,7 +116,7 @@ export default function SuperadminIntegrationsPage() {
     setConfigDialogOpen(true);
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString(locale ?? "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const stats = {
     total: integrations.length,

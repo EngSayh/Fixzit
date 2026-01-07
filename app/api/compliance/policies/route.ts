@@ -130,7 +130,9 @@ async function resolveUser(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "compliance:policies:list" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "compliance:policies:list" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -30,7 +30,9 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
  * Supports both corporate (org-based) and owner (user-based) subscriptions.
  */
 export async function GET(req: NextRequest) {
-  enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "billing:history" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "billing:history" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authenticate user
     const session = await auth();

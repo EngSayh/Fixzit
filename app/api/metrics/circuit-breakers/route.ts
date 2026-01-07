@@ -46,7 +46,9 @@ function isAuthorized(request: NextRequest): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "metrics:circuit-breakers" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "metrics:circuit-breakers" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Optional authentication
     if (!isAuthorized(request)) {

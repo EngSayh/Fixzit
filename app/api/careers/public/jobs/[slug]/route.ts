@@ -35,7 +35,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
-  enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "careers:public:job" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "careers:public:job" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectToDatabase();
 
