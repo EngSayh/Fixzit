@@ -12,6 +12,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { sanitizeAuditLogs } from "@/lib/audit/middleware";
 import type { FilterQuery } from "mongoose";
 
 // Prevent prerendering/export of this API route
@@ -97,9 +98,12 @@ export async function GET(request: NextRequest) {
       AuditLogModel.countDocuments(query),
     ]);
 
+    // PR-678-010: Sanitize PII/credentials from audit log responses
+    const sanitizedLogs = sanitizeAuditLogs(logs as Record<string, unknown>[]);
+
     return NextResponse.json(
       {
-        logs,
+        logs: sanitizedLogs,
         total,
         page,
         pages: Math.ceil(total / limit),

@@ -12,6 +12,7 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { User } from "@/server/models/User";
+import { sanitizeAuditLogs } from "@/lib/audit/middleware";
 import { z } from "zod";
 import mongoose from "mongoose";
 
@@ -214,8 +215,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const totalPages = Math.ceil(total / limit);
 
+    // PR-678-010: Sanitize PII/credentials from audit log responses
+    const sanitizedLogs = sanitizeAuditLogs(logs as Record<string, unknown>[]);
+
     return NextResponse.json({
-      logs,
+      logs: sanitizedLogs,
       pagination: {
         page,
         limit,
