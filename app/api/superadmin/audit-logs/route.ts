@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
     if (entityType) query.entityType = entityType;
     if (action) query.action = { $regex: action, $options: "i" };
     if (successParam !== null) {
-      query.success = successParam === "true";
+      // BUG-20260107-001: Use result.success (matches schema), not query.success
+      query["result.success"] = successParam === "true";
     }
 
     // Date range

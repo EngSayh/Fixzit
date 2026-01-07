@@ -49,7 +49,9 @@ import { STATUS_COLORS } from "./types";
 
 function formatDate(dateStr?: string, locale: string = "en-US"): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString(locale, {
+  // Map to proper BCP 47 locale tag for Arabic (Saudi Arabia)
+  const localeTag = locale === "ar" ? "ar-SA" : locale;
+  return new Date(dateStr).toLocaleDateString(localeTag, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -262,10 +264,11 @@ export function EditStatusDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>New Status</Label>
+            <Label htmlFor="user-status-select">New Status</Label>
             <Select 
               value={status} 
               onValueChange={onStatusChange}
+              aria-label="Select user status"
               placeholder="Select status"
               className="w-full bg-muted border-input text-foreground"
             >
@@ -338,10 +341,11 @@ export function BulkStatusDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>New Status</Label>
+            <Label htmlFor="bulk-status-select">New Status</Label>
             <Select 
               value={status} 
               onValueChange={onStatusChange}
+              aria-label="Select bulk status"
               placeholder="Select status"
               className="w-full bg-muted border-input text-foreground"
             >
