@@ -12,6 +12,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
+import { AuditLogModel } from "@/server/models/AuditLog";
 import { isValidObjectId, Types } from "mongoose";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
@@ -159,6 +160,41 @@ export async function POST(request: NextRequest) {
       { _id: { $in: userIds }, orgId: targetOrgObjectId, isSuperAdmin: { $ne: true } },
       { $set: auditedUpdates }
     );
+
+    // Create audit log entry for bulk update [AGENT-0007]
+    try {
+      await AuditLogModel.create({
+        orgId: targetOrgId,
+        action: "UPDATE", // Valid ActionType enum value (previously used non-enum "bulk_user_update")
+        entityType: "USER",
+        entityId: "bulk",
+        entityName: `Bulk Update: ${result.modifiedCount} users`,
+        userId: session.username,
+        userName: session.username,
+        userEmail: session.username,
+        userRole: "SUPER_ADMIN",
+        description: `Superadmin ${session.username} bulk updated ${result.modifiedCount} users`,
+        result: { success: true, modifiedCount: result.modifiedCount },
+        changes: Object.entries(updates).map(([field, newValue]) => ({
+          field,
+          oldValue: null, // Bulk update doesn't track old values per-user
+          newValue,
+        })),
+        context: {
+          ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown",
+          userAgent: request.headers.get("user-agent") || "unknown",
+        },
+        metadata: {
+          userIds,
+          targetOrgId,
+          updates,
+          requestedCount: userIds.length,
+          modifiedCount: result.modifiedCount,
+        },
+      });
+    } catch (auditErr) {
+      logger.warn("Failed to persist bulk update audit log", { error: auditErr });
+    }
 
     logger.info("Bulk user update completed", {
       superadminUsername: session.username,

@@ -11,7 +11,6 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { User } from "@/server/models/User";
-import { Organization } from "@/server/models/Organization";
 import { z } from "zod";
 import mongoose from "mongoose";
 
@@ -98,38 +97,49 @@ export async function GET(request: NextRequest) {
       [sortField]: sortOrder === "asc" ? 1 : -1,
     };
 
-    // Execute queries in parallel
-    const [users, total, orgsMap] = await Promise.all([
-      User.find(filter)
-        .select("email status role professional.role personal.firstName personal.lastName personal.phone orgId createdAt lastLogin isSuperAdmin")
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec() as Promise<Array<Record<string, unknown>>>,
+    // Execute queries in parallel - use aggregation with $lookup to avoid N+1
+    const [usersWithOrgs, total] = await Promise.all([
+      User.aggregate([
+        { $match: filter },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "organizations",
+            localField: "orgId",
+            foreignField: "_id",
+            as: "orgInfo",
+            // Only fetch the name field
+            pipeline: [{ $project: { name: 1 } }],
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            email: 1,
+            status: 1,
+            role: 1,
+            "professional.role": 1,
+            "personal.firstName": 1,
+            "personal.lastName": 1,
+            "personal.phone": 1,
+            orgId: 1,
+            createdAt: 1,
+            lastLogin: 1,
+            isSuperAdmin: 1,
+            // Extract org name from $lookup result
+            orgName: { $arrayElemAt: ["$orgInfo.name", 0] },
+          },
+        },
+      ]).exec() as Promise<Array<Record<string, unknown>>>,
       User.countDocuments(filter).exec(),
-      // Get unique org IDs and fetch org names
-      (async () => {
-         
-        const allUsers = await User.find(filter).select("orgId").lean().exec() as Array<{ orgId?: mongoose.Types.ObjectId }>;
-        const orgIds = [...new Set(allUsers.map(u => u.orgId?.toString()).filter(Boolean))];
-        if (orgIds.length === 0) return new Map<string, string>();
-        // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-org lookup
-        const orgs = await Organization.find({ _id: { $in: orgIds } }).select("name").lean().exec() as Array<{ _id: mongoose.Types.ObjectId; name: string }>;
-        return new Map(orgs.map((o: { _id: mongoose.Types.ObjectId; name: string }) => [o._id.toString(), o.name]));
-      })(),
     ]);
 
     const totalPages = Math.ceil(total / limit);
 
-    // Enhance users with org names
-    const enhancedUsers = users.map(user => ({
-      ...user,
-      orgName: user.orgId ? orgsMap.get(String(user.orgId)) : null,
-    }));
-
     return NextResponse.json({
-      users: enhancedUsers,
+      users: usersWithOrgs,
       pagination: {
         page,
         limit,
