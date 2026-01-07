@@ -5,17 +5,73 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2026-01-08T04:30:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2026-01-08T05:00:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v5.5 (System Organizer + Duplicate & Rate-Limit + **Similar Issue Scanner** + **Deep Verification**)  
 **Branch:** feat/platform-improvements-sprint-0-4  
 **Commit:** TBD  
-**Last Work:** Sprint 4 COMPLETE - P1 Bug Audit (PR #680) - Jan 08, 2026  
+**Last Work:** Sprint 5 COMPLETE - P1 Bug/Logic Audit (PR #680) - Jan 08, 2026  
 **MongoDB Status:** Synced via /api/issues/import (2026-01-07 14:42 +03:00)  
 **Verification Status:** ✅ **100% VERIFIED** (TypeScript: 0 errors, ESLint: 0 errors)  
 **Working Tree:** Clean  
 **Test Count:** 479 test files, 392 API routes, 189 API tests  
 **Similar Issue Groups:** 18 patterns indexed (100 total issues tracked)  
-**Roadmap Items:** 101 total | 11 FALSE POSITIVES | 3 FIXED | 1 DEFERRED | 1 REFACTOR | 85 actionable
+**Roadmap Items:** 101 total | 12 FALSE POSITIVES | 3 FIXED | 1 DEFERRED | 1 REFACTOR | 4 EXISTS | 80 actionable
+
+---
+
+## 2026-01-08 05:00 - Sprint 5 COMPLETE [AGENT-680-S4]
+
+### ✅ Sprint 5 Final Results (P1 Bug/Logic Items)
+
+| ID | Issue | Result | Evidence |
+|----|-------|--------|----------|
+| BUG-DATE-001 | Arabic date/number formatting | ✅ EXISTS | `lib/utils/format.ts` with `fmtDate`/`fmtNumber` using `ar-SA` locale + cached Intl formatters |
+| BUG-OVERFLOW-001 | RTL text overflow issues | ✅ FALSE POSITIVE | Uses RTL-safe `text-start`/`text-end`, `truncate`, `line-clamp`; no `text-left`/`text-right` in components |
+| LOGIC-APPROVAL-002 | Low-cost WO approval routing | ✅ EXISTS | `APPROVAL_POLICIES` in `domain/fm/fm.behavior.ts` with tiered thresholds (<1K=owner only) |
+| LOGIC-VALIDATION-001 | WO without property | ✅ EXISTS | `propertyId` required when status !== DRAFT in `server/models/WorkOrder.ts` L136-142 |
+
+**BUG-DATE-001 Audit Details:**
+- `lib/utils/format.ts` exports `fmtDate()` and `fmtNumber()` functions
+- Uses cached `Intl.NumberFormat` and `Intl.DateTimeFormat` instances
+- Maps `ar` → `ar-SA` locale, `en` → `en-GB`
+- Additional: `server/lib/currency.ts` uses `ar-SA` for currency formatting
+- Tests: "should format valid Date object in Arabic" - passing
+
+**BUG-OVERFLOW-001 Audit Details:**
+- Components use RTL-safe classes: `text-start`, `text-end`, `truncate`, `line-clamp-*`
+- No `text-left`/`text-right` found in components folder
+- `overflow-hidden`, `overflow-x-auto` properly applied
+- Examples: `Sidebar.tsx`, `WorkOrdersView.tsx`, `SuperadminSidebar.tsx`
+
+**LOGIC-APPROVAL-002 Audit Details:**
+- `APPROVAL_POLICIES` array in `domain/fm/fm.behavior.ts` lines 1612-1646
+- Three tiers:
+  1. **< 1,000 SAR**: Property Owner only (24h timeout)
+  2. **1,000-10,000 SAR (HVAC/Plumbing)**: Property Owner + Management
+  3. **≥ 10,000 SAR**: Property Owner + Management + Finance (parallel)
+- Escalation: Management → Corporate Admin
+- Delegation: Owner → Deputy
+
+**LOGIC-VALIDATION-001 Audit Details:**
+- `server/models/WorkOrder.ts` line 136-142
+- `location.propertyId` has conditional required:
+  ```typescript
+  required: function (this: { status?: string }) {
+    return this.status !== "DRAFT";
+  }
+  ```
+- DRAFT work orders can be incomplete (mobile-friendly)
+- SUBMITTED+ work orders require property association
+
+**Summary: Sprint 1-5 Roadmap Audit**
+| Category | Total | FALSE POSITIVE | FIXED | EXISTS | DEFERRED | REFACTOR |
+|----------|-------|----------------|-------|--------|----------|----------|
+| Sprint 1 (P0) | 5 | 3 | 1 | 1 | - | - |
+| Sprint 2 (P0) | 2 | - | - | 2 | - | - |
+| Sprint 3 (P1) | 4 | 2 | 1 | - | 1 | - |
+| Sprint 4 (P1) | 4 | 3 | - | - | - | 1 |
+| Sprint 5 (P1) | 4 | 1 | - | 3 | - | - |
+| **Total** | 19 | 9 | 2 | 6 | 1 | 1 |
 
 ---
 
