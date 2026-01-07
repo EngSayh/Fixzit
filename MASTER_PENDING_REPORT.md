@@ -483,12 +483,12 @@ This registry indexes ALL issues across the system regardless of status (open, i
 ### 🔗 SIMILARITY GROUP 8: Multiple DB Queries (N+1/Fan-out)
 **Pattern:** Multiple sequential queries instead of single aggregation  
 **Canonical Issue:** PERF-20260107-001  
-**Similar Issues:** 4
+**Similar Issues:** 4 → **2 RESOLVED**
 
 | ID | Status | Location | First Seen | Resolution |
 |----|--------|----------|------------|------------|
-| PERF-20260107-001 | 🔴 Open | `audit-logs/route.ts:160-202` (6 queries) | 2026-01-07 | — |
-| PR-678-002 | 🔴 Open | Audit stats queries | 2026-01-07 | — |
+| PERF-20260107-001 | 🟢 Resolved | `audit-logs/route.ts:160-202` (6 queries) | 2026-01-07 | PR #680 ($facet) |
+| PR-678-002 | 🟢 Resolved | Audit stats queries | 2026-01-07 | PR #680 ($facet) |
 | PERF-001 | 🟢 Resolved | `maxTimeMS` added | 2025-12-19 | 15+ operations |
 | PERF-AGG-001 | 🔴 Open | Issue tracker stats (7 queries) | 2025-12-14 | — |
 

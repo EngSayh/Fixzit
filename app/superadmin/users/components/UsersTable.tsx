@@ -249,7 +249,7 @@ export function UsersTable({
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between p-4 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Page {pagination.page} of {pagination.totalPages}
+              {t("pagination.pageOf", { current: pagination.page, total: pagination.totalPages })}
             </p>
             <div className="flex gap-2">
               <Button
