@@ -72,7 +72,6 @@ export default function SuperadminUserDetailPage() {
   const [user, setUser] = useState<UserDetail | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([]);
-  const [_stats, setStats] = useState<ActivityStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +80,7 @@ export default function SuperadminUserDetailPage() {
   // Pagination
   const [auditPagination, setAuditPagination] = useState<Pagination | null>(null);
   const [auditPage, setAuditPage] = useState(1);
-  const [errorPage, _setErrorPage] = useState(1);
+  const [errorPage] = useState(1);
 
   // Filters for Activity Tab
   const [activitySearch, setActivitySearch] = useState("");
@@ -157,7 +156,6 @@ export default function SuperadminUserDetailPage() {
         const data = await response.json();
         setAuditLogs(data.logs || []);
         setAuditPagination(data.pagination || null);
-        setStats(data.stats || null);
       } else {
         setAuditLogs([]);
         setAuditPagination(null);

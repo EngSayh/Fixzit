@@ -155,7 +155,7 @@ describe("SuperAdmin Bulk Users Operations API", () => {
 
     it("should return 429 when rate limited", async () => {
       mockGetSuperadminSession.mockResolvedValue({ username: "superadmin", email: "admin@fixzit.sa" });
-      mockSmartRateLimit.mockResolvedValueOnce({ success: false });
+      mockSmartRateLimit.mockResolvedValueOnce({ allowed: false });
 
       const request = createDeleteRequest({ userIds: validUserIds });
       const response = await bulkDelete(request);
@@ -170,7 +170,6 @@ describe("SuperAdmin Bulk Users Operations API", () => {
 
       const request = createDeleteRequest({ userIds: [] });
       const response = await bulkDelete(request);
-      const data = await response.json();
 
       expect(response.status).toBe(400);
     });
@@ -180,7 +179,6 @@ describe("SuperAdmin Bulk Users Operations API", () => {
 
       const request = createDeleteRequest({ userIds: ["invalid-id"] });
       const response = await bulkDelete(request);
-      const data = await response.json();
 
       expect(response.status).toBe(400);
     });
@@ -235,7 +233,6 @@ describe("SuperAdmin Bulk Users Operations API", () => {
 
       const request = createUpdateRequest({ userIds: validUserIds, updates: { status: "INVALID" } });
       const response = await bulkUpdate(request);
-      const data = await response.json();
 
       expect(response.status).toBe(400);
     });

@@ -207,7 +207,6 @@ describe("SuperAdmin Single User API", () => {
 
       const request = createRequest("PATCH", { status: "INVALID_STATUS" });
       const response = await PATCH(request, createParams());
-      const data = await response.json();
 
       expect(response.status).toBe(400);
     });

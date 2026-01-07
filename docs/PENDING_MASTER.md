@@ -58,7 +58,7 @@ Per user request, analyzed the superadmin users management system and implemente
 | ✅ AUDIT-SA-001 | `app/api/superadmin/users/bulk-update/route.ts` | Added audit log entries |
 | ✅ TEST-SA-001 | `tests/api/superadmin/users.route.test.ts` | Created 12 tests for users list API |
 | ✅ TEST-SA-001 | `tests/api/superadmin/users-id.route.test.ts` | Created 9 tests for single user API |
-| ✅ TEST-SA-001 | `tests/api/superadmin/users-bulk.route.test.ts` | Created 10 tests for bulk operations |
+| ✅ TEST-SA-001 | `tests/api/superadmin/users-bulk.route.test.ts` | Created 9 tests for bulk operations |
 
 #### Test Coverage Added
 
@@ -66,7 +66,7 @@ Per user request, analyzed the superadmin users management system and implemente
 |-----------|-------|-------------|
 | `users.route.test.ts` | 12 | GET list, pagination, filters, search, security |
 | `users-id.route.test.ts` | 9 | GET single, PATCH, DELETE, validation |
-| `users-bulk.route.test.ts` | 10 | bulk-delete, bulk-update, rate limit, audit |
+| `users-bulk.route.test.ts` | 9 | bulk-delete, bulk-update, rate limit, audit |
 
 #### Recommendations Deferred
 
