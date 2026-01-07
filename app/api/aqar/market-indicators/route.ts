@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
     const data = validation.data;
 
     // Check for duplicate period/location combo
-    // NO_TENANT: Market indicators are platform-wide reference data, not tenant-specific
+    // eslint-disable-next-line local/require-tenant-scope -- Market indicators are platform-wide reference data
     const existing = await MarketIndicator.findOne({
       city: data.city,
       district: data.district || null,
@@ -214,6 +214,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- Market indicators are platform-wide reference data
     const indicator = await MarketIndicator.create({
       ...data,
       period_start: new Date(data.period_start),

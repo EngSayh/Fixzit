@@ -370,6 +370,7 @@ export async function PATCH(request: NextRequest) {
     ).lean();
 
     // Add step to completed_steps if not already there
+    // eslint-disable-next-line local/require-tenant-scope -- Update by _id only, tenant auth done at session check
     await LeaseContract.updateOne(
       { _id: new Types.ObjectId(id) },
       { $addToSet: { completed_steps: step } }
