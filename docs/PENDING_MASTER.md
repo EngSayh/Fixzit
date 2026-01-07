@@ -19,6 +19,75 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-08T03:30 (Asia/Riyadh) — Sprint 9 COMPLETE: P2 Automation & Features Audit [AGENT-680-S9]
+
+**Agent Token:** [AGENT-680-S9]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Modified (pending commit)
+
+#### Sprint Summary
+
+Audited 4 P2 items from Section 17.2/17.1 roadmap. 2 items **EXISTS**, 2 items **DEFERRED** (require significant effort).
+
+#### Items Audited
+
+| ID | Issue | Result | Evidence |
+|----|-------|--------|----------|
+| AUTO-001 | Work order auto-assignment | ✅ EXISTS | `services/fm/auto-assignment-engine.ts` (792 lines): ML scoring, skill match, workload balance, round-robin. Tests: 17+ tests in multiple files |
+| AUTO-002 | Invoice reconciliation | ✅ EXISTS | `/api/finance/payments/[id]/[action]/route.ts` (448 lines): reconcile, clear, bounce actions. Tests in `payments-action.route.test.ts` |
+| IMP-UX-004 | Offline technician mode | ⏸️ DEFERRED | Aqar offline cache exists (`offline-cache-service.ts` 498 lines) but FM technician mode (Service Worker + IndexedDB) not implemented. **40h effort** |
+| FEAT-AI-001 | AI work order categorization | ⏸️ DEFERRED | Feature flag `experimental.ai_work_order_triage` exists (10% rollout) but AI logic not implemented. Expense categorization exists (869 lines) but not work orders. **Medium effort** |
+
+#### Key Findings
+
+**Auto-Assignment Engine (792 lines):**
+- ML scoring mode with configurable weights
+- Skill matching against work order category
+- Workload balancing per technician
+- Round-robin distribution option
+- Business hours consideration
+- Vendor vs internal preference
+
+**Payment Reconciliation:**
+- Bank statement matching
+- Cheque clearing workflow
+- Bounce handling with reversal
+- RBAC: FINANCE:RECONCILE permission
+
+**Deferred Items:**
+| Item | Effort | Reason |
+|------|--------|--------|
+| IMP-UX-004 | 40h | Requires Service Worker, IndexedDB, sync logic |
+| FEAT-AI-001 | 24h+ | Requires NLP model, training data, API integration |
+
+#### Sprints 1-9 Summary (35 items audited)
+
+| Sprint | Items | Results |
+|--------|-------|---------|
+| Sprint 1-5 | 19 | 9 FP, 6 EXISTS, 2 FIXED, 1 REFACTOR, 1 DEFERRED |
+| Sprint 6 (Logic/Compliance) | 4 | 4 EXISTS |
+| Sprint 7 (Perf/Testing) | 4 | 3 EXISTS, 1 IMPROVED |
+| Sprint 8 (Testing/Automation) | 4 | 2 EXISTS, 2 IMPROVED |
+| **Sprint 9 (Automation/Features)** | **4** | **2 EXISTS, 2 DEFERRED** |
+| **Total** | **35** | **9 FP, 18 EXISTS, 2 FIXED, 3 IMPROVED, 3 DEFERRED** |
+
+#### Remaining Actionable (65 of 101)
+
+Categories remaining:
+- INFRA-* (Redis, CDN, background jobs)
+- OPT-* (Dead code, Storybook, dependency updates)
+- FEAT-* (Mobile apps, WhatsApp integration, Apple Pay)
+
+#### CI Verification
+
+| Check | Status |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 warnings |
+
+---
+
 ### 2026-01-08T03:00 (Asia/Riyadh) — Sprint 8 COMPLETE: P1/P2 Testing & Automation Audit [AGENT-680-S8]
 
 **Agent Token:** [AGENT-680-S8]  
