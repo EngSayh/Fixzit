@@ -19,10 +19,18 @@ vi.mock("@/db/mongoose", () => ({
   dbConnect: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("mongoose", () => ({
+  default: {
+    isValidObjectId: vi.fn(() => true),
+    Types: { ObjectId: { isValid: vi.fn(() => true) } },
+  },
+  isValidObjectId: vi.fn(() => true),
+}));
+
 vi.mock("@/lib/authz", () => ({
   requireSuperAdmin: vi.fn(async () => {
     if (mockAuthError) throw mockAuthError;
-    return { id: "admin-1", role: "SUPER_ADMIN", tenantId: "org-1" };
+    return { id: "admin-1", role: "SUPER_ADMIN", tenantId: "507f1f77bcf86cd799439011" };
   }),
 }));
 
@@ -85,7 +93,7 @@ describe("/api/admin/billing/annual-discount", () => {
     const res = await PATCH(createRequest());
     expect(res.status).toBe(200);
     expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
-      { key: "ANNUAL_PREPAY", orgId: "org-1" },
+      { key: "ANNUAL_PREPAY", orgId: "507f1f77bcf86cd799439011" },
       { percentage: 15 },
       { upsert: true, new: true },
     );
