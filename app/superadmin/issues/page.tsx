@@ -1024,12 +1024,12 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
                   placeholder={t("superadmin.issues.search")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="ps-9 bg-muted border-input text-white"
+                  className="ps-9 bg-muted border-input text-foreground"
                 />
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[120px] bg-muted border-input text-white">
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")} className="w-[120px] bg-muted border-input text-foreground">
               {statusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -1037,7 +1037,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               ))}
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[120px] bg-muted border-input text-white">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")} className="w-[120px] bg-muted border-input text-foreground">
               {priorityOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -1045,7 +1045,7 @@ ${selectedData.map(issue => `| ${issue.issueId || issue.legacyId || issue._id.sl
               ))}
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[120px] bg-muted border-input text-white">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")} className="w-[120px] bg-muted border-input text-foreground">
               {categoryOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
