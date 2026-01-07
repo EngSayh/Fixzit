@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
@@ -41,11 +42,20 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- Platform-wide discount rule by key
-    const discount = await DiscountRule.findOne({ key: "ANNUAL_PREPAY" }).lean();
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[Superadmin Annual Discount] Missing orgId for discount lookup");
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    const orgId = new mongoose.Types.ObjectId(session.orgId);
+
+    const discount = await DiscountRule.findOne({ key: "ANNUAL_PREPAY", orgId }).lean();
 
     return NextResponse.json(
-      discount || { key: "ANNUAL_PREPAY", percentage: 20, description: "Annual prepayment discount" },
+      discount || { key: "ANNUAL_PREPAY", percentage: 20, description: "Annual prepayment discount", orgId },
       { headers: ROBOTS_HEADER }
     );
   } catch (error) {
@@ -76,6 +86,16 @@ export async function PATCH(request: NextRequest) {
 
     await connectDb();
 
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[Superadmin Annual Discount] Missing orgId for discount update");
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    const orgId = new mongoose.Types.ObjectId(session.orgId);
+
     let body: unknown;
     try {
       body = await request.json();
@@ -96,9 +116,8 @@ export async function PATCH(request: NextRequest) {
 
     const { percentage } = parsed.data;
 
-    // eslint-disable-next-line local/require-tenant-scope -- Platform-wide discount rule by key
     const doc = await DiscountRule.findOneAndUpdate(
-      { key: "ANNUAL_PREPAY" },
+      { key: "ANNUAL_PREPAY", orgId },
       { 
         $set: { 
           percentage,

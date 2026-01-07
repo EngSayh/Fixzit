@@ -21,26 +21,58 @@ import {
   DollarSign, TrendingUp, Package, CheckCircle,
 } from "@/components/ui/icons";
 
+interface PricePerModule {
+  module_key: string;
+  monthly_usd: number;
+  monthly_sar: number;
+}
+
+interface SeatTier {
+  min_seats: number;
+  max_seats: number;
+  discount_pct: number;
+  prices?: PricePerModule[];
+}
+
 interface PriceBook {
   _id: string;
   name: string;
   description?: string;
-  modules?: Array<{ name: string; price: number }>;
-  tiers?: Array<{ name: string; discount: number }>;
   region?: string;
   currency?: string;
+  effective_from?: string;
+  active?: boolean;
   isActive?: boolean;
+  tiers?: SeatTier[];
   createdAt: string;
+  updatedAt?: string;
 }
 
-interface Benchmark {
+interface BenchmarkPlan {
+  name?: string;
+  price_per_user_month_usd?: number;
+  url?: string;
+  features?: string[];
+}
+
+interface BenchmarkSource {
+  _id: string;
+  vendor: string;
+  region?: string;
+  plans?: BenchmarkPlan[];
+  retrieved_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface BenchmarkRow {
   _id: string;
   name: string;
   type: string;
-  value: number;
+  value?: number | null;
   unit?: string;
   period?: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 interface AnnualDiscount {
@@ -52,73 +84,131 @@ interface AnnualDiscount {
 export default function SuperadminBillingPage() {
   const { t } = useI18n();
   const [priceBooks, setPriceBooks] = useState<PriceBook[]>([]);
-  const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
+  const [benchmarks, setBenchmarks] = useState<BenchmarkRow[]>([]);
   const [annualDiscount, setAnnualDiscount] = useState<AnnualDiscount | null>(null);
   const [loading, setLoading] = useState(true);
-  const [_error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedPriceBook, setSelectedPriceBook] = useState<PriceBook | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
   const fetchPriceBooks = useCallback(async () => {
-    try {
-      const response = await fetch("/api/superadmin/billing/pricebooks", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setPriceBooks(Array.isArray(data) ? data : data.pricebooks || []);
-      }
-    } catch {
-      // May not have pricebooks yet
+    const response = await fetch("/api/superadmin/billing/pricebooks", { credentials: "include" });
+    if (!response.ok) {
+      throw new Error("Failed to load price books");
     }
+    const data = await response.json();
+    const list = Array.isArray(data) ? data : data.pricebooks || [];
+    setPriceBooks(list);
   }, []);
 
   const fetchBenchmarks = useCallback(async () => {
-    try {
-      const response = await fetch("/api/superadmin/billing/benchmark", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setBenchmarks(Array.isArray(data) ? data : data.benchmarks || []);
-      }
-    } catch {
-      // May not have benchmarks yet
+    const response = await fetch("/api/superadmin/billing/benchmark", { credentials: "include" });
+    if (!response.ok) {
+      throw new Error("Failed to load benchmarks");
     }
+    const data = await response.json();
+    const list: BenchmarkSource[] = Array.isArray(data) ? data : data.benchmarks || [];
+    const rows: BenchmarkRow[] = [];
+    list.forEach((bm) => {
+      const plans = Array.isArray(bm.plans) ? bm.plans : [];
+      if (plans.length === 0) {
+        rows.push({
+          _id: bm._id,
+          name: bm.vendor,
+          type: bm.region || "Global",
+          value: null,
+          unit: "USD / user / mo",
+          period: bm.retrieved_at,
+          createdAt: bm.createdAt || bm.retrieved_at,
+        });
+        return;
+      }
+      plans.forEach((plan, index) => {
+        rows.push({
+          _id: `${bm._id}:${index}`,
+          name: `${bm.vendor}${plan.name ? ` - ${plan.name}` : ""}`,
+          type: bm.region || "Global",
+          value: typeof plan.price_per_user_month_usd === "number" ? plan.price_per_user_month_usd : null,
+          unit: "USD / user / mo",
+          period: bm.retrieved_at,
+          createdAt: bm.createdAt || bm.retrieved_at,
+        });
+      });
+    });
+    setBenchmarks(rows);
   }, []);
 
   const fetchAnnualDiscount = useCallback(async () => {
-    try {
-      const response = await fetch("/api/superadmin/billing/annual-discount", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setAnnualDiscount(data);
-      }
-    } catch {
-      // May not have annual discount config
+    const response = await fetch("/api/superadmin/billing/annual-discount", { credentials: "include" });
+    if (!response.ok) {
+      throw new Error("Failed to load annual discount");
     }
+    const data = await response.json();
+    const percentage = typeof data?.percentage === "number" ? data.percentage : 0;
+    const enabled =
+      typeof data?.enabled === "boolean" ? data.enabled : percentage > 0;
+    setAnnualDiscount({
+      percentage,
+      minMonths: typeof data?.minMonths === "number" ? data.minMonths : undefined,
+      enabled,
+    });
   }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      await Promise.all([fetchPriceBooks(), fetchBenchmarks(), fetchAnnualDiscount()]);
-    } catch {
-      setError("Failed to load billing data");
-    } finally {
-      setLoading(false);
+    const results = await Promise.allSettled([
+      fetchPriceBooks(),
+      fetchBenchmarks(),
+      fetchAnnualDiscount(),
+    ]);
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed && failed.status === "rejected") {
+      const message =
+        failed.reason instanceof Error ? failed.reason.message : "Failed to load billing data";
+      setError(message);
     }
+    setLoading(false);
   }, [fetchPriceBooks, fetchBenchmarks, fetchAnnualDiscount]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filteredPriceBooks = priceBooks.filter((pb) => 
-    !search || pb.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPriceBooks = priceBooks.filter((pb) => {
+    if (!search) return true;
+    return (pb.name || "").toLowerCase().includes(search.toLowerCase());
+  });
 
   const formatCurrency = (value: number, currency = "SAR") => {
+    if (!Number.isFinite(value)) return "N/A";
     return new Intl.NumberFormat("en-SA", { style: "currency", currency }).format(value);
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  };
+
+  const getModuleCount = (pb: PriceBook) => {
+    const keys = new Set<string>();
+    pb.tiers?.forEach((tier) => {
+      tier.prices?.forEach((price) => keys.add(price.module_key));
+    });
+    return keys.size;
+  };
+
+  const isPriceBookActive = (pb: PriceBook) => {
+    if (typeof pb.active === "boolean") return pb.active;
+    if (typeof pb.isActive === "boolean") return pb.isActive;
+    return false;
+  };
+
+  const formatDiscountPercent = (discount: number) => {
+    const pct = discount > 1 ? discount : discount * 100;
+    return `${Math.round(pct * 100) / 100}%`;
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -132,6 +222,12 @@ export default function SuperadminBillingPage() {
         </Button>
       </div>
 
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
@@ -142,11 +238,11 @@ export default function SuperadminBillingPage() {
             </div>
           </CardContent>
         </Card>
-<Card className="bg-card border-border">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-500/20"><CheckCircle className="h-5 w-5 text-green-400" /></div>
-              <div><p className="text-2xl font-bold text-foreground">{priceBooks.filter(p => p.isActive).length}</p><p className="text-sm text-muted-foreground">Active</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{priceBooks.filter(isPriceBookActive).length}</p><p className="text-sm text-muted-foreground">Active</p></div>
             </div>
           </CardContent>
         </Card>
@@ -215,10 +311,10 @@ export default function SuperadminBillingPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">{pb.region || "Global"}</TableCell>
                         <TableCell className="text-muted-foreground">{pb.currency || "SAR"}</TableCell>
-                        <TableCell className="text-muted-foreground">{pb.modules?.length || 0} modules</TableCell>
+                        <TableCell className="text-muted-foreground">{getModuleCount(pb)} modules</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={pb.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>
-                            {pb.isActive ? "Active" : "Inactive"}
+                          <Badge variant="outline" className={isPriceBookActive(pb) ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}>
+                            {isPriceBookActive(pb) ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -260,8 +356,8 @@ export default function SuperadminBillingPage() {
                       <TableRow key={bm._id} className="border-border hover:bg-muted/50">
                         <TableCell className="text-foreground font-medium">{bm.name}</TableCell>
                         <TableCell className="text-muted-foreground">{bm.type}</TableCell>
-                        <TableCell className="text-muted-foreground">{bm.value} {bm.unit}</TableCell>
-                        <TableCell className="text-muted-foreground">{bm.period || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{typeof bm.value === "number" ? bm.value : "N/A"} {bm.unit}</TableCell>
+                        <TableCell className="text-muted-foreground">{bm.period ? formatDate(bm.period) : "N/A"}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(bm.createdAt)}</TableCell>
                       </TableRow>
                     ))}
@@ -315,29 +411,33 @@ export default function SuperadminBillingPage() {
                 <div><p className="text-sm text-muted-foreground">Region</p><p className="text-foreground">{selectedPriceBook.region || "Global"}</p></div>
                 <div><p className="text-sm text-muted-foreground">Currency</p><p className="text-foreground">{selectedPriceBook.currency || "SAR"}</p></div>
                 <div><p className="text-sm text-muted-foreground">Created</p><p className="text-foreground">{formatDate(selectedPriceBook.createdAt)}</p></div>
-                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={selectedPriceBook.isActive ? "bg-green-500/20 text-green-400" : ""}>{selectedPriceBook.isActive ? "Active" : "Inactive"}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={isPriceBookActive(selectedPriceBook) ? "bg-green-500/20 text-green-400" : ""}>{isPriceBookActive(selectedPriceBook) ? "Active" : "Inactive"}</Badge></div>
               </div>
-              {selectedPriceBook.modules && selectedPriceBook.modules.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Module Pricing</p>
-                  <div className="space-y-2">
-                    {selectedPriceBook.modules.map((mod, i) => (
-                      <div key={i} className="flex items-center justify-between bg-muted p-3 rounded-lg">
-                        <span className="text-foreground">{mod.name}</span>
-                        <span className="text-green-400">{formatCurrency(mod.price, selectedPriceBook.currency)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               {selectedPriceBook.tiers && selectedPriceBook.tiers.length > 0 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Volume Tiers</p>
+                  <p className="text-sm text-muted-foreground mb-2">Seat Tiers</p>
                   <div className="space-y-2">
                     {selectedPriceBook.tiers.map((tier, i) => (
-                      <div key={i} className="flex items-center justify-between bg-muted p-3 rounded-lg">
-                        <span className="text-foreground">{tier.name}</span>
-                        <span className="text-yellow-400">{tier.discount}% off</span>
+                      <div key={i} className="space-y-2 rounded-lg border border-border bg-muted p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-foreground">{tier.min_seats}-{tier.max_seats} seats</span>
+                          <span className="text-yellow-400">{formatDiscountPercent(tier.discount_pct)} off</span>
+                        </div>
+                        {tier.prices && tier.prices.length > 0 ? (
+                          <div className="space-y-1">
+                            {tier.prices.map((price) => {
+                              const monthly = selectedPriceBook.currency === "SAR" ? price.monthly_sar : price.monthly_usd;
+                              return (
+                                <div key={price.module_key} className="flex items-center justify-between text-sm text-muted-foreground">
+                                  <span>{price.module_key}</span>
+                                  <span className="text-foreground">{formatCurrency(monthly, selectedPriceBook.currency || "USD")}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No module pricing defined</p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -351,3 +451,4 @@ export default function SuperadminBillingPage() {
     </div>
   );
 }
+

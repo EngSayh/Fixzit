@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { requireSuperAdmin } from "@/lib/authz";
 
 const mockFindOneAndUpdate = vi.fn();
 let parseBodyResult: { data: unknown; error: string | null } = {
@@ -84,9 +85,21 @@ describe("/api/admin/billing/annual-discount", () => {
     const res = await PATCH(createRequest());
     expect(res.status).toBe(200);
     expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
-      { key: "ANNUAL_PREPAY" },
+      { key: "ANNUAL_PREPAY", orgId: "org-1" },
       { percentage: 15 },
       { upsert: true, new: true },
     );
+  });
+
+  it("returns 400 when org context is missing", async () => {
+    vi.mocked(requireSuperAdmin).mockResolvedValueOnce({
+      id: "admin-1",
+      role: "SUPER_ADMIN",
+      tenantId: "",
+    });
+
+    const res = await PATCH(createRequest());
+    expect(res.status).toBe(400);
+    expect(mockFindOneAndUpdate).not.toHaveBeenCalled();
   });
 });

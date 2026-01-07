@@ -10,6 +10,7 @@
  * @throws {400} If percentage is invalid
  */
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { z } from "zod";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { dbConnect } from "@/db/mongoose";
@@ -38,7 +39,11 @@ export async function PATCH(req: NextRequest) {
 
   try {
     await dbConnect();
-    await requireSuperAdmin(req);
+    const authContext = await requireSuperAdmin(req);
+    const orgId = authContext.tenantId;
+    if (!orgId || !mongoose.isValidObjectId(orgId)) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 400 });
+    }
     
     const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[admin:billing:annual-discount]" });
     if (parseError) {
@@ -55,9 +60,8 @@ export async function PATCH(req: NextRequest) {
     
     const { percentage } = parsed.data;
 
-    // eslint-disable-next-line local/require-tenant-scope -- Platform-wide discount rule by key, not tenant-scoped
     const doc = await DiscountRule.findOneAndUpdate(
-      { key: "ANNUAL_PREPAY" },
+      { key: "ANNUAL_PREPAY", orgId },
       { percentage },
       { upsert: true, new: true },
     );
