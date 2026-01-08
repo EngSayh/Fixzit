@@ -308,6 +308,7 @@ const IssueSchema = new Schema<IIssue>({
     required: true,
     index: true,
     default: function (this: IIssue) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose document context before full hydration
       return (this as any).issueId;
     },
   },

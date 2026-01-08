@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T14:45:00+03:00
+  Last-Sync: 2026-01-08T15:15:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,52 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T15:15 (Asia/Riyadh) — Deep Dive Issue Scan Phase 2 [AGENT-TEMP-20260108T1405]
+
+**Agent Token:** [AGENT-TEMP-20260108T1405]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Modified (pending commit)
+
+#### Session Summary
+
+Comprehensive deep dive issue scan covering 14 categories across 10 directories. Addressed critical findings while documenting safe patterns that require no action.
+
+#### Fixes Applied
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `server/models/Issue.ts:311` | Missing eslint-disable for `as any` | Added justification: "Mongoose document context before full hydration" |
+| `contexts/SupportOrgContext.tsx:47` | Non-NEXT_PUBLIC env var in client | Removed `process.env.PLAYWRIGHT_TESTS` (kept NEXT_PUBLIC version) |
+| `app/(app)/marketplace/seller-central/advertising/page.tsx` | 3× `alert()` calls | → `toast.error()` from sonner |
+
+#### Review Items — No Fix Required
+
+| Category | Count | Finding | Justification |
+|----------|-------|---------|---------------|
+| Invalid JSON (JSONC) | 3 | `.devcontainer/devcontainer.json`, `.vscode/*.json` | VS Code/devcontainer use JSONC format (comments allowed) |
+| Invalid JSON (QA) | 4 | `qa/**/*.json` | npm-audit output files, not runtime code |
+| `as any` | 3 | tenant-lifecycle.ts, setup.ts | All have eslint-disable with MongoDB/BullMQ justifications |
+| localhost fallbacks | 19 | lib/config/*.ts | All use `getOptional()` pattern - only fallback when env var not set |
+| CORS localhost | 3 | lib/config/domains.ts | Development entries in allowlist, production uses proper domains |
+| innerHTML (public/) | 6 | header-footer.js, etc. | Local partials only (`partials_*.html`), not remote content |
+| Console logging | 198 | Various | Majority in tests/tools/scripts; runtime uses justified with eslint-disable |
+| Test skips | 58 | `test.skip`/`it.skip` | Pre-existing, tracked for future test improvement sprints |
+| @ts-ignore | 31 | tests/scripts | All in tests/scripts with justifications |
+| TODO markers | 1 | wallet/top-up/route.ts:122 | Tracked placeholder for payment gateway integration |
+| while(true) loops | 4 | Worker services | All have proper break conditions (batch processing pattern) |
+| eval usage | 2 | memory-kv.ts, budget-manager.ts | Redis EVAL stub, not JavaScript eval() |
+
+#### Verification
+
+| Check | Status |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+| Git preflight | ✅ 0 behind, 92 ahead of main |
 
 ---
 
