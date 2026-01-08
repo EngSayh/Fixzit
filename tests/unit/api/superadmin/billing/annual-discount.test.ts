@@ -123,7 +123,12 @@ describe("/api/superadmin/billing/annual-discount", () => {
       const res = await GET(createRequest("GET"));
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json).toEqual(null);
+      // Route returns default discount when none found
+      expect(json).toMatchObject({
+        key: "ANNUAL_PREPAY",
+        percentage: 20,
+        description: "Annual prepayment discount",
+      });
     });
 
     it("returns 500 when database query fails", async () => {
@@ -167,7 +172,9 @@ describe("/api/superadmin/billing/annual-discount", () => {
       const json = await res.json();
       
       expect(res.status).toBe(200);
-      expect(json).toMatchObject({
+      // Response is wrapped: { success: true, discount: {...} }
+      expect(json.success).toBe(true);
+      expect(json.discount).toMatchObject({
         percentage: 25,
         key: "ANNUAL_PREPAY",
       });

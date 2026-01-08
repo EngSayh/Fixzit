@@ -13,7 +13,7 @@ vi.mock('@/auth', () => ({
 
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
-  rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  rateLimit: vi.fn().mockReturnValue({ allowed: true, remaining: 10 }),
 }));
 
 vi.mock('@/lib/mongodb-unified', () => ({

@@ -9,7 +9,7 @@ import { NextRequest } from "next/server";
 // ============================================================================
 // MUTABLE MOCK STATE
 // ============================================================================
-let mockRateLimitResult: { success: boolean } = { success: true };
+let mockRateLimitResult: { allowed: boolean; remaining?: number } = { allowed: true, remaining: 10 };
 let mockImpressionResult: unknown = null;
 
 // Mock dependencies before import
@@ -46,7 +46,7 @@ import { POST } from "@/app/api/souq/ads/impressions/route";
 
 describe("Souq Ads Impressions API", () => {
   beforeEach(() => {
-    mockRateLimitResult = { success: true };
+    mockRateLimitResult = { allowed: true, remaining: 10 };
     mockImpressionResult = null;
   });
 
@@ -76,7 +76,7 @@ describe("Souq Ads Impressions API", () => {
     });
 
     it("should return 429 when rate limited", async () => {
-      mockRateLimitResult = { success: false };
+      mockRateLimitResult = { allowed: false, remaining: 0 };
       const req = new NextRequest("http://localhost/api/souq/ads/impressions", {
         method: "POST",
         body: JSON.stringify({

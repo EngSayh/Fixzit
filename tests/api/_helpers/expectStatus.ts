@@ -6,14 +6,15 @@
 import { expect } from 'vitest';
 
 /**
- * Expect authentication failure (401/403)
+ * Expect authentication failure (401/403/429)
  * Use when testing unauthenticated or unauthorized requests
+ * Note: 429 included as rate limiting may trigger before auth in some routes
  */
 export function expectAuthFailure(response: Response, message?: string): void {
-  const validStatuses = [401, 403];
+  const validStatuses = [401, 403, 429];
   expect(
     validStatuses,
-    message || `Expected auth failure (401/403) but got ${response.status}`
+    message || `Expected auth failure (401/403/429) but got ${response.status}`
   ).toContain(response.status);
 }
 

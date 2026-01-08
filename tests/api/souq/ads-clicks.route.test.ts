@@ -9,7 +9,7 @@ import { NextRequest } from "next/server";
 // ============================================================================
 // MUTABLE MOCK STATE
 // ============================================================================
-let mockRateLimitResult: { success: boolean } = { success: true };
+let mockRateLimitResult: { allowed: boolean; remaining?: number } = { allowed: true, remaining: 10 };
 let mockBudgetResult: unknown = null;
 
 // Mock dependencies before import
@@ -51,7 +51,7 @@ import { POST } from "@/app/api/souq/ads/clicks/route";
 
 describe("Souq Ads Clicks API", () => {
   beforeEach(() => {
-    mockRateLimitResult = { success: true };
+    mockRateLimitResult = { allowed: true, remaining: 10 };
     mockBudgetResult = null;
   });
 
