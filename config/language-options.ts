@@ -5,9 +5,8 @@
  * Used by: LanguageSelector, TranslationProvider, SignupPage, etc.
  */
 
-// Only English/Arabic have production-ready translations. Additional locales can be
-// reintroduced here once professional translations land.
-export type LanguageCode = "ar" | "en" | "fr" | "es";
+// Production languages: Arabic and English only
+export type LanguageCode = "ar" | "en";
 
 export interface LanguageOption {
   language: LanguageCode;
@@ -20,7 +19,6 @@ export interface LanguageOption {
   locale: string; // Full locale (ar-SA, en-GB)
   country: string; // Country name
   keywords?: string[]; // Additional search keywords for type-ahead
-  comingSoon?: boolean; // Non-enabled locales
 }
 
 export const LANGUAGE_OPTIONS: LanguageOption[] = [
@@ -47,32 +45,6 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     locale: "en-GB",
     country: "United Kingdom",
     keywords: ["english", "uk", "us"],
-  },
-  {
-    language: "fr",
-    code: "fr",
-    native: "Français",
-    english: "French",
-    flag: "🇫🇷",
-    dir: "ltr",
-    iso: "FR",
-    locale: "fr-FR",
-    country: "France",
-    keywords: ["french", "francais", "fr"],
-    comingSoon: true,
-  },
-  {
-    language: "es",
-    code: "es",
-    native: "Español",
-    english: "Spanish",
-    flag: "🇪🇸",
-    dir: "ltr",
-    iso: "ES",
-    locale: "es-ES",
-    country: "Spain",
-    keywords: ["spanish", "espanol", "es"],
-    comingSoon: true,
   },
 ];
 

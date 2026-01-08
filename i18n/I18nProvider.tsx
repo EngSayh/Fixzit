@@ -35,8 +35,6 @@ const DICTIONARIES: Record<
 > = {
   en: () => import("./dictionaries/en"),
   ar: () => import("./dictionaries/ar"),
-  fr: () => import("./dictionaries/en"),
-  es: () => import("./dictionaries/en"),
 };
 
 type ContextValue = {
