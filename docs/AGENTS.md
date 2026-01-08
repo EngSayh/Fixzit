@@ -3512,6 +3512,22 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Total tests: 221 → 235 (+3 test files, +14 individual tests)
 - **TOTAL COVERAGE: 76% - BUFFER AT +6% ABOVE TARGET 🎯**
 
+**Sprint 40 Update (PR #680):**
+- +6 Superadmin tenants/[id] tests (GET/PATCH/DELETE auth, validation)
+- +6 Superadmin scheduled-tasks/[id] tests (GET/PUT/DELETE rate limit, auth)
+- +4 Superadmin scheduled-tasks/[id]/run tests (rate limit, auth, 404)
+- Superadmin: 22 → 28 tests (25% → 32%)
+- Total tests: 235 → 251 (+3 test files, +16 individual tests)
+- **TOTAL COVERAGE: 77% - BUFFER AT +7% ABOVE TARGET 🎯**
+
+**Sprint 41 Update (PR #680):**
+- +4 Superadmin scheduled-tasks/[id]/executions tests (rate limit, auth)
+- +3 Superadmin reports tests (GET/POST auth)
+- +4 Superadmin billing/pricebooks tests (GET/POST auth, validation)
+- Superadmin: 28 → 33 tests (32% → 38%)
+- Total tests: 251 → 262 (+3 test files, +11 individual tests)
+- **TOTAL COVERAGE: 78% - BUFFER AT +8% ABOVE TARGET 🎯**
+
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
 - Sprint 18: +4 Souq tests (buybox, repricer-run, kyc-status, returns-eligibility)
