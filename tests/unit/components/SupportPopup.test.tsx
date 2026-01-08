@@ -9,18 +9,18 @@ import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
 import { mockClipboard, restoreClipboard, mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 // Note: @ts-expect-error annotations in this file are used only to mock clipboard APIs in jsdom.
 
-// Mock sonner toast - component uses toast.success instead of window.alert for copy
-vi.mock("sonner", () => {
-  return {
-    toast: {
-      success: vi.fn(),
-      error: vi.fn(),
-      loading: vi.fn(),
-      dismiss: vi.fn(),
-    },
-    Toaster: () => null,
-  };
-});
+// Mock react-hot-toast - component uses toast.success/error instead of window.alert
+vi.mock("react-hot-toast", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  },
+  Toaster: () => null,
+}));
+
+import { toast as mockToast } from "react-hot-toast";
 
 // Using path mapping for cleaner imports
 import SupportPopup from "@/components/SupportPopup";
@@ -266,13 +266,11 @@ describe("SupportPopup - submission flow", () => {
       phone: "+123456789",
     });
 
-    // Success alert and closing
+    // Success toast and closing
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("Support Ticket Created Successfully"),
-      );
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("Ticket ID: TCK-1001"),
+      expect(mockToast.success).toHaveBeenCalledWith(
+        expect.stringContaining("TCK-1001"),
+        expect.any(Object),
       );
       expect(onClose).toHaveBeenCalled();
     });
@@ -298,8 +296,9 @@ describe("SupportPopup - submission flow", () => {
     expect(body.requester).toBeUndefined();
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("Ticket ID: TCK-2002"),
+      expect(mockToast.success).toHaveBeenCalledWith(
+        expect.stringContaining("TCK-2002"),
+        expect.any(Object),
       );
       expect(onClose).toHaveBeenCalled();
     });
@@ -316,8 +315,9 @@ describe("SupportPopup - submission flow", () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         expect.stringMatching(/Failed to create ticket/i),
+        expect.any(Object),
       );
     });
 
@@ -335,8 +335,9 @@ describe("SupportPopup - submission flow", () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         expect.stringContaining("Network down"),
+        expect.any(Object),
       );
     });
 
