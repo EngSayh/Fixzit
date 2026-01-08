@@ -109,7 +109,7 @@ describe("Upload Scan API", () => {
     it("should reject requests without key", async () => {
       vi.mocked(getSessionOrNull).mockResolvedValue({
         ok: true,
-        session: { user: { id: "user1", orgId: "org1" } },
+        session: { id: "user1", orgId: "org1", tenantId: "org1" },
         response: null,
       });
       vi.mocked(parseBodySafe).mockResolvedValue({ data: {}, error: null });
@@ -127,7 +127,7 @@ describe("Upload Scan API", () => {
     it("should reject invalid body", async () => {
       vi.mocked(getSessionOrNull).mockResolvedValue({
         ok: true,
-        session: { user: { id: "user1", orgId: "org1" } },
+        session: { id: "user1", orgId: "org1", tenantId: "org1" },
         response: null,
       });
       vi.mocked(parseBodySafe).mockResolvedValue({ data: null, error: new Error("Parse error") });
@@ -145,7 +145,7 @@ describe("Upload Scan API", () => {
     it("should reject cross-tenant key access", async () => {
       vi.mocked(getSessionOrNull).mockResolvedValue({
         ok: true,
-        session: { user: { id: "user1", orgId: "org1" } },
+        session: { id: "user1", orgId: "org1", tenantId: "org1" },
         response: null,
       });
       vi.mocked(validateOrgScopedKey).mockReturnValue({ 
