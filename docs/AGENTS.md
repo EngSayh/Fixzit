@@ -3386,7 +3386,12 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Aqar coverage improved from 43% → 89% ✅
 - Accurate route counts verified via file system scan
 - Lowest gaps: Superadmin (10%), Onboarding (29%), Admin (31%)
-| **Total** | **392** | **231** | **58.9%** | Target: 70% |
+
+**Sprint 27 Update (PR #680):**
+- +4 Admin billing tests (annual-discount route)
+- +4 Onboarding tests (complete-tutorial route)
+- Admin: 31% → 34%, Onboarding: 29% → 43%
+- Total tests: 131 → 139 (+8)
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
