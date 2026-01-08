@@ -16,10 +16,7 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 vi.mock("@/lib/auth/safe-session", () => ({
-  getSessionOrNull: vi.fn().mockResolvedValue({
-    ok: true,
-    session: { id: "user-123", role: "USER", orgId: "org-123" },
-  }),
+  getSessionOrNull: vi.fn(),
 }));
 
 vi.mock("@/lib/api/parse-body", () => ({
