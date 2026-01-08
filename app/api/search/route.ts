@@ -647,7 +647,9 @@ export async function GET(req: NextRequest) {
     const mongoose = await connectToDatabase(); // Ensure database connection
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get("app") || "fm") as AppKey;
-    const q = (searchParams.get("q") || "").trim();
+    // NFC normalization: ensure composed Unicode for consistent $text search matching
+    // This handles cases where search input has decomposed characters (e.g., e + combining acute)
+    const q = (searchParams.get("q") || "").normalize("NFC").trim();
     const scope = searchParams.get("scope") === "all" ? "all" : "module";
     const moduleScope =
       (searchParams.get("module") as ModuleScope) || DEFAULT_SCOPE;

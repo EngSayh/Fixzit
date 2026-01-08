@@ -26,13 +26,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function normalizeUnicode(
+  input: string,
+  form: "NFC" | "NFKC" = "NFC",
+): string {
+  return input.normalize(form);
+}
+
 export function generateSlug(input: string | null | undefined): string {
   // Handle null/undefined/non-string inputs
   if (input == null || typeof input !== "string") {
     return "";
   }
 
-  const src = input.trim();
+  // NFC normalization: stabilize composed/decomposed Unicode inputs
+  // e.g., "café" (NFD: e + combining acute) → "café" (NFC: precomposed é)
+  const src = normalizeUnicode(input, "NFC").trim();
   if (!src) return "";
 
   // Check for leading/trailing hyphens *after* trimming

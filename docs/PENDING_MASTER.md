@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T12:30:00+03:00
+  Last-Sync: 2026-01-08T13:45:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,55 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T13:45 (Asia/Riyadh) — Silent Bug Audit & Fix [AGENT-0010]
+
+**Agent Token:** [AGENT-0010]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Modified (pending commit)
+
+#### Session Summary
+
+Comprehensive audit of codebase for silent bugs including invisible characters, mixed indentation, Git case conflicts, debug statements, hardcoded secrets, security anti-patterns, and other common issues.
+
+#### Issues Found & Fixed
+
+| File | Issue | Fix Applied |
+|------|-------|-------------|
+| `tests/setup.ts` L77-83, L208 | Mixed tabs/spaces indentation | Converted tabs to spaces |
+| `tests/api/help/escalate.route.test.ts` L94 | Reserved word `module` in for-loop | Renamed to `moduleValue` |
+| `i18n/new-translations.ts` L46029 | Truncated file with unterminated string | Completed string `'ضمان الجودة'` and closed file |
+| `vercel.json` | Vercel deploying on all branches | Added `git.deploymentEnabled.main: true` |
+
+#### Audit Results - No Critical Issues
+
+| Category | Count | Location | Status |
+|----------|-------|----------|--------|
+| Zero-width spaces (`\u200b`) | 0 | N/A | ✅ Clean |
+| Non-breaking spaces (intentional) | 12 | Tests, CSV BOM | ✅ Reviewed - Intentional |
+| Git case sensitivity conflicts | 0 | N/A | ✅ Clean |
+| JSON trailing commas | 0 | N/A | ✅ Clean |
+| `debugger;` statements | 0 | N/A | ✅ Clean |
+| Unsafe `eval()` | 0 | Redis eval only | ✅ Safe |
+| `dangerouslySetInnerHTML` | 10 | All use sanitizeHtml | ✅ Safe |
+| `while(true)` loops | 4 | All have break conditions | ✅ Safe |
+| Empty catch blocks (prod) | 0 | 1 in test error boundary | ✅ Acceptable |
+| `@ts-ignore`/`@ts-nocheck` | 14 | tests/ only with justifications | ✅ Acceptable |
+| `eslint-disable` | 20+ | All with justification comments | ✅ Acceptable |
+| TODO/FIXME/HACK markers | 20+ | tests/, tools/, scripts/ only | ✅ Acceptable |
+| console.log/debug | 30+ | tests/, tools/ only | ✅ Acceptable |
+| Hardcoded secrets | 0 | All use env vars or redaction | ✅ Safe |
+
+#### Verification
+
+| Check | Status |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+| Git preflight | ✅ 0 behind, 86 ahead of main |
 
 ---
 
