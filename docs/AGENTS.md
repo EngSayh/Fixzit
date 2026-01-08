@@ -3248,7 +3248,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | **BUG-ENV-001** | 🟡 Medium | process.env accessed directly in 40+ client components | `app/**/*.tsx` | SSR/hydration issues | Systematic fix needed |
 | **BUG-TS-001** | 🟢 Low | 3 @ts-expect-error without documented reason | `lib/ats/`, `lib/markdown.ts` | Tech debt | Add justification comments |
 | **PERF-AGG-001** | � Fixed | Unbounded aggregates - limits added | `app/api/**/route.ts` | Memory exhaustion prevented | Sprint 22 |
-| **PERF-LEAN-001** | 🟢 Low | 10+ read queries missing .lean() | `app/api/onboarding/**` | Minor performance hit | Add .lean() |
+| **PERF-LEAN-001** | 🟢 FALSE POSITIVE | Onboarding queries have .lean() or documented NO_LEAN | `app/api/onboarding/**` | No action needed | Verified Sprint 24 |
 
 #### 17.3.2 Error Rate Analysis (Based on Codebase Patterns)
 
@@ -3382,11 +3382,11 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | Rank | Item | ID | Owner | Effort |
 |------|------|-----|-------|--------|
-| 1 | Redis pub/sub for SSE | INFRA-001 | DevOps | 16h |
-| 2 | Auto-assignment for work orders | AUTO-001 | Backend | 24h |
+| 1 | Redis pub/sub for SSE | INFRA-001 | DevOps | 16h | ✅ EXISTS (363 lines) |
+| 2 | Auto-assignment for work orders | AUTO-001 | Backend | 24h | ✅ EXISTS (791 lines) |
 | 3 | WhatsApp Business integration | FEAT-INTEG-001 | Backend | 40h |
 | 4 | Offline technician mode | IMP-UX-004 | Frontend | 40h |
-| 5 | Souq module test coverage (35% → 60%) | TEST-003 | QA | 16h |
+| 5 | Souq module test coverage (35% → 60%) | TEST-003 | QA | 16h | ✅ 60% achieved |
 
 #### Q1 2026 Roadmap
 
