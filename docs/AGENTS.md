@@ -3329,8 +3329,8 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | ID | Issue | Location | Current Behavior | Correct Behavior | Fix Approach |
 |----|-------|----------|-----------------|-----------------|--------------|
 | **LOGIC-001** | SLA business hours calculation | `lib/sla/business-hours.ts` | ✅ IMPLEMENTED (446 lines + 31 tests) | Must exclude weekends, holidays, working hours | ✅ Complete with org-specific calendar |
-| **LOGIC-002** | Opt-in defaults for notifications | `services/admin/notification-engine.ts` | Missing preferences = undefined behavior | Default to opt-in with explicit opt-out | Add default preference object |
-| **LOGIC-003** | Aggregate pagination | Multiple stats routes | No cursor-based pagination | Unbounded results on large datasets | Add $skip/$limit or cursor |
+| **LOGIC-002** | Opt-in defaults for notifications | `services/admin/notification-engine.ts` | ✅ IMPLEMENTED - "missing preferences = opt-in by default" | Default to opt-in with explicit opt-out | ✅ Lines 320-326: null preference = enabled |
+| **LOGIC-003** | Aggregate pagination | Multiple stats routes | ✅ IMPLEMENTED - all stats routes have maxTimeMS + $limit | Unbounded results on large datasets | ✅ Sprint 22 (PERF-AGG-001) |
 | **LOGIC-004** | Rate limit scope | `app/api/auth/otp/send/route.ts` | Global rate limit only | Per-phone rate limiting needed | ✅ Fixed (commit 72ff2e47e) |
 
 #### 17.4.2 Decision-Making Accuracy Improvements
