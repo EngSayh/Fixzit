@@ -339,7 +339,7 @@ cat qa/security/mongodb-test-results.log
 
 1. **Earlier Testing:** Should have created test suite alongside code changes
 2. **CI/CD Integration:** Tests should be added to GitHub Actions/CI pipeline
-3. **Performance Impact:** Rate limiting uses in-memory cache (consider Redis for production scale)
+3. **Performance Impact:** Rate limiting uses in-memory cache (consider centralized cache for multi-node scale)
 4. **CORS Validation:** Could add stricter URL validation for `CORS_ORIGINS` env var
 
 ### Recommendations for Future
@@ -348,7 +348,7 @@ cat qa/security/mongodb-test-results.log
 2. **Production Monitoring:** Set up alerts for security events (done infrastructure, needs integration)
 3. **Regular Audits:** Schedule weekly `pnpm audit` runs
 4. **Penetration Testing:** Consider annual third-party security audit
-5. **Redis Rate Limiting:** Migrate to Redis-based rate limiting for production scale
+5. **Rate Limiting at Scale:** Migrate to a centralized cache/store for production scale
 
 ---
 

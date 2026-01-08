@@ -139,7 +139,7 @@
 
 - [ ] 🟠 Implement rate limiting
   - 10 requests/min per user
-  - Redis cache for counter
+  - MongoDB cache for counter
   - 429 response for exceeded limit
   - **Acceptance:** Rate limit enforced
 
@@ -409,7 +409,7 @@
 - [ ] Query parameters: `startDate`, `endDate`, `assetType`, `status`, `organizationId`
 - [ ] Response: Array of asset summaries (totalAssets, byType, byStatus, byLocation)
 - [ ] Aggregation pipeline: MongoDB aggregation with $group, $match, $sort
-- [ ] Caching: Redis cache (15 min TTL)
+- [ ] Caching: MongoDB cache (15 min TTL)
 - [ ] Export: CSV/PDF download option
 - [ ] **Acceptance:** API returns accurate asset counts, < 500ms response time
 
@@ -418,7 +418,7 @@
 1. Define OpenAPI spec
 2. Create `/api/fm/reports/assets` endpoint
 3. Implement MongoDB aggregation query
-4. Add Redis caching
+4. Add MongoDB caching
 5. Write unit tests (90% coverage)
 6. Write integration tests
 7. Load test (100 req/min)
@@ -441,7 +441,7 @@
 - [ ] Query parameters: `startDate`, `endDate`, `maintenanceType`, `status`, `priority`
 - [ ] Response: Maintenance summary (total tasks, completed, pending, overdue)
 - [ ] Metrics: Average completion time, SLA compliance rate
-- [ ] Caching: Redis cache (10 min TTL)
+- [ ] Caching: MongoDB cache (10 min TTL)
 - [ ] Export: CSV/PDF download option
 - [ ] **Acceptance:** API returns maintenance metrics, < 500ms response time
 
@@ -451,7 +451,7 @@
 2. Create `/api/fm/reports/maintenance` endpoint
 3. Implement aggregation query
 4. Calculate SLA compliance
-5. Add Redis caching
+5. Add MongoDB caching
 6. Write unit tests
 7. Write integration tests
 
@@ -472,7 +472,7 @@
 - [ ] Query parameters: `startDate`, `endDate`, `costCategory`, `organizationId`
 - [ ] Response: Cost breakdown (labor, materials, vendor, utilities)
 - [ ] Metrics: Total spend, spend by category, variance from budget
-- [ ] Caching: Redis cache (30 min TTL)
+- [ ] Caching: MongoDB cache (30 min TTL)
 - [ ] Export: CSV/Excel download
 - [ ] **Acceptance:** API returns financial data, < 500ms response time
 
@@ -841,7 +841,7 @@
 - AWS S3 + IAM
 - MongoDB aggregation pipelines
 - REST API design
-- Redis caching
+- MongoDB caching
 
 ---
 
@@ -862,7 +862,7 @@
 - Node.js + TypeScript
 - MongoDB + Mongoose
 - WebSocket/webhook systems
-- Job queues (Bull/BullMQ)
+- Job queues (in-memory)
 - Event-driven architecture
 
 ---
@@ -949,7 +949,7 @@
 | ----------------------------- | ------------ | ----------- |
 | **AWS S3 Storage**            | $85          | $1,020      |
 | **AWS Lambda (Virus Scan)**   | $10          | $120        |
-| **Redis Cache (ElastiCache)** | $50          | $600        |
+| **MongoDB Cache (ElastiCache)** | $50          | $600        |
 | **CloudWatch Logs**           | $20          | $240        |
 | **AWS KMS (Encryption)**      | $10          | $120        |
 | **SNS Alerts**                | $5           | $60         |
@@ -1089,3 +1089,4 @@
 3. ✅ Budget approval ($120K)
 4. ⏳ Kickoff meeting scheduled (Dec 2, 9am PST)
 5. ⏳ Sprint 1 begins
+

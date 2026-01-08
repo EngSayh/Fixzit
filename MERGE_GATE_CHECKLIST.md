@@ -183,7 +183,7 @@ This is the #1 reason "perfect PR" merges still cause production incidents.
 - ⏳ **TAP_WEBHOOK_SECRET not set**: Webhook verification disabled
   - Impact: Tap Payments webhooks not validated (development only)
 
-- ⏳ **Redis not configured**: Budget tracking fallback
+- ⏳ **MongoDB not configured**: Budget tracking fallback
   - Impact: Budget counters use in-memory fallback (development only)
 
 **Recommendation:** Create "Build Warnings Cleanup" PR after #555 merge. Priority order: topLevelAwait (P2) → dynamic exports (P3) → config cleanup (P3).
@@ -618,7 +618,7 @@ git diff HEAD origin/fix/security-atlas-vercel-hardening-20251214-1341
 - ⏳ Dynamic server usage errors (marketplace routes)
 - ⏳ Production URL dependency in Preview
 - ⏳ TAP_WEBHOOK_SECRET not set
-- ⏳ Redis not configured
+- ⏳ MongoDB not configured
 
 ---
 

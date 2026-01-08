@@ -26,7 +26,7 @@
 | 13 | Database Cleanup Script | ✅ CREATED | `scripts/clear-database-keep-demo.ts` |
 | 14 | ISSUES_REGISTER Updated | ✅ DONE | Version 2.2 with all resolved issues |
 | 15 | Expired TODOs Check | ✅ N/A | No expired TODOs found in balance-service.ts |
-| 16 | SMS Queue Retry Ceiling | ✅ DONE | BullMQ attempts aligned to `maxRetries`; send loop short-circuits when `retryCount >= maxRetries` |
+| 16 | SMS Queue Retry Ceiling | ✅ DONE | in-memory queue attempts aligned to `maxRetries`; send loop short-circuits when `retryCount >= maxRetries` |
 | 17 | SLA Monitor Auth Guard | ✅ DONE | `app/api/jobs/sms-sla-monitor/route.ts` enforces SUPER_ADMIN role/flag + cron secret |
 
 ---
@@ -88,7 +88,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 | L.3 | Test Speed Optimization | Faster CI | Add `--bail 1` |
 | L.4 | setupTestDb Helper | Less boilerplate | Create shared helper |
 | L.5 | 3-Tier Health Status | Better observability | healthy/degraded/unhealthy |
-| L.6 | SMS Worker Start Guard | Hygiene | In `instrumentation.ts`, consider honoring `queueEnabled` before auto-starting SMS worker when Redis exists |
+| L.6 | SMS Worker Start Guard | Hygiene | In `instrumentation.ts`, consider honoring `queueEnabled` before auto-starting SMS worker when MongoDB exists |
 
 ---
 
@@ -110,7 +110,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
   "ready": false,
   "checks": {
     "mongodb": "error",
-    "redis": "disabled",
+    "mongodb": "disabled",
     "email": "disabled"
   },
   "timestamp": "2025-12-10T11:22:38Z (last known; update after next health check)"
@@ -175,3 +175,4 @@ These reports have been merged into this master document (do NOT create new pend
 ---
 
 **Next Agent Session**: Continue with E2E tests and process improvements after user confirms production health is stable.
+

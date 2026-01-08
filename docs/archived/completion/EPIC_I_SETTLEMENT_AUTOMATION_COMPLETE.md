@@ -18,7 +18,7 @@ Successfully implemented automated settlement and payout system for Souq marketp
 
 - ✅ Automated commission calculations (10% + 2.5% + 15% VAT)
 - ✅ SADAD/SPAN bank transfer integration
-- ✅ Real-time balance tracking via Redis
+- ✅ Real-time balance tracking via MongoDB
 - ✅ Withdrawal request management
 - ✅ Reserve system (20% held for 7-14 days)
 - ✅ Transaction history with pagination
@@ -211,12 +211,12 @@ const result = await sadadClient.transfer({
 
 **File**: `services/souq/settlements/balance-service.ts` (450 lines)
 
-**Purpose**: Real-time balance tracking using Redis.
+**Purpose**: Real-time balance tracking using MongoDB.
 
 **Key Methods**:
 
 ```typescript
-// Get seller balance (from Redis cache)
+// Get seller balance (from in-memory cache)
 getBalance(sellerId: string): Promise<SellerBalance>
 
 // Calculate balance from database
@@ -280,7 +280,7 @@ Reserved = SUM(reserve_holds) - SUM(reserve_releases);
 Pending = SUM(orders in transit);
 ```
 
-**Redis Caching**:
+**MongoDB Caching**:
 
 - Cache key: `seller:{sellerId}:balance`
 - TTL: 5 minutes
@@ -459,7 +459,7 @@ Pending = SUM(orders in transit);
 }
 ```
 
-**Caching**: Redis (5 min TTL)
+**Caching**: MongoDB (5 min TTL)
 
 **Status**: ✅ Complete
 
@@ -842,7 +842,7 @@ const FEE_CONFIG = {
 
 ### Performance Metrics
 
-- **Balance Query**: < 50ms (Redis cache)
+- **Balance Query**: < 50ms (in-memory cache)
 - **Transaction History**: < 200ms (MongoDB)
 - **Payout Processing**: < 5 seconds
 - **Statement Generation**: < 10 seconds
@@ -1067,7 +1067,7 @@ for: 5m
 severity: critical
 message: "Payout failure rate above 10%"
 
-# Redis cache miss rate
+# in-memory cache miss rate
 alert: HighCacheMissRate
 expr: (cache_misses / cache_requests) > 0.30
 for: 10m
@@ -1171,7 +1171,7 @@ message: "More than 5 payouts pending for > 24 hours"
 - **Automated Payouts**: Reduce manual processing time by 90%
 - **Transparent Fees**: Clear breakdown of commissions, fees, VAT
 - **Fraud Prevention**: 7-day hold + 20% reserve system
-- **Scalability**: Redis caching + batch processing for 10,000+ sellers
+- **Scalability**: MongoDB caching + batch processing for 10,000+ sellers
 - **Compliance**: Full audit trail + VAT calculations
 
 **Next Steps**: Proceed to Phase 2 additional features or comprehensive testing.

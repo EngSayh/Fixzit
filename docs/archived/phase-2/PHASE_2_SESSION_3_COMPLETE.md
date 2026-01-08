@@ -14,14 +14,14 @@
 
 ### Summary
 
-Complete advertising platform with Vickrey auction engine, Redis budget management, and real-time bidding. Supports Sponsored Products, Brand Banners, and Display Ads with automated bidding and performance analytics.
+Complete advertising platform with Vickrey auction engine, MongoDB budget management, and real-time bidding. Supports Sponsored Products, Brand Banners, and Display Ads with automated bidding and performance analytics.
 
 **Revenue Projection**: 1.2M SAR/month (10% of GMV)
 
 ### Technical Highlights:
 
 - Second-price auction algorithm
-- Atomic budget tracking (Redis Lua scripts)
+- Atomic budget tracking (MongoDB Lua scripts)
 - Quality score-based ad ranking
 - Real-time impression/click tracking
 - Seller performance dashboard

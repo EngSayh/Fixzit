@@ -177,27 +177,29 @@ app/
 |----------|-----------|----------|----------------|
 | `auth.ts` (5 files) | `./auth.ts`, `./lib/auth.ts`, `./types/auth.ts`, `./app/api/fm/utils/auth.ts`, `./tests/e2e/utils/auth.ts` | Different purposes | ✅ Keep all - different responsibilities |
 | `tenant.ts` (3 files) | `./utils/tenant.ts`, `./server/utils/tenant.ts`, `./app/api/fm/utils/tenant.ts` | Shim + 2 implementations | 🔴 Consolidate |
-| `redis.ts` (2 files) | `./lib/redis.ts`, `./lib/cache/redis.ts` | Near-identical | 🔴 Deduplicate |
+| `mongo.ts` + `mongodb-unified.ts` | `./lib/mongo.ts`, `./lib/mongodb-unified.ts` | Shared connection helpers | Keep both; ensure single factory |
 | `logger.ts` (2 files) | `./lib/logger.ts`, `./server/lib/logger.ts` | logger is canonical, server/lib/logger is thin wrapper | ⚠️ Consolidate |
 | `paytabs.ts` (2 files) | `./lib/paytabs.ts`, `./lib/finance/paytabs.ts` | Completely different | ✅ Keep both (rename finance one) |
 | `rbac.ts` (2 files) | `./lib/rbac.ts`, `./lib/ats/rbac.ts` | Domain-specific | ✅ Keep both |
 
 ### 2.2 Detailed Duplicate Analysis
 
-#### 2.2.1 `redis.ts` - 🔴 TRUE DUPLICATE
+#### 2.2.1 `mongo.ts` + `mongodb-unified.ts` - SHARED CONNECTION
 
-**File 1**: `lib/redis.ts` (166 lines)
-- IORedis-based implementation
-- BullMQ integration
-- Connection factory pattern
+**File 1**: `lib/mongo.ts` (central MongoDB connection + helpers)
+- MongoDB connection + health checks
+- Shared client accessors
+- Used by data modules
 
-**File 2**: `lib/cache/redis.ts` (240 lines)
-- Node redis client
-- Caching utilities (`getCached`, `invalidateCache`, etc.)
-- Health check, TTL constants
+**File 2**: `lib/mongodb-unified.ts` (connection factory)
+- Unified connection bootstrap
+- Reused by `lib/mongo.ts`
 
-**Verdict**: Different purposes but should share single connection.
-**Recommendation**: Keep `lib/redis.ts` for BullMQ, keep `lib/cache/redis.ts` for caching, but ensure they share the same Redis connection factory.
+**Related modules**:
+- `lib/cache.ts` (in-memory cache helpers)
+- `lib/queue.ts`, `lib/queues/setup.ts` (in-memory queue helpers)
+
+**Verdict**: Connection helpers should remain aligned; cache/queue live in dedicated in-memory modules.
 
 ---
 
@@ -325,7 +327,8 @@ Found 8+ env-related files:
 | Purpose | Canonical Path | Exports |
 |---------|----------------|---------|
 | Tenant Resolution | `lib/tenant/index.ts` | `resolveTenantId`, `buildTenantFilter`, `getAuthFromRequest` |
-| Redis | `lib/redis/index.ts` | `getRedisConnection`, `getRedisClient`, re-export cache utils |
+| MongoDB | `lib/mongo.ts`, `lib/mongodb-unified.ts` | Connection helpers (shared factory) |
+| Cache/Queue | `lib/cache.ts`, `lib/queue.ts`, `lib/queues/setup.ts` | In-memory cache + queue helpers |
 
 ---
 
@@ -372,7 +375,7 @@ grep -r "@/server/lib/logger" --include="*.ts" --include="*.tsx"
 
 ### Long-Term (Next Sprint)
 
-6. **Consolidate Redis**
+6. **Consolidate MongoDB**
    - Create shared connection factory
    - Keep separate cache and queue clients but share connection
 
@@ -441,9 +444,9 @@ tenant.ts (3 files):
   - ./server/utils/tenant.ts (Auth context extraction)
   - ./app/api/fm/utils/tenant.ts (Tenant resolution)
 
-redis.ts (2 files):
-  - ./lib/redis.ts (IORedis + BullMQ)
-  - ./lib/cache/redis.ts (node-redis + caching)
+mongodb.ts (2 files):
+  - ./lib/mongodb.ts (MongoDB driver-backed queue)
+  - ./lib/cache/mongodb.ts (node-mongodb + caching)
 
 logger.ts (2 files):
   - ./lib/logger.ts (CANONICAL)
@@ -572,3 +575,4 @@ Config folders have been **consolidated** into `config/` to avoid drift between 
 1. Consolidate `.env.local.template` into `.env.example`
 2. Clean up root markdown files (move reports to `docs/archived/`)
 3. Consider documenting the domain-specific model pattern in CONTRIBUTING.md
+

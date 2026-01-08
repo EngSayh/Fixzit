@@ -204,7 +204,7 @@ No action required.
 3. **Performance**: Indexes created, aggregation pipelines optimized, parallel Promise.all
 4. **Error Handling**: Comprehensive ErrorBoundary with incident reporting
 5. **Internationalization**: Full RTL/LTR support, translation context
-6. **Real-Time Updates**: 30-second polling for counters (fallback until Redis available)
+6. **Real-Time Updates**: 30-second polling for counters (fallback until MongoDB available)
 7. **Tabs-Not-Pages Pattern**: Reduces sidebar clutter (50+ items → 12 sections)
 8. **Authentication**: NextAuth integration with proper session management
 
@@ -283,7 +283,7 @@ The system is **conceptually production-ready** with excellent architecture. The
 
 ### Phase 3: Enhancement (Next Sprint)
 
-1. Add Redis for WebSocket live updates
+1. Add MongoDB for WebSocket live updates
 2. Implement Meilisearch for advanced search
 3. Add S3/MinIO for real file uploads
 4. Increase test coverage to 80%

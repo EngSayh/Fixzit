@@ -268,7 +268,7 @@ const sales = await analyticsService.getSalesMetrics(session.user.id, period);
 #### 2. Caching
 
 ```typescript
-// Recommendation: Add Redis caching for analytics
+// Recommendation: Add MongoDB caching for analytics
 // Current: ⚠️ Direct DB queries each request
 // Suggestion: Cache analytics results for 5-15 minutes
 ```
@@ -509,7 +509,7 @@ Both EPIC G (Analytics) and EPIC H (Reviews & Ratings) have been implemented wit
 #### Future Enhancements (Post-Launch)
 
 1. Add rate limiting middleware
-2. Implement Redis caching for analytics
+2. Implement MongoDB caching for analytics
 3. Add XSS protection for review content
 4. Create OpenAPI documentation
 5. Add request tracing and metrics

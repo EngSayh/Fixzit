@@ -78,7 +78,7 @@
 │   ├── config/               # Shared configs (ESLint, TS, Tailwind)
 │   ├── testing/              # Playwright helpers, test utils
 │   ├── observability/        # OpenTelemetry, pino logger
-│   └── cache/                # Redis client + helpers
+│   └── cache/                # MongoDB client + helpers
 ├── scripts/
 │   ├── scan-hex.js           # Brand enforcement scanner
 │   ├── verify-page.ts        # Halt-Fix-Verify automation
@@ -164,12 +164,12 @@
 - [ ] Middleware for request/response logging
 - [ ] RED metrics (Rate, Errors, Duration)
 
-### Lane E: Redis Caching - TODO
+### Lane E: MongoDB Caching - TODO
 
 **Goal**: Cache hot paths with org-scoped keys  
 **Tasks**:
 
-- [ ] Redis client setup
+- [ ] MongoDB client setup
 - [ ] Cached query wrapper with TTL
 - [ ] Org-scoped cache keys
 - [ ] Event-based invalidation

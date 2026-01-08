@@ -1,5 +1,5 @@
 # Architectural Board Review (ABR)
-## PR #656: Redis Removal & Code Quality Fixes
+## PR #656: Cache/Queue Removal & Code Quality Fixes
 
 **Date:** 2026-01-03  
 **Agent Token:** [AGENT-0005]  
@@ -13,13 +13,13 @@
 This PR contains two major change sets:
 
 1. **Code Quality Fixes** - Race conditions, type safety, field mappings across 11 core files
-2. **Redis Removal** - Complete removal of Redis dependency, migration to in-memory queues
+2. **Cache/Queue Removal** - Complete removal of external cache/queue dependency, migration to in-memory queues
 
 ### Impact Assessment
 
 | Category | Impact Level | Justification |
 |----------|-------------|---------------|
-| **Breaking Change** | ⚠️ MEDIUM | Redis no longer required for deployment |
+| **Breaking Change** | ⚠️ MEDIUM | External cache/queue service no longer required for deployment |
 | **Performance** | ⚠️ MEDIUM | In-memory queues are single-instance only |
 | **Reliability** | ⚠️ LOW | Queues not durable across restarts |
 | **Security** | ✅ NONE | No security implications |
@@ -45,52 +45,50 @@ This PR contains two major change sets:
 | `services/fm/inspection-service.ts` | Interface fields, unitId ObjectId validation |
 | `services/fm/provider-network.ts` | ObjectId import, org_id conversion, response time |
 
-### 2.2 Redis Removal (Commit: `bc64455b3`)
+### 2.2 Cache/Queue Removal (Commit: `bc64455b3`)
 
-#### Files Deleted (6):
-- `lib/redis.ts` - Redis client singleton
-- `lib/redis-client.ts` - Redis client wrapper
-- `lib/otp-store-redis.ts` - Redis-backed OTP storage
-- `lib/stubs/bullmq.ts` - BullMQ in-memory stub
-- `lib/stubs/ioredis.ts` - IORedis in-memory stub
-- `tests/unit/lib/otp-store-redis.test.ts` - Redis OTP tests
-- `tests/unit/lib/redis-pubsub.test.ts` - Redis pub/sub tests
+#### In-Memory Cache/Queue Modules
+| File | Purpose |
+|------|---------|
+| `lib/cache.ts` | In-memory cache with TTL + metrics |
+| `lib/queue.ts` | In-memory queue primitives |
+| `lib/queues/setup.ts` | Queue registry + helpers |
+| `lib/otp-store.ts` | OTP + rate limit store (in-memory) |
 
 #### Files Modified - Queue Migration (4):
 | File | Change |
 |------|--------|
-| `jobs/export-worker.ts` | Removed Redis CI check |
-| `jobs/package-activation-queue.ts` | `bullmq` → `@/lib/queue` |
-| `jobs/search-index-jobs.ts` | `bullmq` → `@/lib/queue` |
-| `jobs/zatca-retry-queue.ts` | `bullmq` → `@/lib/queue` |
+| `jobs/export-worker.ts` | Removed external queue precheck |
+| `jobs/package-activation-queue.ts` | Uses `@/lib/queue` in-memory queue |
+| `jobs/search-index-jobs.ts` | Uses `@/lib/queue` in-memory queue |
+| `jobs/zatca-retry-queue.ts` | Uses `@/lib/queue` in-memory queue |
 
 #### Files Modified - Tests (15+):
-All test mocks changed from `@/lib/redis` to `@/lib/cache`
+Cache/queue-related tests updated to use `@/lib/cache` and in-memory queue helpers
 
 #### Files Modified - Config/Scripts (6):
-- `tsconfig.json` - Removed ioredis/bullmq path aliases
-- `scripts/ci/local-merge-gate*.sh` - Removed bullmq/ioredis from scans
-- `scripts/security/check-hardcoded-uris.*` - Removed redis:// pattern
+- `tsconfig.json` - Removed external cache/queue path aliases
+- `scripts/ci/local-merge-gate*.sh` - Removed external cache/queue scans
+- `scripts/security/check-hardcoded-uris.*` - Removed legacy cache URI pattern
 
 ---
-
 ## 3. Architectural Decisions
 
-### 3.1 Why Remove Redis?
+### 3.1 Why Remove External Cache/Queue Dependency?
 
 | Reason | Details |
 |--------|---------|
-| **Simplified Deployment** | No Redis infrastructure required |
-| **Cost Reduction** | No Upstash/Redis Cloud subscription needed |
+| **Simplified Deployment** | No dedicated cache/queue infrastructure required |
+| **Cost Reduction** | No external cache subscription needed |
 | **Vercel Compatibility** | Better fit for serverless architecture |
-| **Already Stubbed** | Redis was already stubbed for local dev |
+| **Already Stubbed** | Cache layer already stubbed for local dev |
 
 ### 3.2 Trade-offs
 
 | Gained | Lost |
 |--------|------|
 | Simpler deployment | Distributed queue state |
-| No Redis dependency | Cross-instance rate limiting |
+| No external cache dependency | Cross-instance rate limiting |
 | Lower operational cost | Durable job persistence |
 | Faster local dev | Horizontal scaling for queues |
 
@@ -98,9 +96,9 @@ All test mocks changed from `@/lib/redis` to `@/lib/cache`
 
 | Lost Feature | Mitigation |
 |--------------|------------|
-| Distributed queues | Use MongoDB-based queue for critical jobs (future) |
+| Distributed queues | Use a centralized queue service if needed (future) |
 | Cross-instance rate limiting | Rate limiting works per-instance (acceptable for current scale) |
-| Job persistence | Critical jobs can use MongoDB directly |
+| Job persistence | Critical jobs can persist to MongoDB directly |
 
 ---
 
@@ -149,7 +147,7 @@ All test mocks changed from `@/lib/redis` to `@/lib/cache`
 If issues arise post-merge:
 
 ```bash
-# Revert the Redis removal commit
+# Revert the cache/queue removal commit
 git revert bc64455b3
 
 # Or revert entire PR
@@ -164,7 +162,7 @@ git commit -m "Revert PR #656"
 ### For Reviewer:
 
 - [ ] Verify code quality fixes don't introduce regressions
-- [ ] Confirm Redis removal doesn't break critical flows:
+- [ ] Confirm cache/queue removal doesn't break critical flows:
   - [ ] OTP verification
   - [ ] Rate limiting
   - [ ] Job queues (export, ZATCA, search index)
@@ -184,17 +182,16 @@ git commit -m "Revert PR #656"
 | Category | Count |
 |----------|-------|
 | Code Quality Fixes | 11 files |
-| Redis Removal - Deleted | 6 files |
-| Redis Removal - Modified | 42 files |
-| **Total** | **59 files** |
+| Cache/Queue Removal - Changes | 42 files |
+| **Total** | **53 files** |
 
 ---
 
 ## 9. Commit History
 
 ```
-bc64455b3 refactor(infra): Remove Redis dependency, migrate to in-memory queues [AGENT-0005]
-44085ee0b fix(code-quality): Race conditions, type safety, field mappings, and IORedis import [AGENT-0005]
+bc64455b3 refactor(infra): Remove cache dependency, migrate to in-memory queues [AGENT-0005]
+44085ee0b fix(code-quality): Race conditions, type safety, field mappings, and cache helper import [AGENT-0005]
 9be1b95a6 fix(superadmin): Theme standardization + React key fix [AGENT-0008]
 17bea3fcc docs(agents): Add terminal naming convention [AGENT-0008]
 a6448666e fix(types): Correct MongoDB typing in approval-service [AGENT-0008]
@@ -204,3 +201,5 @@ a6448666e fix(types): Correct MongoDB typing in approval-service [AGENT-0008]
 
 **Prepared by:** [AGENT-0005]  
 **Status:** Ready for Review
+
+

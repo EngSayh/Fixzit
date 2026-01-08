@@ -135,7 +135,7 @@ const Footer = dynamic(() => import("@/components/Footer"), { ssr: false });
 **Previous Issues (from user context)** - now resolved:
 - ✅ MongoDB guard issues - fixed
 - ✅ Path resolution for HR/marketplace - fixed
-- ✅ bullmq dependency - fixed
+- ✅ external queue dependency removed (in-memory queue used)
 
 ### 6. Settings Button Status
 
@@ -596,3 +596,4 @@ Context access might be invalid: RENOVATE_TOKEN
 4. Perform system-wide audit (Phase 4) if time permits
 
 **End of Action Plan**
+

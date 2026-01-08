@@ -51,7 +51,7 @@ The Fixzit system has undergone a comprehensive security transformation addressi
 
 **Files Modified:** Admin, marketplace, billing, contracts endpoints
 
-- ✅ Implemented comprehensive rate limiting with Redis backend
+- ✅ Implemented comprehensive rate limiting with MongoDB backend
 - ✅ Applied appropriate thresholds per endpoint category:
   - Admin operations: 50 req/hour
   - Marketplace: 100 req/15min
@@ -153,7 +153,7 @@ return createErrorResponse(message, statusCode, req);
 ### Security Middleware Stack
 
 1. **CORS Configuration** - Strict origin validation
-2. **Rate Limiting** - Redis-backed with sliding windows
+2. **Rate Limiting** - MongoDB-backed with sliding windows
 3. **Authentication** - Bearer token validation
 4. **Authorization** - Role-based access control
 5. **Input Validation** - Zod schema validation

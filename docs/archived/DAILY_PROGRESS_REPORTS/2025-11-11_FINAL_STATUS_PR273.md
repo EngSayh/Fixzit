@@ -157,11 +157,11 @@ grep -r "logger\.error.*{.*error" --include="*.ts" --include="*.tsx" app/
   - `/api/work-orders/import`
 - **Impact**: Enables automated API validation and client generation
 
-**6. Fix Redis Reconnection Strategy (Nice-to-Have)**
+**6. Fix MongoDB Reconnection Strategy (Nice-to-Have)**
 
 - File: `app/api/help/ask/route.ts`
 - Add lazy initialization and reconnection logic
-- **Impact**: Improves resilience when Redis temporarily unavailable
+- **Impact**: Improves resilience when MongoDB temporarily unavailable
 
 **7. Remove Duplicate Rate Limiting (Cleanup)**
 
@@ -246,7 +246,7 @@ Target: **9-10/10 passing** (Dependency Review optional)
 
 1. Remove CI secrets fallbacks
 2. Add OpenAPI specifications
-3. Fix Redis reconnection
+3. Fix MongoDB reconnection
 4. Remove duplicate rate limiting
 5. Fix markdown linting violations
 

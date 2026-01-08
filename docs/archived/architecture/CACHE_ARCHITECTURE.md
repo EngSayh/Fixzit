@@ -1,176 +1,102 @@
-# Redis Architecture
+# Cache Architecture (In-Memory)
 
 > **Last Updated**: 2025-01-17  
 > **Maintainers**: Engineering Team
 
 ## Overview
 
-Fixzit uses **ioredis** as the unified Redis client library, but provides two distinct access patterns based on runtime and use-case requirements:
+Fixzit uses in-memory cache and queue helpers to avoid external cache/queue dependencies.
+These helpers are single-instance only and reset on process restart.
 
-| Module | Purpose | Runtime | Features |
-|--------|---------|---------|----------|
-| `lib/redis.ts` | Caching + Singleton | Edge-safe | Dynamic require, fallback support |
-| `lib/redis-client.ts` | Caching + Rate Limiting | Server-only | Direct import, in-memory fallbacks |
-| `lib/queues/setup.ts` | BullMQ Job Queues | Server-only | Uses `lib/redis.ts` connection |
+| Module | Purpose | Runtime | Notes |
+|--------|---------|---------|-------|
+| `lib/cache.ts` | In-memory cache wrapper | Server-only | TTL support + metrics |
+| `lib/otp-store.ts` | OTP + rate limit store | Server-only | In-memory, single-instance |
+| `lib/queue.ts` | Queue primitives | Server-only | In-memory Queue/Worker/Job |
+| `lib/queues/setup.ts` | Queue registry | Server-only | Queue names + helpers |
 
-## Why Two Redis Modules?
+## Cache (`lib/cache.ts`)
 
-### 1. Edge Runtime Compatibility (`lib/redis.ts`)
-
-Next.js Edge Runtime does **not** support:
-- The `dns` module (required by ioredis)
-- Node.js `require()` 
-
-To avoid bundling ioredis into Edge/client builds (which would crash), `lib/redis.ts` uses:
+`lib/cache.ts` wraps `MemoryKV` with TTL and basic metrics.
 
 ```typescript
-// Dynamic require at runtime, not import at bundle time
-function getRedisCtor(): RedisCtor | null {
-  if (typeof require === "undefined") return null;
-  try {
-    const mod = require("ioredis");
-    return mod.default || mod;
-  } catch {
-    return null; // Graceful fallback
-  }
-}
+import { getCached, CacheTTL } from "@/lib/cache";
+
+const result = await getCached("seller:abc123:balance", CacheTTL.FIVE_MINUTES, fetchBalance);
 ```
 
-**Use `lib/redis.ts` when:**
-- Code might run in Edge runtime (API routes, middleware)
-- You need graceful Redis unavailability handling
-- You need connection observability metrics
-
-### 2. Server-Only with Fallbacks (`lib/redis-client.ts`)
-
-For server-only code that needs guaranteed caching (even without Redis), this module provides:
-
-- Direct ioredis import (smaller bundle for server-only code)
-- **In-memory fallback** when Redis is not configured
-- Built-in rate limiting support
+### Cache Metrics
 
 ```typescript
-// Falls back to in-memory if Redis unavailable
-export const cache = {
-  async get<T>(key: string): Promise<T | null> {
-    const client = getRedisClient();
-    if (client) {
-      // Try Redis
-      const value = await client.get(key);
-      return value ? JSON.parse(value) : null;
-    }
-    // Fallback to in-memory
-    const memoryValue = memoryGet(key);
-    return memoryValue ? JSON.parse(memoryValue) : null;
-  },
-  // ...
-};
+const metrics = getCacheMetrics();
+// {
+//   hits: 10,
+//   misses: 4,
+//   writes: 6,
+//   deletes: 2,
+//   errors: 0,
+//   lastErrorAt: null,
+//   lastError: null
+// }
 ```
 
-**Use `lib/redis-client.ts` when:**
-- Code is server-only (never Edge runtime)
-- You need in-memory fallback for development
-- You need rate limiting utilities
+## Queue (`lib/queue.ts` + `lib/queues/setup.ts`)
 
-## BullMQ Queues (`lib/queues/setup.ts`)
-
-BullMQ requires a persistent Redis connection for job durability. It imports from `lib/redis.ts`:
+Queues are in-memory and process-local. Use `lib/queues/setup.ts` for named queues
+and worker helpers.
 
 ```typescript
-import { getRedisClient } from '@/lib/redis';
+import { createWorker, QUEUE_NAMES } from "@/lib/queues/setup";
 
-function requireRedisConnection(context: string): Redis {
-  const connection = getRedisClient();
-  if (!connection) {
-    throw new Error(`Redis not configured for ${context}`);
-  }
-  return connection;
-}
+createWorker(QUEUE_NAMES.REFUNDS, async (job) => {
+  // handle refund retry
+  return { ok: true };
+});
 ```
 
 ### Queue Names
 
 ```typescript
 export const QUEUE_NAMES = {
-  BUY_BOX_RECOMPUTE: 'souq:buybox-recompute',
-  AUTO_REPRICER: 'souq:auto-repricer',
-  SETTLEMENT: 'souq:settlement',
-  REFUNDS: 'souq:refunds',
-  INVENTORY_HEALTH: 'souq:inventory-health',
-  ADS_AUCTION: 'souq:ads-auction',
-  POLICY_SWEEP: 'souq:policy-sweep',
-  SEARCH_INDEX: 'souq:search-index',
-  ACCOUNT_HEALTH: 'souq:account-health',
-  NOTIFICATIONS: 'souq:notifications',
+  BUY_BOX_RECOMPUTE: "souq:buybox-recompute",
+  AUTO_REPRICER: "souq:auto-repricer",
+  SETTLEMENT: "souq:settlement",
+  REFUNDS: "souq:refunds",
+  INVENTORY_HEALTH: "souq:inventory-health",
+  ADS_AUCTION: "souq:ads-auction",
+  POLICY_SWEEP: "souq:policy-sweep",
+  SEARCH_INDEX: "souq:search-index",
+  ACCOUNT_HEALTH: "souq:account-health",
+  NOTIFICATIONS: "souq:notifications",
+  EXPORTS: "fm:exports",
 };
 ```
 
 ## Environment Variables
 
+No cache/queue-specific environment variables are required. The database still uses:
+
 ```bash
-# Primary Redis URL (required for production)
-REDIS_URL=rediss://user:pass@host:6379
-
-# Alternative names (for compatibility)
-REDIS_KEY=rediss://...       # Vercel/GitHub Actions convention
-BULLMQ_REDIS_URL=rediss://... # Dedicated queue instance
-OTP_STORE_REDIS_URL=rediss://... # Dedicated OTP instance
-
-# Component-based config (fallback)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=secret
-REDIS_DB=0
-```
-
-## Connection Observability
-
-`lib/redis.ts` provides metrics for monitoring:
-
-```typescript
-const metrics = getRedisMetrics();
-// {
-//   connectionAttempts: 5,
-//   successfulConnections: 4,
-//   connectionErrors: 1,
-//   reconnectAttempts: 2,
-//   lastConnectedAt: Date,
-//   lastErrorAt: Date,
-//   lastError: 'ECONNREFUSED',
-//   currentStatus: 'ready'
-// }
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
 ```
 
 ## Decision Tree
 
 ```
-Is code Edge-compatible or might run in middleware?
-├── YES → Use lib/redis.ts (dynamic require)
-└── NO → Is graceful degradation needed?
-    ├── YES → Use lib/redis-client.ts (in-memory fallback)
-    └── NO → Is this for BullMQ queues?
-        ├── YES → Use lib/queues/setup.ts (requires Redis)
-        └── NO → Use lib/redis.ts (singleton, metrics)
+Need cached data?
+YES -> Use lib/cache.ts
+NO  -> Need a background job?
+       YES -> Use lib/queue.ts or lib/queues/setup.ts
+       NO  -> Use direct database calls
 ```
 
 ## Cache Key Patterns
 
-### Standard Naming
-
 ```typescript
 // Pattern: {domain}:{entity}:{id}:{field}
-'seller:abc123:balance'
-'analytics:org456:30'  // 30-day analytics
-'otp:phone:+1234567890'
-```
-
-### Security: Key Redaction
-
-All logging redacts cache keys to prevent ID enumeration:
-
-```typescript
-redactCacheKey("seller:12345:balance")
-// → "seller:1234****:balance"
+"seller:abc123:balance"
+"analytics:org456:30" // 30-day analytics
+"otp:phone:+1234567890"
 ```
 
 ## Cache TTLs
@@ -185,60 +111,31 @@ export const CacheTTL = {
 } as const;
 ```
 
-## Health Checks
-
-```typescript
-// lib/redis.ts
-const healthy = await isRedisHealthy();
-// Returns true if PING returns PONG
-
-// For queue health
-const stats = await getQueueStats('souq:notifications');
-// { waiting: 5, active: 2, completed: 100, failed: 1, delayed: 0, paused: 0 }
-```
-
 ## Common Issues
 
-### 1. "Redis not configured" in development
+### 1. Cache/queue resets on restart
 
-This is expected. Set `REDIS_URL` or use the in-memory fallbacks.
+In-memory state is cleared when the process restarts. Plan for retries or rebuilds.
 
-### 2. Connection exhaustion
+### 2. Multi-instance deployments
 
-**Problem**: Creating new Redis() per request exhausts connections.
+In-memory queues and caches are not shared across instances. Use a centralized
+queue/cache if horizontal scaling is required.
 
-**Solution**: Always use singleton `getRedisClient()`, never `new Redis()`.
+### 3. Jobs not processing
 
-### 3. Edge runtime crash
-
-**Problem**: `Cannot find module 'dns'`
-
-**Solution**: Code using Redis must not be in Edge runtime. Use `lib/redis.ts` which handles this gracefully.
-
-### 4. BullMQ jobs not processing
-
-**Check**:
-1. Is `REDIS_URL` set?
-2. Is the worker started? (Call `createWorker()`)
-3. Check queue stats: `getQueueStats(QUEUE_NAMES.NOTIFICATIONS)`
+Ensure the worker process is running and `createWorker` is called for the queue name.
 
 ## Migration Guide
 
-### From multiple Redis instances to singleton:
+### From external queues to in-memory:
 
 ```diff
-- import Redis from 'ioredis';
-- const redis = new Redis(process.env.REDIS_URL);
-+ import { getRedisClient, getCached } from '@/lib/redis';
-+ const redis = getRedisClient(); // May be null!
-
-// Better: Use cache helpers
-- const value = await redis.get(key);
-+ const value = await getCached(key, CacheTTL.FIVE_MINUTES, fetchData);
+- import { Queue } from "external-queue-lib";
+- const queue = new Queue("souq:refunds", { connection: externalQueue });
++ import { Queue } from "@/lib/queue";
++ const queue = new Queue("souq:refunds");
 ```
 
 ## Related Documentation
 
-- [BullMQ Documentation](https://docs.bullmq.io/)
-- [ioredis GitHub](https://github.com/redis/ioredis)
-- [Next.js Edge Runtime](https://nextjs.org/docs/api-reference/edge-runtime)

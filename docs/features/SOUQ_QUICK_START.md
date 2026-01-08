@@ -45,7 +45,7 @@
 ### 6. **Configuration**
 
 - ✅ Environment template → `env.example` (100+ variables)
-- ✅ Feature flags, Redis, S3, Search, Event bus, Payments, Carriers, ZATCA, Monitoring
+- ✅ Feature flags, MongoDB, S3, Search, Event bus, Payments, Carriers, ZATCA, Monitoring
 
 ---
 
@@ -55,11 +55,11 @@
 
 #### 1. Infrastructure Setup (1 day)
 
-**Redis (Caching + BullMQ)**
+**MongoDB (Primary Database)**
 
 ```bash
-docker run -d --name fixzit-redis -p 6379:6379 redis:7-alpine
-echo "REDIS_URL=redis://localhost:6379" >> .env.local
+docker run -d --name fixzit-mongodb -p 27017:27017 mongo:7
+echo "MONGODB_URI=mongodb://localhost:27017/fixzit" >> .env.local
 ```
 
 **Meilisearch (Product Search)**
@@ -96,10 +96,10 @@ echo "NATS_URL=nats://localhost:4222" >> .env.local
 # Create docker-compose.souq.yml
 version: "3.8"
 services:
-  redis:
-    image: redis:7-alpine
+  mongodb:
+    image: mongo:7
     ports:
-      - "6379:6379"
+      - "27017:27017"
 
   meilisearch:
     image: getmeili/meilisearch:latest
@@ -132,7 +132,7 @@ docker-compose -f docker-compose.souq.yml up -d
 #### 2. Install Dependencies
 
 ```bash
-pnpm add bullmq ioredis meilisearch @aws-sdk/client-s3 nats
+pnpm add mongodb meilisearch @aws-sdk/client-s3 nats
 pnpm add -D @types/meilisearch
 ```
 
@@ -174,7 +174,7 @@ git push origin feat/souq-marketplace-advanced
    - Image upload to S3
    - Duplicate FSIN prevention
 
-3. Background jobs (BullMQ):
+3. Background jobs (in-memory queue):
    - Index product in Meilisearch on create/update
    - Generate thumbnails for images
    - Validate product data integrity
@@ -410,7 +410,7 @@ open http://localhost:9001
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [MongoDB Best Practices](https://www.mongodb.com/docs/manual/administration/production-notes/)
 - [Meilisearch Documentation](https://www.meilisearch.com/docs)
-- [BullMQ Documentation](https://docs.bullmq.io/)
+- In-memory queue helpers: `lib/queue.ts`, `lib/queues/setup.ts`
 - [NATS Documentation](https://docs.nats.io/)
 
 ---
@@ -423,7 +423,7 @@ open http://localhost:9001
 
 - API development (catalog-svc, seller-svc, admin-svc)
 - MongoDB schema implementation
-- BullMQ job processors
+- In-memory job processors
 - Event bus integration
 
 **Frontend Team** (1 engineer):
@@ -440,7 +440,7 @@ open http://localhost:9001
 
 **DevOps Team** (1 engineer):
 
-- Infrastructure setup (Redis, Meilisearch, S3, NATS)
+- Infrastructure setup (MongoDB, Meilisearch, S3, NATS)
 - Docker Compose management
 - CI/CD pipeline updates
 - Monitoring & alerting

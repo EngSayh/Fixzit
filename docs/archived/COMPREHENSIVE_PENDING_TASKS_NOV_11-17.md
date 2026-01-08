@@ -493,7 +493,7 @@ k6 run tests/performance/load-test.js
 
 ---
 
-### 10. Redis Caching Implementation 🟡
+### 10. MongoDB Caching Implementation 🟡
 
 **Status**: Connection code exists, caching not implemented  
 **Time Estimate**: 6-8 hours  
@@ -504,18 +504,18 @@ k6 run tests/performance/load-test.js
 
 ```typescript
 // lib/cache.ts - Create caching layer
-import { redis } from "@/lib/db/redis";
+import { mongodb } from "@/lib/db/mongodb";
 
 export async function cached<T>(
   key: string,
   fetcher: () => Promise<T>,
   ttl: number = 300,
 ): Promise<T> {
-  const cached = await redis.get(key);
+  const cached = await mongodb.get(key);
   if (cached) return JSON.parse(cached);
 
   const data = await fetcher();
-  await redis.setex(key, ttl, JSON.stringify(data));
+  await mongodb.setex(key, ttl, JSON.stringify(data));
   return data;
 }
 
@@ -540,15 +540,15 @@ const properties = await cached(
 
 ```typescript
 // On data mutations
-await redis.del(`properties:${tenantId}`);
-await redis.del(`user:${userId}`);
+await mongodb.del(`properties:${tenantId}`);
+await mongodb.del(`user:${userId}`);
 ```
 
 **Files to Update**:
 
 - `lib/cache.ts` (create)
 - `app/api/*/route.ts` (add caching)
-- `lib/db/redis.ts` (enhance)
+- `lib/db/mongodb.ts` (enhance)
 
 ---
 
@@ -663,7 +663,7 @@ const ipRateLimit = new Map<string, { count: number; resetAt: number }>();
 
 ```typescript
 // lib/rate-limit.ts - User + IP based
-import { redis } from "@/lib/db/redis";
+import { mongodb } from "@/lib/db/mongodb";
 
 export async function rateLimit(
   identifier: string, // userId or IP
@@ -671,10 +671,10 @@ export async function rateLimit(
   window: number = 60,
 ): Promise<{ allowed: boolean; remaining: number }> {
   const key = `ratelimit:${identifier}`;
-  const count = await redis.incr(key);
+  const count = await mongodb.incr(key);
 
   if (count === 1) {
-    await redis.expire(key, window);
+    await mongodb.expire(key, window);
   }
 
   return {
@@ -1263,7 +1263,7 @@ pnpm vitest tests/integration/api.test.ts
 **Focus**: Performance and caching  
 **Time**: 30-40 hours
 
-15. **Redis Caching** (#10) - 6-8 hours
+15. **MongoDB Caching** (#10) - 6-8 hours
     - Implement caching layer
 
 16. **CDN Configuration** (#11) - 4-6 hours
@@ -1358,7 +1358,7 @@ These tasks can be completed quickly for immediate value:
 - **Twilio**: $20/month + $0.0075/SMS
 - **WhatsApp**: $0.005/message (after approval)
 - **Sentry**: Free tier (5K errors/month)
-- **Redis Cloud**: $5/month (30MB)
+- **MongoDB Cloud**: $5/month (30MB)
 - **Total**: ~$60-80/month for external services
 
 ---

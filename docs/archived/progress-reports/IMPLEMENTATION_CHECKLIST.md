@@ -302,7 +302,7 @@ GET http://localhost:3000/api/souq/sellers/SELLER_ID/dashboard
 
 ### Infrastructure Dependencies
 
-- [ ] Set up Redis (caching, BullMQ)
+- [ ] Set up MongoDB (caching, in-memory queue)
 - [ ] Set up Meilisearch (search engine)
 - [ ] Set up MinIO (S3 storage)
 - [ ] Set up NATS (event bus)
@@ -324,7 +324,7 @@ GET http://localhost:3000/api/souq/sellers/SELLER_ID/dashboard
 
 - [x] Indexes on all query fields
 - [x] Lean queries for read operations
-- [ ] Query result caching (needs Redis)
+- [ ] Query result caching (needs MongoDB)
 - [ ] Database connection pooling
 
 ### API Optimization
@@ -365,3 +365,4 @@ GET http://localhost:3000/api/souq/sellers/SELLER_ID/dashboard
 ---
 
 **Next Session Goal**: Complete UI integration + create 3 missing APIs (Categories, Brands, Settlement)
+

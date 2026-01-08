@@ -47,7 +47,7 @@ Completed comprehensive production readiness tasks:
 - ✅ Development Tools
 - ✅ Production Settings
 - ✅ Database Indexes & Performance
-- ✅ Cache Configuration (Redis)
+- ✅ Cache Configuration (MongoDB)
 - ✅ Background Jobs (Bull Queue)
 - ✅ Notification Templates
 - ✅ Multi-Tenant Configuration
@@ -67,7 +67,7 @@ Completed comprehensive production readiness tasks:
 #### Prerequisites
 
 - Required software (Node.js, pnpm, MongoDB, Git)
-- Optional tools (Docker, Redis, PM2)
+- Optional tools (Docker, MongoDB, PM2)
 - System requirements (minimum & recommended)
 
 #### Pre-Deployment Checklist
@@ -678,7 +678,7 @@ PAYTABS_SERVER_KEY=...
 ### Infrastructure
 
 - [x] Database: MongoDB configured
-- [x] Caching: Redis ready (optional)
+- [x] Caching: MongoDB ready (optional)
 - [x] Monitoring: Sentry ready
 - [x] Logging: Centralized logger
 
@@ -761,7 +761,7 @@ PAYTABS_SERVER_KEY=...
    - Analytics: Enable Vercel Analytics
 
 6. **Performance Optimization**
-   - Set up Redis for caching
+   - Set up MongoDB for caching
    - Configure CDN for static assets
    - Add database read replicas (if high traffic)
 

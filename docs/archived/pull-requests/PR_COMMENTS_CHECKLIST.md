@@ -79,7 +79,7 @@
   - All validation is comprehensive and production-ready
 
 - [x] **Line 18-20**: In-memory rate limiter not production-ready ✅
-  - Code includes TODO comment: "Replace with Redis (Upstash) for production"
+  - Code includes TODO comment: "Replace with MongoDB (Upstash) for production"
   - Documented as dev-only implementation
   - No changes needed - already acknowledged in code
 

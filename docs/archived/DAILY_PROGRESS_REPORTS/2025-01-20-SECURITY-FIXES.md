@@ -12,7 +12,7 @@ Fixed BLOCKER and MAJOR security issues related to tenant isolation (STRICT v4.1
 
 **Fix Applied**:
 - Added `orgId` parameter to all public and private methods:
-  - `getBudgetKey(campaignId, orgId)` - Redis keys now include orgId
+  - `getBudgetKey(campaignId, orgId)` - MongoDB keys now include orgId
   - `fetchCampaign(campaignId, orgId)` - DB queries filter by orgId
   - `chargeBudget(campaignId, orgId, amount)` - Budget operations scoped to tenant
   - `getBudgetStatus(campaignId, orgId)` - Status queries scoped to tenant
@@ -24,7 +24,7 @@ Fixed BLOCKER and MAJOR security issues related to tenant isolation (STRICT v4.1
   - `updateDailyBudget(campaignId, orgId, newBudget)` - Budget updates tenant-scoped
   - `getSpendHistory(campaignId, orgId, days)` - History queries tenant-scoped
 
-- Redis keys changed from `${PREFIX}${campaignId}:${date}` to `${PREFIX}${orgId}:${campaignId}:${date}`
+- MongoDB keys changed from `${PREFIX}${campaignId}:${date}` to `${PREFIX}${orgId}:${campaignId}:${date}`
 
 ### 2. MAJOR: balance-service.ts Pending Orders Query (services/souq/settlements/balance-service.ts)
 

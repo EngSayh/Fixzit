@@ -28,7 +28,7 @@ MongoMemoryServer requires MongoDB binary to be downloaded and running. The in-m
 
 3. **If Tests Still Fail**
    ```bash
-   # Clear MongoDB memory server cache
+   # Clear MongoDB Memory Server binaries cache
    rm -rf ~/.cache/mongodb-binaries
    
    # Re-run tests with verbose logging

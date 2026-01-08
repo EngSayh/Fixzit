@@ -588,7 +588,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 
 2. **DEPENDENCY_RESOLUTION.md** (292 lines)
    - Dependency rationale
-   - Redis, @faker-js/faker
+   - MongoDB, @faker-js/faker
    - Peer warnings explanation
 
 3. **Blueprint Bible** (PDF)

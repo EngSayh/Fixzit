@@ -111,7 +111,7 @@
 
 | Issue ID | Title | Module | Effort | Status |
 |----------|-------|--------|--------|--------|
-| FEAT-0034 | Redis pub/sub scaling | infrastructure | M | ✅ DONE (PR #642) |
+| FEAT-0034 | MongoDB change streams scaling | infrastructure | M | ✅ DONE (PR #642) |
 | FEAT-0035 | Health monitoring integration | monitoring | M | ✅ DONE (PR #642) |
 | FEAT-0036 | AI building model generation | aqar | XL | ✅ VERIFIED (25 tests pass) |
 | REFAC-0003 | FM Properties schema mismatch (TODO-002) | fm | L | ✅ DONE (PR #646) |
@@ -190,7 +190,7 @@ The `marketplace/` and `souq/` modules serve **different business domains**:
 ### Sprint 6 (Current) - P3 Infrastructure
 | ID | Title | Status | Notes |
 |---|---|---|---|
-| FEAT-0034 | Redis pub/sub scaling | ✅ CLOSED | PR #642, commit a9b664c24 |
+| FEAT-0034 | MongoDB change streams scaling | ✅ CLOSED | PR #642, commit a9b664c24 |
 | FEAT-0035 | Health monitoring integration | ✅ CLOSED | PR #642 - health-aggregator + metrics-registry |
 | REFAC-0003 | FM Properties schema mismatch | ✅ CLOSED | PR #646 merged to main |
 | FEAT-0036 | AI building model generation | NOT STARTED | XL effort |
@@ -309,7 +309,7 @@ Issues to import: 17
 ✅ Created: FEAT-0032 - Session termination
 ✅ Created: FEAT-0033 - MFA approval system integration
 📝 Exists: Test mock setup incomplete - TG-005 batch
-✅ Created: FEAT-0034 - Redis pub/sub scaling
+✅ Created: FEAT-0034 - MongoDB change streams scaling
 ✅ Created: FEAT-0035 - Health monitoring integration
 ✅ Created: FEAT-0036 - AI building model generation
 ✅ Created: REFAC-0003 - FM Properties schema mismatch

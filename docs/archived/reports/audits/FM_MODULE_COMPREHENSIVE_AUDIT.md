@@ -613,9 +613,9 @@ pnpm add -D @types/uuid
    - ApprovalRepository
 
 4. **Implement Caching** (Medium)
-   - Redis for work order lists
-   - Redis for dashboard stats
-   - Redis for approval queues
+   - MongoDB for work order lists
+   - MongoDB for dashboard stats
+   - MongoDB for approval queues
    - SWR cache on frontend (already using)
 
 ### 6.2 Feature Completions

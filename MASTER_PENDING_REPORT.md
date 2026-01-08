@@ -1375,7 +1375,7 @@ Items merged: 0
 ### 🎯 Current Status & Next Steps (Top 5)
 1. ✅ **Sentry Configured** - DSN added to Vercel/GitHub (NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT)
 2. ⚠️ **SEC-CLAIMS-001** - 5 ESLint warnings for tenant scope in souq/claims routes (needs review)
-3. 📝 **TODO-SSE-001** - Redis pub/sub for SSE horizontal scaling (lib/sse, notifications/stream) - Q1 2026
+3. 📝 **TODO-SSE-001** - MongoDB change streams for SSE horizontal scaling (lib/sse, notifications/stream) - Q1 2026
 4. 📝 **TODO-SLA-001** - Business hours calculation scaffolding (lib/sla/business-hours.ts) - Q1 2026
 5. ✅ **AGENTS.md Updated** - Added Appendix C (Env Vars Reference) + SAHRECO OrgID=1
 
@@ -1391,7 +1391,7 @@ Items merged: 0
 #### TODOs / Scaffolding (Deferred)
 | ID | Issue | Location | Target |
 |----|-------|----------|--------|
-| TODO-SSE-001 | Redis pub/sub for SSE horizontal scaling | `lib/sse/index.ts:72-97`, `app/api/notifications/stream/route.ts:83-90` | Q1 2026 |
+| TODO-SSE-001 | MongoDB change streams for SSE horizontal scaling | `lib/sse/index.ts:72-97`, `app/api/notifications/stream/route.ts:83-90` | Q1 2026 |
 | TODO-SLA-001 | Business hours calculation (5 TODO stubs) | `lib/sla/business-hours.ts:87-149` | Q1 2026 |
 
 #### Code Quality

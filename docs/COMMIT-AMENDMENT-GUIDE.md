@@ -10,7 +10,7 @@
 
 Two commits were pushed without proper SSOT logging:
 - `44085ee0b` - Code quality fixes (24 issues)
-- `bc64455b3` - Redis removal (1 infrastructure issue)
+- `bc64455b3` - Cache/queue removal (1 infrastructure issue)
 
 These commits violate AGENTS.md protocol which requires:
 1. Log issue to SSOT **BEFORE** fixing
@@ -50,14 +50,14 @@ Only do this if:
 If you only need to fix the most recent commit:
 
 ```bash
-git commit --amend -m "refactor(infra): Remove Redis dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
+git commit --amend -m "refactor(infra): Remove MongoDB dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
 
-- Delete lib/redis.ts, lib/redis-client.ts, lib/otp-store-redis.ts
-- Delete lib/stubs/bullmq.ts, lib/stubs/ioredis.ts
+- Remove legacy external cache/queue stubs
+- Standardize on in-memory helpers: lib/cache.ts, lib/queue.ts, lib/queues/setup.ts, lib/otp-store.ts
 - Migrate jobs/export-worker.ts, package-activation-queue.ts
 - Migrate jobs/search-index-jobs.ts, zatca-retry-queue.ts
-- Update 15+ test files: @/lib/redis → @/lib/cache
-- Remove ioredis/bullmq path aliases from tsconfig.json
+- Update 15+ test files: @/lib/mongodb → @/lib/cache
+- Remove ioMongoDB-backed queue path aliases from tsconfig.json
 
 48 files changed, 376 insertions(+), 2190 deletions(-)"
 
@@ -111,20 +111,19 @@ Issues Resolved:
 [FM-00006] Missing ObjectId import
 [FM-00007] org_id conversion
 [FM-00008] Response time calculation
-[INFRA-00001] IORedis import fix
+[INFRA-00001] MongoDB driver import fix
 ```
 
 **Second commit message:**
 
 ```gitcommit
-refactor(infra): Remove Redis dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
+refactor(infra): Remove MongoDB dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
 
-Deleted:
-- lib/redis.ts
-- lib/redis-client.ts
-- lib/otp-store-redis.ts
-- lib/stubs/bullmq.ts
-- lib/stubs/ioredis.ts
+In-memory modules:
+- lib/cache.ts
+- lib/queue.ts
+- lib/queues/setup.ts
+- lib/otp-store.ts
 
 Migrated:
 - jobs/export-worker.ts
@@ -132,10 +131,10 @@ Migrated:
 - jobs/search-index-jobs.ts
 - jobs/zatca-retry-queue.ts
 
-Updated: 15+ test files (mocks @/lib/redis → @/lib/cache)
+Updated: 15+ test files (mocks @/lib/mongodb → @/lib/cache)
 Config: Removed path aliases from tsconfig.json
 
-Trade-offs documented in docs/ABR-PR656-REDIS-REMOVAL.md
+Trade-offs documented in docs/ABR-PR656-CACHE-REMOVAL.md
 ```
 
 ```bash
@@ -162,7 +161,7 @@ git log --format="%s" -2 | grep -E "\[.*-[0-9]+\]"
 If rewriting history is not possible:
 
 1. ✅ SSOT entries already created: `docs/artifacts/SSOT-RETROACTIVE-ENTRIES-2026-01-03.json`
-2. ✅ ABR created: `docs/ABR-PR656-REDIS-REMOVAL.md`
+2. ✅ ABR created: `docs/ABR-PR656-CACHE-REMOVAL.md`
 3. Add PR comment linking commits to issues:
 
 ```markdown
@@ -213,9 +212,10 @@ Future commits will follow proper SSOT-first protocol.
 |------|---------|
 | `docs/artifacts/SSOT-RETROACTIVE-ENTRIES-2026-01-03.json` | 26 issue entries for MongoDB import |
 | `docs/COMMIT-AMENDMENT-GUIDE.md` | This document |
-| `docs/ABR-PR656-REDIS-REMOVAL.md` | Architectural review |
+| `docs/ABR-PR656-CACHE-REMOVAL.md` | Architectural review |
 
 ---
 
 **Created by:** [AGENT-0005]  
 **Status:** Compliance remediation complete
+

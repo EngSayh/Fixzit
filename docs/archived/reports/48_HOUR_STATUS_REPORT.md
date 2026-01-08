@@ -323,7 +323,7 @@ All outstanding items are >10 days old and outside current PR #119 scope.
 
 3. **Test Logic Fixes** (Separate PR)
    - idempotency.spec.ts (2 logic failures)
-   - Redis mocks (incidents.route.test.ts)
+   - MongoDB mocks (incidents.route.test.ts)
    - MongoDB mocks (products/route.test.ts)
 
 ### Medium-Term

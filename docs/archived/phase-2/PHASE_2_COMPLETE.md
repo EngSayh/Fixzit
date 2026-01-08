@@ -344,7 +344,7 @@ npx tsc --noEmit
 
 ### Future Enhancements
 
-5. **Redis Caching**: Replace in-memory cache with Redis in production
+5. **Centralized Cache**: Replace in-memory cache with a centralized cache for multi-node production
 6. **Review Editing**: Currently limited to unpublished reviews
 7. **Bulk Moderation**: Admin panel for bulk approve/reject
 8. **Advanced Analytics**: Machine learning for trend prediction
@@ -378,7 +378,7 @@ npx tsc --noEmit
 - [ ] Image upload integration
 - [ ] Email notification service
 - [ ] Admin moderation panel
-- [ ] Redis cache setup
+- [ ] Centralized cache setup
 - [ ] CDN for static assets
 - [ ] Rate limiting configuration
 

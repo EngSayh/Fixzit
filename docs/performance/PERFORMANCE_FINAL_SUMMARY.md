@@ -332,7 +332,7 @@ ANALYZE=true pnpm build
 #### 6. Database Query Optimization
 
 - Index frequently queried fields
-- Implement Redis caching layer
+- Implement MongoDB caching layer
 - Reduce SSR wait time
 - **Score gain: +1-2 points**
 

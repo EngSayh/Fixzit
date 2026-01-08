@@ -232,7 +232,7 @@ All hardcoded URLs are acceptable:
 - UI Components: @radix-ui/react-avatar, react-dropdown-menu, react-progress, react-select, react-separator, react-tabs, react-toast, react-tooltip
 - Forms: @hookform/resolvers, react-hook-form
 - Markdown: marked, react-markdown
-- Other: bcrypt, bullmq, fast-xml-parser, next-themes, recharts, socket.io-client
+- Other: bcrypt, in-memory queue helpers, fast-xml-parser, next-themes, recharts, socket.io-client
 
 **34 Unused DevDependencies:**
 
@@ -390,3 +390,4 @@ $ npx depcheck
 **Status:** ✅ **100% COMPLETE** (Excluding translations - deferred per user request)  
 **Ready For:** Dependency cleanup OR Arabic translations  
 **Recommended Next Step:** Execute dependency cleanup, then proceed to translations
+

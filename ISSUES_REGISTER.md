@@ -62,7 +62,7 @@
 **Verification After Fix**:
 ```bash
 curl -s https://fixzit.co/api/health/ready | jq '.checks'
-# Expected: {"mongodb":"ok","redis":"disabled","email":"disabled","sms":"ok"}
+# Expected: {"mongodb":"ok","mongodb":"disabled","email":"disabled","sms":"ok"}
 ```
 
 ---
@@ -384,7 +384,7 @@ node tools/memory-selfcheck.js # Validate system
 
 **PRs Merged**:
 - #481 - Fixed 96 duplicate 'use client' directives
-- #482 - Redis-aware readiness + SMS worker hardening
+- #482 - MongoDB-aware readiness + SMS worker hardening
 - #484 - Remove redundant inline indexes
 - #486 - Security audit and observability
 - #500 - Complete system consolidation
@@ -1129,7 +1129,7 @@ Based on current open items and dependencies:
 
 **Description**: Ad spend caps, threshold alerts, and auto-pause logic in `services/souq/ads/budget-manager.ts` were not tenant-isolated. All methods lacked `orgId` parameter, allowing campaigns from different organizations to potentially interact.
 
-**Resolution**: Added `orgId` parameter to all public and private methods. Redis keys now include orgId. All DB queries filter by orgId. See `docs/archived/DAILY_PROGRESS_REPORTS/2025-01-20-SECURITY-FIXES.md` for details.
+**Resolution**: Added `orgId` parameter to all public and private methods. MongoDB keys now include orgId. All DB queries filter by orgId. See `docs/archived/DAILY_PROGRESS_REPORTS/2025-01-20-SECURITY-FIXES.md` for details.
 
 ---
 
@@ -1190,13 +1190,13 @@ await withdrawalsCollection.insertOne({ ...request, orgId: orgIdStr }, { session
 
 ---
 
-### ISSUE-SOUQ-005: budget-manager.ts Redis Fails Open in Production
+### ISSUE-SOUQ-005: budget-manager.ts MongoDB Fails Open in Production
 
 **Severity**: 🟧 MAJOR  
 **Category**: Reliability, Budget Integrity  
 **Status**: ✅ RESOLVED (2025-12-06)
 
-**Description**: `createRedisClient()` in `services/souq/ads/budget-manager.ts` (lines 38-69) silently fell back to in-memory budget tracking when Redis was not configured. In multi-instance production deployments, this meant:
+**Description**: `createMongoDBClient()` in `services/souq/ads/budget-manager.ts` (lines 38-69) silently fell back to in-memory budget tracking when MongoDB was not configured. In multi-instance production deployments, this meant:
 - Budget limits not shared across instances
 - Auto-pause and threshold alerts not triggered reliably
 - Risk of budget overspend without detection
@@ -1204,19 +1204,19 @@ await withdrawalsCollection.insertOne({ ...request, orgId: orgIdStr }, { session
 **Files**:
 - `services/souq/ads/budget-manager.ts`: Lines 38-69
 
-**Resolution**: Now throws an error in production if Redis is not configured. Added `BUDGET_ALLOW_MEMORY_FALLBACK=true` environment variable to explicitly allow degraded mode. Test environments continue to use in-memory fallback silently.
+**Resolution**: Now throws an error in production if MongoDB is not configured. Added `BUDGET_ALLOW_MEMORY_FALLBACK=true` environment variable to explicitly allow degraded mode. Test environments continue to use in-memory fallback silently.
 
 ```typescript
 // BEFORE (fail-open):
-if (!redisUrl && !redisHost) {
-  logger.warn("[BudgetManager] Redis not configured. Falling back to in-memory...");
+if (!mongodbUrl && !mongodbHost) {
+  logger.warn("[BudgetManager] MongoDB not configured. Falling back to in-memory...");
   return null;
 }
 
 // AFTER (fail-closed in production):
-if (!redisUrl && !redisHost) {
+if (!mongodbUrl && !mongodbHost) {
   if (isProduction && !allowFallback) {
-    throw new Error("[BudgetManager] Redis is REQUIRED for ad budget enforcement in production.");
+    throw new Error("[BudgetManager] MongoDB is REQUIRED for ad budget enforcement in production.");
   }
   return null;
 }
@@ -1230,12 +1230,12 @@ if (!redisUrl && !redisHost) {
 **Category**: Performance  
 **Status**: ✅ RESOLVED (2025-12-06)
 
-**Description**: `getCampaignsBudgetSummary()` in `services/souq/ads/budget-manager.ts` (lines 650-680) performed N+1 Redis calls by calling `getBudgetStatus()` for each campaign in a loop. For sellers with many campaigns, this added significant latency and Redis load.
+**Description**: `getCampaignsBudgetSummary()` in `services/souq/ads/budget-manager.ts` (lines 650-680) performed N+1 MongoDB calls by calling `getBudgetStatus()` for each campaign in a loop. For sellers with many campaigns, this added significant latency and MongoDB load.
 
 **Files**:
 - `services/souq/ads/budget-manager.ts`: Lines 650-680
 
-**Resolution**: Replaced per-campaign `getBudgetStatus()` calls with batch Redis `mget()` for all partition keys at once. Falls back to individual calls if batch fails.
+**Resolution**: Replaced per-campaign `getBudgetStatus()` calls with batch MongoDB `mget()` for all partition keys at once. Falls back to individual calls if batch fails.
 
 ```typescript
 // BEFORE (N+1):
@@ -1245,8 +1245,8 @@ for (const campaign of campaigns) {
 }
 
 // AFTER (batched):
-const partitionKeys = campaigns.map(c => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`);
-const spentValues = await redis.mget(...partitionKeys);
+const partitionKeys = campaigns.map(c => `${this.MONGODB_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`);
+const spentValues = await mongodb.mget(...partitionKeys);
 for (let i = 0; i < campaigns.length; i++) {
   const spentToday = parseFloat(spentValues[i]!) || 0;
   // ... calculate status from batched value
@@ -2593,7 +2593,7 @@ BullMQ retry attempts now align with SLA-configured maxRetries per message.
 A single tenant could overwhelm the SMS infrastructure by queueing many messages, affecting delivery times for other tenants.
 
 **Files Fixed**:
-- `lib/queues/sms-queue.ts`: Added `checkOrgRateLimit()` using Redis counters, reads `globalRateLimitPerMinute` from SMSSettings
+- `lib/queues/sms-queue.ts`: Added `checkOrgRateLimit()` using MongoDB counters, reads `globalRateLimitPerMinute` from SMSSettings
 - `lib/queues/sms-queue.ts`: Integrated rate check in `processSMSJob()` before sending
 
 **Resolution**:

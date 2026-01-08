@@ -41,8 +41,8 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 
 | Component            | Status      | Impact                            | LOC |
 | -------------------- | ----------- | --------------------------------- | --- |
-| Redis Client + Cache | ✅ Complete | Caching, rate limiting foundation | 280 |
-| BullMQ Queue System  | ✅ Complete | Background job infrastructure     | 340 |
+| MongoDB Client + Cache | ✅ Complete | Caching, rate limiting foundation | 280 |
+| in-memory queue system  | ✅ Complete | Background job infrastructure     | 340 |
 | Coupon Model         | ✅ Complete | Promotional engine                | 190 |
 | Q&A Models           | ✅ Complete | Product questions system          | 180 |
 | Advertising Models   | ✅ Complete | CPC campaign foundation           | 420 |
@@ -113,8 +113,8 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 
 ✅ **Infrastructure Layer**
 
-- Redis client with helpers (cache, rate limit)
-- BullMQ job queues (9 queues defined)
+- MongoDB client with helpers (cache, rate limit)
+- in-memory job queues (9 queues defined)
 - API routes (13 endpoints)
 
 ✅ **UI Layer**
@@ -227,7 +227,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Next Steps**:
 
 1. ⏳ Integrate Buy Box into PDP (winner + "Other offers" tab)
-2. ⏳ Build auto-repricer worker (BullMQ background job)
+2. ⏳ Build auto-repricer worker (in-memory queue background job)
 3. ⏳ Implement price change event triggers
 4. ⏳ Create Seller Central pricing dashboard
 
@@ -250,7 +250,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Next Steps**:
 
 1. 🚧 Integrate Buy Box into PDP (winner + offers tab)
-2. ⏳ Build auto-repricer worker (BullMQ)
+2. ⏳ Build auto-repricer worker (in-memory queue)
 3. ⏳ Implement price change event triggers
 4. ⏳ Create Seller Central pricing UI
 
@@ -312,7 +312,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Critical Remaining (Week 13-18)**:
 
 1. ⏳ CPC auction engine (quality score + second-price)
-2. ⏳ Budget management (Redis tracking, daily roll-ups)
+2. ⏳ Budget management (MongoDB tracking, daily roll-ups)
 3. ⏳ Ad placement rendering (Search, PLP, PDP)
 4. ⏳ Campaign management UI (Seller Central)
 5. ⏳ Performance reports
@@ -356,7 +356,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Critical Remaining (Week 21-22)**:
 
 1. ⏳ Fee schedule configuration
-2. ⏳ Automated payout engine (cron + BullMQ)
+2. ⏳ Automated payout engine (cron + in-memory queue)
 3. ⏳ ZATCA VAT invoice generation
 4. ⏳ Settlement console (admin)
 5. ⏳ Payout dashboard (seller)
@@ -395,7 +395,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 
 **Completed**:
 
-- ✅ BullMQ setup complete
+- ✅ in-memory queue setup complete
 - ✅ 9 queues defined
 - ✅ Worker creation helpers
 
@@ -416,7 +416,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Completed**:
 
 - ✅ Rate limiting helpers
-- ✅ Redis-based cache
+- ✅ MongoDB-based cache
 
 **Critical Remaining**:
 
@@ -543,3 +543,6 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Refresh Frequency**: Daily  
 **Owner**: Engineering Team  
 **Reviewers**: Product, QA, DevOps
+
+
+

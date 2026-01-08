@@ -154,18 +154,18 @@ These secrets improve user experience but the app works without them.
   vercel env add APP_URL production               # Enter: https://fixzit.co
   ```
 
-### 2. REDIS_URL
+### 2. MONGODB_URL
 
 - **Purpose:** Caching, rate limiting, job queues
 - **Impact:** Slower performance, no rate limiting
 - **How to get:**
   1. Go to https://upstash.com (free tier available)
-  2. Create Redis database
+  2. Create MongoDB database
   3. Copy connection URL
 - **Add to Vercel:**
   ```bash
-  vercel env add REDIS_URL production
-  # Optional: vercel env add REDIS_PASSWORD production
+  vercel env add MONGODB_URL production
+  # Optional: vercel env add MONGODB_PASSWORD production
   ```
 
 ### 3. Security Secrets (3 secrets)
@@ -393,7 +393,7 @@ vercel --cwd Fixzit --prod --yes
    - Add public URLs (NEXT_PUBLIC_APP_URL, etc.)
 
 3. **This Month (Medium):**
-   - Set up Redis for caching
+   - Set up MongoDB for caching
    - Configure payment gateway (if needed)
    - Add security secrets
 
@@ -409,7 +409,7 @@ vercel --cwd Fixzit --prod --yes
 - Vercel Dashboard: https://vercel.com/fixzit/fixzit
 - OpenAI API Keys: https://platform.openai.com/api-keys
 - AWS Console: https://console.aws.amazon.com
-- Upstash Redis: https://upstash.com
+- Upstash MongoDB: https://upstash.com
 - Sentry: https://sentry.io
 - PayTabs: https://merchant.paytabs.com
 - Tap Payments: https://dashboard.tap.company

@@ -47,7 +47,7 @@
 | AQAR-00002 | Lease service field mappings incorrect | `services/aqar/lease-service.ts` | data_mapping | 44085ee0b |
 | FM-00006 | Missing ObjectId import | `services/fm/provider-network.ts` | import_error | 44085ee0b |
 | FM-00007 | org_id conversion incorrect | `services/fm/provider-network.ts` | type_conversion | 44085ee0b |
-| INFRA-00001 | IORedis import incorrect | `jobs/onboarding-expiry-worker.ts` | import_error | 44085ee0b |
+| INFRA-00001 | MongoDB driver import incorrect | `jobs/onboarding-expiry-worker.ts` | import_error | 44085ee0b |
 
 ---
 
@@ -65,7 +65,7 @@
 | FM-00004 | Interface missing required fields | `services/fm/inspection-service.ts` | type_error | 44085ee0b |
 | FM-00005 | unitId not validated as ObjectId | `services/fm/inspection-service.ts` | validation | 44085ee0b |
 | FM-00008 | Response time calculation missing | `services/fm/provider-network.ts` | missing_logic | 44085ee0b |
-| INFRA-00002 | Remove Redis dependency | Multiple files (48) | infrastructure | bc64455b3 |
+| INFRA-00002 | Remove external cache/queue dependency | Multiple files (48) | infrastructure | bc64455b3 |
 
 ---
 
@@ -132,13 +132,13 @@
 | `services/aqar/lease-service.ts` | buildingAge NaN, field mappings, status type |
 | `services/fm/inspection-service.ts` | Interface fields, unitId ObjectId |
 | `services/fm/provider-network.ts` | ObjectId import, org_id conversion, response time |
-| `jobs/onboarding-expiry-worker.ts` | IORedis import fix |
+| `jobs/onboarding-expiry-worker.ts` | MongoDB driver import fix |
 
-### Commit 2: `bc64455b3` — Redis Removal
+### Commit 2: `bc64455b3` — Cache/Queue Removal
 
 | Action | Files |
 |--------|-------|
-| **Deleted** | `lib/redis.ts`, `lib/redis-client.ts`, `lib/otp-store-redis.ts`, `lib/stubs/bullmq.ts`, `lib/stubs/ioredis.ts` |
+| **In-Memory Modules** | `lib/cache.ts`, `lib/queue.ts`, `lib/queues/setup.ts`, `lib/otp-store.ts` |
 | **Migrated** | `jobs/export-worker.ts`, `jobs/package-activation-queue.ts`, `jobs/search-index-jobs.ts`, `jobs/zatca-retry-queue.ts` |
 | **Tests Updated** | 15+ files (mocks changed) |
 | **Config** | `tsconfig.json` (removed path aliases) |
@@ -162,7 +162,7 @@
 | Document | Path | Purpose |
 |----------|------|---------|
 | SSOT Entries | [SSOT-RETROACTIVE-ENTRIES-2026-01-03.json](artifacts/SSOT-RETROACTIVE-ENTRIES-2026-01-03.json) | MongoDB import file |
-| ABR | [ABR-PR656-REDIS-REMOVAL.md](ABR-PR656-REDIS-REMOVAL.md) | Architectural review |
+| ABR | [ABR-PR656-CACHE-REMOVAL.md](ABR-PR656-CACHE-REMOVAL.md) | Architectural review |
 | Amendment Guide | [COMMIT-AMENDMENT-GUIDE.md](COMMIT-AMENDMENT-GUIDE.md) | How to fix commits |
 
 ---

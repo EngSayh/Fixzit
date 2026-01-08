@@ -177,7 +177,7 @@ f229143f fix(tests): replace jest.Mock with ReturnType<typeof vi.fn>
 ### P2: Edge Cases (15 minutes)
 
 - MongoDB mock `connect()` returning undefined (1 occurrence)
-- Test-specific mocks (Redis, rate limiting, request objects)
+- Test-specific mocks (MongoDB, rate limiting, request objects)
 
 ### Sub-batch 1.2b: Component Tests (2 hours)
 

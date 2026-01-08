@@ -60,7 +60,7 @@ npm run build
 **Warnings Found**:
 - Mongoose schema warning (documented, non-blocking)
 - Environment variable warnings (expected in build)
-- Redis not configured (expected, falls back to in-memory)
+- MongoDB not configured (expected, falls back to in-memory)
 
 **Status**: ✅ **All warnings are expected and documented**
 
@@ -136,7 +136,7 @@ npm run health
 ### Acceptable Items:
 1. ✅ **@ts-expect-error comments** - All documented with valid reasons
 2. ✅ **TODO comment** - Feature request, not a bug
-3. ✅ **Build warnings** - Expected (Mongoose, env vars, Redis)
+3. ✅ **Build warnings** - Expected (Mongoose, env vars, MongoDB)
 4. ✅ **console in logger.ts** - Logger implementation
 5. ✅ **console in constants.ts** - Critical config warnings
 6. ✅ **Test file suppressions** - Normal for tests

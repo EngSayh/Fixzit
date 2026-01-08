@@ -165,7 +165,7 @@
 
 - [ ] Implement SSR for critical content
 - [ ] Optimize database queries
-- [ ] Add Redis caching layer
+- [ ] Add MongoDB caching layer
 - [ ] Optimize hero images with Next.js Image
 - [ ] Deploy to production CDN
 

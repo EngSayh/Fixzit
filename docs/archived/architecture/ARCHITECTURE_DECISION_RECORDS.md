@@ -150,9 +150,9 @@ Implement tiered rate limiting:
 // In-memory rate limiting for login
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
-// Redis-backed rate limiting for production API
+// MongoDB-backed rate limiting for production API
 const rateLimiter = new RateLimiter({
-  store: new RedisStore({ client: redisClient }),
+  store: new MongoStore({ client: mongodbClient }),
   max: 100,
   windowMs: 60 * 1000,
 });
@@ -166,7 +166,7 @@ const rateLimiter = new RateLimiter({
 
 **Negative:**
 - May affect legitimate high-volume users
-- Requires Redis for distributed deployments
+- Requires MongoDB for distributed deployments
 
 ---
 

@@ -62,7 +62,7 @@ grep "compiled successfully" /tmp/prod-server-final.log
 **If SSR is slow:**
 
 - Optimize database queries (add indexes)
-- Implement Redis caching for getServerSideProps
+- Implement MongoDB caching for getServerSideProps
 - Consider ISR (Incremental Static Regeneration) for semi-static pages
 - Profile with Next.js built-in instrumentation
 
@@ -311,32 +311,15 @@ for (const property of properties) {
 const properties = await Property.find({ orgId }).populate("tenants").lean(); // Returns plain objects (faster)
 ```
 
-#### B. Redis Caching Layer
+#### B. In-Memory Cache Layer
 
 ```typescript
-// lib/cache.ts
-import Redis from "ioredis";
+import { CacheTTL, getCached } from "@/lib/cache";
 
-const redis = new Redis(process.env.REDIS_URL);
-
-export async function getCached<T>(
-  key: string,
-  fetcher: () => Promise<T>,
-  ttl: number = 300, // 5 minutes
-): Promise<T> {
-  const cached = await redis.get(key);
-  if (cached) return JSON.parse(cached);
-
-  const data = await fetcher();
-  await redis.setex(key, ttl, JSON.stringify(data));
-  return data;
-}
-
-// In page/route handler
 const properties = await getCached(
   `properties:${orgId}`,
+  CacheTTL.FIVE_MINUTES,
   () => Property.find({ orgId }).lean(),
-  300,
 );
 ```
 
@@ -537,7 +520,7 @@ getTTFB(console.log);
 ### Next Sprint
 
 - [ ] Implement top 3 TBT optimization opportunities from bundle analysis
-- [ ] Add Redis caching for frequently accessed data
+- [ ] Add MongoDB caching for frequently accessed data
 - [ ] Convert 5 heaviest components to dynamic imports
 - [ ] Set up Real User Monitoring (RUM)
 

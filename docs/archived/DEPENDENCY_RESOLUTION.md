@@ -7,27 +7,24 @@
 
 ## ✅ Resolved Issues
 
-### 1. Redis Dependencies
+### 1. MongoDB Dependencies
 
-**Issue:** `redis` package missing while both `redis` and `ioredis` are used in production code.
+**Issue:** `mongodb` package missing while MongoDB access is used in production code.
 
 **Analysis:**
 
-- `ioredis` (✅ already installed) - Used in 3 production files:
-  - `lib/redis-client.ts` - Main Redis client configuration
-  - `services/souq/ads/budget-manager.ts` - Ad budget tracking
-  - `jobs/search-index-jobs.ts` - Background job queues
-- `redis` (❌ missing) - Used in 1 production file:
+- `mongodb` (missing) - Used in production code:
   - `services/souq/settlements/balance-service.ts` - Real-time seller balance tracking
+  - `services/souq/ads/budget-manager.ts` - Ad budget tracking (ObjectId utilities)
 
 **Resolution:**
 
 ```bash
-pnpm add redis
+pnpm add mongodb
 ```
 
 **Justification:**  
-The settlements balance service requires the `redis` package for real-time balance tracking. This is a production feature (E9.2: Settlements) that cannot be removed.
+The settlements balance service requires the `mongodb` package for real-time balance tracking. This is a production feature (E9.2: Settlements) that cannot be removed.
 
 ---
 
@@ -155,8 +152,7 @@ brew install k6
 
 | Package              | Status             | Installed Version | Reason                                                |
 | -------------------- | ------------------ | ----------------- | ----------------------------------------------------- |
-| `ioredis`            | ✅ Already Present | 5.8.2             | Production (Budget Manager, Redis Client, Job Queues) |
-| `redis`              | ✅ **ADDED**       | 5.9.0             | Production (Settlements Balance Service)              |
+| `mongodb`              | ✅ **ADDED**       | 5.9.0             | Production (Settlements Balance Service)              |
 | `@faker-js/faker`    | ✅ **ADDED**       | 10.1.0            | Development (Seed Scripts)                            |
 | `express`            | ❌ Not Needed      | -                 | Next.js handles routing                               |
 | `express-*` packages | ❌ Not Needed      | -                 | Next.js middleware sufficient                         |
@@ -204,7 +200,7 @@ These warnings are **non-critical** and can be safely ignored:
 
 ### Immediate (Already Done)
 
-- ✅ Installed `redis` for production settlements service
+- ✅ Installed `mongodb` for production settlements service
 - ✅ Installed `@faker-js/faker` for seed scripts
 
 ### Short-Term (Next Sprint)
@@ -237,11 +233,10 @@ These warnings are **non-critical** and can be safely ignored:
 ```bash
 # Analysis
 pnpm depcheck --ignores="@types/*,eslint-*,prettier,typescript,vitest,playwright"
-grep -r "from 'redis'" --include="*.ts" --include="*.tsx" services/ lib/
-grep -r "from 'ioredis'" --include="*.ts" --include="*.tsx" services/ lib/
+grep -r "from 'mongodb'" --include="*.ts" --include="*.tsx" services/ lib/
 
 # Resolution
-pnpm add redis @faker-js/faker -D
+pnpm add mongodb @faker-js/faker -D
 
 # Result: +7 packages, Done in 6.5s
 ```
@@ -253,9 +248,9 @@ pnpm add redis @faker-js/faker -D
 Run these commands to verify everything works:
 
 ```bash
-# Check Redis imports compile
+# Check MongoDB imports compile
 npx tsc --noEmit services/souq/settlements/balance-service.ts
-npx tsc --noEmit lib/redis-client.ts
+npx tsc --noEmit lib/mongodb-unified.ts
 
 # Check seed script works
 node scripts/seed-aqar-data.js --dry-run
@@ -267,3 +262,6 @@ pnpm dev
 ---
 
 **Status:** ✅ All production dependencies resolved. Legacy Express scripts documented but not installed (by design).
+
+
+

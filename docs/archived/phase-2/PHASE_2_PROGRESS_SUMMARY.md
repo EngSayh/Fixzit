@@ -23,7 +23,7 @@
    - Search auctions (3 slots) + Product display (2 slots)
 
 2. **Budget Manager** (`services/souq/ads/budget-manager.ts` - 340 lines)
-   - Redis-based atomic budget tracking
+   - MongoDB-based atomic budget tracking
    - Lua script for race-condition-free charging
    - Daily caps with auto-pause at 100%
    - Alert thresholds: 75%, 90%, 100%
@@ -456,7 +456,7 @@
 
 ### Infrastructure
 
-- [ ] Redis cluster for budget tracking
+- [ ] MongoDB cluster for budget tracking
 - [ ] MongoDB indexes for claims collection
 - [ ] S3 bucket for evidence uploads
 - [ ] CloudFront CDN for media delivery

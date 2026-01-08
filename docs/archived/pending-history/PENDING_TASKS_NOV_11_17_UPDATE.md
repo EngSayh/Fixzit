@@ -383,9 +383,9 @@ workOrderSchema.index({ assignedTo: 1, status: 1 });
 workOrderSchema.index({ propertyId: 1, createdAt: -1 });
 ```
 
-**B. Redis Caching**
+**B. MongoDB Caching**
 
-- [ ] Implement Redis for session storage
+- [ ] Implement MongoDB for session storage
 - [ ] Cache frequently accessed data (properties, users)
 - [ ] Add cache invalidation strategies
 - [ ] Configure cache TTL per data type

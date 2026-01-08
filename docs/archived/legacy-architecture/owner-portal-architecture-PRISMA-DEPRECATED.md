@@ -21,7 +21,7 @@
 
 The initial Owner Portal design used MongoDB/Mongoose, which **violates** Fixzit Phase 1 architectural mandate:
 
-> Backend: Node.js + Express + GraphQL/REST, **Prisma ORM, PostgreSQL**, Redis cache.
+> Backend: Node.js + Express + GraphQL/REST, **Prisma ORM, PostgreSQL**, in-memory cache.
 
 This document provides the corrected architecture using Prisma + PostgreSQL with full integration into existing Fixzit modules.
 

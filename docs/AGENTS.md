@@ -2307,6 +2307,7 @@ POST‑EXTRACTION PROTOCOL (MANDATORY)
 │  3. □ Similarity scan + dedup complete:                                 │
 │       - Checked SSOT for similar/identical issues                       │
 │       - Updated existing records; no duplicates created                │
+│       - All findings from scan recorded in SSOT                        │
 │       - Status accurate with evidence in notes                          │
 │  4. □ If SSOT import endpoint exists, import:                           │
 │       POST /api/issues/import                                           │
@@ -3395,16 +3396,16 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | Domain | Routes | Tests | Coverage | Gap Priority |
 |--------|--------|-------|----------|--------------|
-| FM Core | 33 | 22 | 67% | P2 (Sprint 33 +9) |
+| FM Core | 33 | 25 | 76% | ✅ P2 (Sprint 36 +3) |
 | Finance | 21 | 16 | 76% | ✅ P1 DONE |
 | HR | 7 | 8 | 100%+ | ✅ P1 DONE |
 | Souq | 75 | 45 | 60% | ✅ P2 TARGET MET |
 | Aqar | 18 | 16 | 89% | ✅ P2 DONE |
 | Auth | 17 | 15 | 88% | ✅ P3 (Sprint 34 +14) |
-| Admin | 29 | 17 | 59% | P2 (Sprint 32 +12) |
+| Admin | 29 | 19 | 66% | P2 (Sprint 36 +2) |
 | Onboarding | 7 | 6 | 86% | ✅ P2 (Sprint 31 +11) |
 | Superadmin | 87 | 11 | 13% | P3 (Sprint 35 +7) |
-| **Total** | **294** | **208** | **71%** | ✅ TARGET MET! |
+| **Total** | **294** | **213** | **72%** | ✅ TARGET MET +2%! |
 
 **Sprint 26 Update (PR #680):**
 - Aqar coverage improved from 43% → 89% ✅
@@ -3473,6 +3474,17 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Superadmin: 9 → 11 tests (10% → 13%)
 - Total tests: 201 → 208 (+7)
 - **🎉 TOTAL COVERAGE: 71% - TARGET MET! 🎉**
+
+**Sprint 36 Update (PR #680):**
+- +2 Admin security/rate-limits tests (auth, SUPER_ADMIN access)
+- +5 Admin notifications/history tests (auth, org context, pagination)
+- +7 FM work-orders/comments tests (GET/POST rate limit, auth, validation)
+- +5 FM work-orders/timeline tests (rate limit, auth, pagination)
+- +5 FM work-orders/transition tests (rate limit, auth, schema validation)
+- FM Core: 22 → 25 tests (67% → 76%) ✅
+- Admin: 17 → 19 tests (59% → 66%)
+- Total tests: 208 → 213 (+5 test files, +24 individual tests)
+- **TOTAL COVERAGE: 72% - BUFFER STRENGTHENED 🎯**
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
@@ -3543,6 +3555,48 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | Integrations | WhatsApp, Apple Pay, Google Pay | 80h |
 
 ---
+
+### 17.8 AI Improvement Analysis Template
+
+Use this template when an AI Improvement Analysis is requested.
+
+#### AI Improvement Analysis
+
+**System/Scope:** <scope>
+**Data Sources:** <logs, metrics, SSOT, code search>
+**Date:** <YYYY-MM-DD HH:mm (Asia/Riyadh)>
+
+1. Areas for Improvement
+- Feature Enhancements: <list>
+- New Features: <list>
+
+2. Process Efficiency
+- Bottlenecks: <list>
+- Automation Opportunities: <list>
+
+3. Bugs and Errors
+- Known Bugs (severity/impact): <list>
+- Error Rates: <summary + data>
+- Debugging Strategy: <approach>
+
+4. Incorrect Logic
+- Logic Flaws: <list>
+- Recommended Adjustments: <list>
+
+5. Testing Recommendations
+- Tests to Run: <list>
+- New Test Cases: <list>
+
+6. Optional Enhancements
+- <list>
+
+7. Prioritized Recommendations
+| Rank | Recommendation | Impact | Feasibility | Evidence |
+|------|----------------|--------|-------------|----------|
+| 1 | <item> | <High/Med/Low> | <High/Med/Low> | <data/source> |
+
+Notes: Provide evidence or data where possible, and prioritize by impact and feasibility.
+
 
 Changelog
 v7.0.0 (2025-12-28)

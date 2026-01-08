@@ -8,7 +8,7 @@
 
 ## 📋 Executive Summary
 
-Successfully implemented **Phase 0 + Phase 1A** of the Souq Marketplace project, creating the foundational infrastructure for a multi-seller e-commerce platform. Delivered **9 database models**, **8 API routes**, **1 service layer**, and comprehensive utilities without external dependencies (Redis, Meilisearch, MinIO, NATS).
+Successfully implemented **Phase 0 + Phase 1A** of the Souq Marketplace project, creating the foundational infrastructure for a multi-seller e-commerce platform. Delivered **9 database models**, **8 API routes**, **1 service layer**, and comprehensive utilities without external dependencies (MongoDB, Meilisearch, MinIO, NATS).
 
 ---
 
@@ -318,7 +318,7 @@ Atomic stock reservation system:
 
 ### Infrastructure Not Available
 
-- **Redis**: Caching, job queues (BullMQ), session storage
+- **MongoDB**: Caching, job queues (in-memory queue), session storage
 - **Meilisearch**: Faceted search, ranking, autocomplete
 - **MinIO/S3**: Product images, KYC documents
 - **NATS**: Event bus for microservices communication
@@ -404,3 +404,4 @@ Atomic stock reservation system:
 ---
 
 🚀 **Status**: Ready for Phase 1B (UI Integration)
+

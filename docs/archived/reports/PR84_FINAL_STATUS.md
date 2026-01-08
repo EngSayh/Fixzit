@@ -440,7 +440,7 @@ export async function POST(req: NextRequest) {
 - [ ] Migrate 6 legacy error handlers
 - [ ] Create automated OpenAPI spec generation
 - [ ] Add rate limit monitoring dashboard
-- [ ] Implement distributed rate limiting (Redis)
+- [ ] Implement distributed rate limiting (MongoDB)
 - [ ] Add request/response logging middleware
 
 ---

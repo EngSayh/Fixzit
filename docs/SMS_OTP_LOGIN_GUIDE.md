@@ -161,7 +161,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Taqn
 
 - **Send OTP:** 5 sends per 15 minutes per identifier
 - Prevents SMS spam and abuse
-- Uses in-memory store (migrate to Redis for production)
+- Uses in-memory store (use a centralized store for multi-instance deployments)
 
 ### 2. OTP Expiration
 
@@ -283,7 +283,7 @@ interface OTPData {
 **Storage Notes:**
 
 - Currently in-memory (not persistent)
-- ⚠️ For production: Migrate to Redis for distributed systems
+- ⚠️ For production: Migrate to MongoDB for distributed systems
 - Periodic cleanup every 10 minutes
 - Automatically deleted after expiry or successful verification
 
@@ -311,7 +311,7 @@ interface OTPLoginSession {
 **Usage Notes:**
 
 - Tokens are random 32-byte hex strings generated after successful OTP verification.
-- Stored only in memory/Redis on the server (never exposed as JWTs or cookies).
+- Stored only in memory or a centralized store on the server (never exposed as JWTs or cookies).
 - NextAuth credentials provider requires a valid `otpToken` to complete sign-in.
 - Entries expire after 5 minutes and are cleaned up automatically.
 
@@ -413,10 +413,10 @@ describe("OTP Login Flow", () => {
 
 ## Production Deployment Checklist
 
-- [ ] **Replace in-memory OTP store with Redis**
-  - Install `ioredis` package
-  - Configure Redis connection
-  - Update `lib/otp-store.ts` to use Redis
+- [ ] **Replace in-memory OTP store with a centralized store**
+  - Configure MongoDB (or equivalent) connection
+  - Configure MongoDB connection
+  - Update `lib/otp-store.ts` to use MongoDB
   - Set TTL for OTP keys (5 minutes)
 - [ ] **Monitor SMS costs**
   - Monitor Taqnyat usage and costs
@@ -514,7 +514,7 @@ rateLimitStore.delete(identifier);
 
 ### Phase 2 Features (Priority: High)
 
-1. **Redis Integration** - Replace in-memory store
+1. **Centralized store integration** - Replace in-memory store
 2. **WhatsApp OTP** - Alternative to SMS
 3. **Backup Codes** - Recovery mechanism
 4. **Trust Device** - Skip OTP for known devices
@@ -593,7 +593,7 @@ rateLimitStore.delete(identifier);
 
 ### Upcoming
 
-- 🔄 Redis integration (v1.1.0)
+- 🔄 MongoDB integration (v1.1.0)
 - 🔄 WhatsApp OTP (v1.2.0)
 - 🔄 Trust device feature (v1.3.0)
 
@@ -601,4 +601,5 @@ rateLimitStore.delete(identifier);
 
 **Last Updated:** December 2024  
 **Author:** Fixzit Engineering Team  
-**Status:** Production Ready (with Redis migration pending)
+**Status:** Production Ready (with MongoDB migration pending)
+

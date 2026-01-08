@@ -135,7 +135,7 @@ const Footer = dynamic(() => import("./Footer"), { ssr: false });
 ### 5. Target 90/100 Lighthouse Score
 
 **Status**: NOT STARTED  
-**Reason**: Requires 2-3 hours of SSR/database/Redis optimization  
+**Reason**: Requires 2-3 hours of SSR/database/MongoDB optimization  
 **Current**: 82/100  
 **Target**: 90/100 (+8 points)
 
@@ -147,9 +147,9 @@ const Footer = dynamic(() => import("./Footer"), { ssr: false });
 2. **Database Query Optimization**:
    - N+1 query elimination
    - Connection pooling tuning
-   - Query result caching (Redis)
+   - Query result caching (MongoDB)
 
-3. **Redis Integration**:
+3. **MongoDB Integration**:
    - Session caching
    - API response caching
    - Rate limiting optimization
@@ -253,7 +253,7 @@ pnpm exec jscodeshift -t scripts/codemods/console-to-logger.cjs app/
 ### Short Term (Next Session)
 
 1. **Test Suite Stabilization**: Fix 143 failing tests systematically
-2. **Lighthouse 90/100**: SSR + database + Redis optimization
+2. **Lighthouse 90/100**: SSR + database + MongoDB optimization
 3. **Bundle Analysis**: Review .next/analyze reports for further optimization
 
 ### Long Term (Next Week)

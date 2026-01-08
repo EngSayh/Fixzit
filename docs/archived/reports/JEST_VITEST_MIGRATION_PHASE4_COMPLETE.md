@@ -435,8 +435,8 @@ import { export1, export2 } from "module-name";
 
 ### Test Logic Fixes (Separate from Migration)
 
-1. **Redis Mocks** (incidents.route.test.ts)
-   - Need proper ioredis mock setup
+1. **MongoDB Mocks** (incidents.route.test.ts)
+   - Need proper MongoDB mock setup
    - Not a migration issue
 
 2. **MongoDB Mocks** (products/route.test.ts)
@@ -491,3 +491,4 @@ import { export1, export2 } from "module-name";
 
 **Status:** ✅ **COMPLETE - Ready for Review**  
 **Recommendation:** Merge this phase independently, continue test fixes in follow-up PRs
+

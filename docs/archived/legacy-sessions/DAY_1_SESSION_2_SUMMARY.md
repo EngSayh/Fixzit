@@ -121,7 +121,7 @@
 3. **Error Handling**: Try-catch with meaningful error messages
 4. **Authorization**: Role-based access (buyer/seller/admin)
 5. **Validation**: Input validation before processing
-6. **Background Jobs**: BullMQ for async operations
+6. **Background Jobs**: in-memory queue for async operations
 7. **Notifications**: Multi-channel (email, SMS, internal)
 
 ### Code Quality
@@ -139,7 +139,7 @@
 2. **Fulfillment ↔ Carriers**: Multi-carrier adapter pattern
 3. **Orders ↔ Fulfillment**: Status updates via tracking
 4. **Returns ↔ Refunds**: Auto-calculate based on condition
-5. **BullMQ ↔ Notifications**: Async email/SMS queue
+5. **in-memory queue ↔ Notifications**: Async email/SMS queue
 
 ---
 
@@ -299,3 +299,4 @@
 _Generated: November 16, 2025 at 11:30 PM_  
 _Session Duration: 3.5 hours_  
 _Caffeine Consumed: ☕☕☕_
+

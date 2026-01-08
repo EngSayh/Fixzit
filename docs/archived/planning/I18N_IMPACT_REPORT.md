@@ -571,7 +571,7 @@ Before starting any batch:
 - [ ] **Branch created** from main: `feat/i18n-batch-{N}`
 - [ ] **Backup translation files** to `_backup/locales/`
 - [ ] **Run tests baseline:** `npm test && npm run test:e2e`
-- [ ] **Verify dev environment:** MongoDB + Redis running
+- [ ] **Verify dev environment:** MongoDB + MongoDB running
 - [ ] **Code freeze notice:** Notify team of i18n work in progress
 
 After completing each batch:

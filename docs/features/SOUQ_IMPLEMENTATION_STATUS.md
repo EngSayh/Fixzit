@@ -113,7 +113,7 @@
 
 These features cannot be implemented without external services:
 
-- **Redis** - Caching, session storage, job queues (BullMQ)
+- **MongoDB** - Caching, session storage, job queues (in-memory queue)
 - **Meilisearch** - Faceted search, ranking, autocomplete
 - **MinIO/S3** - Product images, KYC documents, seller assets
 - **NATS** - Event bus for service communication
@@ -170,8 +170,8 @@ These features cannot be implemented without external services:
 
 1. **No File Upload**: S3/MinIO not available - need alternative for KYC docs
 2. **No Search Engine**: Meilisearch not available - using MongoDB text search as fallback
-3. **No Caching**: Redis not available - direct MongoDB queries (slow)
-4. **No Job Queue**: BullMQ not available - inline processing (no async jobs)
+3. **No Caching**: MongoDB not available - direct MongoDB queries (slow)
+4. **No Job Queue**: in-memory queue not available - inline processing (no async jobs)
 5. **No Event Bus**: NATS not available - no service-to-service communication
 
 ## 📝 Notes
@@ -182,3 +182,4 @@ These features cannot be implemented without external services:
 - FSIN format: `YYYYMMDDXXXXXX` (14 digits, date + random + checksum)
 - Settlement cycles: Individual (14 days), Professional (7 days), Enterprise (7 days)
 - Account health thresholds: ODR < 1%, LSR < 4%, CR < 2.5%, VTR > 95%, OTDR > 97%
+

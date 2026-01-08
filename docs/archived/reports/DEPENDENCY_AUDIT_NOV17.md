@@ -28,7 +28,7 @@ These packages are in `dependencies` but not used in the codebase:
 | `@radix-ui/react-toast`         | UI component         | Remove - unused (using sonner instead)         |
 | `@radix-ui/react-tooltip`       | UI component         | Remove - unused                                |
 | `bcrypt`                        | Password hashing     | Remove - unused (using NextAuth)               |
-| `bullmq`                        | Redis-based queue    | Remove - unused                                |
+| External queue library         | No longer used (in-memory queue) | Remove - unused                                |
 | `fast-xml-parser`               | XML parsing          | Remove - unused                                |
 | `marked`                        | Markdown parsing     | Remove - unused (using unified/remark instead) |
 | `next-themes`                   | Theme management     | Remove - unused (custom ThemeContext)          |
@@ -184,7 +184,7 @@ These packages are referenced in code but not in package.json:
 pnpm remove @hookform/resolvers @radix-ui/react-avatar @radix-ui/react-dropdown-menu \
   @radix-ui/react-progress @radix-ui/react-select @radix-ui/react-separator \
   @radix-ui/react-tabs @radix-ui/react-toast @radix-ui/react-tooltip \
-  bcrypt bullmq fast-xml-parser marked next-themes \
+  bcrypt fast-xml-parser marked next-themes \
   react-hook-form react-markdown recharts socket.io-client
 
 # Step 2: Remove unused devDependencies
@@ -225,3 +225,4 @@ After removal:
 **Status:** ✅ Audit Complete  
 **Next Step:** Execute removal plan (user approval required)  
 **Estimated Time:** 10-15 minutes (including verification)
+

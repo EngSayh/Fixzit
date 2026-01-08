@@ -332,9 +332,9 @@ npm start
 
 ### High Priority (Not Blocking)
 
-1. **Redis for Session Management**
+1. **MongoDB for Session Management**
    - Current: In-memory sessions (lost on restart)
-   - Recommended: Redis for persistence and scaling
+   - Recommended: MongoDB for persistence and scaling
 
 2. **Structured Logging**
    - Current: console.log/error

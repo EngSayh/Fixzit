@@ -241,7 +241,7 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 ### 1. tests/unit/api/support/incidents.route.test.ts
 
 **Problem:** All 6 tests timeout after 5000ms  
-**Cause:** Missing Redis mock for `rateLimit()` function
+**Cause:** Missing MongoDB mock for `rateLimit()` function
 
 **Fix:**
 
@@ -255,7 +255,7 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 ```
 
-**Impact:** Tests load successfully but hang waiting for Redis connection
+**Impact:** Tests load successfully but hang waiting for MongoDB connection
 
 ---
 
@@ -302,7 +302,7 @@ vi.mock("@/db/mongoose", () => ({
    - Est: 30 min
 
 2. **Add missing mocks** (2 files)
-   - Redis mock for incidents.route.test.ts
+   - MongoDB mock for incidents.route.test.ts
    - Request headers + dbConnect for products/route.test.ts
    - Est: 15 min
 
@@ -338,7 +338,7 @@ pnpm tsc --noEmit 2>&1 | grep -E "error TS" | wc -l
 # After fixing candidate.test.ts
 pnpm test tests/models/candidate.test.ts --run
 
-# After adding Redis mock
+# After adding MongoDB mock
 pnpm test tests/unit/api/support/incidents.route.test.ts --run
 
 # After fixing products mock

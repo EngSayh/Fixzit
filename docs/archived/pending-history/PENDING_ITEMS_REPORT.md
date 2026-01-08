@@ -337,7 +337,7 @@ pnpm tsc --noEmit tests/copilot/copilot.spec.ts
 **Focus Areas**:
 
 1. AI Assistant implementation (voice, sentiment, apartment search)
-2. Dependency management (pdf-parse, redis, faker)
+2. Dependency management (pdf-parse, mongodb, faker)
 3. Code cleanup (duplicates, backups, documentation)
 4. Environment configuration
 
@@ -545,7 +545,7 @@ pnpm dev
 - **Lines Added**: 1,482+ lines
 - **Commits**: 12 commits
 - **Modules Created**: 4 (classifier, apartmentSearch, systemScan, tests)
-- **Dependencies Added**: 4 (pdf-parse, node-cron, redis, @faker-js/faker)
+- **Dependencies Added**: 4 (pdf-parse, node-cron, mongodb, @faker-js/faker)
 
 ### Documentation
 

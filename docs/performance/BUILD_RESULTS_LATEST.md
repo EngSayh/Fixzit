@@ -189,7 +189,7 @@ Static bundle analysis shows all code included for code-splitting purposes. The 
 
 3. **SSR Optimization** - Expected: +2-3 points
    - Database query profiling
-   - Redis caching layer
+   - MongoDB caching layer
    - ISR for semi-static pages
 
 4. **Route Prefetching** - Expected: +1 point

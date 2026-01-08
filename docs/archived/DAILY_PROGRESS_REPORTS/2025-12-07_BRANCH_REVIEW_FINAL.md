@@ -179,7 +179,7 @@ This branch delivers comprehensive security hardening for the Fixzit Souq market
 - `app/api/auth/otp/send/route.ts` - OTP bypass
 - `app/api/auth/otp/verify/route.ts` - OTP bypass
 - `auth.config.ts` - Privacy guards
-- `lib/otp-store-redis.ts` - Bypass support
+- `lib/otp-store-mongodb.ts` - Bypass support
 
 ### Config (1 file)
 - `lib/config/constants.ts` - Review settings

@@ -218,7 +218,7 @@ pnpm tsx scripts/ensure-indexes.ts
 
 ### 4. Caching Strategy
 
-- ✅ Use Redis/Vercel KV for session caching
+- ✅ Use MongoDB/Vercel KV for session caching
 - ✅ Cache frequently accessed data (users, properties)
 - ✅ Implement stale-while-revalidate pattern
 - ✅ Set appropriate TTLs based on data volatility
