@@ -3371,7 +3371,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | Domain | Routes | Tests | Coverage | Gap Priority |
 |--------|--------|-------|----------|--------------|
-| FM Core | 33 | 18 | 55% | P2 (Sprint 29 +8) |
+| FM Core | 33 | 22 | 67% | P2 (Sprint 33 +9) |
 | Finance | 21 | 16 | 76% | ✅ P1 DONE |
 | HR | 7 | 8 | 100%+ | ✅ P1 DONE |
 | Souq | 75 | 45 | 60% | ✅ P2 TARGET MET |
@@ -3380,7 +3380,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | Admin | 29 | 17 | 59% | P2 (Sprint 32 +12) |
 | Onboarding | 7 | 6 | 86% | ✅ P2 (Sprint 31 +11) |
 | Superadmin | 87 | 9 | 10% | P3 (platform-ops) |
-| **Total** | **294** | **178** | **61%** | Target: 70% |
+| **Total** | **294** | **187** | **64%** | Target: 70% |
 
 **Sprint 26 Update (PR #680):**
 - Aqar coverage improved from 43% → 89% ✅
@@ -3424,6 +3424,15 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Admin: 13 → 17 tests (45% → 59%)
 - Total tests: 166 → 178 (+12)
 - **Total coverage: 61%** 🎯
+
+**Sprint 33 Update (PR #680):**
+- +2 FM providers tests (rate limit, org context validation)
+- +3 FM users-invite tests (auth, permission, tenant resolution)
+- +3 FM reports-process tests (rate limit, auth, tenant resolution)
+- +1 FM work-orders/assign tests (rate limit)
+- FM Core: 18 → 22 tests (55% → 67%)
+- Total tests: 178 → 187 (+9)
+- **Total coverage: 64%** 🎯
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
