@@ -3371,13 +3371,21 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | Domain | Routes | Tests | Coverage | Gap Priority |
 |--------|--------|-------|----------|--------------|
-| FM Core | 45 | 42 | 93% | P3 |
-| Finance | 19 | 16 | 84% | ✅ P1 DONE |
-| HR | 7 | 8 | 100% | ✅ P1 DONE |
+| FM Core | 33 | 15 | 45% | P2 |
+| Finance | 21 | 16 | 76% | ✅ P1 DONE |
+| HR | 7 | 8 | 100%+ | ✅ P1 DONE |
 | Souq | 75 | 45 | 60% | ✅ P2 TARGET MET |
-| Aqar | 28 | 12 | 43% | P2 |
-| Auth | 12 | 12 | 100% | ✅ |
-| Admin | 18 | 8 | 44% | P2 |
+| Aqar | 18 | 16 | 89% | ✅ P2 DONE |
+| Auth | 17 | 11 | 65% | P3 |
+| Admin | 29 | 9 | 31% | P2 |
+| Onboarding | 7 | 2 | 29% | P2 |
+| Superadmin | 87 | 9 | 10% | P3 (platform-ops) |
+| **Total** | **294** | **131** | **44.6%** | Target: 70% |
+
+**Sprint 26 Update (PR #680):**
+- Aqar coverage improved from 43% → 89% ✅
+- Accurate route counts verified via file system scan
+- Lowest gaps: Superadmin (10%), Onboarding (29%), Admin (31%)
 | **Total** | **392** | **231** | **58.9%** | Target: 70% |
 
 **Sprint 17-21 Progress (PR #680):**
