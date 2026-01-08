@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Tests for Admin Billing Pricebooks API
  * @route POST /api/admin/billing/pricebooks
  * @route PATCH /api/admin/billing/pricebooks/[id]

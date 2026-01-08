@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Tests for role guard legacy HR aliases
  */
 

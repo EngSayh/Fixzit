@@ -11,7 +11,7 @@ export class Job<T = unknown, R = unknown> {
   returnvalue?: R;
   finishedOn?: number;
   processedOn?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- BullMQ Job.failedReason is any
   failedReason?: any;
 
   constructor(name: string, data: T, jobId?: string) {
@@ -39,7 +39,7 @@ export class Queue<T = unknown> {
   private jobs: Job<T>[] = [];
   private paused = false;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- BullMQ-compatible options signature
   constructor(name: string, _options?: any) {
     this.name = name;
     const existing = queues.get(name);
@@ -56,7 +56,7 @@ export class Queue<T = unknown> {
     job.status = "active";
     job.processedOn = Date.now();
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Processor return type is generic
       const result: any = await worker.process(job);
       job.returnvalue = result;
       job.status = "completed";
@@ -169,20 +169,20 @@ export class Queue<T = unknown> {
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Worker generics are covariant
   setWorker(worker: Worker<any, any>): void {
     workerRegistry.set(this.name, worker as Worker);
   }
 }
 
 export class QueueEvents {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventEmitter pattern requires any[]
   private listeners = new Map<string, Set<(...args: any[]) => void>>();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- BullMQ-compatible options signature
   constructor(_name: string, _options?: any) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventEmitter pattern requires any[]
   on(_event: string, _handler: (...args: any[]) => void): void {}
 
   async close(): Promise<void> {
@@ -195,7 +195,7 @@ export class Worker<T = unknown, R = unknown> {
   private processor: Processor<T, R>;
   queue: Queue<T>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- BullMQ-compatible options signature
   constructor(name: string, processor: Processor<T, R>, _options?: any) {
     this.processor = processor;
     const existing = queues.get(name) as Queue<T> | undefined;
@@ -207,7 +207,7 @@ export class Worker<T = unknown, R = unknown> {
     return this.processor(job);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventEmitter pattern requires any[]
   on(event: string, handler: (...args: any[]) => void): void {
     const handlers = this.listeners.get(event) ?? new Set();
     handlers.add(handler);

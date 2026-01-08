@@ -50,7 +50,7 @@ export class MemoryKV {
   >();
 
   // Accept any constructor signature to remain drop-in compatible with queue/cache usage.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Redis-compatible API requires flexible constructor
   constructor(_url?: any, _options?: any) {}
 
   private cleanup(key: string): StoredValue | null {
@@ -71,7 +71,7 @@ export class MemoryKV {
   }
 
   // Basic event emitter helpers to satisfy consumer calls
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventEmitter API requires any[] args
   on(event: string, handler: (...args: any[]) => void): this {
     const handlers = this.listeners.get(event) ?? new Set();
     handlers.add(handler);
@@ -79,7 +79,7 @@ export class MemoryKV {
     return this;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventEmitter API requires any[] args
   once(event: string, handler: (...args: any[]) => void): this {
     const onceHandler = (...args: unknown[]) => {
       this.off(event, onceHandler);
@@ -88,7 +88,7 @@ export class MemoryKV {
     return this.on(event, onceHandler);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventEmitter API requires any[] args
   off(event: string, handler: (...args: any[]) => void): this {
     const handlers = this.listeners.get(event);
     handlers?.delete(handler);
@@ -236,7 +236,7 @@ export class MemoryKV {
   }
 
   // Basic SCAN stream implementation for cache invalidation helpers
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Redis scanStream API returns AsyncIterable<any>
   scanStream(options: { match?: string; count?: number } = {}): AsyncIterable<any> {
     const regex = options.match ? wildcardToRegExp(options.match) : /.*/;
     const keys = Array.from(this.store.keys()).filter((key) => regex.test(key) && this.cleanup(key));

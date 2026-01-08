@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ZATCA Fatoora API Client
  * @module lib/zatca/fatoora-client
  */

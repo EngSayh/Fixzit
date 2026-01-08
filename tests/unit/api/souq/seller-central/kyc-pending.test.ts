@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Tests for Souq Seller KYC Pending API
  * @route GET /api/souq/seller-central/kyc/pending
  */
