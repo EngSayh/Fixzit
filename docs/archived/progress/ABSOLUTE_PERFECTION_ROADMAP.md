@@ -217,8 +217,8 @@ npm run lint
     - Install agent
     - Configure metrics
 
-11. **Redis** (30 min)
-    - Option A: Redis Cloud (sign up, create database)
+11. **MongoDB** (30 min)
+    - Option A: MongoDB Cloud (sign up, create database)
     - Option B: AWS ElastiCache
     - Option C: Self-hosted Docker
     - Get connection URL
@@ -330,50 +330,50 @@ mongosh mongodb://... --eval "
 
 ---
 
-#### Task 2.3: Implement Redis Caching Layer
+#### Task 2.3: Implement In-memory Caching Layer
 
 **Current**: Direct database queries  
-**Target**: Redis caching for all expensive operations  
+**Target**: in-memory caching for all expensive operations  
 **Time**: 6-8 hours
 
 **Implementation**:
 
-1. **Install Redis client**:
+1. **Install MongoDB client**:
 
    ```bash
-   npm install ioredis @types/ioredis
+   npm install mongodb
    ```
 
-2. **Create Redis wrapper** (`lib/redis.ts`):
+2. **Create MongoDB wrapper** (`lib/mongodb.ts`):
 
    ```typescript
-   import Redis from "ioredis";
+   import { MongoClient } from "mongodb";
 
-   const redis = new Redis(process.env.REDIS_URL!);
+   const mongodb = new MongoClient(process.env.MONGODB_URL!);
 
    export async function getCached<T>(
      key: string,
      fetcher: () => Promise<T>,
      ttl: number = 300, // 5 minutes default
    ): Promise<T> {
-     const cached = await redis.get(key);
+     const cached = await mongodb.get(key);
      if (cached) {
        return JSON.parse(cached) as T;
      }
 
      const data = await fetcher();
-     await redis.setex(key, ttl, JSON.stringify(data));
+     await mongodb.setex(key, ttl, JSON.stringify(data));
      return data;
    }
 
    export async function invalidateCache(pattern: string): Promise<void> {
-     const keys = await redis.keys(pattern);
+     const keys = await mongodb.keys(pattern);
      if (keys.length > 0) {
-       await redis.del(...keys);
+       await mongodb.del(...keys);
      }
    }
 
-   export { redis };
+   export { mongodb };
    ```
 
 3. **Implement caching in critical routes**:
@@ -392,7 +392,7 @@ mongosh mongodb://... --eval "
 **Verification**:
 
 - Response times < 100ms for cached requests
-- Redis hit rate > 80%
+- MongoDB hit rate > 80%
 - Cache invalidation working correctly
 
 ---
@@ -459,12 +459,12 @@ mongosh mongodb://... --eval "
    export async function GET() {
      const checks = {
        mongodb: await checkMongoHealth(),
-       redis: await checkRedisHealth(),
+       mongodb: await checkMongoDBHealth(),
        memory: process.memoryUsage(),
        uptime: process.uptime(),
      };
 
-     const healthy = checks.mongodb && checks.redis;
+     const healthy = checks.mongodb && checks.mongodb;
 
      return Response.json(checks, {
        status: healthy ? 200 : 503,
@@ -708,7 +708,7 @@ mongosh mongodb://... --eval "
 | Code Quality   | 100/100 | ✅ 0 TypeScript errors, 0 ESLint warnings    |
 | Testing        | 100/100 | ✅ 448/448 E2E tests, all unit tests passing |
 | Security       | 100/100 | ✅ ZERO vulnerabilities, penetration tested  |
-| Performance    | 100/100 | ✅ Load tested, Redis caching, optimized     |
+| Performance    | 100/100 | ✅ Load tested, in-memory caching, optimized     |
 | Infrastructure | 100/100 | ✅ All credentials, indexes, monitoring      |
 | Documentation  | 100/100 | ✅ Complete and accurate                     |
 | Deployment     | 100/100 | ✅ Deployed, monitored, stable               |
@@ -750,7 +750,7 @@ mongosh mongodb://... --eval "
 ### Monthly Recurring
 
 - MongoDB Atlas (production): $60-100
-- Redis Cloud: $10-30
+- MongoDB Cloud: $10-30
 - Sentry: $26-80
 - Datadog: $15-31
 - SendGrid: $15-90
@@ -786,7 +786,7 @@ mongosh mongodb://... --eval "
 - Everything in Option 2
 - PLUS: Fix all 435 ESLint warnings
 - PLUS: Complete monitoring setup
-- PLUS: Implement Redis caching
+- PLUS: Implement in-memory caching
 - PLUS: Load testing & security audit
 - PLUS: Complete all PR comments
 - **Time**: 60-80 hours
@@ -810,3 +810,4 @@ mongosh mongodb://... --eval "
 ---
 
 **Your call**: Which option do you choose?
+

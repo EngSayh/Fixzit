@@ -179,6 +179,28 @@ export function addBreadcrumb(
   });
 }
 
+/**
+ * Execute callback with scoped Sentry context
+ * Used for enriching error reports with additional context
+ */
+export function withScope(callback: (scope: Sentry.Scope) => void): void {
+  if (!isSentryEnabled()) {
+    // Still call callback with a no-op scope for consistency
+    const noopScope = {
+      setTag: () => noopScope,
+      setExtra: () => noopScope,
+      setContext: () => noopScope,
+      setUser: () => noopScope,
+      setLevel: () => noopScope,
+      setFingerprint: () => noopScope,
+    } as unknown as Sentry.Scope;
+    callback(noopScope);
+    return;
+  }
+
+  Sentry.withScope(callback);
+}
+
 export default {
   isSentryEnabled,
   getSentryConfig,
@@ -188,4 +210,5 @@ export default {
   captureMessage,
   setUser,
   addBreadcrumb,
+  withScope,
 };

@@ -73,7 +73,7 @@ git mv scripts/verify-passwords.ts tests/system/verify-passwords.ts
 - `utils/format.ts` → Used by finance, hr, aqar, crm
 - `lib/utils.ts` → UI utilities (shadcn/ui)
 - `lib/rbac.ts` → Permission checks across all modules
-- `lib/redis.ts` → Cache layer for all domains
+- `lib/mongodb.ts` → Cache layer for all domains
 - `lib/secrets.ts` → Secrets management for all services
 - `lib/mongoose.ts` → Database connection for all modules
 - `lib/startup-checks.ts` → App-wide health checks

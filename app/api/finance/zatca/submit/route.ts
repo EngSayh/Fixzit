@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongo";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { submitForClearance, submitForReporting, encodeInvoiceXml } from "@/lib/zatca/fatoora-client";

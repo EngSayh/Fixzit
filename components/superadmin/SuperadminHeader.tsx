@@ -34,8 +34,7 @@ const CurrencySelector = dynamic(
 const ENABLED_LOCALES: (LanguageOption & { language: Locale })[] =
   LANGUAGE_OPTIONS.filter(
     (option): option is LanguageOption & { language: Locale } =>
-      !option.comingSoon &&
-      (option.language === "en" || option.language === "ar"),
+      option.language === "en" || option.language === "ar",
   );
 
 function SuperadminLanguageDropdown() {

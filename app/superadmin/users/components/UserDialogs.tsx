@@ -40,6 +40,7 @@ import {
 import { RBAC_MODULES, RBAC_ROLE_PERMISSIONS, type ModulePermissions } from "@/config/rbac.matrix";
 import { getSubModulesForParent } from "@/config/rbac.submodules";
 import { CANONICAL_ROLES, type UserRoleType } from "@/types/user";
+import { formatDateLocale } from "@/lib/utils";
 import type { UserData, Organization, CreateUserFormData, PermissionOverrides } from "./types";
 import { STATUS_COLORS } from "./types";
 
@@ -47,13 +48,10 @@ import { STATUS_COLORS } from "./types";
 // Helpers
 // ============================================================================
 
+// Use centralized formatDateLocale for consistency (CodeRabbit review)
 function formatDate(dateStr?: string, locale: string = "en-US"): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDateLocale(dateStr, locale);
 }
 
 function getUserName(user: UserData): string {
@@ -262,10 +260,11 @@ export function EditStatusDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>New Status</Label>
+            <Label htmlFor="user-status-select">New Status</Label>
             <Select 
               value={status} 
               onValueChange={onStatusChange}
+              aria-label="Select user status"
               placeholder="Select status"
               className="w-full bg-muted border-input text-foreground"
             >
@@ -338,10 +337,11 @@ export function BulkStatusDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>New Status</Label>
+            <Label htmlFor="bulk-status-select">New Status</Label>
             <Select 
               value={status} 
               onValueChange={onStatusChange}
+              aria-label="Select bulk status"
               placeholder="Select status"
               className="w-full bg-muted border-input text-foreground"
             >

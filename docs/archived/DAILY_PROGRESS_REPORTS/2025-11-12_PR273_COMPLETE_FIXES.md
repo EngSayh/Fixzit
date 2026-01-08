@@ -76,44 +76,44 @@ const updateDoc = {
 
 ---
 
-### 3. Redis Reconnection Strategy ✅
+### 3. MongoDB Reconnection Strategy ✅
 
-**Issue**: `redis = null` on connection close permanently disabled Redis  
+**Issue**: `mongodb = null` on connection close permanently disabled MongoDB  
 **File**: `app/api/help/ask/route.ts` (lines 266-281)
 
 **Changes**:
 
-1. Removed `redis = null` on close event (line 275)
+1. Removed `mongodb = null` on close event (line 275)
 2. Added `ready` event handler to log successful reconnection
-3. Normalized logger.error signatures in Redis event handlers
+3. Normalized logger.error signatures in MongoDB event handlers
 
 **Before**:
 
 ```typescript
-redis.on("close", () => {
+mongodb.on("close", () => {
   logger.warn(
-    "Redis connection closed, falling back to in-memory rate limiting",
+    "MongoDB connection closed, falling back to in-memory rate limiting",
   );
-  redis = null; // ❌ Permanent fallback
+  mongodb = null; // ❌ Permanent fallback
 });
 ```
 
 **After**:
 
 ```typescript
-redis.on("close", () => {
+mongodb.on("close", () => {
   logger.warn(
-    "Redis connection closed, will attempt to reconnect automatically",
+    "MongoDB connection closed, will attempt to reconnect automatically",
   );
-  // ✅ Let Redis reconnect automatically
+  // ✅ Let MongoDB reconnect automatically
 });
 
-redis.on("ready", () => {
-  logger.info("Redis connection restored");
+mongodb.on("ready", () => {
+  logger.info("MongoDB connection restored");
 });
 ```
 
-**Impact**: Redis client now automatically reconnects instead of permanently falling back to in-memory storage.
+**Impact**: MongoDB client now automatically reconnects instead of permanently falling back to in-memory storage.
 
 ---
 
@@ -239,8 +239,8 @@ Code Coverage  : ✅ All used keys present
    - Fixed aqar/leads and webhooks/sendgrid routes
    - Added translation keys for aqar.packages and common.errors
 
-2. **90f9f7727**: `fix(api,cms): Fix Redis reconnection and CMS i18n`
-   - Removed redis=null on connection close
+2. **90f9f7727**: `fix(api,cms): Fix MongoDB reconnection and CMS i18n`
+   - Removed mongodb=null on connection close
    - Implemented cookie-based translations for CMS
 
 3. **5d70b7ad9**: `fix(ci): Remove fallback secrets from webpack workflow`
@@ -286,7 +286,7 @@ Translation audit # ✅ PASSED (EN: 2004, AR: 2004, Gap: 0)
 
 1. ✅ Logger signature normalization (aqar/leads, webhooks/sendgrid, help/ask)
 2. ✅ MongoDB operator separation (webhooks/sendgrid)
-3. ✅ Redis reconnection strategy (help/ask)
+3. ✅ MongoDB reconnection strategy (help/ask)
 4. ✅ CMS i18n hard-coded strings (cms/[slug])
 5. ✅ Webpack workflow security (remove fallback secrets)
 6. ✅ Translation gaps (aqar.packages.errors, common.errors)
@@ -319,7 +319,7 @@ lib/i18n/server.ts
 
 ✅ **Logger Normalization**: 7 instances fixed (3 in leads, 1 in webhooks, 3 in help/ask)  
 ✅ **MongoDB Operators**: 1 critical fix in sendgrid webhook  
-✅ **Redis Strategy**: 1 reconnection fix in help/ask  
+✅ **MongoDB Strategy**: 1 reconnection fix in help/ask  
 ✅ **i18n Coverage**: 2 keys added (EN + AR), 6 CMS strings internationalized  
 ✅ **CI Security**: 3 secret fallbacks removed
 
@@ -372,7 +372,7 @@ lib/i18n/server.ts
 
 - **Session Duration**: ~2 hours
 - **Issues Resolved**: 8 major review comments
-- **Patterns Fixed**: 4 system-wide (logger, MongoDB, Redis, i18n)
+- **Patterns Fixed**: 4 system-wide (logger, MongoDB, MongoDB, i18n)
 
 ---
 
@@ -383,10 +383,10 @@ lib/i18n/server.ts
 **Insight**: The pre-commit hook successfully caught missing i18n keys multiple times.  
 **Action**: This validated the translation audit system is working correctly.
 
-### 2. Redis Event Handling
+### 2. MongoDB Event Handling
 
-**Insight**: Setting `redis = null` on connection close prevents automatic reconnection.  
-**Action**: Trust Redis client's built-in reconnection logic instead.
+**Insight**: Setting `mongodb = null` on connection close prevents automatic reconnection.  
+**Action**: Trust MongoDB client's built-in reconnection logic instead.
 
 ### 3. MongoDB Update Operators
 

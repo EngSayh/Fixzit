@@ -87,7 +87,7 @@
 - **RBAC**: 4 roles (super_admin, fm_admin, vendor, tenant)
 - **Tabs-Not-Pages**: 50+ routes → 12 tabbed sections
 - **Server/Client**: MongoDB server-only, UI client-only
-- **Real-Time**: 30s polling (fallback until Redis)
+- **Real-Time**: 30s polling (fallback until MongoDB)
 - **Theme**: localStorage + document classes
 - **Error Handling**: Class-based ErrorBoundary
 
@@ -166,7 +166,7 @@
 - ✅ MongoDB Atlas connected
 - ✅ Node.js runtime running
 - ✅ Environment variables set
-- 🟡 Optional: Redis (WebSocket), Meilisearch (search)
+- 🟡 Optional: MongoDB (WebSocket), Meilisearch (search)
 
 ---
 
@@ -188,7 +188,7 @@
 
 ### Long-Term (Next Sprint)
 
-- [ ] Add Redis for live updates
+- [ ] Add MongoDB for live updates
 - [ ] Add Meilisearch for search
 - [ ] Increase test coverage to 80%
 - [ ] Set up CI/CD pipeline

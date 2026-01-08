@@ -192,11 +192,9 @@ describe('SupportTicketPage', () => {
       },
     });
 
-    // Success alert
+    // Success toast message
     await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith(
-        expect.stringMatching(/support ticket created successfully/i)
-      );
+      expect(screen.getByText(/support ticket created successfully/i)).toBeInTheDocument();
     });
 
     // Form should reset to defaults
@@ -248,10 +246,9 @@ describe('SupportTicketPage', () => {
       expect(fetchMock).toHaveBeenCalled();
     });
 
+    // Error toast message
     await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith(
-        'There was an error submitting your ticket. Please try again.'
-      );
+      expect(screen.getByText(/there was an error submitting your ticket/i)).toBeInTheDocument();
     });
 
     // Button should be re-enabled and label restored
@@ -260,7 +257,7 @@ describe('SupportTicketPage', () => {
     );
   });
 
-  test('shows error alert if fetch throws', async () => {
+  test('shows error toast if fetch throws', async () => {
     fetchMock.mockRejectedValueOnce(new Error('network down'));
 
     await renderPage();
@@ -268,10 +265,9 @@ describe('SupportTicketPage', () => {
 
     await user.click(screen.getByRole('button', { name: /Submit Ticket/i }));
 
+    // Error toast message
     await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith(
-        'There was an error submitting your ticket. Please try again.'
-      );
+      expect(screen.getByText(/there was an error submitting your ticket/i)).toBeInTheDocument();
     });
   });
 

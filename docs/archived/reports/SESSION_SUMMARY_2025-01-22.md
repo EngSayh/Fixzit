@@ -114,7 +114,7 @@
 
 **PR #182 Highlights**:
 
-- Created `lib/redis.ts` - Redis singleton with proper typing
+- Created `lib/mongodb.ts` - MongoDB singleton with proper typing
 - Fixed tenant isolation in auth/getUserFromToken
 - Fixed demo-login route type issues
 - 5 files modified + 1 new file
@@ -157,7 +157,7 @@
 
 ### Security Fixes (6 files + 1 new)
 
-1. `lib/redis.ts` (NEW)
+1. `lib/mongodb.ts` (NEW)
 2. `lib/auth.ts`
 3. `app/api/auth/demo-login/route.ts`
 4. `middleware.ts`

@@ -327,7 +327,7 @@ const isValid = validateFSIN(fsin); // true
 **Sections Added**:
 
 1. **Souq Feature Flags** (12 variables)
-2. **Redis** (caching + BullMQ)
+2. **MongoDB** (database; in-memory cache/queue for jobs)
 3. **Meilisearch** (product search)
 4. **S3 Storage** (media/documents)
 5. **Event Bus** (NATS/Kafka)
@@ -437,8 +437,8 @@ Documentation:          100% (all functions have JSDoc)
 ### Must Install (Development)
 
 ```bash
-# 1. Redis (caching + BullMQ)
-docker run -d --name fixzit-redis -p 6379:6379 redis:7-alpine
+# 1. MongoDB (database + in-memory cache/queue)
+docker run -d --name fixzit-mongodb -p 6379:6379 mongodb:7-alpine
 
 # 2. Meilisearch (product search)
 docker run -d --name fixzit-meilisearch -p 7700:7700 getmeili/meilisearch:latest
@@ -452,14 +452,14 @@ docker run -d --name fixzit-minio -p 9000:9000 -p 9001:9001 \
 docker run -d --name fixzit-nats -p 4222:4222 -p 8222:8222 nats:latest
 
 # 5. Install npm packages
-pnpm add bullmq ioredis meilisearch @aws-sdk/client-s3 nats
+pnpm add mongodb meilisearch @aws-sdk/client-s3 nats
 ```
 
 ### Environment Variables
 
 ```bash
 # Add to .env.local
-REDIS_URL=redis://localhost:6379
+MONGODB_URL=mongodb://localhost:27017
 MEILISEARCH_HOST=http://localhost:7700
 MEILISEARCH_API_KEY=master_key_dev
 S3_ENDPOINT=http://localhost:9000
@@ -501,7 +501,7 @@ NATS_URL=nats://localhost:4222
 ### Identified Risks
 
 1. **Infrastructure Complexity**
-   - **Risk**: 5+ new services to set up (Redis, Meilisearch, MinIO, NATS, BullMQ)
+   - **Risk**: 4+ new services to set up (MongoDB, Meilisearch, MinIO, NATS) + in-memory cache/queue wiring
    - **Mitigation**: Docker Compose file provided; step-by-step guide in quick start
    - **Status**: 🟡 Medium priority
 
@@ -563,7 +563,7 @@ Story Points: 0/177 SP complete (0%)
 ### External Tools
 
 - **Meilisearch Docs**: https://www.meilisearch.com/docs
-- **BullMQ Docs**: https://docs.bullmq.io/
+- **Queue Helpers**: `lib/queue.ts`, `lib/queues/setup.ts`
 - **NATS Docs**: https://docs.nats.io/
 
 ---
@@ -584,7 +584,7 @@ Story Points: 0/177 SP complete (0%)
 
 **What I'll Do Tomorrow**:
 
-- 🚀 Set up infrastructure (Redis, Meilisearch, MinIO, NATS)
+- 🚀 Set up infrastructure (MongoDB, Meilisearch, MinIO, NATS)
 - 🚀 Create Git branch (`feat/souq-marketplace-advanced`)
 - 🚀 Begin Phase 1: Catalog service (FSIN + product creation)
 - 🚀 Implement product creation API endpoints
@@ -619,16 +619,16 @@ Story Points: 0/177 SP complete (0%)
 
 ### Immediate (Tomorrow)
 
-- [ ] Install Docker containers (Redis, Meilisearch, MinIO, NATS)
+- [ ] Install Docker containers (MongoDB, Meilisearch, MinIO, NATS)
 - [ ] Create Git branch and push Phase 0 work
 - [ ] Open PR for Phase 0 foundation review
 - [ ] Schedule Phase 1 kickoff meeting
 
 ### Phase 1 Prep (This Week)
 
-- [ ] Install npm packages (bullmq, ioredis, meilisearch, @aws-sdk/client-s3, nats)
+- [ ] Install npm packages (mongodb, meilisearch, @aws-sdk/client-s3, nats)
 - [ ] Create API route structure (`app/api/souq/catalog/`)
-- [ ] Set up BullMQ queue infrastructure
+- [ ] Set up in-memory queue infrastructure
 - [ ] Design Seller Central product wizard (Figma/wireframes)
 - [ ] Write Zod validation schemas for product creation
 
@@ -639,3 +639,7 @@ Story Points: 0/177 SP complete (0%)
 **Overall Progress**: 1/48 weeks (2%)
 
 **🚀 Ready to build Amazon-scale marketplace features!**
+
+
+
+

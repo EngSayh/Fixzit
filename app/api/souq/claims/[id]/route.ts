@@ -74,24 +74,28 @@ export async function GET(
     const orderIdValue = String(claim.orderId);
     let order = null;
     if (ObjectId.isValid(orderIdValue)) {
-      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
-      order = await ClaimsOrder.findOne({ _id: new ObjectId(orderIdValue), ...orgFilter }).lean();
+      order = await ClaimsOrder.findOne(
+        { _id: new ObjectId(orderIdValue), ...orgFilter } as Record<string, unknown>
+      ).lean();
     }
     if (!order) {
-      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
-      order = await ClaimsOrder.findOne({ orderId: orderIdValue, ...orgFilter }).lean();
+      order = await ClaimsOrder.findOne(
+        { orderId: orderIdValue, ...orgFilter } as Record<string, unknown>
+      ).lean();
     }
     if (!order) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
-      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
-      ? await User.findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter }).lean()
+      ? await User.findOne(
+          { _id: new ObjectId(String(claim.buyerId)), ...orgFilter } as Record<string, unknown>
+        ).lean()
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
-      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
-      ? await User.findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter }).lean()
+      ? await User.findOne(
+          { _id: new ObjectId(String(claim.sellerId)), ...orgFilter } as Record<string, unknown>
+        ).lean()
       : null;
 
     return NextResponse.json({
@@ -143,9 +147,9 @@ export async function PUT(
     // Ensure claim/order belongs to the same org
     await connectDb();
     const orderIdValue = String(claim.orderId);
-    const orderFilter = ObjectId.isValid(orderIdValue)
+    const orderFilter = (ObjectId.isValid(orderIdValue)
       ? { _id: new ObjectId(orderIdValue), ...orgFilter }
-      : { orderId: orderIdValue, ...orgFilter };
+      : { orderId: orderIdValue, ...orgFilter }) as Record<string, unknown>;
     const order = await ClaimsOrder.findOne(orderFilter).lean();
     if (!order) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });

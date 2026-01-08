@@ -1,6 +1,8 @@
 import { InvoiceCreate, InvoicePost } from "./invoice.schema";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
+import { generateZATCAQR, validateZATCAData } from "@/lib/zatca";
+import { logger } from "@/lib/logger";
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {
@@ -184,13 +186,77 @@ export async function post(
     ipAddress: ip,
   };
 
+  // Prepare update with ZATCA QR if posting
+  const updateData: Record<string, unknown> = {
+    status,
+    updatedBy: actorId ?? "system",
+    $push: { history: historyEntry },
+  };
+
+  // ZATCA COMPLIANCE (COMP-ZATCA-001): Generate QR code when posting invoice
+  if (status === "SENT") {
+    try {
+      // Fetch current invoice to get totals and seller info
+      const currentInvoice = await Invoice.findOne({ _id: id, orgId }).lean();
+      if (currentInvoice) {
+        const typedInvoice = currentInvoice as {
+          number?: string;
+          total?: number;
+          taxTotal?: number;
+          sellerName?: string;
+          sellerVat?: string;
+          issueDate?: Date;
+          currency?: string;
+        };
+        
+        // Build ZATCA data from invoice
+        const zatcaData = {
+          sellerName: typedInvoice.sellerName || "Fixzit Enterprise",
+          vatNumber: typedInvoice.sellerVat || "310000000000003", // Default VAT for dev
+          timestamp: (typedInvoice.issueDate || new Date()).toISOString(),
+          total: String(typedInvoice.total || 0),
+          vatAmount: String(typedInvoice.taxTotal || 0),
+        };
+
+        // Validate and generate QR
+        if (validateZATCAData(zatcaData)) {
+          const qrCode = await generateZATCAQR(zatcaData);
+          updateData.$set = {
+            "zatca.qrCode": qrCode,
+            "zatca.generatedAt": new Date(),
+            "zatca.status": "GENERATED",
+          };
+          logger.info("ZATCA QR generated for invoice", { 
+            invoiceId: id, 
+            invoiceNumber: typedInvoice.number 
+          });
+        } else {
+          logger.warn("ZATCA data validation failed for invoice", { 
+            invoiceId: id, 
+            zatcaData 
+          });
+          updateData.$set = {
+            "zatca.status": "VALIDATION_FAILED",
+            "zatca.error": "Invoice data does not meet ZATCA requirements",
+          };
+        }
+      }
+    } catch (zatcaError) {
+      // Non-blocking: Log error but don't fail invoice posting
+      logger.error("ZATCA QR generation failed", { 
+        invoiceId: id, 
+        error: zatcaError instanceof Error ? zatcaError.message : String(zatcaError)
+      });
+      updateData.$set = {
+        "zatca.status": "GENERATION_FAILED",
+        "zatca.error": zatcaError instanceof Error ? zatcaError.message : "Unknown error",
+      };
+    }
+  }
+
   const invoice = await Invoice.findOneAndUpdate(
     { _id: id, orgId }, // AUDIT-2025-11-30: Changed from tenantId
-    {
-      status,
-      updatedBy: actorId ?? "system",
-      $push: { history: historyEntry },
-    },
+    updateData,
     { new: true },
   ).lean();
 

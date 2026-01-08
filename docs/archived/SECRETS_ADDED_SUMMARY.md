@@ -75,7 +75,7 @@
 **Still Missing:** 13 secrets (optional)
 
 - Payment gateways (PayTabs/Tap - for payments)
-- Redis (for caching)
+- MongoDB (database)
 - Shipping integrations (optional)
 - Monitoring (Sentry, Datadog - optional)
 
@@ -147,11 +147,11 @@
 
 ### 🟢 Medium Priority (optional)
 
-**3. REDIS_URL**
+**3. MONGODB_URL**
 
 - **Impact:** No caching, rate limiting uses in-memory
 - **How to get:** https://upstash.com (free tier)
-- **Add:** `vercel env add REDIS_URL production`
+- **Add:** `vercel env add MONGODB_URL production`
 
 **4. Monitoring (optional)**
 
@@ -186,8 +186,8 @@ vercel env ls
 ### Add remaining secrets (if needed):
 
 ```bash
-# Redis (if you set up Upstash)
-vercel env add REDIS_URL production
+# MongoDB (if you set up Upstash)
+vercel env add MONGODB_URL production
 
 # AWS S3 (if you set up S3)
 vercel env add AWS_S3_BUCKET production
@@ -219,12 +219,12 @@ vercel --cwd Fixzit --prod --yes
 ### This Week (if needed):
 
 1. Configure payment gateway if accepting payments
-2. Set up Redis for better performance (optional)
+2. Set up MongoDB for better performance (optional)
 3. Add monitoring tools (Sentry, Datadog)
 
 ### Later (optional):
 
-1. Set up Redis for better performance
+1. Set up MongoDB for better performance
 2. Add monitoring tools (Sentry, Datadog)
 3. Configure shipping integrations
 

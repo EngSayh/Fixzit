@@ -54,7 +54,7 @@ export const SOUQ_FEATURES = {
 - [ ] Base service architecture (catalog-svc, seller-svc, listing-svc)
 - [ ] MongoDB schemas (Category, Brand, Product, Variation)
 - [ ] Navigation YAML + sidebar updates
-- [ ] Environment setup (Redis, NATS/Kafka placeholder)
+- [ ] Environment setup (MongoDB, NATS/Kafka placeholder)
 
 **Critical Path**:
 
@@ -118,7 +118,7 @@ export const SOUQ_FEATURES = {
 - [ ] seller-svc: 3 endpoints
 - [ ] KYC multi-step form (legal, VAT, bank, policies)
 - [ ] Metrics calculation jobs (ODR, LateShip, Cancel, Tracking)
-- [ ] Redis cache for health scores
+- [ ] In-memory cache for health scores
 - [ ] Account Health dashboard
 - [ ] Auto-enforcement (suppress listings, pause ads, remove Buy Box)
 - [ ] Appeals workflow
@@ -154,10 +154,10 @@ export const SOUQ_FEATURES = {
 
 - [ ] listing-svc: 3 endpoints
 - [ ] Min/max price enforcement
-- [ ] Auto-repricer worker (BullMQ)
+- [ ] Auto-repricer worker (in-memory queue)
 - [ ] Buy Box algorithm (normalized scoring)
 - [ ] PDP: Primary Buy Box + "Other offers" tab
-- [ ] Redis caching (5-min TTL with invalidation)
+- [ ] in-memory caching (5-min TTL with invalidation)
 
 **Buy Box Scoring**:
 
@@ -468,7 +468,7 @@ events-bus       → NATS/Kafka for inter-service communication
 - Node.js 20 + TypeScript (strict mode)
 - Next.js 15 API routes
 - MongoDB (Mongoose) - indexed, normalized
-- Redis - caching + BullMQ for job queues
+- In-memory cache + queue for background jobs
 - NATS/Kafka - event bus
 
 **Frontend**:
@@ -560,7 +560,7 @@ support.message.sent;
 
 - JWT on all APIs
 - RBAC enforcement: ADMIN, MARKETPLACE_ADMIN, SELLER_OWNER, SELLER_STAFF, BUYER, DISPUTE_AGENT, FINANCE_OPS
-- Rate limiting: Redis-based, 100 req/min default
+- Rate limiting: MongoDB-based, 100 req/min default
 
 ### Validation & Sanitization
 
@@ -695,8 +695,8 @@ support.message.sent;
 
 ### 6. Environment Setup
 
-- [ ] Redis connection config
-- [ ] BullMQ queue setup
+- [ ] MongoDB connection config
+- [ ] in-memory queue setup
 - [ ] NATS/Kafka placeholder
 
 ---
@@ -705,3 +705,5 @@ support.message.sent;
 **Next Step**: Implement Phase 0 Foundation  
 **Timeline**: 4 hours → then phase-by-phase over 6-12 months  
 **Estimated Total Effort**: 180+ story points = 9-12 months with 3-person team
+
+

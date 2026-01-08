@@ -17,6 +17,7 @@ import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collection-names";
+import { normalizeUnicode } from "@/lib/utils";
 
 // ============================================================================
 // Validation Helpers
@@ -931,7 +932,11 @@ async function checkDuplicateListings(
     if (listings.length < 2) return null;
     
     // Normalize title for comparison
-    const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+    // NFKC normalization + Unicode-aware regex to preserve Arabic/diacritics
+    const normalize = (s: string) => normalizeUnicode(s || "", "NFKC")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, "") // Keep letters (any script), numbers, spaces
+      .trim();
     
     // Tokenize for word-based comparison [PR Review Fix]
     const tokenize = (s: string): Set<string> => new Set(normalize(s).split(/\s+/).filter(w => w.length > 2));

@@ -55,7 +55,8 @@ const brandingCache = new Map<string, CachedBranding>();
  *         description: Server error
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "org:settings" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "org:settings" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     await connectDb();

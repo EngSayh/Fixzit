@@ -24,7 +24,9 @@ type DevCredentialPayload = {
  * - Returns JSON { ok?, status?, preferredPath? } to the client
  */
 export async function POST(req: NextRequest) {
-  enforceRateLimit(req, { requests: 5, windowMs: 60_000, keyPrefix: "dev:demo-login" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 5, windowMs: 60_000, keyPrefix: "dev:demo-login" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // SECURITY: Demo login ONLY allowed in strict development mode
   // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
   if (process.env.NODE_ENV !== "development") {

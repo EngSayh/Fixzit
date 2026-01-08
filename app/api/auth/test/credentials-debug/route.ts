@@ -18,7 +18,6 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "auth:test:debug" });
   try {
     if (process.env.NODE_ENV === "production") {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -29,6 +28,11 @@ export async function POST(req: NextRequest) {
       .catch(() => ({} as { identifier?: string; email?: string; password?: string; csrfToken?: string }));
 
     const identifier = body.identifier || body.email;
+
+    // Per-identifier rate limiting to prevent brute-force testing (CodeRabbit review)
+    const rateLimitKey = identifier ? `auth:test:debug:${identifier}` : "auth:test:debug:global";
+    const rateLimitResponse = enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: rateLimitKey });
+    if (rateLimitResponse) return rateLimitResponse;
     const password = body.password;
     const csrfToken = body.csrfToken || "csrf-disabled";
 

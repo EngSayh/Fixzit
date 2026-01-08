@@ -47,7 +47,9 @@ function normalizeUserProfile(user: UserProfileDocument) {
  * @returns User profile data or 401 if not authenticated
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "user:profile" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "user:profile" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const session = await auth();
@@ -97,6 +99,10 @@ export async function PATCH(request: NextRequest) {
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Per-user rate limiting for profile updates (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: `user:profile:write:${session.user.id}` });
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Parse request body
     const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[User Profile]" });

@@ -74,13 +74,13 @@ vi.mock('mongoose', async (importOriginal) => {
     return update;
   };
 
-	  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
-	    const target = obj as AnyDoc;
-	    target.populate = vi.fn().mockReturnValue(target);
-	    target.select = vi.fn().mockReturnValue(target);
-	    target.lean = vi.fn().mockResolvedValue(target);
-	    return target as T;
-	  }
+  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
+    const target = obj as AnyDoc;
+    target.populate = vi.fn().mockReturnValue(target);
+    target.select = vi.fn().mockReturnValue(target);
+    target.lean = vi.fn().mockResolvedValue(target);
+    return target as T;
+  }
 
   class MockSchema {
     static Types = original.Schema?.Types || original.Types || { ObjectId: Object };
@@ -205,7 +205,7 @@ vi.mock('mongoose', async (importOriginal) => {
         const instance = new Model(found);
         const self = instance as unknown as ModelInstance;
         self.lean = vi.fn(async () => self.toObject());
-	        self.exec = vi.fn(async () => self);
+        self.exec = vi.fn(async () => self);
         self.populate = vi.fn().mockReturnValue(instance);
         self.select = vi.fn().mockReturnValue(instance);
         return instance;

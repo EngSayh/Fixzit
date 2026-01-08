@@ -81,8 +81,14 @@
 				"close": false,
 				"focus": false
 			},
+			"options": {
+				"shell": {
+					"executable": "powershell.exe",
+					"args": ["-NoProfile", "-Command"]
+				}
+			},
 			"problemMatcher": [],
-			"detail": "Start Next.js development server - AUTO-STARTS on folder open"
+			"detail": "Start Next.js development server - AUTO-STARTS on folder open (integrated terminal)"
 		},
 		{
 			"label": "Dev: Restart Server",

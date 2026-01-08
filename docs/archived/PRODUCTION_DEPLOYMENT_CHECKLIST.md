@@ -416,7 +416,7 @@ Copy from `.env.example` and fill in production values:
   - [ ] CDN configured (Vercel, CloudFront)
 
 - [ ] **Application caching**
-  - [ ] Redis/Vercel KV configured (optional)
+  - [ ] MongoDB/Vercel KV configured (optional)
   - [ ] Session caching enabled
   - [ ] API response caching (where appropriate)
   - [ ] Cache TTLs defined

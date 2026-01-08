@@ -1,14 +1,14 @@
 /* eslint-disable no-console -- This IS the logger utility, console calls are intentional */
 /**
  * @module lib/logger
- * @description Production-safe logging utility with structured JSON logging and Sentry integration.
+ * @description Production-safe logging utility with structured JSON logging and optional monitoring integration.
  *
  * Provides environment-aware logging with automatic module detection for FM/Souq/Aqar domains.
  * Sanitizes sensitive data and supports correlation IDs for distributed tracing.
  *
  * @features
  * - Structured JSON logging (LOG_FORMAT=json)
- * - Sentry context tagging for module-specific errors (FM, Souq, Aqar)
+ * - Monitoring context tagging for module-specific errors (FM, Souq, Aqar)
  * - Environment-aware output (dev, prod, test)
  * - Sensitive data sanitization (passwords, tokens, PII)
  * - Correlation IDs for request tracking
@@ -23,6 +23,7 @@
  * ```
  */
 
+import * as Sentry from "@/lib/sentry";
 import { sanitizeError, sanitizeLogParams } from "@/lib/security/log-sanitizer";
 
 type LogLevel = "info" | "warn" | "error" | "debug";
@@ -263,7 +264,7 @@ class Logger {
   }
 
   /**
-   * Send log to monitoring service (Sentry integration)
+   * Send log to monitoring service (optional integration)
    * NOTE: Uses webpack-safe dynamic import pattern to avoid build errors
    */
   private async sendToMonitoring(
@@ -278,18 +279,8 @@ class Logger {
     }
 
     try {
-      // Use variable to prevent webpack static analysis of the import
-      // This avoids "createFilename" errors in next-flight-loader
-      const sentryModuleName = "@sentry/nextjs";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Sentry: any = await import(/* webpackIgnore: true */ sentryModuleName).catch((importError) => {
-        console.error("[Logger] Failed to import Sentry:", importError);
-        return null;
-      });
-      if (!Sentry) return;
-
       const moduleKey = deriveModule(context, message);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry.Scope type not exported
       const applyScope = (scope: any) => {
         if (moduleKey) scope.setTag("module", moduleKey);
         if (context?.orgId) scope.setTag("orgId", String(context.orgId));
@@ -329,7 +320,7 @@ class Logger {
       };
 
       if (level === "error") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry.Scope type not exported
         Sentry.withScope((scope: any) => {
           applyScope(scope);
           scope.setLevel("error");
@@ -337,7 +328,7 @@ class Logger {
           Sentry.captureException(err);
         });
       } else if (level === "warn") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry.Scope type not exported
         Sentry.withScope((scope: any) => {
           applyScope(scope);
           scope.setLevel("warning");

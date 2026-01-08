@@ -46,7 +46,6 @@ const PLAYWRIGHT_STUB: SupportOrgContextValue = {
 
 const isPlaywrightRuntime = () =>
   process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true" ||
-  process.env.PLAYWRIGHT_TESTS === "true" ||
   (typeof window !== "undefined" &&
     (window as { __PLAYWRIGHT_TESTS__?: boolean }).__PLAYWRIGHT_TESTS__);
 

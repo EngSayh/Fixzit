@@ -44,7 +44,8 @@ const TopUpSchema = z.object({
 // ============================================================================
 
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "wallet:topup" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "wallet:topup" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();

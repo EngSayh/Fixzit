@@ -13,7 +13,8 @@ const swaggerEnabled =
     "true") !== "false";
 
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "docs:openapi" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "docs:openapi" });
+  if (rateLimitResponse) return rateLimitResponse;
   if (!swaggerEnabled) {
     return NextResponse.json({ ok: false }, { status: 404 });
   }

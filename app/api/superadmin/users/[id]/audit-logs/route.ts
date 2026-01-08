@@ -12,6 +12,7 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { User } from "@/server/models/User";
+import { sanitizeAuditLogs } from "@/lib/audit/middleware";
 import { z } from "zod";
 import mongoose from "mongoose";
 
@@ -160,52 +161,65 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         .exec(),
       AuditLogModel.countDocuments(filter).exec(),
       // Get activity stats - SUPER_ADMIN: User activity stats for investigation
+      // Uses $facet for single-query optimization (PR-678-002)
+      // SUPER_ADMIN: Cross-org userId-scoped aggregate for admin investigation
       (async () => {
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
 
-        /* eslint-disable local/require-tenant-scope -- SUPER_ADMIN: Cross-org audit log access for user investigation */
-        const [totalActions, todayActions, errorCount, topActions, deviceBreakdown, lastAction] = await Promise.all([
-          AuditLogModel.countDocuments({ userId }).exec(),
-          AuditLogModel.countDocuments({ userId, timestamp: { $gte: todayStart } }).exec(),
-          AuditLogModel.countDocuments({ userId, "result.success": false }).exec(),
-          AuditLogModel.aggregate([
-            { $match: { userId } },
-            { $group: { _id: "$action", count: { $sum: 1 } } },
-            { $sort: { count: -1 as const } },
-            { $limit: 5 },
-            { $project: { action: "$_id", count: 1, _id: 0 } },
-          ]).exec(),
-          AuditLogModel.aggregate([
-            { $match: { userId, "context.device": { $exists: true, $ne: null } } },
-            { $group: { _id: "$context.device", count: { $sum: 1 } } },
-            { $sort: { count: -1 as const } },
-            { $limit: 5 },
-            { $project: { device: "$_id", count: 1, _id: 0 } },
-          ]).exec(),
-          AuditLogModel.findOne({ userId })
-            .sort({ timestamp: -1 })
-            .select("timestamp")
-            .lean()
-            .exec(),
-        ]);
-        /* eslint-enable local/require-tenant-scope */
+        const [facetResult] = await AuditLogModel.aggregate([
+          { $match: { userId } },
+          {
+            $facet: {
+              totalActions: [{ $count: "count" }],
+              todayActions: [
+                { $match: { timestamp: { $gte: todayStart } } },
+                { $count: "count" },
+              ],
+              errorCount: [
+                { $match: { "result.success": false } },
+                { $count: "count" },
+              ],
+              topActions: [
+                { $group: { _id: "$action", count: { $sum: 1 } } },
+                { $sort: { count: -1 as const } },
+                { $limit: 5 },
+                { $project: { action: "$_id", count: 1, _id: 0 } },
+              ],
+              deviceBreakdown: [
+                { $match: { "context.device": { $exists: true, $ne: null } } },
+                { $group: { _id: "$context.device", count: { $sum: 1 } } },
+                { $sort: { count: -1 as const } },
+                { $limit: 5 },
+                { $project: { device: "$_id", count: 1, _id: 0 } },
+              ],
+              lastAction: [
+                { $sort: { timestamp: -1 as const } },
+                { $limit: 1 },
+                { $project: { timestamp: 1, _id: 0 } },
+              ],
+            },
+          },
+        ]).exec();
 
         return {
-          totalActions,
-          todayActions,
-          errorCount,
-          lastActiveDate: (lastAction as { timestamp?: Date } | null)?.timestamp?.toISOString(),
-          topActions,
-          deviceBreakdown,
+          totalActions: facetResult?.totalActions?.[0]?.count ?? 0,
+          todayActions: facetResult?.todayActions?.[0]?.count ?? 0,
+          errorCount: facetResult?.errorCount?.[0]?.count ?? 0,
+          lastActiveDate: facetResult?.lastAction?.[0]?.timestamp?.toISOString(),
+          topActions: facetResult?.topActions ?? [],
+          deviceBreakdown: facetResult?.deviceBreakdown ?? [],
         };
       })(),
     ]);
 
     const totalPages = Math.ceil(total / limit);
 
+    // PR-678-010: Sanitize PII/credentials from audit log responses
+    const sanitizedLogs = sanitizeAuditLogs(logs as Record<string, unknown>[]);
+
     return NextResponse.json({
-      logs,
+      logs: sanitizedLogs,
       pagination: {
         page,
         limit,

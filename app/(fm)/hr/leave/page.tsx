@@ -273,7 +273,7 @@ export default function LeavePage() {
       await fetchRequests(filter === "ALL" ? undefined : filter);
     } catch (error) {
       logger.error("Failed to update leave status", { error });
-      alert(
+      toast.error(
         t(
           "hr.leave.actions.error",
           "Unable to update leave request. Please try again.",

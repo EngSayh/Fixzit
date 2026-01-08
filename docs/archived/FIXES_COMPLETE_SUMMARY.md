@@ -205,9 +205,9 @@ Created comprehensive **`LONG_TERM_ROADMAP.md`** with detailed implementation gu
 
 ---
 
-### 2. Redis Migration for OTP Storage 🔄
+### 2. MongoDB Migration for OTP Storage 🔄
 
-- Move from in-memory to Redis for scalability
+- Move from in-memory to MongoDB for scalability
 - Support for multiple app instances
 - Native TTL expiration
 - Atomic operations for race condition prevention
@@ -215,7 +215,7 @@ Created comprehensive **`LONG_TERM_ROADMAP.md`** with detailed implementation gu
 
 **Code Ready:** Complete implementation provided  
 **Estimated Time:** 4-5 days  
-**Cost:** ~$15-18/month (ElastiCache/Azure Redis)
+**Cost:** ~$15-18/month (ElastiCache/Azure MongoDB)
 
 ---
 
@@ -370,7 +370,7 @@ curl -X POST http://localhost:3000/api/admin/notifications/send \
 
 2. **LONG_TERM_ROADMAP.md** (800+ lines)
    - SMS monitoring implementation
-   - Redis migration guide
+   - MongoDB migration guide
    - WhatsApp integration strategy
    - Cost analysis
    - Timeline estimates
@@ -405,7 +405,7 @@ curl -X POST http://localhost:3000/api/admin/notifications/send \
 ### Priority 3 (Long-term):
 
 - [x] SMS monitoring documented
-- [x] Redis migration guide complete
+- [x] MongoDB migration guide complete
 - [x] WhatsApp strategy outlined
 - [x] Cost analysis provided
 - [x] Implementation timeline estimated
@@ -427,8 +427,8 @@ curl -X POST http://localhost:3000/api/admin/notifications/send \
 
 ### Week 3-4 (If pursuing P3):
 
-1. Set up Redis in development
-2. Test OTP with Redis
+1. Set up MongoDB in development
+2. Test OTP with MongoDB
 
 ### Month 2-3 (If pursuing P3):
 

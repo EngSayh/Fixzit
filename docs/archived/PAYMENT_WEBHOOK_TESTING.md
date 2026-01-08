@@ -24,7 +24,7 @@ This guide details testing procedures for PayTabs and Tap payment callback webho
 - [ ] Tap HMAC helper ready (`pnpm tsx scripts/sign-tap-payload.ts` or the Python snippet in [Generating Tap Signatures](#generating-tap-signatures)) so you can hash the raw payload with `TAP_SECRET_KEY`.
 - [ ] Access to MongoDB (read-only is fine) for verifying payment/idempotency collections.
 - [ ] Tail access to the application logs (`pnpm tsx tools/log-tail.ts payments` or CloudWatch/Sentry dashboards).
-- [ ] Redis CLI access (or any `redis-cli --scan` alternative) to confirm rate-limit counters increment and expire as expected.
+- [ ] MongoDB CLI access (or any `mongodb-cli --scan` alternative) to confirm rate-limit counters increment and expire as expected.
 - [ ] Sample payloads (success + failure) are ready; use the library published in [`payment-integration-checklist.md`](payment-integration-checklist.md) so the JSON schemas are consistent across teams.
 
 ### Generating PayTabs Signatures
@@ -133,7 +133,7 @@ curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
 ```bash
 # Send 61 requests within 60 seconds
 # Expected: First 60 succeed, 61st returns 429 Too Many Requests
-# Monitor Redis: keys matching ratelimit:paytabs should increment
+# Monitor MongoDB: keys matching ratelimit:paytabs should increment
 
 for i in {1..61}; do
   curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
@@ -192,18 +192,18 @@ After **every** test case:
    mongosh --eval 'db.tapTransactions.find({"tapChargeId":"chg_TS01234567890"}, {status:1}).pretty()'
    ```
    PayTabs should only create/update documents when `resp_status === "A"` and never more than once per `tran_ref`. Tap must keep a single document per `id`.
-3. **Redis rate limits** – confirm counters increment and expire:
+3. **MongoDB rate limits** – confirm counters increment and expire:
    ```bash
-   redis-cli --scan --pattern "ratelimit:paytabs:*"
-   redis-cli --ttl "ratelimit:paytabs:https://staging.fixzit.app/api/payments/paytabs/callback"
-   redis-cli --scan --pattern "ratelimit:tap:*"
+   mongodb-cli --scan --pattern "ratelimit:paytabs:*"
+   mongodb-cli --ttl "ratelimit:paytabs:https://staging.fixzit.app/api/payments/paytabs/callback"
+   mongodb-cli --scan --pattern "ratelimit:tap:*"
    ```
    TTL values should be close to `PAYTABS_CALLBACK_RATE_WINDOW_MS / 1000` (or Tap equivalent) immediately after TC3.
 4. **Idempotency cache** – recommended to ensure replays are short-circuited:
    ```bash
-   redis-cli --scan --pattern "paytabs:idempotency:*"
-   redis-cli --pttl "paytabs:idempotency:TST0001234567"
-   redis-cli --scan --pattern "tap:idempotency:*"
+   mongodb-cli --scan --pattern "paytabs:idempotency:*"
+   mongodb-cli --pttl "paytabs:idempotency:TST0001234567"
+   mongodb-cli --scan --pattern "tap:idempotency:*"
    ```
    TTLs should align with `*_CALLBACK_IDEMPOTENCY_TTL_MS`. Lack of keys indicates withIdempotency isn’t running.
 
@@ -214,7 +214,7 @@ Document every discrepancy in the test sheet before moving to the next scenario.
 - ✅ `curl` command + response (HTTP status + body)
 - ✅ Log snippet showing `payments.webhook` outcome (success or explicit failure reason)
 - ✅ Mongo query output proving insert/update counts
-- ✅ Redis `--ttl/--pttl` output for the relevant rate-limit or idempotency key
+- ✅ MongoDB `--ttl/--pttl` output for the relevant rate-limit or idempotency key
 - ✅ Screenshot or JSON excerpt saved under `_artifacts/payments/<date>/<suite>/`
 
 ## Reporting & Audit Trail
@@ -225,7 +225,7 @@ Document every discrepancy in the test sheet before moving to the next scenario.
    _artifacts/payments/<YYYY-MM-DD>/<suite>/
      ├── curl.log
      ├── mongo.json
-     ├── redis.txt
+     ├── mongodb.txt
      ├── logs.txt
      └── screenshots/
    ```
@@ -299,7 +299,7 @@ for i in {1..61}; do
 done
 wait
 
-# Expected: 61st response is 429 Too Many Requests, Redis ratelimit key increments.
+# Expected: 61st response is 429 Too Many Requests, MongoDB ratelimit key increments.
 ```
 
 #### TC4: Payload Size Limit
@@ -335,7 +335,7 @@ Before marking the suite complete:
 
 1. ✅ All test cases above executed in both **staging** and **pre-prod** (if applicable).
 2. ✅ Screenshots or log excerpts attached for any non-200/expected responses.
-3. ✅ Mongo/Redis verification notes recorded for TC2/TC3 counterparts.
+3. ✅ Mongo/MongoDB verification notes recorded for TC2/TC3 counterparts.
 4. ✅ Issues filed (with log snippets + payload) for any deviations from expected behavior.
 5. ✅ `.env` overrides reverted or documented for rollback.
 
@@ -346,7 +346,7 @@ Before marking the suite complete:
   - **Idempotency window:** 5 minutes (`PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS`, `TAP_WEBHOOK_IDEMPOTENCY_TTL_MS`)
   - **Rate limit:** 60 req/min per gateway (`*_CALLBACK_RATE_LIMIT`)
   - **Payload ceiling:** 32KB (`*_CALLBACK_MAX_BYTES`)
-  - **Monitoring:** Triage via `pnpm tsx tools/log-tail.ts payments`, Sentry project `payments-webhooks`, and `redis-cli --scan --pattern "ratelimit:paytabs:*"`.
+  - **Monitoring:** Triage via `pnpm tsx tools/log-tail.ts payments`, Sentry project `payments-webhooks`, and `mongodb-cli --scan --pattern "ratelimit:paytabs:*"`.
 
 ## QA Data Seeding & Evidence Capture
 
@@ -398,7 +398,7 @@ Document the outcome of each action above before running full staging webhooks t
 ### During Testing
 
 - [ ] Monitor server CPU/memory usage
-- [ ] Check Redis for idempotency keys
+- [ ] Check MongoDB for idempotency keys
 - [ ] Verify rate limit counters
 - [ ] Watch application logs for errors
 

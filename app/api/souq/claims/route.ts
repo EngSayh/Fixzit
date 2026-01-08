@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDb();
-    // eslint-disable-next-line local/require-tenant-scope -- buildOrgScope spread contains orgId scope
-    const order = await ClaimsOrder.findOne({ _id: orderObjectId, ...buildOrgScope(orgId) }).lean();
+    const order = await ClaimsOrder.findOne(
+      { _id: orderObjectId, ...buildOrgScope(orgId) } as Record<string, unknown>
+    ).lean();
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
     }
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
           "closed",
         ],
       },
-    }).lean();
+    } as Record<string, unknown>).lean();
     if (existingClaim) {
       return NextResponse.json(
         { error: "An existing claim already covers this order" },
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest) {
       buyerId: { $in: buyerIdFilter },
       $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-    });
+    } as Record<string, unknown>);
 
     let fraudRisk: "low" | "medium" | "high" = "low";
     let requiresManualReview = false;

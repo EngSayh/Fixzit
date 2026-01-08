@@ -178,7 +178,7 @@ $ grep -r "console\." app/ --include="*.tsx" --include="*.ts" | wc -l
 
 - SSR optimization for LCP
 - Database query optimization
-- Redis caching implementation
+- in-memory caching implementation
 - Estimated: 2-3 hours of dedicated work
 
 **Decision**: Defer to focused performance session. Current score is production-ready.
@@ -364,7 +364,7 @@ node scripts/replace-console-with-logger.mjs "app/finance/**/*.tsx"
 **Current**: 82/100  
 **Target**: 90/100 (+8 points)  
 **Benefit**: Better SEO, user experience, performance benchmarks  
-**Requirements**: SSR optimization, database tuning, Redis caching
+**Requirements**: SSR optimization, database tuning, in-memory caching
 
 ### Priority 3: Code Quality Maintenance (LOW IMPACT)
 

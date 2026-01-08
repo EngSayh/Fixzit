@@ -6,8 +6,15 @@ export function parseCartAmount(value: unknown, fallback = 0): number {
   if (typeof value === "string") {
     let s = value.trim();
     if (!s) return fallback;
+    // NFKC normalization: convert fullwidth digits (０-９), Arabic-Indic (٠-٩),
+    // Extended Arabic-Indic (۰-۹) to ASCII 0-9, and decompose ligatures
+    s = s.normalize("NFKC");
     // Normalize unicode minus and whitespace (incl NBSP)
     s = s.replace(/\u2212/g, "-").replace(/[\s\u00A0]/g, "");
+    // Convert remaining Arabic-Indic digits (٠-٩) and Extended Arabic-Indic (۰-۹) to ASCII
+    // NFKC doesn't convert these, so we handle them explicitly
+    s = s.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+    s = s.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
     // Parentheses negative e.g. (1,234.56)
     if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
     // Keep only digits, separators, and a leading '-'

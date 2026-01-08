@@ -73,7 +73,7 @@
   "ready": false,
   "checks": {
     "mongodb": "error",
-    "redis": "disabled",
+    "mongodb": "disabled",
     "email": "disabled",
     "sms": "not_configured"
   }

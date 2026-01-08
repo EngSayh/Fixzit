@@ -158,8 +158,8 @@ export async function GET(req: NextRequest) {
 2. Implement in-memory pub/sub for single-instance dev
 3. Add session validation and org_id scoping
 
-#### Phase 2: Redis Pub/Sub for Production (8h)
-1. Add Upstash Redis for cross-instance pub/sub
+#### Phase 2: MongoDB change streams for Production (8h)
+1. Add Upstash MongoDB for cross-instance pub/sub
 2. Implement notification publisher service
 3. Add connection tracking and limits
 
@@ -176,7 +176,7 @@ app/api/notifications/
 ├── [id]/route.ts               # Existing individual notification
 ├── stream/route.ts             # NEW: SSE endpoint
 └── _lib/
-    ├── pub-sub.ts              # NEW: Redis pub/sub abstraction
+    ├── pub-sub.ts              # NEW: MongoDB change streams abstraction
     └── notification-publisher.ts # NEW: Publish notifications
 
 hooks/
@@ -201,7 +201,7 @@ services/notifications/
 - Reduced polling load on API
 
 ### Negative
-- New infrastructure dependency (Redis for prod)
+- New infrastructure dependency (MongoDB for prod)
 - Additional monitoring needed for connection health
 - Edge Runtime limitations (no fs, limited APIs)
 
@@ -213,4 +213,4 @@ services/notifications/
 
 - [Vercel Streaming Responses](https://vercel.com/docs/functions/streaming)
 - [MDN EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)
-- [Upstash Redis Pub/Sub](https://upstash.com/docs/redis/features/pubsub)
+- [Upstash MongoDB change streams](https://upstash.com/docs/mongodb/features/pubsub)

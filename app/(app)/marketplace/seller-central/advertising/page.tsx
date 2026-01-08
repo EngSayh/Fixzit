@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import {
   TrendingUp,
@@ -128,7 +129,7 @@ export default function AdvertisingPage() {
       calculateOverviewMetrics(apiCampaigns, statsMap);
     } catch (error) {
       logger.error("Failed to load campaigns", error);
-      alert(
+      toast.error(
         auto(
           "Failed to load campaigns. Please try again.",
           "alerts.loadCampaigns",
@@ -187,7 +188,7 @@ export default function AdvertisingPage() {
       loadCampaigns();
     } catch (error) {
       logger.error("Failed to toggle campaign status", error);
-      alert(
+      toast.error(
         auto(
           "Failed to update campaign status. Please try again.",
           "alerts.toggleCampaign",
@@ -221,7 +222,7 @@ export default function AdvertisingPage() {
       loadCampaigns();
     } catch (error) {
       logger.error("Failed to delete campaign", error);
-      alert(
+      toast.error(
         auto(
           "Failed to delete campaign. Please try again.",
           "alerts.deleteCampaign",

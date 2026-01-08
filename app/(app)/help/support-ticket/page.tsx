@@ -94,9 +94,6 @@ export default function SupportTicketPage() {
         type: "success",
         message: successMessage,
       });
-      if (typeof alert === "function") {
-        alert(successMessage);
-      }
       setFormData({
         subject: "",
         module: "FM",
@@ -113,9 +110,6 @@ export default function SupportTicketPage() {
         "toast.error",
       );
       setToast({ type: "error", message: errorMessage });
-      if (typeof alert === "function") {
-        alert(errorMessage);
-      }
       logger.error("[SupportTicket] Submission error", err);
     } finally {
       // Defer reset so UI stays in "submitting" state briefly (helps UX and tests)

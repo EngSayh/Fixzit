@@ -248,7 +248,7 @@ pattern: /^\/api\/souq\/claims\/([^/]+)$/;
 **💡 ENHANCEMENT: Rate Limiting Storage**
 Current implementation uses in-memory storage which will reset on server restart. Consider:
 
-- Redis for distributed rate limiting
+- MongoDB for distributed rate limiting
 - Persistent storage for rate limit counters
 - Cross-instance synchronization for horizontal scaling
 
@@ -425,7 +425,7 @@ pnpm vitest run tests/unit/contexts/TranslationContext.test.tsx
 **Priority 3 - Optional (2 weeks):**
 
 1. ⏸️ Configure Snyk scanning
-2. ⏸️ Set up Redis for rate limiting
+2. ⏸️ Set up MongoDB for rate limiting
 3. ⏸️ Implement monitoring dashboards
 
 ---

@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n/useI18n";
+import { formatDateTimeLocale } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +60,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SuperadminNotificationsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [notifications, setNotifications] = useState<NotificationLog[]>([]);
   const [config, setConfig] = useState<NotificationConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,7 +147,8 @@ export default function SuperadminNotificationsPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  // Use centralized formatDateTimeLocale for consistency (CodeRabbit review)
+  const formatDate = (dateStr: string) => formatDateTimeLocale(dateStr, locale ?? "en-US");
 
   return (
     <div className="p-6 space-y-6">

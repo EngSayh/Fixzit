@@ -105,9 +105,9 @@ export async function POST(
     const orgFilter = allowOrgless
       ? { $or: [baseOrgFilter, { orgId: { $exists: false } }] }
       : baseOrgFilter;
-    const filter = ObjectId.isValid(params.id)
+    const filter = (ObjectId.isValid(params.id)
       ? { _id: new ObjectId(params.id), ...orgFilter }
-      : { claimId: params.id, ...orgFilter };
+      : { claimId: params.id, ...orgFilter }) as Record<string, unknown>;
 
     let status: string;
     let refundAmountNumber: number;

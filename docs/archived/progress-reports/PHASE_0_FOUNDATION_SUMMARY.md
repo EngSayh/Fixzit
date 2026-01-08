@@ -395,7 +395,7 @@ Frontend components will parse this YAML to render:
 **Sections**:
 
 1. **Feature Flags** (12 variables)
-2. **Redis** (caching + BullMQ)
+2. **MongoDB** (database + in-memory cache/queue)
 3. **Search Engine** (OpenSearch/Meilisearch)
 4. **S3 Storage** (media/documents)
 5. **Event Bus** (NATS/Kafka)
@@ -552,23 +552,23 @@ Documentation:          100% (all functions documented)
 
 ## Infrastructure Requirements (Before Phase 1)
 
-### 1. Redis Setup
+### 1. MongoDB Setup
 
 ```bash
 # Docker (development)
 docker run -d \
-  --name fixzit-redis \
+  --name fixzit-mongodb \
   -p 6379:6379 \
-  redis:7-alpine
+  mongodb:7-alpine
 
 # Add to .env.local
-REDIS_URL=redis://localhost:6379
+MONGODB_URL=mongodb://localhost:27017
 ```
 
-### 2. BullMQ Setup
+### 2. in-memory queue Setup
 
 ```bash
-npm install bullmq ioredis
+npm install mongodb
 ```
 
 Create queue infrastructure:
@@ -681,7 +681,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ## Next Steps
 - Phase 1: Catalog & Brand Registry (4 weeks, 20 SP)
-- Infrastructure: Redis, BullMQ, S3, Meilisearch, NATS
+- Infrastructure: MongoDB, in-memory cache/queue, S3, Meilisearch, NATS
 
 ## Review Notes
 - No breaking changes to existing code
@@ -723,7 +723,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Phase 1 Readiness
 
-- [ ] Infrastructure setup (Redis, S3, Meilisearch, NATS)
+- [ ] Infrastructure setup (MongoDB, S3, Meilisearch, NATS)
 - [ ] Create branch and open PR for Phase 0
 - [ ] Team alignment on Phase 1 priorities
 - [ ] Design mockups for Seller Central pages
@@ -736,7 +736,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ### Identified Risks
 
 1. **Infrastructure Complexity**
-   - Risk: Setting up 5+ new services (Redis, S3, search, NATS, BullMQ)
+   - Risk: Setting up 4+ new services (MongoDB, S3, search, NATS) + in-memory cache/queue wiring
    - Mitigation: Use Docker Compose for local development; document step-by-step
 
 2. **Database Migration**
@@ -757,7 +757,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Development Environment (Monthly)
 
-- Redis (local Docker): $0
+- MongoDB (local Docker): $0
 - Meilisearch (local Docker): $0
 - S3 (MinIO local): $0
 - NATS (local Docker): $0
@@ -766,7 +766,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Production Environment (Monthly)
 
-- Redis (AWS ElastiCache r6g.large): ~$150
+- Cache service (ElastiCache r6g.large): ~$150
 - Meilisearch Cloud (Standard plan): ~$50
 - S3 (100 GB, 1M requests): ~$25
 - NATS Cloud (Starter): ~$40
@@ -776,7 +776,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Scaling Costs (At 10K sellers, 1M products)
 
-- Redis (r6g.xlarge): ~$300
+- Cache service (r6g.xlarge): ~$300
 - Meilisearch (Pro plan): ~$200
 - S3 (1 TB, 10M requests): ~$240
 - NATS Cloud (Pro): ~$200
@@ -790,10 +790,10 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Phase 1 Team (4 weeks)
 
-- **2x Backend Engineers**: API development, MongoDB schemas, BullMQ jobs
+- **2x Backend Engineers**: API development, MongoDB schemas, in-memory queue jobs
 - **1x Frontend Engineer**: Seller Central UI, product forms, file uploads
 - **1x QA Engineer**: Test plans, automation, acceptance testing
-- **1x DevOps**: Infrastructure setup (Redis, S3, Meilisearch, NATS)
+- **1x DevOps**: Infrastructure setup (MongoDB, S3, Meilisearch, NATS)
 - **1x Product Owner** (part-time): Requirements, acceptance criteria, UAT
 
 ### Phase 2-11 Team
@@ -888,7 +888,7 @@ Fixzit/
     │   ├── brands/                      # Brand registry
     │   └── health/                      # Account health
     │
-    ├── server/queues/souq/              # BullMQ jobs
+    ├── server/queues/souq/              # in-memory queue jobs
     │   ├── compliance-check.ts          # Daily compliance scan
     │   └── document-expiry.ts           # Expiry reminder emails
     │
@@ -929,3 +929,5 @@ Fixzit/
 
 **Phase 0 Complete!** 🎉  
 Ready to begin Phase 1: Catalog & Brand Registry (4 weeks, 20 SP)
+
+

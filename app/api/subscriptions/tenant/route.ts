@@ -35,7 +35,9 @@ import { getSubscriptionForTenant } from "@/server/services/subscriptionSeatServ
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "subscriptions:tenant" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "subscriptions:tenant" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     const tenantId = session?.user?.tenantId || (session?.user as { orgId?: string })?.orgId;

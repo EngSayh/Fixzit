@@ -125,7 +125,7 @@ MAX_SENDS_PER_WINDOW = 5; // 5 OTP sends per window
 
 3. **Server restart clears OTP store**
    - In-memory store is not persistent
-   - For production: Migrate to Redis
+   - For production: Migrate to MongoDB
 
 ### Rate Limited?
 
@@ -156,7 +156,7 @@ See **`SMS_OTP_LOGIN_GUIDE.md`** for:
 
 ### Short Term (Recommended)
 
-- [ ] **Migrate to Redis** (for production)
+- [ ] **Migrate to MongoDB** (for production)
   - Replace in-memory OTP store
   - Enable distributed system support
 - [ ] **Add monitoring**
@@ -211,10 +211,10 @@ See **`SMS_OTP_LOGIN_GUIDE.md`** for:
 ✅ **User Experience:** Seamless flow with clear feedback  
 ✅ **Internationalization:** Full bilingual support (EN/AR)  
 ✅ **Documentation:** Comprehensive guides and troubleshooting  
-✅ **Production Ready:** With Redis migration path defined
+✅ **Production Ready:** With MongoDB migration path defined
 
 ---
 
-**Status:** Production Ready (with Redis migration pending)  
+**Status:** Production Ready (with MongoDB migration pending)  
 **Last Updated:** December 2024  
 **Version:** 1.0.0

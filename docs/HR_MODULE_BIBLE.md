@@ -1482,16 +1482,16 @@ sh.shardCollection("fixzit.hr_employees", { orgId: 1 });
 sh.shardCollection("fixzit.hr_payslips", { orgId: 1, periodStart: 1 });
 ```
 
-**Redis Caching (for frequent queries):**
+**In-memory Caching (for frequent queries):**
 
 ```typescript
 // Cache employee list for 5 minutes
 const cacheKey = `hr:employees:${orgId}:${status}`;
-const cached = await redis.get(cacheKey);
+const cached = await mongodb.get(cacheKey);
 if (cached) return JSON.parse(cached);
 
 const employees = await Employee.find({ orgId, status }).lean();
-await redis.setex(cacheKey, 300, JSON.stringify(employees));
+await mongodb.setex(cacheKey, 300, JSON.stringify(employees));
 return employees;
 ```
 

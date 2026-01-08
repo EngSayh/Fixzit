@@ -59,7 +59,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function SuperadminReportsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
@@ -132,7 +132,7 @@ export default function SuperadminReportsPage() {
 
   const categories = [...new Set(REPORT_DEFINITIONS.map((r) => r.category))];
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString(locale ?? "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="p-6 space-y-6">

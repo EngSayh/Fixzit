@@ -60,7 +60,7 @@
 
 ### Enhancement (Later)
 
-- Add Redis → WebSocket live updates
+- Add MongoDB → WebSocket live updates
 - Add Meilisearch → advanced search
 - Add unit tests → 80% coverage
 - Add S3/MinIO → real file uploads

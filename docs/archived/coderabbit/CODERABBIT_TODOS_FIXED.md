@@ -74,7 +74,7 @@ await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
 
 **Architecture:**
 
-- Uses existing BullMQ queue system (`lib/queues/setup.ts`)
+- Uses existing in-memory queue system (`lib/queues/setup.ts`)
 - Queue: `souq:notifications`
 - Job type: `souq-claim-decision`
 - Non-blocking: Error logged, doesn't fail bulk action
@@ -356,3 +356,6 @@ None - all critical items resolved.
 The codebase now has 0 unaddressed TODOs in production code and all type suppressions are properly documented.
 
 **Validation:** Both `pnpm lint:prod` and `pnpm typecheck` pass with 0 errors.
+
+
+

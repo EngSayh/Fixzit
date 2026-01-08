@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ZATCA XML Builder
  * @module lib/zatca/xml-builder
  */

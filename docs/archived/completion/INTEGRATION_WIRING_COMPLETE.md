@@ -236,7 +236,7 @@ GET /api/souq/search?q=plumbing&category=CAT123&minPrice=50&maxPrice=500&limit=2
 
 **Status**: Working  
 **Location**: `server/fsin.ts`  
-**Implementation**: MongoDB integration with cached lookups
+**Implementation**: MongoDB integration with in-memory cached lookups
 
 ### ✅ 4. WPS Compliance
 

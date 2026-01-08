@@ -362,7 +362,7 @@ $ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
 - [ ] Remove duplicate lockfiles (5 min)
 - [ ] Add unit tests for queries (2-3 hours)
 - [ ] Run accessibility audit (1-2 hours)
-- [ ] Add Redis for WebSocket (requires infrastructure)
+- [ ] Add MongoDB for WebSocket (requires infrastructure)
 - [ ] Add Meilisearch for search (requires infrastructure)
 
 ---
@@ -386,7 +386,7 @@ $ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
 2. **RBAC**: 4 role types (super_admin, fm_admin, vendor, tenant)
 3. **Tabs-Not-Pages**: 50+ routes → 12 tabbed sections
 4. **Server/Client Boundaries**: MongoDB queries server-only, UI client-only
-5. **Real-Time Updates**: 30-second polling (fallback until Redis)
+5. **Real-Time Updates**: 30-second polling (fallback until MongoDB)
 6. **Theme Persistence**: localStorage + document.documentElement classes
 7. **RTL Support**: Flex-row-reverse, text alignment, icon flipping
 
@@ -442,7 +442,7 @@ The system is **production-ready** with the following caveats:
 - MongoDB Atlas (✅ Connected)
 - Node.js runtime (✅ Running)
 - Environment variables (✅ Configured)
-- Optional: Redis (for WebSocket), Meilisearch (for search)
+- Optional: MongoDB (for WebSocket), Meilisearch (for search)
 
 ---
 
@@ -465,7 +465,7 @@ The system is **production-ready** with the following caveats:
 
 ### Long-Term (Next Sprint)
 
-1. Add Redis for live updates
+1. Add MongoDB for live updates
 2. Add Meilisearch for search
 3. Increase test coverage to 80%
 4. Set up CI/CD pipeline

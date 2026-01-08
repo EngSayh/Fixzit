@@ -204,12 +204,12 @@ All filter chips set state but never wire to API query parameters.
 
 ## Import Instructions
 
-1. **Start MongoDB/Redis**:
+1. **Start MongoDB/MongoDB**:
    ```bash
    # Local MongoDB (if not running)
    brew services start mongodb-community
    # Or Docker:
-   docker-compose up -d mongodb redis
+   docker-compose up -d mongodb mongodb
    ```
 
 2. **Start Application**:

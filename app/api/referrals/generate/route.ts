@@ -25,7 +25,9 @@ import { logger } from "@/lib/logger";
  * Generate a new referral code for the current user
  */
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "referrals:generate" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "referrals:generate" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

@@ -303,7 +303,7 @@ Dashboard composed of reusable components:
 - **API Response Time**: <100ms (simple CRUD), <500ms (complex calculations)
 - **UI Rendering**: Optimized with React.memo candidates
 - **File Uploads**: Direct S3 upload with presigned URLs (planned)
-- **Background Jobs**: BullMQ for async operations
+- **Background Jobs**: in-memory queue for async operations
 
 ### Security
 
@@ -367,7 +367,7 @@ Dashboard composed of reusable components:
 - [x] KYC service compiles without errors
 - [x] Account Health service compiles without errors
 - [x] All service methods return proper types
-- [x] BullMQ integration working
+- [x] in-memory queue integration working
 - [x] MongoDB models referenced correctly
 
 **APIs**:
@@ -423,7 +423,7 @@ Dashboard composed of reusable components:
 2. **Indexing Job** (1 day)
    - Full reindex worker
    - Incremental updates (on product create/update)
-   - Real-time sync via BullMQ
+   - Real-time sync via in-memory queue
 
 3. **Search UI** (2 days)
    - Search bar with autocomplete
@@ -466,7 +466,7 @@ Dashboard composed of reusable components:
 2. **Multi-Step Forms**: React Hook Form + Zod provides excellent DX
 3. **Component Reusability**: MetricCard, StatusBadge patterns save time
 4. **TypeScript Strict Mode**: Catches errors early, no runtime surprises
-5. **BullMQ Integration**: Background jobs architecture scales well
+5. **in-memory queue Integration**: Background jobs architecture scales well
 
 ### Technical Decisions
 
@@ -489,3 +489,4 @@ Dashboard composed of reusable components:
 **Session Completed**: November 17, 2025 02:15 UTC  
 **Status**: ✅ Ready to proceed to Phase 1.5  
 **Next Session**: Buy Box Integration
+

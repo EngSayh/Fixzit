@@ -173,13 +173,13 @@ vercel redeploy --force
 #### Authentication Failures
 ```bash
 # Check session store
-redis-cli -h $REDIS_HOST KEYS "session:*" | head -10
+mongodb-cli -h $MONGODB_HOST KEYS "session:*" | head -10
 
 # Verify auth configuration
 curl https://fixzit.com/api/auth/session
 
 # Clear auth cache if needed
-redis-cli -h $REDIS_HOST FLUSHDB
+mongodb-cli -h $MONGODB_HOST FLUSHDB
 ```
 
 #### High Memory Usage
@@ -268,7 +268,7 @@ db.workOrders.aggregate([
 |----------|---------|-------------------|
 | `/api/health` | Basic health | `{"status": "ok"}` |
 | `/api/health/db` | Database connectivity | `{"mongodb": "connected"}` |
-| `/api/health/redis` | Redis connectivity | `{"redis": "connected"}` |
+| `/api/health/mongodb` | MongoDB connectivity | `{"mongodb": "connected"}` |
 
 ### Alert Thresholds (production)
 
@@ -293,7 +293,7 @@ db.workOrders.aggregate([
 
 1. **Acknowledge** within SLA (see Incident Response).
 2. **Stabilize**: scale up temporarily, enable maintenance flag if needed, throttle background jobs.
-3. **Inspect**: Sentry spikes, Vercel logs for regressions, Mongo/Redis dashboards for saturation.
+3. **Inspect**: Sentry spikes, Vercel logs for regressions, Mongo/MongoDB dashboards for saturation.
 4. **Decide**: rollback recent deploy vs. disable feature flag vs. hotfix branch.
 5. **Communicate**: update #incidents every 15 minutes until resolved.
 
@@ -364,10 +364,10 @@ Vercel automatically scales based on traffic. Monitor:
 # Cluster > Configuration > Auto-scale
 ```
 
-### Redis Scaling
+### MongoDB Scaling
 
 ```bash
-# Upstash Redis: Dashboard > Database > Scale
+# Upstash MongoDB: Dashboard > Database > Scale
 # Free: 10K commands/day
 # Pro: 100K commands/day
 # Enterprise: Unlimited

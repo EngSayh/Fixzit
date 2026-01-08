@@ -313,7 +313,7 @@ export TAP_WEBHOOK_IDEMPOTENCY_TTL_MS=300000       # 5 minutes
 **Validation Checklist:**
 
 - ✅ Pre-test: Env vars set, DB accessible, monitoring configured
-- ✅ During: CPU/memory normal, Redis keys created, rate limits work
+- ✅ During: CPU/memory normal, MongoDB keys created, rate limits work
 - ✅ Post-test: Query payments table, verify no duplicates, review logs
 
 **Rollback Plan:**
@@ -548,7 +548,7 @@ export ZATCA_API_KEY='sandbox-zatca-api-key'
 - Staging environment with test database
 - PayTabs sandbox credentials
 - Tap Payments sandbox credentials
-- Redis instance for idempotency keys
+- MongoDB instance for idempotency keys
 - Monitoring dashboard access
 
 **Execution Plan:**

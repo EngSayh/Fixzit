@@ -317,7 +317,7 @@ docker-compose up -d --build
 
 1. **Scale horizontally** as traffic grows
 2. **Optimize database** queries and indexes
-3. **Implement caching** (Redis) for performance
+3. **Implement caching** (MongoDB) for performance
 4. **Add observability** (APM, distributed tracing)
 
 ---

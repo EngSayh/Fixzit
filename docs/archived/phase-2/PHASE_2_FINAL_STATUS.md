@@ -238,7 +238,7 @@ After Externals:  4.8/5.0 (Outstanding) ⭐⭐⭐⭐⭐
    - Performance dashboards
 
 2. **Priority 2: Performance** (Week 4-5)
-   - Redis caching (analytics 15-min TTL)
+   - in-memory caching (analytics 15-min TTL)
    - Rate limiting middleware
    - CDN integration
    - Query optimization

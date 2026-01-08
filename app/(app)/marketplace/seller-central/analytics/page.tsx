@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SalesChart } from "@/components/seller/analytics/SalesChart";
@@ -175,7 +176,7 @@ export default function AnalyticsPage() {
     const analytics = data;
     if (!analytics) {
       logger.warn("Tried to export analytics before data loaded", { period });
-      alert(
+      toast.warning(
         auto(
           "Analytics data is still loading. Please try again in a moment.",
           "alerts.dataLoading",
@@ -227,7 +228,7 @@ export default function AnalyticsPage() {
       logger.info("Analytics exported to CSV", { period, filename });
     } catch (error) {
       logger.error("Failed to export CSV", { error });
-      alert(
+      toast.error(
         auto("Failed to export data. Please try again.", "alerts.exportFailed"),
       );
     }
@@ -240,7 +241,7 @@ export default function AnalyticsPage() {
         period,
         format: "pdf",
       });
-      alert(
+      toast.warning(
         auto(
           "Analytics data is still loading. Please try again in a moment.",
           "alerts.dataLoading",
@@ -301,7 +302,7 @@ export default function AnalyticsPage() {
       logger.info("Analytics exported to PDF", { period, filename });
     } catch (error) {
       logger.error("Failed to export PDF", { error });
-      alert(
+      toast.error(
         auto("Failed to export data. Please try again.", "alerts.exportFailed"),
       );
     }

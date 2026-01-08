@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -138,7 +139,7 @@ export default function PricingDashboardPage() {
       // Refresh listings after repricing
       await fetchData();
 
-      alert(
+      toast.success(
         auto(
           "Repricing complete: {{count}} listings updated",
           "alerts.repricingComplete",

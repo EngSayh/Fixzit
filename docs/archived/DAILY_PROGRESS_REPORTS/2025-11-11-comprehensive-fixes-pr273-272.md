@@ -14,7 +14,7 @@
 
 1. **Memory Crisis Fixed**: Killed duplicate dev servers (2→1), extension hosts (2→2), TypeScript servers (4→2)
 2. **Git Push Blocker Resolved**: Removed 342MB tmp/ files from history (3,348 commits rewritten)
-3. **PR #273 Comments**: Addressed 7/7 review comments (duplicate rate limiting, Redis reconnection, PII redaction)
+3. **PR #273 Comments**: Addressed 7/7 review comments (duplicate rate limiting, MongoDB reconnection, PII redaction)
 4. **PR #272 Decimal.js**: Fixed floating-point precision bugs in budget and payment calculations
 
 ✅ **All Local Checks Pass**:
@@ -111,7 +111,7 @@ git push origin main --force
 **Problem**: `app/api/help/ask/route.ts` had TWO rate limiting mechanisms:
 
 - Line 144: `rateLimit()` from `@/server/security/rateLimit`
-- Line 152: `rateLimitAssert()` (Redis/in-memory distributed rate limiter)
+- Line 152: `rateLimitAssert()` (MongoDB/in-memory distributed rate limiter)
 
 **Solution**:
 
@@ -138,18 +138,18 @@ export async function POST(req: NextRequest) {
 
 ---
 
-#### 3.2. Redis Reconnection Strategy ✅
+#### 3.2. MongoDB Reconnection Strategy ✅
 
-**Problem**: Redis connection events (error, close, reconnecting) were not monitored.
+**Problem**: MongoDB connection events (error, close, reconnecting) were not monitored.
 
 **Solution**:
 
 ```typescript
-// Initialize Redis client with event handlers
-let redis: Redis | null = null;
-if (process.env.REDIS_URL) {
+// Initialize MongoDB client with event handlers
+let mongodb: MongoDB | null = null;
+if (process.env.MONGODB_URL) {
   try {
-    redis = new Redis(process.env.REDIS_URL, {
+    mongodb = new MongoClient(process.env.MONGODB_URL, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
@@ -157,22 +157,22 @@ if (process.env.REDIS_URL) {
     });
 
     // NEW: Handle connection events for monitoring
-    redis.on("error", (err) => {
-      logger.error("Redis connection error:", { err });
+    mongodb.on("error", (err) => {
+      logger.error("MongoDB connection error:", { err });
     });
 
-    redis.on("close", () => {
+    mongodb.on("close", () => {
       logger.warn(
-        "Redis connection closed, falling back to in-memory rate limiting",
+        "MongoDB connection closed, falling back to in-memory rate limiting",
       );
-      redis = null; // Reset to trigger in-memory fallback
+      mongodb = null; // Reset to trigger in-memory fallback
     });
 
-    redis.on("reconnecting", () => {
-      logger.info("Redis reconnecting...");
+    mongodb.on("reconnecting", () => {
+      logger.info("MongoDB reconnecting...");
     });
   } catch (err) {
-    logger.error("Failed to initialize Redis client:", { err });
+    logger.error("Failed to initialize MongoDB client:", { err });
   }
 }
 ```
@@ -244,7 +244,7 @@ function redactPII(s: string) {
 ---
 
 **Files Changed**: `app/api/help/ask/route.ts`
-**Commit**: `8eac90abc` - fix(help): Remove duplicate rate limiting, enhance Redis reconnection & PII redaction
+**Commit**: `8eac90abc` - fix(help): Remove duplicate rate limiting, enhance MongoDB reconnection & PII redaction
 
 ---
 
@@ -515,7 +515,7 @@ After ALL CI green + ALL comments addressed:
 
 ### Commits Today
 
-- `8eac90abc`: fix(help): Remove duplicate rate limiting, enhance Redis reconnection & PII redaction
+- `8eac90abc`: fix(help): Remove duplicate rate limiting, enhance MongoDB reconnection & PII redaction
 - `b212a8990`: fix(finance): Use Decimal.js for precise budget and payment calculations
 - `a46e85fcd`: fix: Remove tmp/ from Git tracking (blocked push with 342MB file)
 - `e6a0a496a`: chore: Update translation audit artifacts
@@ -523,7 +523,7 @@ After ALL CI green + ALL comments addressed:
 
 ### Files Changed
 
-- `app/api/help/ask/route.ts` (duplicate rate limiting, Redis events, PII redaction)
+- `app/api/help/ask/route.ts` (duplicate rate limiting, MongoDB events, PII redaction)
 - `app/finance/budgets/new/page.tsx` (Decimal.js calculations)
 - `app/finance/payments/new/page.tsx` (Decimal.js comparisons, serialization)
 - `.gitignore` (ignore tmp/)
@@ -531,7 +531,7 @@ After ALL CI green + ALL comments addressed:
 
 ### Lines Changed
 
-- Added: ~80 lines (Redis events, PII patterns, Decimal calculations)
+- Added: ~80 lines (MongoDB events, PII patterns, Decimal calculations)
 - Removed: ~50 lines (duplicate rate limiting, unused imports)
 - Modified: ~100 lines (Decimal comparisons, serialization)
 

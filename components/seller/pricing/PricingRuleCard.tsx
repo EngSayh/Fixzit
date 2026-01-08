@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ export default function PricingRuleCard({ settings, onUpdate }: Props) {
       onUpdate(newSettings);
       setEditing(false);
     } catch (_error) {
-      alert("Failed to save pricing rules");
+      toast.error("Failed to save pricing rules");
     }
   };
 

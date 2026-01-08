@@ -20,7 +20,7 @@ Conducted security review of the production OTP bypass feature. Found and fixed 
 | `auth.config.ts` | 520-560 | 🟥 HIGH |
 | `app/api/auth/otp/send/route.ts` | 366-430 | 🟥 HIGH |
 | `app/api/auth/otp/verify/route.ts` | 149-192 | 🟧 MEDIUM |
-| `lib/otp-store-redis.ts` | 79-98 | 🟩 LOW |
+| `lib/otp-store-mongodb.ts` | 79-98 | 🟩 LOW |
 | `.env.example` | 79-98 | 🟩 LOW |
 
 ---
@@ -76,7 +76,7 @@ const bypassOTP = (isSuperAdmin && explicitBypass && (isDevelopment || productio
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Audit Logging | ✅ OK | `logger.warn` used for all bypass events |
-| Redis Key Separation | ✅ OK | Bypass uses `otp:bypass:` prefix |
+| MongoDB Key Separation | ✅ OK | Bypass uses `otp:bypass:` prefix |
 | Bypass OTP Cleanup | ✅ OK | Deleted after successful verification |
 | Type Safety | ✅ OK | `__bypassed` properly typed in interfaces |
 | IP Logging | ✅ OK | `clientIp` logged with bypass events |

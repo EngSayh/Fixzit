@@ -108,8 +108,8 @@ MONGODB_URI=mongodb+srv://...
 AUTH_SECRET=...
 NEXTAUTH_URL=https://...
 
-# Redis (optional but recommended)
-REDIS_URL=rediss://...
+# MongoDB (optional but recommended)
+MONGODB_URL=mongodb+srv://...
 ```
 
 ### Optional for Development
@@ -118,8 +118,8 @@ REDIS_URL=rediss://...
 # Disable telemetry
 NEXT_TELEMETRY_DISABLED=1
 
-# Skip Redis features
-# Just don't set REDIS_URL
+# Skip MongoDB features
+# Just don't set MONGODB_URL
 
 # Development authentication
 AUTH_SECRET=dev-secret-32-chars-min
@@ -139,7 +139,7 @@ AUTH_SECRET=dev-secret-32-chars-min
 
 **Cause**: Edge runtime code importing Node.js modules
 
-**Solution**: Check that imports in API routes/middleware don't use `ioredis` directly. Use `lib/redis.ts` which handles this.
+**Solution**: Check that imports in API routes/middleware don't use the MongoDB driver directly. Use `lib/mongodb-unified.ts` (or `lib/mongo.ts`) which enforces server-only access.
 
 ### 4. ESLint Memory Issues
 

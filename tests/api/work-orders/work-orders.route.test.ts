@@ -60,7 +60,7 @@ vi.mock("@/lib/storage/s3", () => ({
   deleteObject: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock JobQueue to prevent Redis connection timeouts in tests
+// Mock JobQueue to prevent external queue connection timeouts in tests
 vi.mock("@/lib/jobs/queue", () => ({
   JobQueue: {
     enqueue: vi.fn().mockResolvedValue("mock-job-id"),

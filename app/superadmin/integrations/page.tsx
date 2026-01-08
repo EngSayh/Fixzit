@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n/useI18n";
+import { formatDateTimeLocale } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +65,7 @@ const DEFAULT_INTEGRATIONS: Integration[] = [
 ];
 
 export default function SuperadminIntegrationsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -116,7 +117,8 @@ export default function SuperadminIntegrationsPage() {
     setConfigDialogOpen(true);
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  // Use centralized formatDateTimeLocale for consistency (CodeRabbit review)
+  const formatDate = (dateStr: string) => formatDateTimeLocale(dateStr, locale ?? "en-US");
 
   const stats = {
     total: integrations.length,

@@ -12,9 +12,9 @@ Go to: **Vercel → Project fixzit → Settings → Environment Variables → Pr
 ### 🔥 P0 - Delete These (Causing Errors)
 
 ```
-❌ DELETE: REDIS_URL
+❌ DELETE: MONGODB_URL
    Reason: Contains invalid hostname (a2ibxb...xzva) causing DNS ENOTFOUND
-   Impact: Redis falls back to in-memory now (safe), but logs spam errors
+   Impact: MongoDB falls back to in-memory now (safe), but logs spam errors
    
 ❌ DELETE: DISABLE_MONGODB_FOR_BUILD  
    Reason: If active at runtime, returns stub DB handle → 500s
@@ -82,7 +82,7 @@ TAP_ENVIRONMENT=live
 ## Verification (After Redeploy)
 
 1. Check Vercel Runtime Logs - should NOT see:
-   - `ENOTFOUND` Redis errors
+   - `ENOTFOUND` MongoDB errors
    - `DISABLE_MONGODB_FOR_BUILD enabled` warnings
    - `TAP_WEBHOOK_SECRET not set` warnings
 
@@ -93,7 +93,7 @@ TAP_ENVIRONMENT=live
 
 3. Check Observability → Functions:
    - Error rate should drop significantly
-   - Top failing routes should be clear (not Redis/env spam)
+   - Top failing routes should be clear (not MongoDB/env spam)
 
 ---
 
@@ -123,7 +123,7 @@ This eliminates the `topLevelAwait` warning and prevents MongoDB from being pull
 ## Expected Outcome
 
 **Before:**
-- 23% error rate (Redis ENOTFOUND spam + DB stub + missing webhook secrets)
+- 23% error rate (MongoDB ENOTFOUND spam + DB stub + missing webhook secrets)
 - Unclear which routes are actually broken
 
 **After:**

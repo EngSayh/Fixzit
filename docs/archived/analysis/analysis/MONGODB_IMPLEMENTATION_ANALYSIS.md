@@ -154,7 +154,7 @@ All major business entities have complete MongoDB schemas:
 
 - **Indexing**: Proper indexes on tenant, user, and business keys
 - **Aggregation**: Complex queries use native driver for performance
-- **Caching**: Redis integration for frequently accessed data
+- **Caching**: MongoDB integration for frequently accessed data
 
 ### **✅ Multi-tenancy**
 
@@ -226,7 +226,7 @@ All major business entities have complete MongoDB schemas:
 
 1. **Read Replicas**: Add read replica support for better performance
 2. **Sharding**: Implement sharding strategy for horizontal scaling
-3. **Caching Layer**: Enhanced Redis caching for frequently accessed data
+3. **Caching Layer**: Enhanced in-memory caching for frequently accessed data
 4. **Monitoring**: APM integration for database performance tracking
 
 ---

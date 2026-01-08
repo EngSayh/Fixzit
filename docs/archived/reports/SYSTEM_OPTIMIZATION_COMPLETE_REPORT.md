@@ -264,7 +264,7 @@
 **Effort:** 2-3 days
 **Details:**
 
-- Implement Redis/LRU cache for frequently accessed entities
+- Implement in-memory/LRU cache for frequently accessed entities
 - Cache categories, settings, user permissions
 - Expected performance gain: 40-60% on read-heavy pages
 

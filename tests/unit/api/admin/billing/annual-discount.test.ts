@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Tests for Admin Billing Annual Discount API
  * @route PATCH /api/admin/billing/annual-discount
  */

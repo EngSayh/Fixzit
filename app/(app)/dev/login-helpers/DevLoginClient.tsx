@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -78,13 +79,13 @@ export default function DevLoginClient() {
       if (res.ok && (data.ok ?? true)) {
         router.push("/dashboard");
       } else {
-        alert(
+        toast.error(
           t("devLogin.alert.failure", "Login failed: ") +
             (data.error || res.statusText),
         );
       }
     } catch (error) {
-      alert(
+      toast.error(
         t("devLogin.alert.failure", "Login failed: ") +
           (error instanceof Error
             ? error.message

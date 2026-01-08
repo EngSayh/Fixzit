@@ -99,8 +99,8 @@ TWILIO_PHONE_NUMBER="+966xxxxxxxxx"
 SENTRY_DSN="your-sentry-dsn"  # Error tracking
 DATADOG_API_KEY="your-datadog-key"  # APM & monitoring
 
-# === OPTIONAL: RATE LIMITING (Redis) ===
-REDIS_URL="redis://username:password@host:port"
+# === OPTIONAL: RATE LIMITING (MongoDB) ===
+MONGODB_URL="mongodb://username:password@host:port"
 
 # === OPTIONAL: FEATURE FLAGS ===
 ENABLE_AQAR_MODULE="true"
@@ -292,7 +292,7 @@ app/api/
 ### 3. Rate Limiting
 
 - Current: 60 requests per 60 seconds per IP
-- Consider implementing Redis-based distributed rate limiting for multi-instance deployments
+- Consider implementing MongoDB-based distributed rate limiting for multi-instance deployments
 
 ### 4. CORS Configuration
 
@@ -361,7 +361,7 @@ Expected response:
 
 - Create proper indexes (see Database Setup section)
 - Use aggregation pipelines for complex queries
-- Implement caching (Redis) for frequently accessed data
+- Implement caching (MongoDB) for frequently accessed data
 
 ### 3. CDN Configuration
 

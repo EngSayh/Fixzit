@@ -476,8 +476,6 @@ ${t("support.thankYou", "Thank you for contacting Fixzit Support!")}
 ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Email Sent")}!\n${t("support.welcomeEmailDesc", "We've sent a welcome email to")} ${email} ${t("support.welcomeEmailNext", "with registration instructions and next steps.")}.` : ""}`;
 
       toast.success(successMessage, { duration: 8000 });
-      // Legacy alert support for existing tests/tooling
-      window.alert(successMessage);
       onClose();
     } catch (e: unknown) {
       logger.error("Ticket creation error:", { error: e });
@@ -492,7 +490,6 @@ ${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Ema
       // ✅ FIX: Use react-hot-toast instead of alert()
       const failureMessage = `❌ ${t("support.failedToCreate", "Failed to create ticket")}: ${errorMessage}`;
       toast.error(failureMessage, { duration: 6000 });
-      window.alert(failureMessage);
     } finally {
       setSubmitting(false);
     }

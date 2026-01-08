@@ -298,7 +298,7 @@ export async function connectToDatabase() {
 
 ```typescript
 // server/security/rateLimit.ts
-// In-memory rate limiter (use Redis for distributed systems)
+// In-memory rate limiter (use MongoDB for distributed systems)
 const rateLimit = (key: string, limit: number, windowMs: number) => {
   // Track requests per key
   // Return { allowed: boolean }
@@ -308,19 +308,19 @@ const rateLimit = (key: string, limit: number, windowMs: number) => {
 ### 3. Caching Strategy
 
 ```typescript
-// Response caching example (implement with Redis)
+// Response caching example (implement with MongoDB)
 export async function GET(req: NextRequest) {
   const cacheKey = `work-orders:${user.orgId}`;
 
   // Check cache
-  const cached = await redis.get(cacheKey);
+  const cached = await mongodb.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
   // Query database
   const data = await WorkOrder.find({ tenantId: user.orgId });
 
   // Cache for 5 minutes
-  await redis.setex(cacheKey, 300, JSON.stringify(data));
+  await mongodb.setex(cacheKey, 300, JSON.stringify(data));
 
   return createSecureResponse({ data }, 200, req);
 }
@@ -358,7 +358,7 @@ export async function GET(req: NextRequest) {
           ┌────────┴────────┐
           │                 │
      ┌────▼────┐      ┌─────▼─────┐
-     │ MongoDB │      │   Redis   │
+     │ MongoDB │      │   MongoDB   │
      │  Atlas  │      │  (Cache)  │
      └─────────┘      └───────────┘
 ```

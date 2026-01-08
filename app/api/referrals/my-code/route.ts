@@ -18,13 +18,16 @@ import { logger } from "@/lib/logger";
  * Get current user's referral code and statistics with pagination
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "referrals:my-code" });
   try {
     const session = await auth();
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Per-user rate limiting (CodeRabbit review)
+    const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: `referrals:my-code:${session.user.id}` });
+    if (rateLimitResponse) return rateLimitResponse;
 
     await connectDb();
 

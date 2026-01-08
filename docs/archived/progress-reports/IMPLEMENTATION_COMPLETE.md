@@ -287,7 +287,7 @@ npm run dev
 
 ### 3. Missing Infrastructure (Deferred)
 
-- **Redis**: For WebSocket counter updates
+- **MongoDB**: For WebSocket counter updates
 - **Meilisearch**: For advanced search
 - **MinIO/S3**: For file uploads
 - **NATS**: For event bus
@@ -388,7 +388,7 @@ npm run dev
 
 ### Sprint 3: Advanced Features
 
-1. WebSocket for live updates (requires Redis)
+1. WebSocket for live updates (requires MongoDB)
 2. Advanced search (requires Meilisearch)
 3. File uploads (requires MinIO/S3)
 4. Event sourcing (requires NATS)
@@ -508,7 +508,7 @@ npm run dev
 2. ⏳ Remove duplicate lockfiles (cleanup)
 3. ⏳ Add unit tests (next sprint)
 4. ⏳ Implement data tables (next sprint)
-5. ⏳ Setup Redis/Meilisearch (infrastructure)
+5. ⏳ Setup MongoDB/Meilisearch (infrastructure)
 
 ---
 

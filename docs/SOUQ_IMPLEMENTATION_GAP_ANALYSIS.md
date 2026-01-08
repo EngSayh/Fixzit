@@ -142,7 +142,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 | Layer                           | Status              | Notes                                                                                                                                                          |
 | ------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Cron / Schedulers**           | ⚠️ **20% Complete** | Only FSIN cleanup cron exists; compliance expiry, account-health recalcs, repricing, and payout batching jobs are missing, leaving Super Admin blind to drift. |
-| **Queues / Workers**            | ⚠️ **15% Complete** | Minimal BullMQ wiring for Buy Box recalcs; no dedicated workers for KYC review, settlement batching, document OCR, or proactive SLA escalations.               |
+| **Queues / Workers**            | ⚠️ **15% Complete** | Minimal in-memory queue wiring for Buy Box recalcs; no dedicated workers for KYC review, settlement batching, document OCR, or proactive SLA escalations.               |
 | **Notifications / Escalations** | 🟡 **40% Complete** | Email templates cover seller onboarding, but no buyer support or Super Admin SLA notifications are wired.                                                      |
 | **Observability / Audit**       | ⚠️ **25% Complete** | Logger events exist yet no structured audit, Grafana/Kibana dashboards, or alerting for failed jobs—violates Super Admin governance requirements.              |
 
@@ -261,12 +261,12 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Location**: Enhance PDP to call `/api/souq/buybox/[fsin]` and render offers
 
 2. **Auto-Repricer Worker**
-   - **Spec Requirement**: BullMQ job to track lowest landed price with floor/ceiling
+   - **Spec Requirement**: In-memory queue job to track lowest landed price with floor/ceiling
    - **Current State**: Not implemented
    - **Impact**: Sellers cannot compete automatically
    - **Location Needed**:
      - `services/souq/repricer-service.ts`
-     - BullMQ queue `souq:repricer`
+     - Queue `souq:repricer`
      - Configuration per listing
 
 3. **Price Change Event Triggers**
@@ -416,7 +416,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Daily caps, frequency caps, real-time decrement on click
    - **Current State**: Not implemented
    - **Impact**: Cannot control ad spend
-   - **Location Needed**: Redis budget tracking + BullMQ for roll-ups
+   - **Location Needed**: MongoDB budget tracking + in-memory queue for roll-ups
 
 4. **Ad Placements**
    - **Spec Requirement**: Search/PLP top slots, PDP mid slots with "Sponsored" label
@@ -550,7 +550,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Location Needed**:
      - `services/souq/settlement-service.ts` (enhanced)
      - Cron job scheduler
-     - BullMQ queue for settlement runs
+     - In-memory queue for settlement runs
 
 2. **Fee Schedule Configuration**
    - **Spec Requirement**: Per-category referral %, FBF fees, closing fees, dispute fees
@@ -723,13 +723,13 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
   - Publishers/subscribers in all services
   - Example topics: `order.placed`, `listing.price.updated`, etc.
 
-### Redis & BullMQ
+### MongoDB + In-Memory Queue
 
 - **Spec Requirement**: Caching + job queues (Buy Box recompute, repricer, settlement)
 - **Current State**: Not configured
 - **Impact**: No background jobs, no cache
 - **Location Needed**:
-  - Config: `lib/redis-client.ts`
+  - Config: `lib/mongodb-client.ts`
   - Queues: `lib/queues/*`
 
 ### Payment Gateway Enhancements
@@ -780,7 +780,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 ### Rate Limiting
 
-- **Spec Requirement**: Redis-based, 100 req/min default
+- **Spec Requirement**: MongoDB-based, 100 req/min default
 - **Current State**: Not implemented
 - **Impact**: Abuse risk
 - **Location Needed**: Middleware in API routes
@@ -956,7 +956,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Week 9-10: Buy Box & Pricing**
 
 - PDP Buy Box winner display + "Other offers" tab
-- Auto-repricer worker (BullMQ)
+- Auto-repricer worker (in-memory queue)
 - Seller Central pricing UI
 
 **Week 11-12: Search & Discovery**
@@ -977,7 +977,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 - Ads models (Campaign, AdGroup, Ad, AdTarget)
 - CPC auction engine
-- Budget management (Redis + BullMQ)
+- Budget management (in-memory queue)
 - Ad placement rendering (Search, PLP, PDP)
 - Campaign management UI (Seller Central)
 - Ads reports
@@ -992,7 +992,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Week 9-10: Settlement Engine**
 
 - Fee schedule configuration
-- Automated payout engine (cron + BullMQ)
+- Automated payout engine (cron + in-memory queue)
 - VAT invoice generation (ZATCA)
 - Settlement console (admin)
 - Payout dashboard (seller)
@@ -1045,7 +1045,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 - NATS/Kafka setup
 - Event publishers/subscribers in all services
-- Redis + BullMQ configuration
+- in-memory queue configuration
 - All background jobs (Buy Box, repricer, settlement, inventory health)
 
 **Week 3-4: Security & Compliance**
@@ -1094,9 +1094,9 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
    SOUQ_FEATURE_ACCOUNT_HEALTH=true
    ```
 
-2. **Set Up Redis + BullMQ**
-   - Install dependencies: `pnpm add bullmq ioredis`
-   - Configure connection: `lib/redis-client.ts`
+2. **Set Up in-memory queue**
+   - Install dependencies: `pnpm add mongodb`
+   - Configure connection: `lib/mongodb-client.ts`
    - Create first queue: Buy Box recompute
 
 3. **Create Seller Central Skeleton**

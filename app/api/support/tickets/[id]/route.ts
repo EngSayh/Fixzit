@@ -35,13 +35,15 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "support:tickets:get" });
   try {
+    // SECURITY: Authenticate first, then apply per-user rate limiting (CodeRabbit review)
+    const user = await getSessionUser(req);
+    
+    const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: `support:tickets:get:${user.id}` });
+    if (rateLimitResponse) return rateLimitResponse;
+
     await connectToDatabase();
     const { id } = await props.params;
-
-    // SECURITY: Add authorization check (was missing per CodeRabbit review)
-    const user = await getSessionUser(req);
     
     // Validate MongoDB ObjectId format
     if (!Types.ObjectId.isValid(id)) {

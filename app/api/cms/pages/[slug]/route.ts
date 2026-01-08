@@ -29,7 +29,9 @@ export async function GET(
   _req: NextRequest,
   props: { params: Promise<{ slug: string }> },
 ) {
-  enforceRateLimit(_req, { requests: 120, windowMs: 60_000, keyPrefix: "cms:pages" });
+  const rateLimitResponse = enforceRateLimit(_req, { requests: 120, windowMs: 60_000, keyPrefix: "cms:pages" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectToDatabase();
     const { slug } = await props.params;

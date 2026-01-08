@@ -18,7 +18,9 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
  * Returns the current logo URL or null if not set
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "settings:logo" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "settings:logo" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const sessionResult = await getSessionOrNull(request, { route: "settings:logo" });
     if (!sessionResult.ok) {

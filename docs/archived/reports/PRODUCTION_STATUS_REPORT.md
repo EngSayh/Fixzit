@@ -67,9 +67,9 @@
    - **Status:** Code exists in `server/security/rateLimit.ts` but needs runtime verification
    - **Action Required:** Test rate limiting is active on all public endpoints
 
-4. **NO REDIS/CACHING LAYER** ⚠️
+4. **NO MONGODB/CACHING LAYER** ⚠️
    - **Risk:** MEDIUM - Poor performance under load, no session management
-   - **Action Required:** Implement Redis for session storage and API caching
+   - **Action Required:** Implement MongoDB for session storage and API caching
 
 5. **INCONSISTENT ERROR HANDLING** ⚠️
    - **Risk:** MEDIUM - Potential information leakage through stack traces
@@ -100,7 +100,7 @@
 
 ### Within 1 Week (HIGH PRIORITY)
 
-1. [ ] Setup Redis for session management
+1. [ ] Setup MongoDB for session management
 2. [ ] Implement structured logging (Winston, Pino, etc.)
 3. [ ] Fix test infrastructure (install vitest, playwright)
 4. [ ] Run full test suite and ensure passing
@@ -134,7 +134,7 @@
 
 - **Hardcoded secrets in source code** (CRITICAL SECURITY RISK)
 - **Credentials in version control** (CRITICAL SECURITY RISK)
-- Missing production infrastructure (Redis, monitoring)
+- Missing production infrastructure (MongoDB, monitoring)
 - Test suite not functional
 - No health checks configured
 - Potential information leakage through errors

@@ -51,7 +51,7 @@ This audit validates the Post-Stabilization state of the Fixzit codebase against
 |------|------|-----------|----------|
 | `lib/auth.ts` | 22 | JSDoc example (not runtime) | N/A |
 | `lib/logger.ts` | 74,113,140,172 | Legitimate logger fallbacks | N/A |
-| `lib/redis.ts` | 70-71 | JSDoc examples | N/A |
+| `lib/mongodb.ts` | 70-71 | JSDoc examples | N/A |
 | `lib/security/encryption.ts` | 445 | JSDoc example | N/A |
 | `lib/aqar/package-activation.ts` | 133 | JSDoc example | N/A |
 

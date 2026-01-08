@@ -113,11 +113,6 @@ export default function LanguageSelector({
   const toggle = () => setOpen((prev) => !prev);
 
   const handleSelect = (option: LanguageOption) => {
-    if (option.comingSoon) {
-      setQuery("");
-      setOpen(false);
-      return;
-    }
     setLanguage(option.language as LanguageCode);
     setOpen(false);
     setQuery("");
@@ -249,9 +244,7 @@ export default function LanguageSelector({
                   id={`${listboxId}-option-${option.locale}`}
                   className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${
                     option.locale === current.locale ? "bg-primary/10" : ""
-                  } ${idx === activeIndex ? "ring-1 ring-primary/30" : ""} ${
-                    option.comingSoon ? "opacity-60 cursor-not-allowed" : ""
-                  }`}
+                  } ${idx === activeIndex ? "ring-1 ring-primary/30" : ""}`}
                   role="option"
                   aria-selected={option.locale === current.locale}
                   tabIndex={-1}
@@ -273,14 +266,9 @@ export default function LanguageSelector({
                       <span>
                         {option.country} · {option.iso}
                       </span>
-                      {option.comingSoon && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">
-                          {t("i18n.comingSoon", "Coming soon")}
-                        </span>
-                      )}
                     </div>
                   </div>
-                  {option.comingSoon ? null : option.locale === current.locale && (
+                  {option.locale === current.locale && (
                     <Check
                       className="w-4 h-4 text-primary flex-shrink-0"
                       aria-hidden="true"

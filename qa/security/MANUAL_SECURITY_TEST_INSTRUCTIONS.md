@@ -665,7 +665,7 @@ pnpm dev
 
 - Verify middleware is imported in affected routes
 - Check `lib/security/enhanced-rate-limit.ts` for correct limits
-- Ensure Redis or in-memory store is configured
+- Ensure MongoDB or in-memory store is configured
 
 ### CORS Not Blocking
 

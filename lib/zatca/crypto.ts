@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ZATCA Crypto Utilities
  * @module lib/zatca/crypto
  */

@@ -257,15 +257,15 @@ Watch Vercel Runtime Logs for:
 
 ## Remaining Issues (Lower Priority)
 
-### Redis Unavailable Warning
+### MongoDB Unavailable Warning
 ```
-[ERROR] [auth/refresh] CRITICAL: Redis unavailable; using in-memory refresh store.
+[ERROR] [auth/refresh] CRITICAL: MongoDB unavailable; using in-memory refresh store.
 Replay protection NOT shared across instances.
 ```
 
 **Impact**: Non-breaking warning, but refresh token replay protection won't work across serverless instances.
 
-**Fix required**: Set up Redis (Upstash or Vercel KV).
+**Fix required**: Set up MongoDB (Upstash or Vercel KV).
 
 ### MongoDB Atlas IP Whitelist (Intermittent)
 ```

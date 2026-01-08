@@ -142,12 +142,13 @@ describe("TranslationProvider / useTranslation", () => {
     expect(captured).not.toBeNull();
     expect(captured!.language).toBe("ar");
     
+    // Test ar-SA normalizes to ar (supported)
     await act(async () => {
-      captured!.setLocale("fr-FR");
+      captured!.setLocale("ar-SA");
     });
     expect(mockSetLocale).toHaveBeenCalled();
     const calledWith = mockSetLocale.mock.calls[0][0];
-    expect(calledWith).toBe("fr");
+    expect(calledWith).toBe("ar");
   });
 
   it("t(key, fallback) returns fallback when translator returns key", async () => {

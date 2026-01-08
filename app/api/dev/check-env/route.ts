@@ -15,7 +15,9 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 // This endpoint shows which env vars are configured (but not their values for security)
 // SECURITY: Restricted to Super Admins only
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "dev:check-env" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "dev:check-env" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const session = await auth();

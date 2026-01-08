@@ -28,7 +28,9 @@ const TestSessionBody = z.object({
 
 export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
-  enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "auth:test:session" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "auth:test:session" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     if (process.env.NODE_ENV === "production") {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });

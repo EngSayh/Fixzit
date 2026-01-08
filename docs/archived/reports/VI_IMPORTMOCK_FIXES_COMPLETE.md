@@ -59,10 +59,10 @@ randomSpy.mockRestore();
 
 - ✅ File loads and runs (no vi.importMock errors)
 - ✅ All 6 tests attempt to run
-- ⚠️ Tests timeout due to missing Redis mock (pre-existing issue)
+- ⚠️ Tests timeout due to missing MongoDB mock (pre-existing issue)
 
 **Root Cause of Timeouts:**
-The route implementation uses `rateLimit()` which requires Redis connection. Tests need Redis mocking added to fix timeouts, but this is a separate issue from vi.importMock.
+The route implementation uses `rateLimit()` which requires MongoDB connection. Tests need MongoDB mocking added to fix timeouts, but this is a separate issue from vi.importMock.
 
 ---
 
@@ -146,7 +146,7 @@ grep -r "vi\.importMock" tests/ --include="*.ts" --include="*.tsx" | grep -v "no
 
 # Test files load successfully
 pnpm test tests/unit/api/support/incidents.route.test.ts --run
-# Result: File loads, tests run (timeout due to Redis) ✅
+# Result: File loads, tests run (timeout due to MongoDB) ✅
 
 pnpm test tests/api/marketplace/products/route.test.ts --run
 # Result: File loads, tests run (fail due to MongoDB) ✅
@@ -159,7 +159,7 @@ pnpm test tests/api/marketplace/products/route.test.ts --run
 ### incidents.route.test.ts
 
 **Issue:** Tests timeout after 5000ms
-**Root Cause:** Missing Redis mock for `rateLimit()` function
+**Root Cause:** Missing MongoDB mock for `rateLimit()` function
 **Priority:** P1 (test infrastructure)
 **Estimated Fix:** 10 minutes
 **Solution:**
@@ -258,7 +258,7 @@ afterEach(() => {
 
 ### Future (Follow-up PRs)
 
-1. Add Redis mock to incidents.route.test.ts
+1. Add MongoDB mock to incidents.route.test.ts
 2. Fix MongoDB connection mock in products/route.test.ts
 3. Complete mock request objects with all required properties
 

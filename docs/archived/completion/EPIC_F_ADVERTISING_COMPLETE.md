@@ -24,7 +24,7 @@ The advertising system enables sellers to create CPC (cost-per-click) advertisin
    - **Event Tracking**: Impressions, clicks, conversions with MongoDB persistence
 
 2. **Budget Manager** (`services/souq/ads/budget-manager.ts` - 340 lines)
-   - **Redis-based**: Atomic operations prevent race conditions
+   - **MongoDB-based**: Atomic operations prevent race conditions
    - **Daily Caps**: Per-campaign budget limits with automatic reset at midnight
    - **Lua Script**: Ensures atomic budget charging
    - **Alert Thresholds**: 75%, 90%, 100% with deduplication
@@ -162,26 +162,26 @@ qualityScore = Math.max(0.1, Math.min(10, qualityScore)) // Clamp to 0.1-10
 
 ### Budget Tracking
 
-**Redis Key Format**: `ad_budget:{campaignId}:{YYYY-MM-DD}`
+**MongoDB Key Format**: `ad_budget:{campaignId}:{YYYY-MM-DD}`
 
 **Atomic Charging (Lua Script)**:
 
 ```lua
-local spent = redis.call('GET', KEYS[1]) or '0'
+local spent = mongodb.call('GET', KEYS[1]) or '0'
 local spentNum = tonumber(spent)
 local amountNum = tonumber(ARGV[1])
 local budgetNum = tonumber(ARGV[2])
 
 if spentNum + amountNum <= budgetNum then
-  redis.call('INCRBYFLOAT', KEYS[1], amountNum)
-  redis.call('EXPIRE', KEYS[1], 86400) -- 24 hours TTL
+  mongodb.call('INCRBYFLOAT', KEYS[1], amountNum)
+  mongodb.call('EXPIRE', KEYS[1], 86400) -- 24 hours TTL
   return 1 -- Success
 else
   return 0 -- Insufficient budget
 end
 ```
 
-**Daily Reset**: Midnight Saudi time (automatic via Redis TTL expiration)
+**Daily Reset**: Midnight Saudi time (automatic via MongoDB TTL expiration)
 
 ### Impression Tracking
 
@@ -352,7 +352,7 @@ ROAS = revenue / spend;
 }
 ```
 
-### Redis Keys
+### MongoDB Keys
 
 - `ad_budget:{campaignId}:{YYYY-MM-DD}` - Daily spend (TTL: 86400s)
 - `ad_budget:alert:{campaignId}:{threshold}` - Alert deduplication (TTL: 86400s)
@@ -511,7 +511,7 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 
 ### Infrastructure
 
-- **Redis**: Required for budget tracking (single instance OK for MVP)
+- **MongoDB**: Required for budget tracking (single instance OK for MVP)
 - **MongoDB**: Already deployed (reuse existing)
 - **Node.js**: v18+ with TypeScript
 
@@ -519,13 +519,13 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 
 ```bash
 # Already configured in existing .env
-REDIS_URL=redis://localhost:6379
+MONGODB_URL=mongodb://localhost:27017
 MONGODB_URI=mongodb://localhost:27017/fixzit
 ```
 
 ### Monitoring
 
-- Monitor Redis memory usage (budget keys)
+- Monitor MongoDB memory usage (budget keys)
 - Track auction latency (CloudWatch/Datadog)
 - Alert on high error rates (clicks API, budget exhaustion)
 

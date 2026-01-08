@@ -195,7 +195,7 @@ const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFIC
   - ✅ **ACCEPTABLE** - Documentation only
 - `lib/aqar/package-activation.ts:133` - JSDoc example
   - ✅ **ACCEPTABLE** - Documentation only
-- `lib/redis.ts:70-71` - JSDoc example
+- `lib/mongodb.ts:70-71` - JSDoc example
   - ✅ **ACCEPTABLE** - Documentation only
 - `lib/security/encryption.ts:445` - JSDoc example
   - ✅ **ACCEPTABLE** - Documentation only

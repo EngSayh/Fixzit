@@ -385,7 +385,7 @@ npm run test:a11y -- --url=http://localhost:3000/page
 - Default limit ≤ 100.
 
 **Caching** (for hot paths):
-- Add Redis/in-memory cache for frequently accessed data.
+- Add in-memory cache for frequently accessed data (plan a centralized cache if multi-node scale is required).
 
 **Provide diffs** for optimizations.
 

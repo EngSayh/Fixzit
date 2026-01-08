@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the long-term (Priority 3) enhancements for the Fixzit communication system, including SMS delivery monitoring, Redis migration, and WhatsApp integration.
+This document outlines the long-term (Priority 3) enhancements for the Fixzit communication system, including SMS delivery monitoring, MongoDB migration, and WhatsApp integration.
 
 ---
 
@@ -169,13 +169,13 @@ export async function monitorSMSHealth() {
 
 ---
 
-### 2. Migrate OTP Storage from Memory to Redis (Production)
+### 2. Migrate OTP Storage from Memory to MongoDB (Production)
 
 #### Objective
 
-Move OTP storage from in-memory store to Redis for scalability, persistence, and multi-instance support.
+Move OTP storage from in-memory store to MongoDB for scalability, persistence, and multi-instance support.
 
-#### Why Redis?
+#### Why MongoDB?
 
 - **Persistence**: Survives app restarts
 - **Scalability**: Supports multiple app instances
@@ -184,29 +184,28 @@ Move OTP storage from in-memory store to Redis for scalability, persistence, and
 
 #### Implementation Steps
 
-**A. Install Redis Client**
+**A. Install MongoDB Client**
 
 ```bash
-pnpm add ioredis
-pnpm add -D @types/ioredis
+pnpm add mongodb
 ```
 
-**B. Create Redis Client**
+**B. Create MongoDB Client**
 
 ```typescript
-// lib/redis-otp.ts
-import Redis from "ioredis";
+// lib/mongodb-otp.ts
+import { MongoClient } from "mongodb";
 import { logger } from "./logger";
 
-let redis: Redis | null = null;
+let mongodb: MongoClient | null = null;
 
-export function getRedisClient(): Redis {
-  if (!redis) {
-    redis = new Redis({
-      host: process.env.REDIS_HOST || "localhost",
-      port: parseInt(process.env.REDIS_PORT || "6379"),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_OTP_DB || "1"), // Separate DB for OTP
+export function getMongoDBClient(): MongoClient {
+  if (!mongodb) {
+    mongodb = new MongoClient({
+      host: process.env.MONGODB_HOST || "localhost",
+      port: parseInt(process.env.MONGODB_PORT || "27017"),
+      password: process.env.MONGODB_PASSWORD,
+      db: parseInt(process.env.MONGODB_OTP_DB || "1"), // Separate DB for OTP
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
         return delay;
@@ -214,16 +213,16 @@ export function getRedisClient(): Redis {
       maxRetriesPerRequest: 3,
     });
 
-    redis.on("error", (error) => {
-      logger.error("[Redis OTP] Connection error", { error });
+    mongodb.on("error", (error) => {
+      logger.error("[MongoDB OTP] Connection error", { error });
     });
 
-    redis.on("connect", () => {
-      logger.info("[Redis OTP] Connected successfully");
+    mongodb.on("connect", () => {
+      logger.info("[MongoDB OTP] Connected successfully");
     });
   }
 
-  return redis;
+  return mongodb;
 }
 
 interface OTPData {
@@ -235,14 +234,14 @@ interface OTPData {
   expiresAt: number;
 }
 
-export class RedisOTPStore {
-  private redis: Redis;
+export class MongoDBOTPStore {
+  private mongodb: MongoClient;
   private readonly OTP_TTL = 5 * 60; // 5 minutes in seconds
   private readonly MAX_ATTEMPTS = 3;
   private readonly RATE_LIMIT_TTL = 15 * 60; // 15 minutes
 
   constructor() {
-    this.redis = getRedisClient();
+    this.mongodb = getMongoDBClient();
   }
 
   private getOTPKey(phone: string): string {
@@ -264,8 +263,8 @@ export class RedisOTPStore {
       expiresAt: Date.now() + this.OTP_TTL * 1000,
     };
 
-    await this.redis.setex(key, this.OTP_TTL, JSON.stringify(data));
-    logger.info("[Redis OTP] Stored OTP", { phone, userId });
+    await this.mongodb.setex(key, this.OTP_TTL, JSON.stringify(data));
+    logger.info("[MongoDB OTP] Stored OTP", { phone, userId });
   }
 
   async verifyOTP(
@@ -277,7 +276,7 @@ export class RedisOTPStore {
     error?: string;
   }> {
     const key = this.getOTPKey(phone);
-    const dataStr = await this.redis.get(key);
+    const dataStr = await this.mongodb.get(key);
 
     if (!dataStr) {
       return { success: false, error: "OTP expired or not found" };
@@ -287,13 +286,13 @@ export class RedisOTPStore {
 
     // Check expiration
     if (Date.now() > data.expiresAt) {
-      await this.redis.del(key);
+      await this.mongodb.del(key);
       return { success: false, error: "OTP expired" };
     }
 
     // Check attempts
     if (data.attempts >= this.MAX_ATTEMPTS) {
-      await this.redis.del(key);
+      await this.mongodb.del(key);
       return {
         success: false,
         error: "Maximum verification attempts exceeded",
@@ -303,7 +302,7 @@ export class RedisOTPStore {
     // Verify code
     if (data.code !== code) {
       data.attempts++;
-      await this.redis.setex(
+      await this.mongodb.setex(
         key,
         Math.ceil((data.expiresAt - Date.now()) / 1000),
         JSON.stringify(data),
@@ -315,8 +314,8 @@ export class RedisOTPStore {
     }
 
     // Success - delete OTP
-    await this.redis.del(key);
-    logger.info("[Redis OTP] Verified successfully", {
+    await this.mongodb.del(key);
+    logger.info("[MongoDB OTP] Verified successfully", {
       phone,
       userId: data.userId,
     });
@@ -330,14 +329,14 @@ export class RedisOTPStore {
     resetAt?: number;
   }> {
     const key = this.getRateLimitKey(phone);
-    const count = await this.redis.incr(key);
+    const count = await this.mongodb.incr(key);
 
     if (count === 1) {
       // First request - set expiration
-      await this.redis.expire(key, this.RATE_LIMIT_TTL);
+      await this.mongodb.expire(key, this.RATE_LIMIT_TTL);
     }
 
-    const ttl = await this.redis.ttl(key);
+    const ttl = await this.mongodb.ttl(key);
     const maxAttempts = 5;
 
     if (count > maxAttempts) {
@@ -355,27 +354,27 @@ export class RedisOTPStore {
   }
 
   async deleteOTP(phone: string): Promise<void> {
-    await this.redis.del(this.getOTPKey(phone));
+    await this.mongodb.del(this.getOTPKey(phone));
   }
 
   async getOTPInfo(phone: string): Promise<OTPData | null> {
     const key = this.getOTPKey(phone);
-    const dataStr = await this.redis.get(key);
+    const dataStr = await this.mongodb.get(key);
     return dataStr ? JSON.parse(dataStr) : null;
   }
 }
 
-export const redisOTPStore = new RedisOTPStore();
+export const mongodbOTPStore = new MongoDBOTPStore();
 ```
 
 **C. Update OTP Send Endpoint**
 
 ```typescript
 // app/api/auth/otp/send/route.ts
-import { redisOTPStore } from "@/lib/redis-otp";
+import { mongodbOTPStore } from "@/lib/mongodb-otp";
 
-// Replace memoryOTPStore with redisOTPStore
-const rateLimit = await redisOTPStore.checkRateLimit(userPhone);
+// Replace memoryOTPStore with mongodbOTPStore
+const rateLimit = await mongodbOTPStore.checkRateLimit(userPhone);
 if (!rateLimit.allowed) {
   return NextResponse.json(
     {
@@ -386,16 +385,16 @@ if (!rateLimit.allowed) {
   );
 }
 
-await redisOTPStore.storeOTP(userPhone, otp, user._id.toString());
+await mongodbOTPStore.storeOTP(userPhone, otp, user._id.toString());
 ```
 
 **D. Update OTP Verify Endpoint**
 
 ```typescript
 // app/api/auth/otp/verify/route.ts
-import { redisOTPStore } from "@/lib/redis-otp";
+import { mongodbOTPStore } from "@/lib/mongodb-otp";
 
-const result = await redisOTPStore.verifyOTP(phone, otp);
+const result = await mongodbOTPStore.verifyOTP(phone, otp);
 
 if (!result.success) {
   return NextResponse.json(
@@ -414,10 +413,10 @@ if (!result.success) {
 
 ```bash
 # .env
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
-REDIS_OTP_DB=1
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_PASSWORD=your_mongodb_password
+MONGODB_OTP_DB=1
 ```
 
 **F. Docker Compose (Development)**
@@ -425,18 +424,18 @@ REDIS_OTP_DB=1
 ```yaml
 # docker-compose.yml
 services:
-  redis:
-    image: redis:7-alpine
+  mongodb:
+    image: mongodb:7-alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: mongodb-server --appendonly yes
     volumes:
-      - redis_data:/data
+      - mongodb_data:/data
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
 
 volumes:
-  redis_data:
+  mongodb_data:
 ```
 
 **G. Production Deployment (AWS/Azure/GCP)**
@@ -444,25 +443,25 @@ volumes:
 **AWS ElastiCache:**
 
 ```bash
-# Create Redis cluster
+# Create MongoDB cluster
 aws elasticache create-cache-cluster \
-  --cache-cluster-id fixzit-otp-redis \
+  --cache-cluster-id fixzit-otp-mongodb \
   --cache-node-type cache.t3.micro \
-  --engine redis \
+  --engine mongodb \
   --num-cache-nodes 1 \
   --security-group-ids sg-xxxxx
 
 # Get endpoint
 aws elasticache describe-cache-clusters \
-  --cache-cluster-id fixzit-otp-redis \
+  --cache-cluster-id fixzit-otp-mongodb \
   --show-cache-node-info
 ```
 
-**Azure Cache for Redis:**
+**Azure Cache for MongoDB:**
 
 ```bash
-az redis create \
-  --name fixzit-otp-redis \
+az mongodb create \
+  --name fixzit-otp-mongodb \
   --resource-group fixzit-rg \
   --location saudiarabia \
   --sku Basic \
@@ -713,12 +712,12 @@ if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
 - Failure rate < 5%
 - Alert response time < 5 minutes
 
-### Redis Migration
+### MongoDB Migration
 
 - Zero OTP loss during deployment
 - Support for 10,000+ concurrent OTP sessions
 - OTP verification latency < 100ms
-- 99.9% Redis uptime
+- 99.9% MongoDB uptime
 
 ### WhatsApp Integration
 
@@ -732,7 +731,7 @@ if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
 ## 🔐 Security Considerations
 
 1. **Rate Limiting**: Enforce strict limits on all channels
-2. **Encryption**: Store OTPs encrypted in Redis
+2. **Encryption**: Store OTPs encrypted in MongoDB
 3. **Audit Trail**: Log all OTP operations
 4. **Brute Force Protection**: Lock account after repeated failures
 5. **Channel Verification**: Verify user owns phone before WhatsApp
@@ -746,8 +745,8 @@ if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
 | --------------------------- | -------------- | -------- |
 | SMS Monitoring (Webhooks)   | 2-3 days       | P3-A     |
 | SMS Analytics Dashboard     | 3-4 days       | P3-A     |
-| Redis Migration (Dev)       | 2-3 days       | P3-B     |
-| Redis Production Deployment | 1-2 days       | P3-B     |
+| MongoDB Migration (Dev)       | 2-3 days       | P3-B     |
+| MongoDB Production Deployment | 1-2 days       | P3-B     |
 | WhatsApp API Setup          | 5-7 days       | P3-C     |
 | WhatsApp Integration        | 3-4 days       | P3-C     |
 | Fallback Strategy           | 2-3 days       | P3-C     |
@@ -770,7 +769,7 @@ if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
 - **Total: $250/month**
 - **Savings: $350/month ($4,200/year)**
 
-### Redis Costs
+### MongoDB Costs
 
 - AWS ElastiCache t3.micro: ~$15/month
 - Azure Basic C0: ~$18/month
@@ -782,9 +781,9 @@ if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
 
 1. ✅ **Immediate**: Review and approve this roadmap
 2. 🔄 **Week 1-2**: Implement SMS monitoring with Twilio webhooks
-3. 🔄 **Week 3-4**: Migrate OTP to Redis (dev environment)
-4. 🔄 **Week 5-6**: Test Redis in staging
-5. 🔄 **Week 7**: Deploy Redis to production
+3. 🔄 **Week 3-4**: Migrate OTP to MongoDB (dev environment)
+4. 🔄 **Week 5-6**: Test MongoDB in staging
+5. 🔄 **Week 7**: Deploy MongoDB to production
 6. 🔄 **Week 8-10**: Set up WhatsApp Business API
 7. 🔄 **Week 11-12**: Implement WhatsApp integration
 8. 🔄 **Week 13**: User testing and rollout
@@ -794,3 +793,4 @@ if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
 **Document Version:** 1.0  
 **Last Updated:** November 16, 2025  
 **Status:** Planning Phase
+

@@ -838,8 +838,8 @@
 | TASK-0510 | P2 | open | Next Steps | `app/marketplace/vendor/products/upload/page.tsx:151` - Form specs | app/marketplace/vendor/products/upload/page.ts |
 | TASK-0509 | P2 | open | Next Steps | `app/_shell/ClientSidebar.tsx:129` - WebSocket event | app/_shell/ClientSidebar.ts |
 | TASK-0508 | P2 | open | Next Steps | `app/aqar/filters/page.tsx:121` - Filter state parsing | app/aqar/filters/page.ts |
-| TASK-0507 | P2 | open | Next Steps | `lib/redis-client.ts` - Only imported in API routes | lib/redis-client.ts |
-| TASK-0506 | P2 | open | Next Steps | `lib/redis.ts` - Only imported in API routes | lib/redis.ts |
+| TASK-0507 | P2 | open | Next Steps | `lib/mongodb-client.ts` - Only imported in API routes | lib/mongodb-client.ts |
+| TASK-0506 | P2 | open | Next Steps | `lib/mongodb.ts` - Only imported in API routes | lib/mongodb.ts |
 | TASK-0505 | P2 | open | Next Steps | `lib/aws-secrets.ts` - Only imported in API routes | lib/aws-secrets.ts |
 | TASK-0504 | P2 | open | Next Steps | The real error was masked by the `WebpackError` constructor failure | Doc-only |
 | TASK-0503 | P2 | open | Next Steps | When minification encountered this error, it tried to create a `WebpackError` | Doc-only |
@@ -930,7 +930,7 @@
 | TASK-0449 | P2 | open | Next Steps | Fallback to SMS if no email registered | Doc-only |
 | TASK-0448 | P2 | open | Next Steps | Per-email rate limiting (prevents email bombing) | Doc-only |
 | TASK-0447 | P2 | open | Next Steps | Professional HTML email template with branding | Doc-only |
-| TASK-0446 | P2 | open | Next Steps | `lib/otp-store-redis.ts` — Updated OTPData interface | lib/otp-store-redis.ts |
+| TASK-0446 | P2 | open | Next Steps | `lib/otp-store-mongodb.ts` — Updated OTPData interface | lib/otp-store-mongodb.ts |
 | next-parameterize-residual-hardcoded-credentials-config-centralize-souq-rule-win | P2 | open | Next Steps | Next: parameterize residual hardcoded credentials/config, centralize Souq rule windows, enforce env-driven storage config, then run `pnpm typecheck && pnpm lint && pnpm test`. | Doc-only |
 | branch-feat-marketplace-api-tests-working-tree-already-dirty-from-prior-sessions | P2 | open | Bugs | Branch: `feat/marketplace-api-tests`; working tree already dirty from prior sessions (`app/about/page.tsx`, `app/api/hr/leaves/route.ts`, `app/api/hr/payroll/runs/route.ts`, `app/api/souq/ads/click... | app/about/page.ts |
 | next-evaluate-existing-dirty-app-api-changes-user-owned-before-merging-optionall | P2 | open | Next Steps | Next: evaluate existing dirty app/api changes (user-owned) before merging; optionally rerun Playwright once environment stabilizes. | Doc-only |
@@ -1423,10 +1423,10 @@
 | TASK-0092 | P2 | open | Next Steps | Gemini `Promise.resolve()` comment: **FALSE POSITIVE** (Next.js 15 uses async params, tests pass) | Next.js |
 | TASK-0091 | P2 | open | Next Steps | **Artifact Naming**: Colons in artifact names rejected by GitHub Actions | Doc-only |
 | TASK-0090 | P2 | open | Next Steps | **Test Runner Failure**: Drift Guard detects non-canonical roles in seed scripts | Doc-only |
-| TASK-0089 | P2 | open | Next Steps | **Client Test (2/2) Failure**: `export-worker.process.test.ts` requires Redis config (REDIS_URL/REDIS_KEY) | export-worker.process.test.ts |
+| TASK-0089 | P2 | open | Next Steps | **Client Test (2/2) Failure**: `export-worker.process.test.ts` requires MongoDB config (MONGODB_URI) | export-worker.process.test.ts |
 | L19-21 | P2 | open | Next Steps | Animation Presets: `lib/theme/useAnimation.ts` L19-21 adds types; L453-464 adds presets | lib/theme/useAnimation.ts |
 | L17-35 | P2 | open | Next Steps | RTL: `styles/animations.css` L17-35 defines CSS vars; L86-109 defines RTL-aware keyframes; L682-693 defines utility classes | styles/animations.css |
-| TASK-0088 | P2 | open | Next Steps | Missing REDIS_URL/REDIS_KEY in CI | Doc-only |
+| TASK-0088 | P2 | open | Next Steps | Missing MONGODB_URI in CI | Doc-only |
 | TASK-0087 | P2 | open | Next Steps | 218 translation keys missing in en.json/ar.json | en.json/ar.js |
 | TASK-0086 | P2 | open | Next Steps | ❌ FAIL | Doc-only |
 | TASK-0085 | P2 | open | Next Steps | **After:** Drift check passes, all seed scripts use env vars, roles match CANONICAL_ROLES | Doc-only |
@@ -1449,20 +1449,20 @@
 | TASK-0067 | P2 | open | Next Steps | `--changed` flag + local `ai/` folder conflicts with `ai` npm package | Doc-only |
 | TASK-0066 | P2 | open | Next Steps | Test Runner - should pass after index fix | Doc-only |
 | TASK-0065 | P2 | open | Next Steps | Route Quality - should pass after nav path fix | Doc-only |
-| TASK-0064 | P2 | open | Next Steps | QA workflow - should pass after Redis removal | Doc-only |
+| TASK-0064 | P2 | open | Next Steps | QA workflow - should pass after MongoDB removal | Doc-only |
 | TASK-0063 | P2 | open | Next Steps | `app/api/help/ask/route.ts` — Updated import path | app/api/help/ask/route.ts |
 | TASK-0062 | P2 | open | Next Steps | `scripts/kb-change-stream.ts` — Updated import path | scripts/kb-change-stream.ts |
 | TASK-0061 | P2 | open | Next Steps | `kb/ingest.ts` — Updated import path | kb/ingest.ts |
 | TASK-0060 | P2 | open | Next Steps | `.github/workflows/e2e-tests.yml` — Quoted $GITHUB_OUTPUT | .github/workflows/e2e-tests.yml |
 | TASK-0059 | P2 | open | Next Steps | ✅ **AI folder conflict** - Renamed to lib/ai-embeddings | Doc-only |
 | TASK-0058 | P2 | open | Next Steps | ✅ **Tap Payments** - Kept strict (payment infrastructure) | Doc-only |
-| TASK-0057 | P2 | open | Next Steps | ✅ **Redis** - Removed entirely from check-critical-env.ts (not just skipped) | check-critical-env.ts |
+| TASK-0057 | P2 | open | Next Steps | ✅ **MongoDB** - Removed entirely from check-critical-env.ts (not just skipped) | check-critical-env.ts |
 | TASK-0056 | P2 | open | Next Steps | Announce complete | Doc-only |
 | TASK-0055 | P2 | open | Next Steps | `lib/mongo.ts` — Top-level await fix | lib/mongo.ts |
 | TASK-0054 | P2 | open | Next Steps | `lib/ai-embeddings/embeddings.ts` — Renamed from ai/ | lib/ai-embeddings/embeddings.ts |
 | TASK-0053 | P2 | open | Next Steps | `lib/db/collections.ts` — Index sparse+partial fix | lib/db/collections.ts |
 | TASK-0052 | P2 | open | Next Steps | `scripts/check-nav-routes.ts` — Route group mappings | scripts/check-nav-routes.ts |
-| TASK-0051 | P2 | open | Next Steps | `scripts/ci/check-critical-env.ts` — Redis removed, Tap Vercel-aware | scripts/ci/check-critical-env.ts |
+| TASK-0051 | P2 | open | Next Steps | `scripts/ci/check-critical-env.ts` — MongoDB removed, Tap Vercel-aware | scripts/ci/check-critical-env.ts |
 | TASK-0050 | P2 | open | Next Steps | `.github/workflows/qa.yml` — Heap memory increase | .github/workflows/qa.yml |
 | TASK-0049 | P2 | open | Next Steps | `.github/workflows/route-quality.yml` — RTL smoke auth secrets | .github/workflows/route-quality.yml |
 | TASK-0048 | P2 | open | Next Steps | `tests/i18n-scan.mjs` — Error boundary exclusions | tests/i18n-scan.mjs |
@@ -1512,7 +1512,7 @@
 | ISSUE-1767168814769 | P2 | open | Logic Errors | Audit logs page size selection ignored in fetch and range | app/(fm)/admin/audit-logs/page.tsx:121-179 |
 | PERF-0003 | P2 | open | Bugs | \| db.collection() calls \| 📋 LOGGED \| 37 calls in 25 API files bypass Mongoose. Estimated 24h. Needs delegation \| | db.c |
 | PR-537 | P2 | open | Bugs | 1 | docs/PENDING_MASTER.md |
-| PERF-004 | P2 | open | Efficiency | \| PERF-004 \| Sequential notifications \| app/api/admin/notifications/send/route.ts \| 1000├ù3 = 3000 API calls \| Use batch APIs, queue with BullMQ \| ΓÅ│ TODO \| | app/api/admin/notifications/send/route.ts |
+| PERF-004 | P2 | open | Efficiency | \| PERF-004 \| Sequential notifications \| app/api/admin/notifications/send/route.ts \| 1000├ù3 = 3000 API calls \| Use batch APIs, queue with in-memory jobs \| ΓÅ│ TODO \| | app/api/admin/notifications/send/route.ts |
 | PERF-003 | P2 | open | Bugs | 2. Timer cleanup (8h) → PERF-003 | Doc-only |
 | BUG-009 | P2 | open | Bugs | Uncaught JSON.parse | app/api/webhooks/sendgrid/route.ts:82 |
 | EFF-005 | P2 | open | Bugs | \| EFF-005 \| Hooks in wrong directories \| lib/fm/use*.ts, components/**/use*.tsx \| Inconsistent organization \| Move to hooks/ directory \| ΓÅ│ TODO \| | docs/PENDING_MASTER.md:23432 |
@@ -2337,7 +2337,7 @@
 | DOC-DOC-102 | P3 | open | Bugs | DOC-102 — Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware) — P1, Effort: M | docs/PENDING_MASTER.md:7380 |
 | db-sync-pending-json-prepared-docs-backlog-audit-documentation-json-awaiting-dev-server-for-import-bugs-docs-backlog-audit-documentation-jso | P3 | open | Bugs | **DB Sync:** PENDING (JSON prepared: docs/BACKLOG_AUDIT_DOCUMENTATION.json — awaiting dev server for import) | docs/BACKLOG_AUDIT_DOCUMENTATION.json |
 | context-feat-mongodb-backlog-tracker-904bc59d8-systematic-documentation-gap-analysis-bugs-docs-pending-master-md-7365 | P3 | open | Bugs | **Context:** feat/mongodb-backlog-tracker \| 904bc59d8 \| Systematic documentation gap analysis | docs/PENDING_MASTER.md:7365 |
-| error-enotfound-dns-resolution-failed-for-invalid-missing-redis-url-bugs-docs-pending-master-md-7257 | P3 | open | Bugs | Error: `ENOTFOUND` - DNS resolution failed for invalid/missing REDIS_URL | docs/PENDING_MASTER.md:7257 |
+| error-enotfound-dns-resolution-failed-for-invalid-missing-mongodb-url-bugs-docs-pending-master-md-7257 | P3 | open | Bugs | Error: `ENOTFOUND` - DNS resolution failed for invalid/missing MONGODB_URL | docs/PENDING_MASTER.md:7257 |
 | prevents-missing-index-errors-during-sentry-sourcemap-uploads-bugs-docs-pending-master-md-7226 | P3 | open | Bugs | ✅ Prevents missing index errors during Sentry sourcemap uploads | docs/PENDING_MASTER.md:7226 |
 | risk-missing-required-indexes-before-build-deploy-could-cause-runtime-failures-bugs-docs-pending-master-md-7193 | P3 | open | Bugs | Risk: Missing required indexes before build/deploy could cause runtime failures | docs/PENDING_MASTER.md:7193 |
 | monitor-for-typescript-regressions-in-queue-infrastructure-bugs-docs-pending-master-md-7100 | P3 | open | Bugs | Monitor for TypeScript regressions in queue infrastructure | docs/PENDING_MASTER.md:7100 |
@@ -2410,7 +2410,7 @@
 | infra-sentry-q1-2026-activate-sentry-needs-dsn-logic-errors-docs-pending-master-md-3477 | P3 | open | Logic Errors | INFRA-SENTRY → Q1 2026: Activate Sentry (needs DSN) | docs/PENDING_MASTER.md:3477 |
 | context-fix-tenant-scope-and-test-hygiene-commit-pending-next-steps-docs-pending-master-md-2881 | P3 | open | Next Steps | **Context:** fix/tenant-scope-and-test-hygiene \| Commit: pending | docs/PENDING_MASTER.md:2881 |
 | status-review-pending-awaiting-new-coderabbit-review-after-fixes-next-steps-docs-pending-master-md-2794 | P3 | open | Next Steps | **Status:** REVIEW_PENDING - Awaiting new CodeRabbit review after fixes | docs/PENDING_MASTER.md:2794 |
-| redis-not-configured-missing-redis-url-redis-key-in-ci-add-ci-secrets-for-redis-next-steps-docs-pending-master-md-2754 | P3 | open | Next Steps | \| Redis Not Configured \| Missing REDIS_URL/REDIS_KEY in CI \| Add CI secrets for Redis \| | docs/PENDING_MASTER.md:2754 |
+| mongodb-not-configured-missing-mongodb-url-mongodb-key-in-ci-add-ci-secrets-for-mongodb-next-steps-docs-pending-master-md-2754 | P3 | open | Next Steps | \| MongoDB Not Configured \| Missing MONGODB_URI in CI \| Add CI secrets for MongoDB \| | docs/PENDING_MASTER.md:2754 |
 | missing-i18n-keys-218-translation-keys-missing-in-en-json-ar-json-add-translations-next-steps-en-json-ar-json | P3 | open | Next Steps | \| Missing i18n Keys \| 218 translation keys missing in en.json/ar.json \| Add translations \| | en.json/ar.json |
 | fixzit-quality-gates-fail-pre-existing-218-missing-i18n-keys-next-steps-docs-pending-master-md-2743 | P3 | open | Next Steps | \| Fixzit Quality Gates \| ❌ FAIL \| Pre-existing: 218 missing i18n keys \| | docs/PENDING_MASTER.md:2743 |
 | pnpm-scan-i18n-0-missing-en-0-missing-ar-was-218-next-steps-docs-pending-master-md-2645 | P3 | open | Next Steps | pnpm scan:i18n  # ✅ 0 missing EN, 0 missing AR (was 218) | docs/PENDING_MASTER.md:2645 |
@@ -2736,7 +2736,7 @@
 | open-0-bugs-doc-only | P3 | open | Bugs | \| 🔴 Open \| **0** \| | Doc-only |
 | todo-fixme-inventory-17-items-bugs-doc-only | P3 | open | Bugs | **TODO/FIXME Inventory (17 items):** | Doc-only |
 | todos-documented-17-items-bugs-doc-only | P3 | open | Bugs | \| TODOs documented \| 17 items \| | Doc-only |
-| redis-not-configured-missing-redis-url-redis-key-in-ci-add-ci-secrets-for-redis- | P3 | open | Bugs | \| Redis Not Configured \| Missing REDIS_URL/REDIS_KEY in CI \| Add CI secrets for Redis \| | Doc-only |
+| mongodb-not-configured-missing-mongodb-url-mongodb-key-in-ci-add-ci-secrets-for-mongodb- | P3 | open | Bugs | \| MongoDB Not Configured \| Missing MONGODB_URI in CI \| Add CI secrets for MongoDB \| | Doc-only |
 | missing-i18n-keys-218-translation-keys-missing-in-en-json-ar-json-add-translatio | P3 | open | Bugs | \| Missing i18n Keys \| 218 translation keys missing in en.json/ar.json \| Add translations \| | en.json/ar.js |
 | 2b6012da7-missing-i18n-keys-218-added-bugs-doc-only | P3 | open | Bugs | \| `2b6012da7` \| Missing i18n keys (218) \| ✅ Added \| | Doc-only |
 | vercel-awaiting-needs-project-access-bugs-doc-only | P3 | open | Bugs | \| ⏳ Vercel \| AWAITING \| Needs project access \| | Doc-only |
@@ -2872,3 +2872,5 @@
 
 ## Resolved Issues (Count Only)
 Total resolved/closed/wont_fix: 22
+
+

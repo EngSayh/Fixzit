@@ -22,7 +22,7 @@
 **Files Created:**
 - `server/models/SMSMessage.ts` - Message model with status tracking
 - `server/models/SMSSettings.ts` - SLA configuration model
-- `lib/queues/sms-queue.ts` - BullMQ-based queue with retry
+- `lib/queues/sms-queue.ts` - in-memory queue with retry
 - `app/api/admin/sms/route.ts` - Superadmin SMS dashboard API
 - `app/api/admin/sms/settings/route.ts` - SLA settings API
 
@@ -165,3 +165,5 @@ The following items were identified but deferred for future PRs:
 
 **Report Generated**: 2025-12-08  
 **Commit SHA**: 7f5a8d274
+
+

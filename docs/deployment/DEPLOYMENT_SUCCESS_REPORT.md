@@ -262,13 +262,13 @@ vercel env add OPENAI_API_KEY production
 vercel --prod --yes  # Redeploy
 ```
 
-### 3. Configure Redis (Optional)
+### 3. Configure MongoDB (Optional)
 
 **Current**: In-memory budget tracking  
 **To Enable**:
 
-- Set up Redis instance (Upstash recommended)
-- Add `REDIS_URL` environment variable
+- Set up MongoDB instance (Upstash recommended)
+- Add `MONGODB_URL` environment variable
 - Redeploy
 
 ### 4. Restrict MongoDB Access (Security)
@@ -329,7 +329,7 @@ vercel --prod --yes  # Redeploy
 2. Add OPENAI_API_KEY for AI features
 3. Set up production monitoring (Sentry already configured)
 4. Review and restrict MongoDB IP allowlist
-5. Configure Redis for production workloads
+5. Configure MongoDB for production workloads
 6. Set up custom domain analytics
 7. Enable Vercel Speed Insights
 

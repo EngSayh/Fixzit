@@ -81,7 +81,8 @@ export default function SuperadminUserDetailPage() {
   // Pagination
   const [auditPagination, setAuditPagination] = useState<Pagination | null>(null);
   const [auditPage, setAuditPage] = useState(1);
-  const [errorPage, _setErrorPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- errorPage for future error log pagination
+  const [errorPage, setErrorPage] = useState(1);
 
   // Filters for Activity Tab
   const [activitySearch, setActivitySearch] = useState("");

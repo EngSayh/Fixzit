@@ -36,7 +36,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "pm:plans:get" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "pm:plans:get" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let orgId: string;
   try {
     const user = await getSessionUser(request);
@@ -94,7 +96,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "pm:plans:patch" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "pm:plans:patch" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let orgId: string;
   try {
     const user = await getSessionUser(request);
@@ -184,7 +188,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "pm:plans:delete" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "pm:plans:delete" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let orgId: string;
   try {
     const user = await getSessionUser(request);

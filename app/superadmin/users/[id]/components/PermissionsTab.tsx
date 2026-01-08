@@ -58,7 +58,7 @@ export function PermissionsTab({ modulesAccess, userRole }: PermissionsTabProps)
           {t("user.permissions.title", "Module Permissions")}
         </CardTitle>
         <CardDescription>
-          {t("user.permissions.description", `Access permissions for role: ${userRole}`)}
+          {t("user.permissions.description", { role: userRole })}
         </CardDescription>
       </CardHeader>
       <CardContent>

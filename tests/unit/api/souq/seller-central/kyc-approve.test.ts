@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Tests for Souq Seller KYC Approve API
  * @route POST /api/souq/seller-central/kyc/approve
  */

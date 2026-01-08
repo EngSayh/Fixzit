@@ -179,15 +179,15 @@ return NextResponse.json(categories, {
   },
 });
 
-// 2. Implement Redis caching for counters
+// 2. Implement in-memory caching for counters
 // lib/cache/counters.ts:
 export async function getCachedCounters(orgId: string) {
   const cacheKey = `counters:${orgId}`;
-  const cached = await redis.get(cacheKey);
+  const cached = await mongodb.get(cacheKey);
   if (cached) return JSON.parse(cached);
   
   const counters = await fetchCounters(orgId);
-  await redis.setex(cacheKey, 300, JSON.stringify(counters)); // 5 min TTL
+  await mongodb.setex(cacheKey, 300, JSON.stringify(counters)); // 5 min TTL
   return counters;
 }
 

@@ -44,7 +44,7 @@ interface ExportJob {
 }
 
 export default function SuperadminImportExportPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [exportFormat, setExportFormat] = useState<string>("json");
   const [exporting, setExporting] = useState(false);
@@ -118,7 +118,7 @@ export default function SuperadminImportExportPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString(locale ?? "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="p-6 space-y-6">

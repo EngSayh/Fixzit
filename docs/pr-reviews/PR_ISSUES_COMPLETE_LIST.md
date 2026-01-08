@@ -212,7 +212,7 @@
 **Severity**: LOW (Known limitation)  
 **Location**: middleware.ts  
 **Problem**: Rate limiting uses in-memory Map - not shared across instances in multi-instance deployments  
-**Fix Required**: Document as best-effort defense-in-depth OR implement distributed rate limiting (Redis/Upstash)
+**Fix Required**: Document as best-effort defense-in-depth OR implement distributed rate limiting (MongoDB/Upstash)
 
 ---
 

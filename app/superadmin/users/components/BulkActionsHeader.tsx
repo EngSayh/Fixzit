@@ -127,7 +127,7 @@ export function BulkActionsHeader({
               title={t("superadmin.users.bulkActions", `Bulk actions for ${selectedCount} selected users`)}
             >
               <MoreHorizontal className="h-4 w-4 me-2" />
-              Bulk Actions ({selectedCount})
+              {t("superadmin.users.bulkActionsButton", { count: selectedCount })}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-muted border-input">
@@ -136,14 +136,14 @@ export function BulkActionsHeader({
               className="text-muted-foreground hover:bg-muted/80"
             >
               <Edit className="h-4 w-4 me-2" />
-              Change Status
+              {t("superadmin.users.changeStatus", "Change Status")}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={onSendNotification}
               className="text-muted-foreground hover:bg-muted/80"
             >
               <Bell className="h-4 w-4 me-2" />
-              Send Notification
+              {t("superadmin.users.sendNotification", "Send Notification")}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-input" />
             <DropdownMenuItem 
@@ -151,7 +151,7 @@ export function BulkActionsHeader({
               className="text-red-400 hover:bg-muted/80"
             >
               <Trash2 className="h-4 w-4 me-2" />
-              Delete Users
+              {t("superadmin.users.deleteUsers", "Delete Users")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -177,7 +177,7 @@ export function BulkActionsHeader({
         title={t("superadmin.users.createUser", "Create new user")}
       >
         <UserPlus className="h-4 w-4 me-2" />
-        Create User
+        {t("superadmin.users.createUser", "Create User")}
       </Button>
       <Button
         variant="outline"
@@ -189,7 +189,7 @@ export function BulkActionsHeader({
         title={t("common.refresh", "Refresh users list")}
       >
         <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
-        Refresh
+        {t("common.refresh", "Refresh")}
       </Button>
     </div>
   );

@@ -37,7 +37,6 @@ services:
     networks:
       - fixzit-network
 
-  # Redis for Sessions and Caching
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine

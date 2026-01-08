@@ -58,7 +58,9 @@ interface UserRowProps {
 
 function formatDate(dateStr?: string, locale: string = "en-US"): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString(locale, {
+  // Map to proper BCP 47 locale tag for Arabic (Saudi Arabia)
+  const localeTag = locale === "ar" ? "ar-SA" : locale;
+  return new Date(dateStr).toLocaleDateString(localeTag, {
     year: "numeric",
     month: "short",
     day: "numeric",

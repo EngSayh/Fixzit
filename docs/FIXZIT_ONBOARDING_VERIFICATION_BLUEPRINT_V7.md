@@ -2,7 +2,7 @@
 ## Final Consolidated Blueprint – MongoDB Atlas / Mongoose (v10)
 
 **Status:** Final, copy-paste-ready, MongoDB + Mongoose aligned  
-**Stack:** Node.js, Express, MongoDB Atlas (Mongoose), S3 (pre-signed), Redis + BullMQ, React/TS  
+**Stack:** Node.js, Express, MongoDB Atlas (Mongoose), S3 (pre-signed), in-memory queue, React/TS  
 **Design System:** Primary `#0061A8`, success `#00A859`, accent `#FFB400`, spacing 24–32px, RTL + dark supported  
 **Governance:** STRICT v4/V5
 
@@ -12,7 +12,7 @@
 
 Deliver production-ready onboarding and guidance for Fixzit:
 - **OnboardingCase** for roles: CUSTOMER (corporate admin), PROPERTY_OWNER, TENANT, VENDOR, AGENT.
-- **Verification (KYC/KYB):** DocumentType, DocumentProfile, VerificationDocument, VerificationLog; S3 pre-signed uploads; OCR via BullMQ; expiry tracking; API gating with escalation in 403.
+- **Verification (KYC/KYB):** DocumentType, DocumentProfile, VerificationDocument, VerificationLog; S3 pre-signed uploads; OCR via in-memory queue; expiry tracking; API gating with escalation in 403.
 - **FTUE Tutorials:** role-based react-joyride, completion on OnboardingCase, replayable.
 - **Help & Escalation:** Help/Support under profile; role/context-aware KB; Access Denied shows required role + “Ask for Access” ticket to highest access role (Owner / Corporate Admin / Marketplace Admin).
 - **Admin Refactor:** AdminModule with UsersTab, RolesTab, OnboardingTab (queue), AuditTab, SettingsTab.
@@ -26,7 +26,7 @@ Deliver production-ready onboarding and guidance for Fixzit:
 - Node.js + Express
 - MongoDB Atlas + Mongoose
 - S3 (pre-signed URLs) for documents
-- Redis + BullMQ: `ocr` queue (OCR jobs), `expiry` queue (nightly expiry scans)
+- in-memory queue: `ocr` queue (OCR jobs), `expiry` queue (nightly expiry scans)
 
 ### 2.2 Frontend
 - React / Next.js + TypeScript
@@ -893,6 +893,8 @@ export default OnboardingWizard;
 ---
 
 ## 11. Quick Install & Env
-- `npm i mongoose @aws-sdk/client-s3 @aws-sdk/s3-request-presigner bullmq`
-- `.env` requirements: `MONGODB_ATLAS_URI`, `S3_BUCKET`, `AWS_REGION`, Redis connection, `OCR_QUEUE_NAME`, `EXPIRY_QUEUE_NAME`.
-- Add OCR worker + expiry worker (BullMQ) per queues declared in the app.
+- `npm i mongoose @aws-sdk/client-s3 @aws-sdk/s3-request-presigner`
+- `.env` requirements: `MONGODB_ATLAS_URI`, `S3_BUCKET`, `AWS_REGION`, MongoDB connection, `OCR_QUEUE_NAME`, `EXPIRY_QUEUE_NAME`.
+- Add OCR worker + expiry worker (in-memory queue) per queues declared in the app.
+
+

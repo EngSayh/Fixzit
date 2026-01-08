@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         { $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }] },
         ...(orgUserFilter ? [orgUserFilter] : []),
       ],
-    };
+    } as Record<string, unknown>;
     const claims = await SouqClaim.find(claimQuery).lean();
 
     if (claims.length === 0) {
@@ -188,14 +188,13 @@ export async function POST(request: NextRequest) {
       .filter((id) => Types.ObjectId.isValid(id))
       .map((id) => new Types.ObjectId(id));
     
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: baseOrgScope contains org filter
     const orders = await SouqOrder.find({
       ...baseOrgScope,
       $or: [
         { orderId: { $in: orderIdStrings } }, // Primary: match by orderId string field
         ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []), // Fallback: match by _id
       ],
-    }).lean();
+    } as Record<string, unknown>).lean();
     
     // 🔐 FIX: Map by BOTH orderId and _id to handle both lookup patterns
     const orderMap = new Map<string, IOrder>();

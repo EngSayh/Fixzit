@@ -37,7 +37,7 @@
 ### Optional Tools
 
 - **Docker**: v24.0 or higher (for containerized deployment)
-- **Redis**: v7.0 or higher (for caching and background jobs)
+- **MongoDB**: v7.0 or higher (for caching and background jobs)
 - **PM2**: v5.0 or higher (for process management on traditional hosting)
 
 ### System Requirements
@@ -1349,7 +1349,7 @@ rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
 
 ### 3. Caching Strategy
 
-- Redis for session storage
+- MongoDB for session storage
 - Cache API responses
 - Use stale-while-revalidate
 - Implement service worker

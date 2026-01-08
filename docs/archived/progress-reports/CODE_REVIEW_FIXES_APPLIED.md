@@ -44,7 +44,7 @@ const results = await Promise.allSettled([
 
 ```typescript
 /**
- * ARCHITECTURAL NOTE: For enterprise scale, offload to background queue (BullMQ/Redis/SQS)
+ * ARCHITECTURAL NOTE: For enterprise scale, offload to background queue (in-memory queue / external queue service like SQS)
  * to decouple notification dispatch from API response time
  */
 ```
@@ -424,7 +424,7 @@ pnpm add i18next react-i18next
 - [ ] Configure NEXT_PUBLIC_APP_URL environment variable
 - [ ] Implement MongoDB saveNotification hook
 - [ ] Test all channels end-to-end
-- [ ] Add background queue (BullMQ) for enterprise scale
+- [ ] Add background queue (in-memory queue) for enterprise scale
 - [ ] Replace i18n fallback with actual i18next
 
 ---
@@ -461,3 +461,4 @@ For questions about the implementation:
 - See `FM_NOTIFICATION_ENGINE_IMPLEMENTATION.md` for integration guide
 - Check inline code comments for architectural decisions
 - Refer to this document for before/after comparisons
+

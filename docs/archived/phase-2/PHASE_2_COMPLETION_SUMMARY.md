@@ -307,7 +307,7 @@ All external modifications appear to be enhancements or formatting changes. API 
 - [✅] Parallel queries with Promise.all
 - [✅] Proper indexing (MongoDB default + custom)
 - [✅] .lean() for read-only operations
-- [⚠️] Redis caching (recommended for analytics)
+- [⚠️] in-memory caching (recommended for analytics)
 - [✅] Response compression (Next.js default)
 
 **Performance Score**: ⭐⭐⭐⭐ **4/5 (Very Good)**
@@ -354,7 +354,7 @@ All external modifications appear to be enhancements or formatting changes. API 
 
 ### Areas for Future Enhancement 🔄
 
-1. **Caching Strategy**: Implement Redis for analytics (15-min TTL)
+1. **Caching Strategy**: Implement MongoDB for analytics (15-min TTL)
 2. **Rate Limiting**: Add per-user/IP limits on POST endpoints
 3. **Monitoring**: Add APM (Application Performance Monitoring)
 4. **Load Testing**: Validate performance under 50+ concurrent users
@@ -456,7 +456,7 @@ git push origin main
 
 #### Week 3-4: Performance
 
-1. Implement Redis caching for analytics
+1. Implement in-memory caching for analytics
 2. Add rate limiting middleware
 3. Optimize slow queries (if any found)
 4. Add CDN for static assets

@@ -565,8 +565,8 @@ grep -r "enforceRateLimit" app/api/
 # Verify rate limit configuration
 cat lib/middleware/rate-limit.ts
 
-# Check Redis connection (if using Redis backend)
-redis-cli ping
+# Check MongoDB connection (if using MongoDB backend)
+mongodb-cli ping
 ```
 
 #### CORS Tests Fail

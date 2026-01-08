@@ -55,7 +55,8 @@ const UpdateLeadSchema = z.object({
  * List leads with filters and pagination
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "leads:list" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "leads:list" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();
@@ -130,7 +131,8 @@ export async function GET(request: NextRequest) {
  * Create new lead from property inquiry
  */
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "leads:create" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "leads:create" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();
@@ -227,7 +229,8 @@ export async function POST(request: NextRequest) {
  * Update lead status, priority, or assignment
  */
 export async function PATCH(request: NextRequest) {
-  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "leads:update" });
+  const rateLimitResponse = enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "leads:update" });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const session = await auth();
@@ -276,8 +279,12 @@ export async function PATCH(request: NextRequest) {
     if (notes) update.notes = notes;
     if (next_follow_up) update.next_follow_up = new Date(next_follow_up);
 
-    // Update lead
-    const lead = await SouqLead.findByIdAndUpdate(id, update, { new: true });
+    // Update lead with tenant scope to prevent TOCTOU (CodeRabbit review)
+    const lead = await SouqLead.findOneAndUpdate(
+      { _id: id, org_id: tenantId },
+      update,
+      { new: true }
+    );
 
     // Log activity for status change
     if (status && status !== existingLead.status) {

@@ -500,7 +500,10 @@ export async function detectUtilityAnomalies(
           percentageIncrease: "$analytics.percentageChange",
         },
       },
-    ])
+      // PERF-AGG-001: Sort by severity and limit to prevent memory exhaustion
+      { $sort: { percentageIncrease: -1 } },
+      { $limit: 100 },
+    ], { maxTimeMS: 10_000 })
     .toArray();
 
   return result.map((item) => ({

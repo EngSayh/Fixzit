@@ -121,7 +121,7 @@
 
 ### 5.2 Caching Layer
 - [ ] Cache static taxonomies (categories, brands, roles)
-- [ ] Implement Redis caching for hot queries
+- [ ] Implement in-memory caching for hot queries
 - [ ] Add cache invalidation hooks
 - [ ] Add cache hit/miss metrics
 
@@ -231,7 +231,7 @@
 
 ### 10.3 Health Dashboards
 - [ ] Create MongoDB health endpoint
-- [ ] Create Redis health endpoint
+- [ ] Create MongoDB health endpoint
 - [ ] Add system status page
 - [ ] Add incident response runbook
 

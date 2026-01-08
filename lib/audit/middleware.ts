@@ -362,4 +362,96 @@ export async function createAuditLog(
   }
 }
 
+// ============================================================================
+// PII Sanitization for Audit Log Responses (PR-678-010)
+// ============================================================================
+
+/**
+ * Sensitive field patterns that should be redacted in audit log responses.
+ * These fields may contain PII, credentials, or other sensitive data.
+ */
+const SENSITIVE_FIELD_PATTERNS = [
+  "password",
+  "passwordHash",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "secret",
+  "apiKey",
+  "creditCard",
+  "cardNumber",
+  "cvv",
+  "ssn",
+  "iqamaNumber",
+  "nationalId",
+  "bankAccount",
+  "iban",
+];
+
+/**
+ * Redact a single value if it's a sensitive field
+ */
+function redactValue(key: string, value: unknown): unknown {
+  const lowerKey = key.toLowerCase();
+  for (const pattern of SENSITIVE_FIELD_PATTERNS) {
+    if (lowerKey.includes(pattern.toLowerCase())) {
+      return "[REDACTED]";
+    }
+  }
+  return value;
+}
+
+/**
+ * Recursively sanitize an object, redacting sensitive fields
+ */
+function sanitizeObject(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  if (typeof obj !== "object") return obj;
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (typeof value === "object" && value !== null) {
+      result[key] = sanitizeObject(value);
+    } else {
+      result[key] = redactValue(key, value);
+    }
+  }
+  return result;
+}
+
+/**
+ * Sanitize audit log entries before returning in API responses.
+ * Redacts sensitive PII/credential fields from changes, metadata, and snapshots.
+ * 
+ * @param logs - Array of audit log entries from database
+ * @returns Sanitized logs with sensitive fields redacted
+ */
+export function sanitizeAuditLogs(logs: Record<string, unknown>[]): Record<string, unknown>[] {
+  return logs.map((log) => {
+    const sanitized: Record<string, unknown> = { ...log };
+    
+    // Sanitize changes array
+    if (Array.isArray(sanitized.changes)) {
+      sanitized.changes = (sanitized.changes as Record<string, unknown>[]).map((change) => ({
+        ...change,
+        oldValue: change.field ? redactValue(change.field as string, change.oldValue) : change.oldValue,
+        newValue: change.field ? redactValue(change.field as string, change.newValue) : change.newValue,
+      }));
+    }
+    
+    // Sanitize snapshot
+    if (sanitized.snapshot && typeof sanitized.snapshot === "object") {
+      sanitized.snapshot = sanitizeObject(sanitized.snapshot);
+    }
+    
+    // Sanitize metadata
+    if (sanitized.metadata && typeof sanitized.metadata === "object") {
+      sanitized.metadata = sanitizeObject(sanitized.metadata);
+    }
+    
+    return sanitized;
+  });
+}
+
 export default auditLogMiddleware;

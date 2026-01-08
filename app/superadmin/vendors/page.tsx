@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n/useI18n";
+import { formatDateLocale } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +59,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function SuperadminVendorsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,7 +97,8 @@ export default function SuperadminVendorsPage() {
 
   const handleSearch = () => { setPage(1); fetchVendors(); };
   const handleViewVendor = (vendor: Vendor) => { setSelectedVendor(vendor); setViewDialogOpen(true); };
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  // Use centralized formatDateLocale for consistency (CodeRabbit review)
+  const formatDate = (dateStr: string) => formatDateLocale(dateStr, locale ?? "en-US");
   const stats = { total: vendors.length, active: vendors.filter(v => v.status === "ACTIVE").length, avgRating: vendors.filter(v => v.rating).reduce((sum, v) => sum + (v.rating?.average || 0), 0) / (vendors.filter(v => v.rating).length || 1) };
 
   return (

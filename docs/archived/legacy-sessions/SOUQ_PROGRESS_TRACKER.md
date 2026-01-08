@@ -36,8 +36,8 @@ Overall System Progress      [██████████████░░�
 | **Core Models**        | ✅ 100% | 10 models in `server/models/souq/`  | All business entities                  |
 | **Buy Box Algorithm**  | ✅ 100% | `services/souq/buybox-service.ts`   | Scoring + eligibility                  |
 | **Basic APIs**         | ✅ 100% | 13 routes in `app/api/souq/`        | CRUD operations                        |
-| **Redis Client**       | ✅ 100% | `lib/redis-client.ts`               | Cache + rate limiting (280 LOC)        |
-| **BullMQ Setup**       | ✅ 100% | `lib/queues/setup.ts`               | 9 queues defined (340 LOC)             |
+| **MongoDB Client**       | ✅ 100% | `lib/mongodb-client.ts`               | Cache + rate limiting (280 LOC)        |
+| **in-memory queue Setup**       | ✅ 100% | `lib/queues/setup.ts`               | 9 queues defined (340 LOC)             |
 | **Coupon Model**       | ✅ 100% | `server/models/souq/Coupon.ts`      | Discount engine (190 LOC)              |
 | **Q&A Models**         | ✅ 100% | `server/models/souq/QA.ts`          | Question + Answer (180 LOC)            |
 | **Advertising Models** | ✅ 100% | `server/models/souq/Advertising.ts` | Campaign/AdGroup/Ad/AdTarget (420 LOC) |
@@ -170,7 +170,7 @@ Overall System Progress      [██████████████░░�
 | - "Other offers" tab        | ⏳ Queued      | 0%         | -        | -       |
 | - API integration           | ⏳ Queued      | 0%         | -        | -       |
 | **Auto-Repricer Worker**    | ⏳ Queued      | 0%         | Backend  | Week 9  |
-| - BullMQ job                | ⏳ Queued      | 0%         | -        | -       |
+| - in-memory queue job                | ⏳ Queued      | 0%         | -        | -       |
 | - Price calculation         | ⏳ Queued      | 0%         | -        | -       |
 | - Floor/ceiling enforce     | ⏳ Queued      | 0%         | -        | -       |
 | **Event Triggers**          | ⏳ Queued      | 0%         | Backend  | Week 9  |
@@ -283,7 +283,7 @@ Overall System Progress      [██████████████░░�
 | - Admin UI                  | ⏳ Queued | 0%         | -        | -       |
 | **Payout Automation**       | ⏳ Queued | 0%         | Backend  | Week 21 |
 | - Cron scheduler            | ⏳ Queued | 0%         | -        | -       |
-| - BullMQ job                | ⏳ Queued | 0%         | -        | -       |
+| - in-memory queue job                | ⏳ Queued | 0%         | -        | -       |
 | - Idempotency               | ⏳ Queued | 0%         | -        | -       |
 | **VAT Invoice Generation**  | ⏳ Queued | 0%         | Backend  | Week 21 |
 | - ZATCA adapter             | ⏳ Queued | 0%         | -        | -       |
@@ -402,7 +402,7 @@ Overall System Progress      [██████████████░░�
 
 #### ✅ Completed
 
-- BullMQ setup (100%) ← **Just created**
+- in-memory queue setup (100%) ← **Just created**
 - Queue definitions (100%)
 
 #### 🚧 In Progress (Week 31-32)
@@ -467,7 +467,7 @@ Overall System Progress      [██████████████░░�
 
 ### ✅ Milestone 0: Foundation (Week 1)
 
-- [x] Redis + BullMQ infrastructure
+- [x] in-memory queue infrastructure
 - [x] All core models created
 - [x] Feature flags system
 - [x] Buy Box algorithm
@@ -528,8 +528,8 @@ Overall System Progress      [██████████████░░�
 
 **Completed**:
 
-- ✅ Redis client with cache & rate limiting helpers
-- ✅ BullMQ queue setup with 9 queues defined
+- ✅ MongoDB client with in-memory cache & rate limiting helpers
+- ✅ in-memory queue setup with 9 queues defined
 - ✅ Coupon model with discount calculation
 - ✅ Q&A models (Question + Answer)
 - ✅ Progress tracking document
@@ -554,3 +554,5 @@ Overall System Progress      [██████████████░░�
 **Team Size**: 3 developers (backend, frontend, fullstack)  
 **Sprint Length**: 2 weeks  
 **Current Sprint**: Sprint 1 - Foundation & Inventory
+
+

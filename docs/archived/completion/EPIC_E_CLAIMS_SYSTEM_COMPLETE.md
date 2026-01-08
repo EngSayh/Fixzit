@@ -800,9 +800,9 @@ interface Refund {
    ```
 
 2. **Caching Strategy**:
-   - Claim details (Redis, 5-minute TTL)
+   - Claim details (MongoDB, 5-minute TTL)
    - Evidence URLs (CDN, 24-hour TTL)
-   - Seller/buyer profiles (Redis, 15-minute TTL)
+   - Seller/buyer profiles (MongoDB, 15-minute TTL)
 
 3. **Background Jobs** (Cron):
    - Escalate overdue claims (every 15 minutes)
@@ -884,7 +884,7 @@ interface Refund {
 ### Prerequisites
 
 - [x] MongoDB indexes created
-- [ ] Redis cache configured
+- [ ] In-memory cache configured
 - [ ] CDN setup for evidence files
 - [ ] PayTabs API credentials (production)
 - [ ] Email service configured (SendGrid/AWS SES)
@@ -895,7 +895,7 @@ interface Refund {
 - [ ] Environment variables:
   ```
   MONGODB_URI=mongodb://...
-  REDIS_URL=redis://...
+  MONGODB_URL=mongodb://...
   PAYTABS_API_KEY=...
   PAYTABS_API_SECRET=...
   CDN_ENDPOINT=https://cdn.fixzit.com

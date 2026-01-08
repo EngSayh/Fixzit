@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ZATCA Phase 2 E-Invoicing Module
  * @module lib/zatca
  */

@@ -457,7 +457,7 @@ const schema = z.object({
 
 1. **Add rate limiting** - Now easier with centralized validation
 2. **Add request/response logging** - Middleware for all routes
-3. **Add caching layer** - Service layer ready for Redis integration
+3. **Add caching layer** - Service layer ready for MongoDB integration
 4. **Add OpenAPI docs** - Zod schemas can auto-generate OpenAPI specs
 
 ---

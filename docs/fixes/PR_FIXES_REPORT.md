@@ -10,7 +10,7 @@
 
 **Critical Fixes Applied:**
 - 🔒 **Security:** Logout now clears secure cookie variants (`__Secure-*`, `__Host-*`); admin endpoints locked down
-- 🛡️ **Reliability:** API JSON validation, CSRF token fallback, rate-limit bypass for tests; refund retries now BullMQ-backed with fallback timers
+- 🛡️ **Reliability:** API JSON validation, CSRF token fallback, rate-limit bypass for tests; refund retries now in-memory queue-backed with fallback timers
 - ✅ **Quality:** TypeScript + ESLint (max-warnings=0) clean; Playwright auth/logout E2E not executed in this offline pass
 
 **Progress:** Code + lint/typecheck complete | **Next:** Run Playwright auth/logout suite against a running app instance
@@ -37,7 +37,7 @@
   2. **Middleware security:** Removed `/api/admin/notifications/send` from public allowlist (all admin routes now require auth/x-user headers)
   3. **API reliability:** Preferences endpoint returns `400` on malformed JSON instead of crashing
   4. **Test infrastructure:** CSRF token fallback, rate-limit bypass for `PLAYWRIGHT_TESTS=true`, extended timeouts
-  5. **Refund retries:** Moved retry scheduling to BullMQ queue (`souq:refunds`) with fallback timer cleanup and worker (`pnpm refunds:worker`)
+  5. **Refund retries:** Moved retry scheduling to in-memory queue (`souq:refunds`) with fallback timer cleanup and worker (`pnpm refunds:worker`)
 
 - **✅ Validated:**
   - Playwright E2E auth/logout flows: 3/3 tests passing
@@ -64,7 +64,7 @@
 **Report:** `CODEBASE_AUDIT_FINDINGS.md` (project root)  
 **Findings:** 7 issues (5 timer leaks + 2 doc issues)  
 **Fixed:** 7 issues (3 components + 2 docs + refund retry queue + global search already correct)  
-**Deferred:** 0 (refund retry moved to BullMQ queue with fallback)  
+**Deferred:** 0 (refund retry moved to in-memory queue with fallback)  
 **Files Modified:**
 - `components/CopilotWidget.tsx` - Escalation timer cleanup
 - `components/admin/UpgradeModal.tsx` - 2 timer cleanups
@@ -611,10 +611,12 @@ Ensure these checks run in CI:
 
 ## Remaining Signals (configuration, not code bugs)
 
-- Env warnings during build: `SKIP_ENV_VALIDATION=true`, `DISABLE_MONGODB_FOR_BUILD`, missing `TAP_PUBLIC_KEY` / `TAP_WEBHOOK_SECRET`, BudgetManager Redis fallback. Resolve by setting real secrets and enabling Redis in prod/CI.
+- Env warnings during build: `SKIP_ENV_VALIDATION=true`, `DISABLE_MONGODB_FOR_BUILD`, missing `TAP_PUBLIC_KEY` / `TAP_WEBHOOK_SECRET`, BudgetManager MongoDB fallback. Resolve by setting real secrets and enabling MongoDB in prod/CI.
 - Webpack cache “big strings” info messages are non-blocking.
 
 ## Next Actions (recommended)
 
-1. Set required secrets in CI/prod: `TAP_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET`; remove `SKIP_ENV_VALIDATION` and `DISABLE_MONGODB_FOR_BUILD` for real deploys; configure Redis for BudgetManager.
+1. Set required secrets in CI/prod: `TAP_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET`; remove `SKIP_ENV_VALIDATION` and `DISABLE_MONGODB_FOR_BUILD` for real deploys; configure MongoDB for BudgetManager.
 2. (Optional) Force cache clean locally if you want noise-free builds: `rm -rf .next .next/cache` before `pnpm build`.
+
+

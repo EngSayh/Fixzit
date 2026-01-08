@@ -582,7 +582,7 @@ git push origin feat/souq-marketplace-advanced
 
 ### Non-Critical
 
-4. **Cache Strategy**: In-memory cache (should use Redis in production)
+4. **Cache Strategy**: In-memory cache (consider a centralized cache for multi-node deployments)
 5. **Real-time Updates**: No WebSocket for live helpful counts
 6. **Review Editing**: Limited to unpublished reviews only
 
