@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { BalanceOverview } from "@/components/seller/settlements/BalanceOverview";
 import { TransactionHistory } from "@/components/seller/settlements/TransactionHistory";
 import { WithdrawalForm } from "@/components/seller/settlements/WithdrawalForm";
@@ -50,7 +51,7 @@ export default function SellerSettlementsPage() {
   const handleWithdrawalSuccess = () => {
     setShowWithdrawalForm(false);
     fetchBalance();
-    alert(t("marketplace.settlements.withdrawalSuccess"));
+    toast.success(t("marketplace.settlements.withdrawalSuccess"));
   };
 
   // Check authentication and seller role

@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,7 +179,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
       });
     } catch (error) {
       logger.error("Failed to export transactions", { error });
-      alert("Failed to export data. Please try again.");
+      toast.error("Failed to export data. Please try again.");
     }
   };
 

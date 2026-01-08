@@ -6,6 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { X, AlertCircle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
@@ -40,10 +41,10 @@ export function ImpersonationBanner() {
       if (response.ok) {
         window.location.href = "/superadmin/issues";
       } else {
-        alert("Failed to clear impersonation. Please try again.");
+        toast.error("Failed to clear impersonation. Please try again.");
       }
     } catch {
-      alert("Failed to clear impersonation. Please try again.");
+      toast.error("Failed to clear impersonation. Please try again.");
     } finally {
       setIsClearing(false);
     }

@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T14:20:00+03:00
+  Last-Sync: 2026-01-08T14:45:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,64 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T14:45 (Asia/Riyadh) — Silent Bug Audit + Alert→Toast Migration [AGENT-TEMP-20260108T1405]
+
+**Agent Token:** [AGENT-TEMP-20260108T1405]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Modified (pending commit)
+
+#### Session Summary
+
+Extended silent bug audit with focus on alert() elimination and proper toast notification usage across the codebase.
+
+#### Fixes Applied
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `components/seller/settlements/SettlementStatementView.tsx` | `alert()` for download error | → `toast.error()` from sonner |
+| `components/seller/settlements/TransactionHistory.tsx` | `alert()` for export error | → `toast.error()` from sonner |
+| `components/seller/pricing/PricingRuleCard.tsx` | `alert()` for save error | → `toast.error()` from sonner |
+| `components/superadmin/ImpersonationBanner.tsx` | `alert()` for clear error | → `toast.error()` from sonner |
+| `components/SupportPopup.tsx` | Redundant `window.alert()` after toast | Removed (toast already shows) |
+| `app/(app)/dev/login-helpers/DevLoginClient.tsx` | `alert()` for login errors | → `toast.error()` from sonner |
+| `app/(app)/help/support-ticket/page.tsx` | Redundant `alert()` after setToast | Removed |
+| `app/(app)/marketplace/seller-central/analytics/page.tsx` | 4x `alert()` calls | → `toast.error()`/`toast.warning()` |
+| `app/(app)/marketplace/seller-central/settlements/page.tsx` | `alert()` for withdrawal | → `toast.success()` |
+| `app/(app)/marketplace/seller-central/pricing/page.tsx` | `alert()` for repricing | → `toast.success()` |
+| `app/(fm)/hr/leave/page.tsx` | `alert()` for status error | → `toast.error()` |
+
+#### Cleanup Performed
+
+| Category | Action |
+|----------|--------|
+| Temp JSON files | Deleted `.tmp_pr_659_meta.json`, `.tmp_pr_661_meta.json`, `tmp_bp.json` |
+| Report JSON | Deleted `duplicate-detection-report.json` |
+
+#### Review Items (No Fix Required)
+
+| Category | Finding | Justification |
+|----------|---------|---------------|
+| aws/THIRD_PARTY_LICENSES, aws/install | Mixed tabs/spaces | Third-party vendor files, not our code |
+| TODO in wallet/top-up/route.ts | Payment gateway TODO | Tracked, placeholder for future integration |
+| console.log in superadmin | Auth debugging | Justified with eslint-disable comment |
+| dangerouslySetInnerHTML | 10+ usages | All use DOMPurify via sanitizeHtml() |
+| document.write in export-utils | Print window | Safe - writes to new window for print |
+| eval in memory-kv.ts | Redis EVAL stub | Not JavaScript eval(), Redis command API |
+| Empty catches in verify.mjs | Process kill | Intentional for cleanup paths |
+| while(true) in workers | Batch processing | All have proper break conditions |
+| == null usage | Nullish check | Intentional pattern for null/undefined |
+
+#### Verification
+
+| Check | Status |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+| Git preflight | ✅ 0 behind, 90 ahead of main |
 
 ---
 

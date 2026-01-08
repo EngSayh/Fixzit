@@ -6,6 +6,7 @@
 "use client";
 
 import React from "react";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { Card } from "@/components/ui/card";
 import { Download, FileText } from "@/components/ui/icons";
@@ -121,7 +122,7 @@ export function SettlementStatementView({
         error,
         statementId: statement.statementId,
       });
-      alert("Failed to download statement. Please try again.");
+      toast.error("Failed to download statement. Please try again.");
     }
   };
 
