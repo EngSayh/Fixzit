@@ -44,7 +44,7 @@ const results = await Promise.allSettled([
 
 ```typescript
 /**
- * ARCHITECTURAL NOTE: For enterprise scale, offload to background queue (MongoDB-backed queue/SQS)
+ * ARCHITECTURAL NOTE: For enterprise scale, offload to background queue (in-memory queue / external queue service like SQS)
  * to decouple notification dispatch from API response time
  */
 ```

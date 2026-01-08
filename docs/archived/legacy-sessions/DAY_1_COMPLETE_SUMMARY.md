@@ -314,7 +314,7 @@ Target for Day 1: 40% | Actual: 48% | +8% ahead! 🎉
    - Job statistics tracking
 
 7. **✅ Caching & Performance**
-   - MongoDB caching layer
+   - in-memory caching layer
    - Rate limiting infrastructure
    - Singleton connection management
 
@@ -581,7 +581,7 @@ console.log(fees);
 ### Performance Optimizations:
 
 - ✅ MongoDB indexes on all query fields
-- ✅ MongoDB caching for hot data
+- ✅ in-memory caching for hot data
 - ✅ Efficient aggregation pipelines
 - ✅ Background job processing (non-blocking)
 

@@ -1482,7 +1482,7 @@ sh.shardCollection("fixzit.hr_employees", { orgId: 1 });
 sh.shardCollection("fixzit.hr_payslips", { orgId: 1, periodStart: 1 });
 ```
 
-**MongoDB Caching (for frequent queries):**
+**In-memory Caching (for frequent queries):**
 
 ```typescript
 // Cache employee list for 5 minutes

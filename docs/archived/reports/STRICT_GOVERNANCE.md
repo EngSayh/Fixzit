@@ -164,7 +164,7 @@
 - [ ] Middleware for request/response logging
 - [ ] RED metrics (Rate, Errors, Duration)
 
-### Lane E: MongoDB Caching - TODO
+### Lane E: In-memory Caching - TODO
 
 **Goal**: Cache hot paths with org-scoped keys  
 **Tasks**:

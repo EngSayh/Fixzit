@@ -501,7 +501,7 @@ NATS_URL=nats://localhost:4222
 ### Identified Risks
 
 1. **Infrastructure Complexity**
-   - **Risk**: 5+ new services to set up (MongoDB, Meilisearch, MinIO, NATS, in-memory queue)
+   - **Risk**: 4+ new services to set up (MongoDB, Meilisearch, MinIO, NATS) + in-memory cache/queue wiring
    - **Mitigation**: Docker Compose file provided; step-by-step guide in quick start
    - **Status**: 🟡 Medium priority
 

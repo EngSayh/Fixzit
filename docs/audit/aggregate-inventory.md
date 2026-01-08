@@ -282,7 +282,7 @@ if (isFirstStageMustBeFirst) {
 ### 📋 Future Enhancements (Optional, Low Priority)
 
 1. **Monitoring:** Add Sentry breadcrumbs for aggregate operations > 5s
-2. **Caching:** Consider MongoDB caching for frequently-accessed analytics (e.g., seller dashboard, ATS metrics)
+2. **Caching:** Consider in-memory caching for frequently-accessed analytics (e.g., seller dashboard, ATS metrics)
 3. **Indexing:** Verify compound indexes for common aggregate $match patterns:
    - `{ orgId: 1, status: 1, createdAt: -1 }`
    - `{ orgId: 1, priority: 1, effort: 1 }`

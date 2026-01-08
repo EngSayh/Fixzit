@@ -226,7 +226,7 @@ All major business entities have complete MongoDB schemas:
 
 1. **Read Replicas**: Add read replica support for better performance
 2. **Sharding**: Implement sharding strategy for horizontal scaling
-3. **Caching Layer**: Enhanced MongoDB caching for frequently accessed data
+3. **Caching Layer**: Enhanced in-memory caching for frequently accessed data
 4. **Monitoring**: APM integration for database performance tracking
 
 ---

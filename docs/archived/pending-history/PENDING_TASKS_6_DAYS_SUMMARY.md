@@ -61,7 +61,7 @@ grep "TODO\|FIXME" lib/fm-auth-middleware.ts lib/audit.ts modules/users/service.
 - ✅ Resume parser integration
 - ✅ Settings API with scoring weights
 - ✅ MongoDB indexes for performance
-- ✅ MongoDB caching layer
+- ✅ in-memory caching layer
 - ✅ Kanban board with drag-drop
 
 **Files Changed**: 20+ files in `app/ats/`, `services/ats/`  

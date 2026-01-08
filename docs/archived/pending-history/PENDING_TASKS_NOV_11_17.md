@@ -438,7 +438,7 @@ From `IMPLEMENTATION_PLAN.md` - PayTabs integration:
   - Target: <500ms for most API calls
 
 - [ ] **API Caching** (2 hours)
-  - Implement MongoDB caching layer
+  - Implement in-memory caching layer
   - Cache static data (organizations, properties)
   - Cache-Control headers for public endpoints
   - Invalidation strategy for updates

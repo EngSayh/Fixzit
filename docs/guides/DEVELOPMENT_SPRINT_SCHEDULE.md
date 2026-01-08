@@ -418,7 +418,7 @@
 1. Define OpenAPI spec
 2. Create `/api/fm/reports/assets` endpoint
 3. Implement MongoDB aggregation query
-4. Add MongoDB caching
+4. Add in-memory caching
 5. Write unit tests (90% coverage)
 6. Write integration tests
 7. Load test (100 req/min)
@@ -451,7 +451,7 @@
 2. Create `/api/fm/reports/maintenance` endpoint
 3. Implement aggregation query
 4. Calculate SLA compliance
-5. Add MongoDB caching
+5. Add in-memory caching
 6. Write unit tests
 7. Write integration tests
 
@@ -841,7 +841,7 @@
 - AWS S3 + IAM
 - MongoDB aggregation pipelines
 - REST API design
-- MongoDB caching
+- in-memory caching
 
 ---
 
@@ -949,7 +949,7 @@
 | ----------------------------- | ------------ | ----------- |
 | **AWS S3 Storage**            | $85          | $1,020      |
 | **AWS Lambda (Virus Scan)**   | $10          | $120        |
-| **MongoDB Cache (ElastiCache)** | $50          | $600        |
+| **In-memory Cache (ElastiCache)** | $50          | $600        |
 | **CloudWatch Logs**           | $20          | $240        |
 | **AWS KMS (Encryption)**      | $10          | $120        |
 | **SNS Alerts**                | $5           | $60         |

@@ -179,7 +179,7 @@ return NextResponse.json(categories, {
   },
 });
 
-// 2. Implement MongoDB caching for counters
+// 2. Implement in-memory caching for counters
 // lib/cache/counters.ts:
 export async function getCachedCounters(orgId: string) {
   const cacheKey = `counters:${orgId}`;

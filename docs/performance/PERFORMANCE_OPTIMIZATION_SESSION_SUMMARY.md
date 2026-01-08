@@ -229,7 +229,7 @@ lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-post-p
 **6. SSR Optimization** (if 90+ not reached)
 
 - Database query profiling
-- MongoDB caching implementation
+- in-memory caching implementation
 - ISR for semi-static pages
 
 ---

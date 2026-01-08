@@ -500,7 +500,7 @@ propertySchema.index({ orgId: 1 }); // ✅ Only one index definition
 
 6. ⏳ **SSR optimization** (if needed)
    - Database query optimization
-   - MongoDB caching layer
+   - in-memory caching layer
    - Expected: -0.2-0.4s LCP
 
 7. ⏳ **Additional code splitting** (if needed)
@@ -584,7 +584,7 @@ echo "TBT:" && jq '.audits["total-blocking-time"].numericValue' lighthouse-phase
 
 - [ ] Profile SSR performance with Chrome DevTools
 - [ ] Implement database query optimizations
-- [ ] Add MongoDB caching layer
+- [ ] Add in-memory caching layer
 - [ ] Run final Lighthouse audit
 - [ ] Target achieved: 90-92/100 ✅
 

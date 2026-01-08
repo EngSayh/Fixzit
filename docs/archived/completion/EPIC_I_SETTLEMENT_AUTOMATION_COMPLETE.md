@@ -280,7 +280,7 @@ Reserved = SUM(reserve_holds) - SUM(reserve_releases);
 Pending = SUM(orders in transit);
 ```
 
-**MongoDB Caching**:
+**In-memory Caching**:
 
 - Cache key: `seller:{sellerId}:balance`
 - TTL: 5 minutes
@@ -1171,7 +1171,7 @@ message: "More than 5 payouts pending for > 24 hours"
 - **Automated Payouts**: Reduce manual processing time by 90%
 - **Transparent Fees**: Clear breakdown of commissions, fees, VAT
 - **Fraud Prevention**: 7-day hold + 20% reserve system
-- **Scalability**: MongoDB caching + batch processing for 10,000+ sellers
+- **Scalability**: in-memory caching + batch processing for 10,000+ sellers
 - **Compliance**: Full audit trail + VAT calculations
 
 **Next Steps**: Proceed to Phase 2 additional features or comprehensive testing.

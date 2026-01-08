@@ -615,7 +615,7 @@ pnpm add -D @types/uuid
 4. **Implement Caching** (Medium)
    - MongoDB for work order lists
    - MongoDB for dashboard stats
-   - MongoDB for approval queues
+   - in-memory queue for approval queues
    - SWR cache on frontend (already using)
 
 ### 6.2 Feature Completions

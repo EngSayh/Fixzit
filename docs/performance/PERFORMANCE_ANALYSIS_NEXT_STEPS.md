@@ -62,7 +62,7 @@ grep "compiled successfully" /tmp/prod-server-final.log
 **If SSR is slow:**
 
 - Optimize database queries (add indexes)
-- Implement MongoDB caching for getServerSideProps
+- Implement in-memory caching for getServerSideProps
 - Consider ISR (Incremental Static Regeneration) for semi-static pages
 - Profile with Next.js built-in instrumentation
 
@@ -520,7 +520,7 @@ getTTFB(console.log);
 ### Next Sprint
 
 - [ ] Implement top 3 TBT optimization opportunities from bundle analysis
-- [ ] Add MongoDB caching for frequently accessed data
+- [ ] Add in-memory caching for frequently accessed data
 - [ ] Convert 5 heaviest components to dynamic imports
 - [ ] Set up Real User Monitoring (RUM)
 

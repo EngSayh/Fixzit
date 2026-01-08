@@ -224,7 +224,7 @@ Untracked: New documentation (expected)
 
 5. **SSR Optimization** (if needed for 90+)
    - Database query profiling
-   - MongoDB caching layer
+   - in-memory caching layer
    - ISR for semi-static pages
 
 ---

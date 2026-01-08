@@ -157,7 +157,7 @@ export const SOUQ_FEATURES = {
 - [ ] Auto-repricer worker (in-memory queue)
 - [ ] Buy Box algorithm (normalized scoring)
 - [ ] PDP: Primary Buy Box + "Other offers" tab
-- [ ] MongoDB caching (5-min TTL with invalidation)
+- [ ] in-memory caching (5-min TTL with invalidation)
 
 **Buy Box Scoring**:
 

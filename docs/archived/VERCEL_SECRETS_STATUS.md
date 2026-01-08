@@ -393,7 +393,7 @@ vercel --cwd Fixzit --prod --yes
    - Add public URLs (NEXT_PUBLIC_APP_URL, etc.)
 
 3. **This Month (Medium):**
-   - Set up MongoDB for caching
+   - Set up in-memory cache (centralized optional)
    - Configure payment gateway (if needed)
    - Add security secrets
 

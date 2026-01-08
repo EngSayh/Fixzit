@@ -256,7 +256,7 @@ echo "Login: $(jq '.categories.performance.score * 100' lighthouse-login-post-op
 
 7. **SSR Optimization**
    - Database query profiling
-   - MongoDB caching
+   - in-memory caching
    - ISR implementation
 
 ---

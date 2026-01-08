@@ -121,7 +121,7 @@
 
 ### 5.2 Caching Layer
 - [ ] Cache static taxonomies (categories, brands, roles)
-- [ ] Implement MongoDB caching for hot queries
+- [ ] Implement in-memory caching for hot queries
 - [ ] Add cache invalidation hooks
 - [ ] Add cache hit/miss metrics
 

@@ -467,7 +467,7 @@ Overall System Progress      [██████████████░░�
 
 ### ✅ Milestone 0: Foundation (Week 1)
 
-- [x] MongoDB-backed queue infrastructure
+- [x] in-memory queue infrastructure
 - [x] All core models created
 - [x] Feature flags system
 - [x] Buy Box algorithm

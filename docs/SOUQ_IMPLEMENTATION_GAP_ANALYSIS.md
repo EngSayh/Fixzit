@@ -977,7 +977,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 - Ads models (Campaign, AdGroup, Ad, AdTarget)
 - CPC auction engine
-- Budget management (MongoDB-backed queue)
+- Budget management (in-memory queue)
 - Ad placement rendering (Search, PLP, PDP)
 - Campaign management UI (Seller Central)
 - Ads reports
@@ -1045,7 +1045,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 - NATS/Kafka setup
 - Event publishers/subscribers in all services
-- MongoDB-backed queue configuration
+- in-memory queue configuration
 - All background jobs (Buy Box, repricer, settlement, inventory health)
 
 **Week 3-4: Security & Compliance**
@@ -1094,7 +1094,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
    SOUQ_FEATURE_ACCOUNT_HEALTH=true
    ```
 
-2. **Set Up MongoDB-backed queue**
+2. **Set Up in-memory queue**
    - Install dependencies: `pnpm add mongodb`
    - Configure connection: `lib/mongodb-client.ts`
    - Create first queue: Buy Box recompute

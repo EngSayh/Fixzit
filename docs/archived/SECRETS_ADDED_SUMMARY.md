@@ -75,7 +75,7 @@
 **Still Missing:** 13 secrets (optional)
 
 - Payment gateways (PayTabs/Tap - for payments)
-- MongoDB (for caching)
+- MongoDB (database)
 - Shipping integrations (optional)
 - Monitoring (Sentry, Datadog - optional)
 

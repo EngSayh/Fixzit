@@ -171,7 +171,7 @@ Lighthouse scoring weights:
 2. **Focus on LCP optimization** (biggest impact)
    - Implement SSR for homepage
    - Optimize database queries
-   - Add MongoDB caching
+   - Add in-memory caching
    - Optimize images
 
 3. **ClientLayout dynamic imports** (easy win)

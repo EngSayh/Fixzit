@@ -493,7 +493,7 @@ k6 run tests/performance/load-test.js
 
 ---
 
-### 10. MongoDB Caching Implementation 🟡
+### 10. In-memory Caching Implementation 🟡
 
 **Status**: Connection code exists, caching not implemented  
 **Time Estimate**: 6-8 hours  
@@ -1263,7 +1263,7 @@ pnpm vitest tests/integration/api.test.ts
 **Focus**: Performance and caching  
 **Time**: 30-40 hours
 
-15. **MongoDB Caching** (#10) - 6-8 hours
+15. **In-memory Caching** (#10) - 6-8 hours
     - Implement caching layer
 
 16. **CDN Configuration** (#11) - 4-6 hours

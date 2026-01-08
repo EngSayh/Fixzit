@@ -2648,7 +2648,7 @@ User said: "mongodb is removed compeletely from the system" and "we can build a 
 **Solution:**
 - Integrated with existing `healthAggregator.getSummary()` from `lib/monitoring/health-aggregator.ts`
 - Real MongoDB health check via `pingDatabase()`
-- Removed MongoDB Cache from services list (MongoDB removed from system)
+- Removed In-memory Cache from services list (MongoDB removed from system)
 - Removed all `data_source: "placeholder"` and `integration_required: true` labels
 - Real health status computed from actual service checks
 
@@ -35161,7 +35161,7 @@ curl -s https://fixzit.co/api/health
 | M.7 | Hardcoded Phone Fix | ⏳ | `services/souq/fulfillment-service.ts:250` |
 | M.8 | Console.log Phase 3 | ⏳ | ~50 app pages remaining |
 | M.9 | Bundle Size Analysis | ⏳ | Run next/bundle-analyzer |
-| M.10 | MongoDB Caching | ⏳ | Enable in production |
+| M.10 | In-memory Caching | ⏳ | Enable in production |
 
 ### Dynamic Translation Key Files (Manual Review Required)
 1. `app/fm/properties/leases/page.tsx`

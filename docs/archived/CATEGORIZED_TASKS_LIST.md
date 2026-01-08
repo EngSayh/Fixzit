@@ -487,7 +487,7 @@
 
 ### 8.4 Caching Strategy
 
-- **Action**: Implement MongoDB caching for frequently accessed data
+- **Action**: Implement in-memory caching for frequently accessed data
 - **Time**: 3-4 hours
 - **Priority**: P3
 

@@ -383,7 +383,7 @@ workOrderSchema.index({ assignedTo: 1, status: 1 });
 workOrderSchema.index({ propertyId: 1, createdAt: -1 });
 ```
 
-**B. MongoDB Caching**
+**B. In-memory Caching**
 
 - [ ] Implement MongoDB for session storage
 - [ ] Cache frequently accessed data (properties, users)

@@ -57,7 +57,7 @@ git commit --amend -m "refactor(infra): Remove cache dependency, migrate to in-m
 - Migrate jobs/export-worker.ts, package-activation-queue.ts
 - Migrate jobs/search-index-jobs.ts, zatca-retry-queue.ts
 - Update 15+ test files: @/lib/mongodb → @/lib/cache
-- Remove ioMongoDB-backed queue path aliases from tsconfig.json
+- Remove queue path aliases from tsconfig.json
 
 48 files changed, 376 insertions(+), 2190 deletions(-)"
 

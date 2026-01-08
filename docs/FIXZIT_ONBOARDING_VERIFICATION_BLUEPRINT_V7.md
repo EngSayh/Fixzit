@@ -2,7 +2,7 @@
 ## Final Consolidated Blueprint – MongoDB Atlas / Mongoose (v10)
 
 **Status:** Final, copy-paste-ready, MongoDB + Mongoose aligned  
-**Stack:** Node.js, Express, MongoDB Atlas (Mongoose), S3 (pre-signed), MongoDB-backed queue, React/TS  
+**Stack:** Node.js, Express, MongoDB Atlas (Mongoose), S3 (pre-signed), in-memory queue, React/TS  
 **Design System:** Primary `#0061A8`, success `#00A859`, accent `#FFB400`, spacing 24–32px, RTL + dark supported  
 **Governance:** STRICT v4/V5
 
@@ -26,7 +26,7 @@ Deliver production-ready onboarding and guidance for Fixzit:
 - Node.js + Express
 - MongoDB Atlas + Mongoose
 - S3 (pre-signed URLs) for documents
-- MongoDB-backed queue: `ocr` queue (OCR jobs), `expiry` queue (nightly expiry scans)
+- in-memory queue: `ocr` queue (OCR jobs), `expiry` queue (nightly expiry scans)
 
 ### 2.2 Frontend
 - React / Next.js + TypeScript
