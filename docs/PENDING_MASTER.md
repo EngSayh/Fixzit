@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T15:15:00+03:00
+  Last-Sync: 2026-01-08T18:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,42 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T18:30 (Asia/Riyadh) — Sprint 66-67 Test Coverage [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 97 commits ahead of main
+
+#### Sprint 66 Summary
+
+| Domain | Files | Tests | Coverage |
+|--------|-------|-------|----------|
+| superadmin | 6 | 37 | session, translations, theme, user-logs, user-sessions, ssot |
+| payments | 2 | 12 | create, callback |
+| **Total** | **8** | **49** | |
+
+#### Sprint 67 Summary
+
+| Domain | Files | Tests | Coverage |
+|--------|-------|-------|----------|
+| help | 1 | 8 | context |
+| notifications | 2 | 12 | bulk, stream |
+| superadmin | 1 | 8 | audit-logs |
+| **Total** | **4** | **28** | |
+
+#### Test Suite Status
+
+| Metric | Value |
+|--------|-------|
+| Total Passing | 4,090 |
+| Total Skipped | 34 (claims.test.ts - pre-existing) |
+| Total Failures | 0 |
+| Typecheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
 
 ---
 
