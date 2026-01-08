@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T00:40:00+03:00
+  Last-Sync: 2026-01-08T18:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,60 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T18:30 (Asia/Riyadh) — SMART Deep Dive Issue Scan [AGENT-TEMP-20260108T1405]
+
+**Agent Token:** [AGENT-TEMP-20260108T1405]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 95 commits ahead of main
+**Commit:** `06fed3e1f`
+
+#### Session Summary
+
+Deep dive issue scan addressing silent bugs and code quality findings from SMART report.
+
+| Category | Findings | Action | Status |
+|----------|----------|--------|--------|
+| UTF-8 BOM in files | 13 files | Removed BOM bytes | ✅ FIXED |
+| @ts-expect-error in runtime | 2 files | Verified justifications | ✅ VERIFIED |
+| eslint-disable without justification | 17 directives | Added justification comments | ✅ FIXED |
+| Weak hash primitives | 5 files | MD5/SHA1 for cache keys only | ✅ FALSE POSITIVE |
+| i18n key collisions | 4 files | Different nesting levels | ✅ FALSE POSITIVE |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| lib/queue.ts | 9 eslint-disable justifications added |
+| lib/logger.ts | 3 eslint-disable justifications added |
+| lib/memory-kv.ts | 5 eslint-disable justifications added |
+| lib/zatca/crypto.ts | BOM removed |
+| lib/zatca/fatoora-client.ts | BOM removed |
+| lib/zatca/index.ts | BOM removed |
+| lib/zatca/xml-builder.ts | BOM removed |
+| app/api/finance/zatca/onboarding/route.ts | BOM removed |
+| app/api/finance/zatca/submit/route.ts | BOM removed |
+| tests/unit/api/admin/billing/annual-discount.test.ts | BOM removed |
+| tests/unit/api/admin/billing/pricebooks.test.ts | BOM removed |
+| tests/unit/api/souq/seller-central/kyc-*.test.ts | BOM removed (4 files) |
+| tests/unit/lib/auth/role-guards.test.ts | BOM removed |
+
+#### Validation
+
+| Check | Result |
+|-------|--------|
+| pnpm typecheck | ✅ 0 errors |
+| pnpm lint | ✅ 0 errors |
+| Pre-push hooks | ✅ Passed |
+
+#### Related Prior Sessions (Same PR)
+
+- 2026-01-08T14:05: Alert→toast migration (11 files)
+- 2026-01-08T10:00: Client env var leak fix (SupportOrgContext.tsx)
+- 2026-01-07: Unicode normalization, mixed tabs/spaces fixes
 
 ---
 
