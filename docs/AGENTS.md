@@ -3232,7 +3232,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | ID | Severity | Issue | Location | Impact | Status |
 |----|----------|-------|----------|--------|--------|
-| **SEC-CLAIMS-001** | 🟡 Medium | 5 ESLint tenant scope warnings in claims routes | `app/api/souq/claims/` | Potential data isolation risk | Needs Review |
+| **SEC-CLAIMS-001** | � Fixed | Claims routes now use dual orgId/org_id scoping | `services/souq/org-scope.ts` | Data isolation secured | Sprint 23 |
 | **BUG-ENV-001** | 🟡 Medium | process.env accessed directly in 40+ client components | `app/**/*.tsx` | SSR/hydration issues | Systematic fix needed |
 | **BUG-TS-001** | 🟢 Low | 3 @ts-expect-error without documented reason | `lib/ats/`, `lib/markdown.ts` | Tech debt | Add justification comments |
 | **PERF-AGG-001** | � Fixed | Unbounded aggregates - limits added | `app/api/**/route.ts` | Memory exhaustion prevented | Sprint 22 |
@@ -3360,7 +3360,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | Rank | Item | ID | Owner | Effort |
 |------|------|-----|-------|--------|
-| 1 | Audit SEC-CLAIMS-001 tenant scope warnings | SEC-CLAIMS-001 | Backend | 4h |
+| 1 | Audit SEC-CLAIMS-001 tenant scope warnings | SEC-CLAIMS-001 | Backend | 4h | ✅ Sprint 23 |
 | 2 | Add .limit() to unbounded aggregates | PERF-AGG-001 | Backend | 2h | ✅ Sprint 22 |
 | 3 | Add Finance module tests (4 → 10 routes) | TEST-002 | QA | 8h |
 | 4 | Add HR module tests (1 → 7 routes) | TEST-001 | QA | 6h |

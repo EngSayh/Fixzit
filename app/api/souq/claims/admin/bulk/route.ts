@@ -24,7 +24,7 @@ import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { isValidObjectId } from "@/lib/utils/objectid";
 import { Role } from "@/lib/rbac/client-roles";
-import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
 
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch all claims to validate they exist and can be bulk processed
     // 🔐 Use centralized org scope helper for consistent string/ObjectId handling
-    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildSouqOrgFilter(orgId) : {});
+    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildOrgScopeFilter(orgId) : {});
     const claimQuery = {
       ...baseOrgScope,
       $and: [
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         { $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }] },
         ...(orgUserFilter ? [orgUserFilter] : []),
       ],
-    };
+    } as Record<string, unknown>;
     const claims = await SouqClaim.find(claimQuery).lean();
 
     if (claims.length === 0) {
@@ -188,14 +188,13 @@ export async function POST(request: NextRequest) {
       .filter((id) => Types.ObjectId.isValid(id))
       .map((id) => new Types.ObjectId(id));
     
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: baseOrgScope contains org filter
     const orders = await SouqOrder.find({
       ...baseOrgScope,
       $or: [
         { orderId: { $in: orderIdStrings } }, // Primary: match by orderId string field
         ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []), // Fallback: match by _id
       ],
-    }).lean();
+    } as Record<string, unknown>).lean();
     
     // 🔐 FIX: Map by BOTH orderId and _id to handle both lookup patterns
     const orderMap = new Map<string, IOrder>();

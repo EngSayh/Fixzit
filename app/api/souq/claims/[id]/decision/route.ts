@@ -23,7 +23,7 @@ import { SouqClaim } from "@/server/models/souq/Claim";
 import { User } from "@/server/models/User";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
-import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface CounterEvidenceEntry {
@@ -101,13 +101,13 @@ export async function POST(
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
-    const baseOrgFilter = buildSouqOrgFilter(userOrgId.toString());
+    const baseOrgFilter = buildOrgScopeFilter(userOrgId.toString());
     const orgFilter = allowOrgless
       ? { $or: [baseOrgFilter, { orgId: { $exists: false } }] }
       : baseOrgFilter;
-    const filter = ObjectId.isValid(params.id)
+    const filter = (ObjectId.isValid(params.id)
       ? { _id: new ObjectId(params.id), ...orgFilter }
-      : { claimId: params.id, ...orgFilter };
+      : { claimId: params.id, ...orgFilter }) as Record<string, unknown>;
 
     let status: string;
     let refundAmountNumber: number;

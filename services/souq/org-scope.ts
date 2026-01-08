@@ -69,10 +69,14 @@ export const buildSouqOrgFilter = (
 };
 
 /**
- * Build a simpler org filter that only uses orgId field (not org_id).
- * Used by claims API routes.
+ * Build an org filter that handles both orgId and org_id fields.
+ * Used by claims API routes for tenant isolation.
  * 
- * @deprecated Prefer buildSouqOrgFilter which handles both orgId and org_id
+ * This function returns a Mongoose-compatible filter (vs Filter<Document>
+ * from buildSouqOrgFilter) while still handling both field naming conventions
+ * to match legacy data that may use org_id instead of orgId.
+ * 
+ * @since Sprint 23 SEC-CLAIMS-001 - Now handles both orgId and org_id
  */
 export const buildOrgScopeFilter = (orgId: string | MongoObjectId) => {
   const normalized =
@@ -84,5 +88,8 @@ export const buildOrgScopeFilter = (orgId: string | MongoObjectId) => {
       candidates.push(new MongoObjectId(normalized));
     }
   }
-  return candidates.length ? { orgId: { $in: candidates } } : { orgId: normalized };
+  // Handle both orgId and org_id fields for legacy data compatibility
+  return candidates.length 
+    ? { $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }] } 
+    : { $or: [{ orgId: normalized }, { org_id: normalized }] };
 };
