@@ -2816,6 +2816,56 @@ When to Use: Before any merge request.
 | Severity | File:Line | Issue | Recommendation |
 |----------|-----------|-------|----------------|
 
+### 16.3 AI Improvement Analysis Template
+
+Purpose: Structured system-wide improvement analysis for roadmap planning.
+When to Use: After major audits, before roadmap updates, or on request.
+
+# AI IMPROVEMENT ANALYSIS
+
+## Context
+- Agent: [AGENT-XXX-Y]
+- Date: [YYYY-MM-DD HH:mm (Asia/Riyadh)]
+- Scope: [system/module/release]
+- Data Sources: [list files, logs, metrics]
+
+## 1. Areas for Improvement
+- Feature enhancements: [list with impact + effort]
+- New features: [align to user needs/industry trends]
+
+## 2. Process Efficiency
+- Bottlenecks: [workflow step -> impact -> root cause]
+- Automation opportunities: [manual step -> automation -> ROI]
+
+## 3. Bugs and Errors
+- Known bugs: [ID, severity, impact, status]
+- Error rates: [type -> count -> mitigation]
+- Debugging strategies: [issue type -> approach]
+
+## 4. Incorrect Logic
+- Logic flaws: [ID, location, current vs correct]
+- Adjustments: [decision rules -> fix approach]
+
+## 5. Testing Recommendations
+- Tests to address issues: [test type, scope, priority]
+- New tests for enhancements: [feature -> test cases]
+
+## 6. Optional Enhancements
+- Nice-to-haves: [impact, effort, timeline]
+- Infrastructure: [improvement -> target state]
+
+## Prioritization
+- Rank items by impact and feasibility.
+- Call out dependencies and risks.
+
+## Summary
+1. [item]
+2. [item]
+3. [item]
+
+## Evidence Appendix
+- [file:line or metric reference]
+
 15.3 System-Aware PR Review Prompt
 
 Purpose: Comprehensive PR review with Fixzit ecosystem awareness.
@@ -3196,7 +3246,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | ID | Feature | Current State | Proposed Enhancement | Priority | Impact |
 |----|---------|---------------|---------------------|----------|--------|
-| **IMP-UX-001** | Real-time Notifications | SSE placeholder exists | Implement Redis pub/sub for horizontal scaling (TODO-SSE-001) | P2 | High - Reduces page refreshes |
+| **IMP-UX-001** | Real-time Notifications | SSE placeholder exists | Implement MongoDB change streams + SSE fanout for horizontal scaling (TODO-SSE-001) | P2 | High - Reduces page refreshes |
 | **IMP-UX-002** | Global Search | Basic implementation | Add fuzzy search, recent searches, role-based result filtering | P3 | Medium - Faster navigation |
 | **IMP-UX-003** | Dashboard Customization | Fixed layouts per role | Allow drag-drop widget arrangement, saved views | P3 | Medium - User personalization |
 | **IMP-UX-004** | Offline Technician Mode | Not implemented | Service worker + IndexedDB for field work without connectivity | P2 | High - Field productivity |
@@ -3256,8 +3306,8 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 |-----------|------------------|---------------------|
 | Empty catch blocks | 12 | ✅ All intentional (graceful degradation) - No action |
 | Console.error statements | 7 | ✅ Acceptable in dev tools (issue-tracker) |
-| Unused ESLint directives | 2 | Remove stale directives |
-| Missing tenant scope | 5 warnings | Audit and add org_id/property_owner_id filters |
+| Unused ESLint directives | 0 | ✅ Verified Sprint 26 - `--report-unused-disable-directives` reports none |
+| Missing tenant scope | 0 | ✅ Fixed Sprint 23 (SEC-CLAIMS-001) - buildOrgScopeFilter handles dual fields |
 | Type suppressions | 5 total | All documented with reasons ✅ |
 
 #### 17.3.3 Debugging Strategies
@@ -3358,10 +3408,10 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | ID | Improvement | Current State | Target State | Impact |
 |----|-------------|--------------|--------------|--------|
-| **INFRA-001** | Redis for SSE | Single-server SSE | Redis pub/sub for horizontal scaling | Enables multi-instance |
+| **INFRA-001** | MongoDB change streams for SSE | Single-server SSE | MongoDB change-stream pub/sub for horizontal scaling | Enables multi-instance |
 | **INFRA-002** | CDN for static assets | Vercel default | CloudFront/Bunny for Saudi edge | Faster load times |
 | **INFRA-003** | Database read replicas | Single MongoDB | Primary + read replica | Query performance |
-| **INFRA-004** | Background job queue | Inline processing | BullMQ/Redis for async jobs | Reduced latency |
+| **INFRA-004** | Background job queue | Inline processing | MongoDB-backed queue for async jobs | Reduced latency |
 | **INFRA-005** | Log aggregation | Console logs | Structured logging to Axiom/Datadog | Better debugging |
 
 ---
@@ -3382,7 +3432,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | Rank | Item | ID | Owner | Effort |
 |------|------|-----|-------|--------|
-| 1 | Redis pub/sub for SSE | INFRA-001 | DevOps | 16h | ✅ EXISTS (363 lines) |
+| 1 | MongoDB change-stream pub/sub for SSE | INFRA-001 | DevOps | 16h | ✅ EXISTS (363 lines) |
 | 2 | Auto-assignment for work orders | AUTO-001 | Backend | 24h | ✅ EXISTS (791 lines) |
 | 3 | WhatsApp Business integration | FEAT-INTEG-001 | Backend | 40h |
 | 4 | Offline technician mode | IMP-UX-004 | Frontend | 40h |
