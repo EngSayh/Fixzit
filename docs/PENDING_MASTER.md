@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-10T22:30:00+03:00
+  Last-Sync: 2026-01-10T22:50:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,46 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-10T22:50 (Asia/Riyadh) — Sprint 73 Repricer/Settlements/BuyBox Coverage [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 109 commits ahead of main
+
+#### Sprint 73 Summary
+
+| Route | Tests | Coverage |
+|-------|-------|----------|
+| souq/repricer/analysis/[fsin] | 7 | GET competitor price analysis |
+| souq/settlements/[id] | 11 | GET settlement details |
+| souq/buybox/[fsin] | 8 | GET buybox winner & offers |
+| souq/buybox/offers/[fsin] | 8 | GET all product offers |
+| souq/buybox/winner/[fsin] | 7 | GET buybox winner |
+| **Total** | **41** | |
+
+#### Test Suite Status
+
+| Metric | Value |
+|--------|-------|
+| API Tests Passing | 1,990 |
+| API Tests Skipped | 33 (claims.test.ts - pre-existing) |
+| Typecheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+
+#### Cumulative Sprint Progress
+
+| Sprint | Files | Tests | Focus |
+|--------|-------|-------|-------|
+| 65-69 | 44 | 362 | Foundation + superadmin + FM |
+| 70 | 5 | 59 | FM work-orders/properties |
+| 71 | 5 | 52 | wallet, leads, projects, tenants |
+| 72 | 2 | 37 | souq reviews/sellers dashboard |
+| 73 | 5 | 41 | repricer/settlements/buybox |
+| **Total** | **61** | **551** | |
 
 ---
 
