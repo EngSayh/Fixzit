@@ -36,7 +36,6 @@ vi.mock("@/server/models/CustomerRequestEvent", () => ({
 // Dynamic imports AFTER mocks
 const { GET, POST } = await import("@/app/api/superadmin/customer-requests/route");
 const CustomerRequest = (await import("@/server/models/CustomerRequest")).default;
-const CustomerRequestEvent = (await import("@/server/models/CustomerRequestEvent")).default;
 const { getSuperadminSession } = await import("@/lib/superadmin/auth");
 
 describe("Superadmin Customer Requests API", () => {
