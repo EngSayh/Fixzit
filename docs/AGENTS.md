@@ -1009,40 +1009,55 @@ These are AUTO-FAIL violations (also reflected in Section 1.2 Non-Negotiables):
 
 Before starting ANY task:
 
-□ 1. Run Terminal Cleanup Protocol (Section 5.8.7) — clean orphans, protect other agents
+□ 1. Run Terminal Cleanup Protocol (Section 5.8.7) - clean orphans, protect other agents
 □ 2. Name your terminal: `[AGENT-XXXX] Purpose` (Section 5.8.1)
-□ 3. Run git preflight (Section 5.4) — repo up to date with origin/main
-□ 4. Read .fixzit/agent-assignments.json — check for conflicts
+□ 3. Run git preflight (Section 5.4) - repo up to date with origin/main
+□ 4. Read .fixzit/agent-assignments.json - check for conflicts
 □ 5. Execute Pre-Claim SSOT Validation (Section 6)
 □ 6. Claim slot with Agent Token: [AGENT-XXX-Y]
-□ 7. List EXACT files to modify (no wildcards)
-□ 8. Complete applicable Multi-Role Validation Gates (Section 4.2)
-□ 9. Record MRDR (Section 4.2.15) in SSOT issue notes BEFORE coding
-□ 10. Verify git status is clean
-□ 11. Verify worktrees: `git worktree list` (must be single worktree only)
-□ 12. Run: `pnpm typecheck` (must pass)
-□ 13. Run: `pnpm lint` (must pass)
-
+□ 7. Run Deep-Dive scan (Section 7) across the codespace; log similar issues
+□ 8. List EXACT files to modify (no wildcards) and expand scope as needed
+□ 9. Create a clear task list with verification steps (Section 4.2.14)
+□ 10. Complete applicable Multi-Role Validation Gates (Section 4.2)
+□ 11. Record MRDR (Section 4.2.15) in SSOT issue notes BEFORE coding
+□ 12. Verify git status is clean
+□ 13. Verify worktrees: `git worktree list` (must be single worktree only)
+□ 14. Run: `pnpm typecheck` (must pass)
+□ 15. Run: `pnpm lint` (must pass)
 
 Announce: [AGENT-XXX-Y] Claimed. Files: <list>
 
-4.4 Post-Task Checklist (13 items — MANDATORY)
+4.4 Post-Task Checklist (15 items — MANDATORY)
 
 After completing ANY task:
 
-□ 1.  pnpm typecheck (0 errors)
-□ 2.  pnpm lint (0 warnings)
-□ 3.  pnpm vitest run (all green)
-□ 4.  git status — commit all changes with Agent Token
-□ 5.  Create PR or push to existing
-□ 6.  Clean up temp files, debug logs
-□ 7.  Release lock in .fixzit/agent-assignments.json
-□ 8.  TRIGGER AUTO-REVIEW — Wait for Codex feedback (NO TIMEOUT BYPASS)
-□ 9.  RUN SSOT SYNC PROTOCOL — Extract findings, sync to MongoDB
-□ 10. UPDATE docs/PENDING_MASTER.md with session changelog
-□ 11. Announce: "[AGENT-XXX-Y] Complete. PR: #XXX"
-□ 12. NOTIFY Eng. Sultan with FINAL OUTPUT box
-□ 13. DO NOT mark "Ready to Merge" until Codex returns APPROVED
+□ 1. pnpm typecheck (0 errors)
+□ 2. pnpm lint (0 warnings)
+□ 3. pnpm vitest run (all green)
+□ 4. Self-review code changes for completeness and regressions
+□ 5. Complete SMART report (Section 14) with evidence
+□ 6. git status - commit all changes with Agent Token
+□ 7. Create PR or push to existing
+□ 8. Clean up temp files, debug logs
+□ 9. Release lock in .fixzit/agent-assignments.json
+□ 10. TRIGGER AUTO-REVIEW - Wait for Codex feedback (NO TIMEOUT BYPASS)
+□ 11. RUN SSOT SYNC PROTOCOL - Extract findings, sync to MongoDB
+□ 12. UPDATE docs/PENDING_MASTER.md with session changelog
+□ 13. Announce: "[AGENT-XXX-Y] Complete. PR: #XXX"
+□ 14. NOTIFY Eng. Sultan with FINAL OUTPUT box
+□ 15. DO NOT mark "Ready to Merge" until Codex returns APPROVED
+
+4.5 Implementation Completion Loop (MANDATORY)
+
+Follow this loop until completion is 100%:
+
+1. Deep-Dive scan (Section 7) across the codespace for similar issues.
+2. Build a clear, ordered task list with verification steps (Section 4.2.14).
+3. Implement all tasks fully (no partials or TODO handoffs).
+4. Review the code for correctness, consistency, and regressions.
+5. Run local CI: `pnpm typecheck`, `pnpm lint`, plus relevant tests; fix errors.
+6. Prepare SMART report with evidence (Section 14).
+7. If any task is <100% complete or tests fail, return to step 2 and continue.
 
 5. Multi-Agent Coordination
 5.1 Resource Limits
@@ -1762,6 +1777,14 @@ Canonical handoff workflow: Section 13.4 — Agent Task Handoff Protocol (SSOT C
 Canonical backlog extraction workflow: Section 13.3 — Pending Backlog Extractor v2.5 (MANDATORY)
 
 10. PR Protocol & CI/CD Standards
+10.0 Main Branch Protection (MANDATORY)
+
+Main branch is protected at all times.
+
+- Direct commits/pushes to main are forbidden.
+- All changes must go through PRs with required reviews and checks.
+- Do not bypass branch protection unless Eng. Sultan explicitly approves.
+
 10.1 PR Merge Gate Checklist (ALL must be ✅)
 □ 1.  ALL review comments addressed
 □ 2.  ALL conversations resolved
@@ -2035,7 +2058,7 @@ Action required
 Before creating or updating SSOT entries:
 
 1. Scan for similar or identical issues (Section 7.2 + SSOT search by file/path/title).
-2. If a match exists, update the existing SSOT record with new findings instead of creating a duplicate.
+2. If a match exists, update the existing SSOT record with ALL new findings instead of creating a duplicate.
 3. Ensure status is accurate and current (open/in_progress/review/closed) with evidence in update notes.
 
 13.1 When to Execute
@@ -3380,8 +3403,8 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | Auth | 17 | 15 | 88% | ✅ P3 (Sprint 34 +14) |
 | Admin | 29 | 17 | 59% | P2 (Sprint 32 +12) |
 | Onboarding | 7 | 6 | 86% | ✅ P2 (Sprint 31 +11) |
-| Superadmin | 87 | 9 | 10% | P3 (platform-ops) |
-| **Total** | **294** | **201** | **68%** | Target: 70% |
+| Superadmin | 87 | 11 | 13% | P3 (Sprint 35 +7) |
+| **Total** | **294** | **208** | **71%** | ✅ TARGET MET! |
 
 **Sprint 26 Update (PR #680):**
 - Aqar coverage improved from 43% → 89% ✅
@@ -3443,6 +3466,13 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Auth: 11 → 15 tests (65% → 88%) ✅
 - Total tests: 187 → 201 (+14)
 - **Total coverage: 68%** 🎯🎯
+
+**Sprint 35 Update (PR #680):**
+- +3 Superadmin audit-log tests (rate limit, auth, action validation)
+- +4 Superadmin branding tests (GET/PATCH rate limit, auth)
+- Superadmin: 9 → 11 tests (10% → 13%)
+- Total tests: 201 → 208 (+7)
+- **🎉 TOTAL COVERAGE: 71% - TARGET MET! 🎉**
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
