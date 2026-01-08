@@ -51,6 +51,7 @@
    - 17.5 [Testing Recommendations](#175-testing-recommendations)
    - 17.6 [Optional Enhancements](#176-optional-enhancements)
    - 17.7 [Prioritized Recommendations Summary](#177-prioritized-recommendations-summary)
+   - 17.8 [AI Improvement Analysis Template](#178-ai-improvement-analysis-template)
 18. [Appendix A: MongoDB Issue Schema](#appendix-a-mongodb-issue-schema)
 19. [Appendix B: Agent Routing Configuration](#appendix-b-agent-routing-configuration)
 20. [Appendix C: Environment Variables Reference](#appendix-c-environment-variables-reference)
@@ -3376,11 +3377,11 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | HR | 7 | 8 | 100%+ | ✅ P1 DONE |
 | Souq | 75 | 45 | 60% | ✅ P2 TARGET MET |
 | Aqar | 18 | 16 | 89% | ✅ P2 DONE |
-| Auth | 17 | 11 | 65% | P3 |
+| Auth | 17 | 15 | 88% | ✅ P3 (Sprint 34 +14) |
 | Admin | 29 | 17 | 59% | P2 (Sprint 32 +12) |
 | Onboarding | 7 | 6 | 86% | ✅ P2 (Sprint 31 +11) |
 | Superadmin | 87 | 9 | 10% | P3 (platform-ops) |
-| **Total** | **294** | **187** | **64%** | Target: 70% |
+| **Total** | **294** | **201** | **68%** | Target: 70% |
 
 **Sprint 26 Update (PR #680):**
 - Aqar coverage improved from 43% → 89% ✅
@@ -3433,6 +3434,15 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - FM Core: 18 → 22 tests (55% → 67%)
 - Total tests: 178 → 187 (+9)
 - **Total coverage: 64%** 🎯
+
+**Sprint 34 Update (PR #680):**
+- +4 MFA setup tests (rate limit, auth, action validation, org context)
+- +3 MFA status tests (rate limit, auth, org context)
+- +4 MFA verify tests (rate limit, auth, code validation, org context)
+- +3 verify/send tests (rate limit, body validation, email format)
+- Auth: 11 → 15 tests (65% → 88%) ✅
+- Total tests: 187 → 201 (+14)
+- **Total coverage: 68%** 🎯🎯
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
