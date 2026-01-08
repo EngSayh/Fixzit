@@ -3504,6 +3504,14 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Total tests: 217 → 221 (+4 test files)
 - **TOTAL COVERAGE: 75% - EXCELLENT BUFFER 🎯**
 
+**Sprint 39 Update (PR #680):**
+- +5 Superadmin tenants tests (GET/POST auth, validation)
+- +4 Superadmin support-tickets tests (rate limit, auth, filtering)
+- +5 Superadmin scheduled-tasks tests (GET/POST rate limit, auth)
+- Superadmin: 19 → 22 tests (22% → 25%)
+- Total tests: 221 → 235 (+3 test files, +14 individual tests)
+- **TOTAL COVERAGE: 76% - BUFFER AT +6% ABOVE TARGET 🎯**
+
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
 - Sprint 18: +4 Souq tests (buybox, repricer-run, kyc-status, returns-eligibility)
@@ -3535,7 +3543,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | **INFRA-001** | MongoDB change streams for SSE | Single-server SSE | MongoDB change-stream pub/sub for horizontal scaling | Enables multi-instance |
 | **INFRA-002** | CDN for static assets | Vercel default | CloudFront/Bunny for Saudi edge | Faster load times |
 | **INFRA-003** | Database read replicas | Single MongoDB | Primary + read replica | Query performance |
-| **INFRA-004** | Background job queue | Inline processing | MongoDB-backed queue for async jobs | Reduced latency |
+| **INFRA-004** | Background job queue | In-memory queue (single-node) | Centralized queue service for multi-node scale | Reduced latency |
 | **INFRA-005** | Log aggregation | Console logs | Structured logging to Axiom/Datadog | Better debugging |
 
 ---
