@@ -3542,6 +3542,38 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Total tests: 268 → 273 (+2 test files, +5 individual tests)
 - **🎉 TOTAL COVERAGE: 80% - 10% ABOVE TARGET 🎉**
 
+**Sprint 44 Update (PR #680):**
+- +2 Superadmin notifications-config tests (auth, config)
+- +2 Superadmin notifications-count tests (auth, count)
+- +3 Superadmin notifications-send tests (auth, validation)
+- +3 Superadmin notifications-test tests (auth, channel validation)
+- Superadmin: 38 → 48 tests (44% → 55%)
+- Total tests: 273 → 283 (+4 test files, +10 individual tests)
+- **🎉 TOTAL COVERAGE: 81% - 11% ABOVE TARGET 🎉**
+
+**Sprint 45 Update (PR #680):**
+- +3 Superadmin users-bulk-delete tests (auth, rate limit, validation)
+- +3 Superadmin users-bulk-update tests (auth, rate limit, validation)
+- +3 Superadmin health tests (access key validation)
+- Superadmin: 48 → 57 tests (55% → 65%)
+- Total tests: 283 → 292 (+3 test files, +9 individual tests)
+- **🎉 TOTAL COVERAGE: 82% - 12% ABOVE TARGET 🎉**
+
+**Sprint 46 Update (PR #680):**
+- +2 Superadmin organizations-search tests (auth, search)
+- +2 Superadmin audit-export tests (auth, export)
+- +2 Superadmin subscriptions-stats tests (auth, stats)
+- +4 Superadmin subscriptions-tiers tests (auth, GET, POST)
+- Superadmin: 57 → 67 tests (65% → 77%)
+- Total tests: 292 → 302 (+4 test files, +10 individual tests)
+- **🎉 TOTAL COVERAGE: 83% - 13% ABOVE TARGET 🎉**
+
+**Sprint 47 Update (PR #680):**
+- +4 Superadmin subscriptions-id tests (auth, GET, PUT, DELETE)
+- Superadmin: 67 → 71 tests (77% → 82%)
+- Total tests: 302 → 306 (+1 test file, +4 individual tests)
+- **🎉 TOTAL COVERAGE: 84% - 14% ABOVE TARGET 🎉**
+
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
 - Sprint 18: +4 Souq tests (buybox, repricer-run, kyc-status, returns-eligibility)
