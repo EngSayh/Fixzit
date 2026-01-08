@@ -41,7 +41,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 
 | Component            | Status      | Impact                            | LOC |
 | -------------------- | ----------- | --------------------------------- | --- |
-| MongoDB Client + Cache | ✅ Complete | Caching, rate limiting foundation | 280 |
+| MongoDB Client + In-memory Cache | ✅ Complete | Caching, rate limiting foundation | 280 |
 | in-memory queue system  | ✅ Complete | Background job infrastructure     | 340 |
 | Coupon Model         | ✅ Complete | Promotional engine                | 190 |
 | Q&A Models           | ✅ Complete | Product questions system          | 180 |
@@ -113,7 +113,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 
 ✅ **Infrastructure Layer**
 
-- MongoDB client with helpers (cache, rate limit)
+- MongoDB client with in-memory cache + rate limiting helpers
 - in-memory job queues (9 queues defined)
 - API routes (13 endpoints)
 
@@ -416,7 +416,7 @@ Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
 **Completed**:
 
 - ✅ Rate limiting helpers
-- ✅ MongoDB-based cache
+- ✅ In-memory cache
 
 **Critical Remaining**:
 

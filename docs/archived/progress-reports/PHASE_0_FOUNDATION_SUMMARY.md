@@ -395,7 +395,7 @@ Frontend components will parse this YAML to render:
 **Sections**:
 
 1. **Feature Flags** (12 variables)
-2. **MongoDB** (caching + in-memory queue)
+2. **MongoDB** (database + in-memory cache/queue)
 3. **Search Engine** (OpenSearch/Meilisearch)
 4. **S3 Storage** (media/documents)
 5. **Event Bus** (NATS/Kafka)
@@ -681,7 +681,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ## Next Steps
 - Phase 1: Catalog & Brand Registry (4 weeks, 20 SP)
-- Infrastructure: MongoDB, in-memory queue, S3, Meilisearch, NATS
+- Infrastructure: MongoDB, in-memory cache/queue, S3, Meilisearch, NATS
 
 ## Review Notes
 - No breaking changes to existing code
@@ -736,7 +736,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ### Identified Risks
 
 1. **Infrastructure Complexity**
-   - Risk: Setting up 5+ new services (MongoDB, S3, search, NATS, in-memory queue)
+   - Risk: Setting up 4+ new services (MongoDB, S3, search, NATS) + in-memory cache/queue wiring
    - Mitigation: Use Docker Compose for local development; document step-by-step
 
 2. **Database Migration**
@@ -766,7 +766,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Production Environment (Monthly)
 
-- MongoDB (AWS ElastiCache r6g.large): ~$150
+- Cache service (ElastiCache r6g.large): ~$150
 - Meilisearch Cloud (Standard plan): ~$50
 - S3 (100 GB, 1M requests): ~$25
 - NATS Cloud (Starter): ~$40
@@ -776,7 +776,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 
 ### Scaling Costs (At 10K sellers, 1M products)
 
-- MongoDB (r6g.xlarge): ~$300
+- Cache service (r6g.xlarge): ~$300
 - Meilisearch (Pro plan): ~$200
 - S3 (1 TB, 10M requests): ~$240
 - NATS Cloud (Pro): ~$200

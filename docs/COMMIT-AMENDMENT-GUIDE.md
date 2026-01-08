@@ -50,7 +50,7 @@ Only do this if:
 If you only need to fix the most recent commit:
 
 ```bash
-git commit --amend -m "refactor(infra): Remove MongoDB dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
+git commit --amend -m "refactor(infra): Remove cache dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
 
 - Remove legacy external cache/queue stubs
 - Standardize on in-memory helpers: lib/cache.ts, lib/queue.ts, lib/queues/setup.ts, lib/otp-store.ts
@@ -117,7 +117,7 @@ Issues Resolved:
 **Second commit message:**
 
 ```gitcommit
-refactor(infra): Remove MongoDB dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
+refactor(infra): Remove cache dependency, migrate to in-memory queues [AGENT-0005] [INFRA-00002]
 
 In-memory modules:
 - lib/cache.ts

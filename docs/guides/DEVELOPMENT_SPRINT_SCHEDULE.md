@@ -139,7 +139,7 @@
 
 - [ ] 🟠 Implement rate limiting
   - 10 requests/min per user
-  - MongoDB cache for counter
+  - in-memory cache for counter
   - 429 response for exceeded limit
   - **Acceptance:** Rate limit enforced
 
@@ -409,7 +409,7 @@
 - [ ] Query parameters: `startDate`, `endDate`, `assetType`, `status`, `organizationId`
 - [ ] Response: Array of asset summaries (totalAssets, byType, byStatus, byLocation)
 - [ ] Aggregation pipeline: MongoDB aggregation with $group, $match, $sort
-- [ ] Caching: MongoDB cache (15 min TTL)
+- [ ] Caching: in-memory cache (15 min TTL)
 - [ ] Export: CSV/PDF download option
 - [ ] **Acceptance:** API returns accurate asset counts, < 500ms response time
 
@@ -441,7 +441,7 @@
 - [ ] Query parameters: `startDate`, `endDate`, `maintenanceType`, `status`, `priority`
 - [ ] Response: Maintenance summary (total tasks, completed, pending, overdue)
 - [ ] Metrics: Average completion time, SLA compliance rate
-- [ ] Caching: MongoDB cache (10 min TTL)
+- [ ] Caching: in-memory cache (10 min TTL)
 - [ ] Export: CSV/PDF download option
 - [ ] **Acceptance:** API returns maintenance metrics, < 500ms response time
 
@@ -472,7 +472,7 @@
 - [ ] Query parameters: `startDate`, `endDate`, `costCategory`, `organizationId`
 - [ ] Response: Cost breakdown (labor, materials, vendor, utilities)
 - [ ] Metrics: Total spend, spend by category, variance from budget
-- [ ] Caching: MongoDB cache (30 min TTL)
+- [ ] Caching: in-memory cache (30 min TTL)
 - [ ] Export: CSV/Excel download
 - [ ] **Acceptance:** API returns financial data, < 500ms response time
 

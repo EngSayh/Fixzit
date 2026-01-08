@@ -327,7 +327,7 @@ const isValid = validateFSIN(fsin); // true
 **Sections Added**:
 
 1. **Souq Feature Flags** (12 variables)
-2. **MongoDB** (caching + in-memory queue)
+2. **MongoDB** (database; in-memory cache/queue for jobs)
 3. **Meilisearch** (product search)
 4. **S3 Storage** (media/documents)
 5. **Event Bus** (NATS/Kafka)
@@ -437,7 +437,7 @@ Documentation:          100% (all functions have JSDoc)
 ### Must Install (Development)
 
 ```bash
-# 1. MongoDB (caching + in-memory queue)
+# 1. MongoDB (database + in-memory cache/queue)
 docker run -d --name fixzit-mongodb -p 6379:6379 mongodb:7-alpine
 
 # 2. Meilisearch (product search)

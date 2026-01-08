@@ -113,7 +113,7 @@
 
 These features cannot be implemented without external services:
 
-- **MongoDB** - Caching, session storage, job queues (in-memory queue)
+- **MongoDB** - Primary database (models, persistence)
 - **Meilisearch** - Faceted search, ranking, autocomplete
 - **MinIO/S3** - Product images, KYC documents, seller assets
 - **NATS** - Event bus for service communication
@@ -170,8 +170,8 @@ These features cannot be implemented without external services:
 
 1. **No File Upload**: S3/MinIO not available - need alternative for KYC docs
 2. **No Search Engine**: Meilisearch not available - using MongoDB text search as fallback
-3. **No Caching**: MongoDB not available - direct MongoDB queries (slow)
-4. **No Job Queue**: in-memory queue not available - inline processing (no async jobs)
+3. **Caching Limitations**: In-memory cache only; no centralized cache for multi-node scale
+4. **Job Queue Limitations**: In-memory queue only; some jobs still inline
 5. **No Event Bus**: NATS not available - no service-to-service communication
 
 ## 📝 Notes

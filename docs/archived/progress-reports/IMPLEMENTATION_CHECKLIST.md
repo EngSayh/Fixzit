@@ -302,7 +302,7 @@ GET http://localhost:3000/api/souq/sellers/SELLER_ID/dashboard
 
 ### Infrastructure Dependencies
 
-- [ ] Set up MongoDB (caching, in-memory queue)
+- [ ] Set up MongoDB (database) + in-memory cache/queue
 - [ ] Set up Meilisearch (search engine)
 - [ ] Set up MinIO (S3 storage)
 - [ ] Set up NATS (event bus)
@@ -324,7 +324,7 @@ GET http://localhost:3000/api/souq/sellers/SELLER_ID/dashboard
 
 - [x] Indexes on all query fields
 - [x] Lean queries for read operations
-- [ ] Query result caching (needs MongoDB)
+- [ ] Query result caching (in-memory; centralized cache optional)
 - [ ] Database connection pooling
 
 ### API Optimization

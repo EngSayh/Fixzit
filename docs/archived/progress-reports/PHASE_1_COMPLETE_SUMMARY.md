@@ -318,15 +318,15 @@ Atomic stock reservation system:
 
 ### Infrastructure Not Available
 
-- **MongoDB**: Caching, job queues (in-memory queue), session storage
+- **MongoDB**: Primary database; in-memory cache/queue for caching and jobs
 - **Meilisearch**: Faceted search, ranking, autocomplete
 - **MinIO/S3**: Product images, KYC documents
 - **NATS**: Event bus for microservices communication
 
 ### Workarounds Implemented
 
-- **MongoDB-only architecture**: Direct queries (no caching)
-- **Inline processing**: No async job queues
+- **Caching**: In-memory cache only (no centralized cache)
+- **Job Processing**: In-memory queue only; limited background workers
 - **MongoDB text search**: Fallback for full-text search
 - **Base64 encoding**: Temporary solution for small files
 

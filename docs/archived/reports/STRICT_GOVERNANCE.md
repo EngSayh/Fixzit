@@ -78,7 +78,7 @@
 │   ├── config/               # Shared configs (ESLint, TS, Tailwind)
 │   ├── testing/              # Playwright helpers, test utils
 │   ├── observability/        # OpenTelemetry, pino logger
-│   └── cache/                # MongoDB client + helpers
+│   └── cache/                # in-memory cache helpers
 ├── scripts/
 │   ├── scan-hex.js           # Brand enforcement scanner
 │   ├── verify-page.ts        # Halt-Fix-Verify automation
