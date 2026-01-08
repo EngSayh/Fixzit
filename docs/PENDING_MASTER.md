@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T18:30:00+03:00
+  Last-Sync: 2026-01-09T15:45:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,44 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T15:45 (Asia/Riyadh) — Sprint 68 Test Coverage [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 99 commits ahead of main
+**Commit:** `2f8f1b4fc`
+
+#### Sprint 68 Summary
+
+| Domain | Files | Tests | Coverage |
+|--------|-------|-------|----------|
+| finance/reports | 3 | 17 | balance-sheet, income-statement, owner-statement |
+| invoices | 2 | 10 | invoice-id (CRUD), reminders-scan |
+| **Total** | **5** | **27** | |
+
+#### Test Suite Status
+
+| Metric | Value |
+|--------|-------|
+| Total Passing | 4,117 |
+| Total Skipped | 34 (claims.test.ts - pre-existing) |
+| Total Failures | 0 |
+| Typecheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+
+#### Cumulative Progress (Sprints 65-68)
+
+| Sprint | Files | Tests | Focus |
+|--------|-------|-------|-------|
+| 65 | 22 | 215 | Foundation coverage |
+| 66 | 8 | 49 | superadmin, payments |
+| 67 | 4 | 28 | help, notifications, audit |
+| 68 | 5 | 27 | finance reports, invoices |
+| **Total** | **39** | **319** | |
 
 ---
 
