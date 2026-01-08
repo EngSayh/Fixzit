@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T18:30:00+03:00
+  Last-Sync: 2026-01-09T03:00:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,45 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T03:00 (Asia/Riyadh) — Sprint 71 Wallet/Leads/Projects/Tenants Coverage [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 105 commits ahead of main
+**Commit:** `e13cd411a`
+
+#### Sprint 71 Summary
+
+| Route | Tests | Coverage |
+|-------|-------|----------|
+| wallet/top-up | 10 | POST initiate wallet top-up payment |
+| wallet/transactions | 9 | GET list transactions with filters |
+| leads/[id]/activities | 11 | GET/POST lead activity timeline |
+| projects/[id] | 11 | GET/PATCH/DELETE single project |
+| tenants/[id] | 11 | GET/PATCH single tenant |
+| **Total** | **52** | |
+
+#### Test Suite Status
+
+| Metric | Value |
+|--------|-------|
+| API Tests Passing | 1,947 |
+| API Tests Skipped | 33 (claims.test.ts - pre-existing) |
+| Typecheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+
+#### Cumulative Sprint Progress
+
+| Sprint | Files | Tests | Focus |
+|--------|-------|-------|-------|
+| 65-69 | 44 | 362 | Foundation + superadmin + FM |
+| 70 | 5 | 59 | FM work-orders/properties |
+| 71 | 5 | 52 | wallet, leads, projects, tenants |
+| **Total** | **54** | **473** | |
 
 ---
 
