@@ -3377,10 +3377,10 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | Souq | 75 | 45 | 60% | ✅ P2 TARGET MET |
 | Aqar | 18 | 16 | 89% | ✅ P2 DONE |
 | Auth | 17 | 11 | 65% | P3 |
-| Admin | 29 | 10 | 34% | P2 |
+| Admin | 29 | 13 | 45% | P2 (Sprint 30 +8) |
 | Onboarding | 7 | 3 | 43% | P2 |
 | Superadmin | 87 | 9 | 10% | P3 (platform-ops) |
-| **Total** | **294** | **147** | **50%** | Target: 70% |
+| **Total** | **294** | **155** | **53%** | Target: 70% |
 
 **Sprint 26 Update (PR #680):**
 - Aqar coverage improved from 43% → 89% ✅
@@ -3399,6 +3399,14 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - +3 FM reports/schedules tests (GET/POST rate limit, list retrieval)
 - FM Core: 15 → 18 tests (45% → 55%)
 - Total tests: 139 → 147 (+8)
+
+**Sprint 30 Update (PR #680):**
+- +3 Admin communications tests (rate limit, auth, list retrieval)
+- +2 Admin support-tickets tests (auth, list retrieval)
+- +3 Admin price-tiers tests (rate limit, auth, list retrieval)
+- Admin: 10 → 13 tests (34% → 45%)
+- Total tests: 147 → 155 (+8)
+- **Total coverage crossed 53%** 🎯
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
