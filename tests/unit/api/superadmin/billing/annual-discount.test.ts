@@ -99,4 +99,98 @@ describe("/api/superadmin/billing/annual-discount", () => {
       { upsert: true, new: true },
     );
   });
+
+  // Additional tests per CodeRabbit review for comprehensive coverage
+
+  // GET endpoint enhanced tests
+  describe("GET enhanced coverage", () => {
+    it("returns discount rule data in response body", async () => {
+      mockFindOne.mockResolvedValue({ percentage: 10, key: "ANNUAL_PREPAY" });
+      
+      const res = await GET(createRequest("GET"));
+      const json = await res.json();
+      
+      expect(res.status).toBe(200);
+      expect(json).toMatchObject({
+        percentage: 10,
+        key: "ANNUAL_PREPAY",
+      });
+    });
+
+    it("handles missing discount rule gracefully", async () => {
+      mockFindOne.mockResolvedValue(null);
+      
+      const res = await GET(createRequest("GET"));
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toEqual(null);
+    });
+
+    it("returns 500 when database query fails", async () => {
+      mockFindOne.mockRejectedValue(new Error("DB connection failed"));
+      
+      const res = await GET(createRequest("GET"));
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // PATCH endpoint error path tests
+  describe("PATCH error paths", () => {
+    it("returns 400 when percentage is missing", async () => {
+      const res = await PATCH(createRequest("PATCH", {}));
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when percentage is invalid (negative)", async () => {
+      const res = await PATCH(createRequest("PATCH", { percentage: -5 }));
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when percentage is invalid (over 100)", async () => {
+      const res = await PATCH(createRequest("PATCH", { percentage: 150 }));
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when percentage is not a number", async () => {
+      const res = await PATCH(createRequest("PATCH", { percentage: "invalid" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("returns updated rule in response body", async () => {
+      mockFindOneAndUpdate.mockResolvedValue({ 
+        percentage: 25, 
+        key: "ANNUAL_PREPAY",
+        updatedAt: new Date() 
+      });
+      
+      const res = await PATCH(createRequest("PATCH", { percentage: 25 }));
+      const json = await res.json();
+      
+      expect(res.status).toBe(200);
+      expect(json).toMatchObject({
+        percentage: 25,
+        key: "ANNUAL_PREPAY",
+      });
+    });
+
+    it("returns 500 when database update fails", async () => {
+      mockFindOneAndUpdate.mockRejectedValue(new Error("DB write failed"));
+      
+      const res = await PATCH(createRequest("PATCH", { percentage: 15 }));
+      expect(res.status).toBe(500);
+    });
+
+    // Boundary value tests
+    it("accepts percentage at boundary value 0", async () => {
+      mockFindOneAndUpdate.mockResolvedValue({ percentage: 0 });
+      const res = await PATCH(createRequest("PATCH", { percentage: 0 }));
+      expect(res.status).toBe(200);
+    });
+
+    it("accepts percentage at boundary value 100", async () => {
+      mockFindOneAndUpdate.mockResolvedValue({ percentage: 100 });
+      const res = await PATCH(createRequest("PATCH", { percentage: 100 }));
+      expect(res.status).toBe(200);
+    });
+  });
 });

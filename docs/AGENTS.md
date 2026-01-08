@@ -3298,17 +3298,18 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | FM Core | 45 | 42 | 93% | P3 |
 | Finance | 19 | 16 | 84% | ✅ P1 DONE |
 | HR | 7 | 8 | 100% | ✅ P1 DONE |
-| Souq | 75 | 42 | 56% | **P2** (Target 60%) |
+| Souq | 75 | 45 | 60% | ✅ P2 TARGET MET |
 | Aqar | 28 | 12 | 43% | P2 |
 | Auth | 12 | 12 | 100% | ✅ |
 | Admin | 18 | 8 | 44% | P2 |
-| **Total** | **392** | **228** | **58.2%** | Target: 70% |
+| **Total** | **392** | **231** | **58.9%** | Target: 70% |
 
-**Sprint 17-20 Progress (PR #680):**
+**Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
 - Sprint 18: +4 Souq tests (buybox, repricer-run, kyc-status, returns-eligibility)
 - Sprint 19: +4 Souq tests (analytics-sales/customers/traffic, fulfillment-sla)
 - Sprint 20: +5 Souq tests (ads-clicks/impressions/reports, reviews-helpful/report)
+- Sprint 21: +3 Souq tests (listings, returns, seller-health) → **60% Souq target achieved**
 
 ---
 
