@@ -19,6 +19,60 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-08T07:30 (Asia/Riyadh) — Sprint 17 COMPLETE: P1 Testing Improvements [AGENT-680-FULL]
+
+**Agent Token:** [AGENT-680-FULL]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Modified (pending commit)
+
+#### Session Summary
+
+Implemented P1 testing improvements from Section 17.5. Added 4 new test files with 25 tests covering previously untested Finance routes.
+
+#### Testing Audit Findings
+
+**HR Module (TEST-001):**
+- Routes: 7 (attendance, employees, leave-types, leaves, payroll/runs, payroll/calculate, payroll/wps-export)
+- Test Files: 8 files, 56 tests
+- Coverage: **100%** ✅ COMPLETE (already at target)
+
+**Finance Module (TEST-002):**
+
+| Before | After | Delta |
+|--------|-------|-------|
+| 12 test files | 16 test files | +4 files |
+| 92 tests | 117 tests | +25 tests |
+| 15/20 routes covered | 19/20 routes covered | +4 routes |
+
+#### New Test Files Created
+
+| File | Tests | Routes Covered |
+|------|-------|----------------|
+| `zatca-onboarding.route.test.ts` | 8 | `/api/finance/zatca/onboarding` |
+| `zatca-submit.route.test.ts` | 7 | `/api/finance/zatca/submit` |
+| `ledger-trial-balance.route.test.ts` | 5 | `/api/finance/ledger/trial-balance` |
+| `ledger-account-activity.route.test.ts` | 5 | `/api/finance/ledger/account-activity/[accountId]` |
+
+#### Test Coverage Summary
+
+| Module | Routes | Test Files | Tests | Coverage |
+|--------|--------|------------|-------|----------|
+| HR | 7 | 8 | 56 | 100% ✅ |
+| Finance | 20 | 16 | 117 | 95% ✅ |
+
+**Remaining Gap:** `accounts/[id]/route.ts` - Uses parent test file pattern (tested via `accounts.route.test.ts`)
+
+#### CI Verification
+
+| Check | Status |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm vitest run tests/api/hr` | ✅ 8 files, 56 tests |
+| `pnpm vitest run tests/api/finance` | ✅ 16 files, 117 tests |
+
+---
+
 ### 2026-01-08T05:00 (Asia/Riyadh) — Sprints 10-12 COMPLETE: Comprehensive Platform Audit [AGENT-680-FULL]
 
 **Agent Token:** [AGENT-680-FULL]  
