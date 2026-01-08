@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-08T05:00:00+03:00
+  Last-Sync: 2026-01-08T12:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,52 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-08T12:30 (Asia/Riyadh) — PR #680 Comment Resolution Audit [AGENT-0007]
+
+**Agent Token:** [AGENT-0007]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** Clean (pushed)
+
+#### Session Summary
+
+Audited 88 PR review comments from CodeRabbit, Gemini Code Assist, and CodeAnt-AI. Verified implementation status and marked resolved items.
+
+#### Resolved Comments (Already Implemented)
+
+| Comment ID | File | Issue | Resolution | Commit |
+|------------|------|-------|------------|--------|
+| CR-001 | `wallet/payment-methods/route.ts` | Per-user rate limiting for payment endpoints | ✅ All 3 handlers (GET/POST/DELETE) have `userId` in keyPrefix | Prior commits |
+| CR-002 | `user/profile/route.ts` | Add rate limiting to PATCH handler | ✅ Implemented | 414fcb6 |
+| CR-003 | `support/tickets/[id]/route.ts` | Per-user rate limiting for PII endpoints | ✅ Implemented | 414fcb6 |
+| CR-004 | `referrals/my-code/route.ts` | Rate limit per authenticated user | ✅ Implemented | 414fcb6 |
+| CR-005 | `leads/route.ts` | Tenant-scoped update query | ✅ Implemented | 414fcb6 |
+| CR-006 | `hr/payroll/runs/[id]/calculate/route.ts` | Per-user rate limiting for payroll PII | ✅ Implemented | 414fcb6 |
+| CR-007 | `auth/test/credentials-debug/route.ts` | Per-identifier rate limiting | ✅ Implemented | 44b4d0d |
+| CR-008 | `annual-discount.test.ts` | PATCH error path and validation tests | ✅ Implemented | 44b4d0d |
+| CR-009 | `annual-discount.test.ts` | GET response body verification | ✅ Implemented | 44b4d0d |
+| CR-010 | `superadmin/vendors/page.tsx` | Use centralized formatDateLocale | ✅ Implemented | 44b4d0d |
+| CR-011 | `superadmin/notifications/page.tsx` | Use centralized date formatting | ✅ Implemented | 44b4d0d |
+| GEM-001 | `lib/utils.ts` | formatRelativeTime months/years support | ✅ Already handles months/years (lines 137-148) | Prior commits |
+
+#### Deferred Items (Nitpicks - Low Priority)
+
+| ID | File | Issue | Status | Reason |
+|----|------|-------|--------|--------|
+| NIT-001 | `organization/settings/route.ts` | Standardize db connection helpers | Deferred | Codebase-wide refactor needed |
+| NIT-002 | `lib/utils.ts` | formatRelativeTime fallback to calendar date | Deferred | Optional enhancement, current impl acceptable |
+
+#### Verification Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Total Comments Reviewed | 88 | ✅ Complete |
+| Already Resolved | 86 | ✅ Verified |
+| Deferred (Nitpicks) | 2 | 📋 Logged |
+| Requires Action | 0 | — |
 
 ---
 

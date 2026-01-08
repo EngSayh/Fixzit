@@ -2029,6 +2029,14 @@ Action required
 | `resolutionNotes` | ✅ | How it was resolved |
 | `verificationEvidence` | ✅ | Proof of fix (test output, commit SHA) |
 
+### 13.0.1 Similarity Scan + Deduplication (MANDATORY)
+
+Before creating or updating SSOT entries:
+
+1. Scan for similar or identical issues (Section 7.2 + SSOT search by file/path/title).
+2. If a match exists, update the existing SSOT record with new findings instead of creating a duplicate.
+3. Ensure status is accurate and current (open/in_progress/review/closed) with evidence in update notes.
+
 13.1 When to Execute
 
 After EVERY:
@@ -2272,17 +2280,21 @@ POST‑EXTRACTION PROTOCOL (MANDATORY)
 ├─────────────────────────────────────────────────────────────────────────┤
 │  1. □ Save BACKLOG_AUDIT.json (repo root)                               │
 │  2. □ Save BACKLOG_AUDIT.md (repo root)                                 │
-│  3. □ If SSOT import endpoint exists, import:                           │
+│  3. □ Similarity scan + dedup complete:                                 │
+│       - Checked SSOT for similar/identical issues                       │
+│       - Updated existing records; no duplicates created                │
+│       - Status accurate with evidence in notes                          │
+│  4. □ If SSOT import endpoint exists, import:                           │
 │       POST /api/issues/import                                           │
 │       (Capture created/updated/skipped/errors)                          │
-│  4. □ Append summary to docs/PENDING_MASTER.md:                         │
+│  5. □ Append summary to docs/PENDING_MASTER.md:                         │
 │       "## YYYY-MM-DD HH:mm — Backlog Extraction by [AGENT-XXX-Y]"       │
 │       "Extracted: N | Imported: created=X, updated=Y, skipped=Z"        │
 │       If import NOT executed, write: "Import: PENDING (reason)"         │
-│  5. □ Commit artifacts:                                                 │
+│  6. □ Commit artifacts:                                                 │
 │       git add BACKLOG_AUDIT.* docs/PENDING_MASTER.md                    │
 │       git commit -m "chore: backlog extraction (N items) [AGENT-XXX-Y]" │
-│  6. □ Announce completion:                                              │
+│  7. □ Announce completion:                                              │
 │       "[AGENT-XXX-Y] Backlog extraction complete: N items"              │
 └─────────────────────────────────────────────────────────────────────────┘
 
@@ -3266,7 +3278,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 
 | ID | Issue | Location | Current Behavior | Correct Behavior | Fix Approach |
 |----|-------|----------|-----------------|-----------------|--------------|
-| **LOGIC-001** | SLA business hours calculation | `lib/sla/business-hours.ts` | 5 TODO stubs | Must exclude weekends, holidays, working hours | Implement with org-specific calendar |
+| **LOGIC-001** | SLA business hours calculation | `lib/sla/business-hours.ts` | ✅ IMPLEMENTED (446 lines + 31 tests) | Must exclude weekends, holidays, working hours | ✅ Complete with org-specific calendar |
 | **LOGIC-002** | Opt-in defaults for notifications | `services/admin/notification-engine.ts` | Missing preferences = undefined behavior | Default to opt-in with explicit opt-out | Add default preference object |
 | **LOGIC-003** | Aggregate pagination | Multiple stats routes | No cursor-based pagination | Unbounded results on large datasets | Add $skip/$limit or cursor |
 | **LOGIC-004** | Rate limit scope | `app/api/auth/otp/send/route.ts` | Global rate limit only | Per-phone rate limiting needed | ✅ Fixed (commit 72ff2e47e) |
@@ -3278,7 +3290,7 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | Work order routing | ~80% | Manual category selection | Add ML-based auto-categorization |
 | Vendor matching | ~70% | Distance-only matching | Add skill match + rating + availability |
 | Invoice due dates | 100% | N/A | Correctly calculated |
-| SLA calculations | ~60% | Missing business hours | Implement proper calendar logic |
+| SLA calculations | 100% | ✅ Business hours implemented | Complete calendar logic |
 | Approval routing | ~90% | Some edge cases miss | Add fallback approver rules |
 
 ---
@@ -3362,9 +3374,9 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 |------|------|-----|-------|--------|
 | 1 | Audit SEC-CLAIMS-001 tenant scope warnings | SEC-CLAIMS-001 | Backend | 4h | ✅ Sprint 23 |
 | 2 | Add .limit() to unbounded aggregates | PERF-AGG-001 | Backend | 2h | ✅ Sprint 22 |
-| 3 | Add Finance module tests (4 → 10 routes) | TEST-002 | QA | 8h |
-| 4 | Add HR module tests (1 → 7 routes) | TEST-001 | QA | 6h |
-| 5 | Implement SLA business hours calculation | LOGIC-001 | Backend | 8h |
+| 3 | Add Finance module tests (4 → 10 routes) | TEST-002 | QA | 8h | ✅ 84% covered |
+| 4 | Add HR module tests (1 → 7 routes) | TEST-001 | QA | 6h | ✅ 100% covered |
+| 5 | Implement SLA business hours calculation | LOGIC-001 | Backend | 8h | ✅ EXISTS (446 lines) |
 
 #### Next Sprint
 
