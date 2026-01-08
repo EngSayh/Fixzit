@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T15:45:00+03:00
+  Last-Sync: 2026-01-09T19:20:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,48 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T19:20 (Asia/Riyadh) — Sprint 69 FM Domain Coverage [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 101 commits ahead of main
+**Commit:** `0307114c5`
+
+#### Sprint 69 Summary
+
+| Domain | Files | Tests | Coverage |
+|--------|-------|-------|----------|
+| fm/finance/budgets | 1 | 7 | GET/POST budgets |
+| fm/finance/expenses | 1 | 10 | GET/POST expenses |
+| fm/system/roles | 1 | 8 | GET/POST custom RBAC roles |
+| fm/support/tickets | 1 | 10 | GET/POST support tickets |
+| fm/support/escalations | 1 | 8 | POST escalations (P1/P2 incidents) |
+| **Total** | **5** | **43** | |
+
+#### Test Suite Status
+
+| Metric | Value |
+|--------|-------|
+| Total Passing | 4,158 |
+| Total Skipped | 34 (claims.test.ts - pre-existing) |
+| Total Failures | 0 |
+| Typecheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+
+#### Cumulative Progress (Sprints 65-69)
+
+| Sprint | Files | Tests | Focus |
+|--------|-------|-------|-------|
+| 65 | 22 | 215 | Foundation coverage |
+| 66 | 8 | 49 | superadmin, payments |
+| 67 | 4 | 28 | help, notifications, audit |
+| 68 | 5 | 27 | finance reports, invoices |
+| 69 | 5 | 43 | FM domain (budgets, expenses, roles, tickets, escalations) |
+| **Total** | **44** | **362** | |
 
 ---
 
