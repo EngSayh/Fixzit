@@ -3378,9 +3378,9 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | Aqar | 18 | 16 | 89% | ✅ P2 DONE |
 | Auth | 17 | 11 | 65% | P3 |
 | Admin | 29 | 13 | 45% | P2 (Sprint 30 +8) |
-| Onboarding | 7 | 3 | 43% | P2 |
+| Onboarding | 7 | 6 | 86% | ✅ P2 (Sprint 31 +11) |
 | Superadmin | 87 | 9 | 10% | P3 (platform-ops) |
-| **Total** | **294** | **155** | **53%** | Target: 70% |
+| **Total** | **294** | **166** | **56%** | Target: 70% |
 
 **Sprint 26 Update (PR #680):**
 - Aqar coverage improved from 43% → 89% ✅
@@ -3407,6 +3407,14 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 - Admin: 10 → 13 tests (34% → 45%)
 - Total tests: 147 → 155 (+8)
 - **Total coverage crossed 53%** 🎯
+
+**Sprint 31 Update (PR #680):**
+- +3 Onboarding documents-review tests (rate limit, auth, invalid decision)
+- +4 Onboarding caseId tests (GET/PATCH rate limit, auth)
+- +4 Onboarding confirm-upload tests (rate limit, auth, validation, 404)
+- Onboarding: 3 → 6 tests (43% → 86%) ✅
+- Total tests: 155 → 166 (+11)
+- **Total coverage: 56%** 🎯
 
 **Sprint 17-21 Progress (PR #680):**
 - Sprint 17: +4 Finance tests (ZATCA onboarding/submit, ledger trial-balance/account-activity)
