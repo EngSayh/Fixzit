@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T19:20:00+03:00
+  Last-Sync: 2026-01-09T00:40:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,49 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T00:40 (Asia/Riyadh) — Sprint 70 FM Work-Orders/Properties Coverage [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `feat/platform-improvements-sprint-0-4`  
+**PR:** #680
+**Git State:** 103 commits ahead of main
+**Commit:** `be58d07a6`
+
+#### Sprint 70 Summary
+
+| Route | Tests | Coverage |
+|-------|-------|----------|
+| work-orders/[id] | 14 | GET/PATCH/DELETE single work order |
+| work-orders/[id]/attachments | 14 | GET/POST/DELETE photo attachments |
+| properties/[id]/building-model/data | 8 | GET building model JSON data |
+| properties/[id]/building-model/publish | 10 | POST publish model to tenants |
+| properties/[id]/units/[unitId] | 14 | GET/PATCH unit metadata |
+| **Total** | **59** | |
+
+#### Test Suite Status
+
+| Metric | Value |
+|--------|-------|
+| Total Passing | 4,217 |
+| Total Skipped | 34 (claims.test.ts - pre-existing) |
+| Total Failures | 0 |
+| Typecheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+
+#### Cumulative Progress (Sprints 65-70)
+
+| Sprint | Files | Tests | Focus |
+|--------|-------|-------|-------|
+| 65 | 22 | 215 | Foundation coverage |
+| 66 | 8 | 49 | superadmin, payments |
+| 67 | 4 | 28 | help, notifications, audit |
+| 68 | 5 | 27 | finance reports, invoices |
+| 69 | 5 | 43 | FM budgets, expenses, roles, tickets, escalations |
+| 70 | 5 | 59 | FM work-orders/[id], attachments, building-model, units |
+| **Total** | **49** | **421** | |
 
 ---
 
