@@ -3245,8 +3245,8 @@ Technical Writer / Enablement	Reduced support load, faster adoption	• Admin gu
 | ID | Severity | Issue | Location | Impact | Status |
 |----|----------|-------|----------|--------|--------|
 | **SEC-CLAIMS-001** | � Fixed | Claims routes now use dual orgId/org_id scoping | `services/souq/org-scope.ts` | Data isolation secured | Sprint 23 |
-| **BUG-ENV-001** | 🟡 Medium | process.env accessed directly in 40+ client components | `app/**/*.tsx` | SSR/hydration issues | Systematic fix needed |
-| **BUG-TS-001** | 🟢 Low | 3 @ts-expect-error without documented reason | `lib/ats/`, `lib/markdown.ts` | Tech debt | Add justification comments |
+| **BUG-ENV-001** | � FALSE POSITIVE | 14 usages audited: all NEXT_PUBLIC_*, NODE_ENV, or Server Components | `app/**/*.tsx` | No SSR issues | Verified Sprint 25 |
+| **BUG-TS-001** | 🟢 FALSE POSITIVE | 2 @ts-expect-error in lib/ - both documented | `lib/markdown.ts`, `lib/ats/resume-parser.ts` | No action needed | Verified Sprint 25 |
 | **PERF-AGG-001** | � Fixed | Unbounded aggregates - limits added | `app/api/**/route.ts` | Memory exhaustion prevented | Sprint 22 |
 | **PERF-LEAN-001** | 🟢 FALSE POSITIVE | Onboarding queries have .lean() or documented NO_LEAN | `app/api/onboarding/**` | No action needed | Verified Sprint 24 |
 
