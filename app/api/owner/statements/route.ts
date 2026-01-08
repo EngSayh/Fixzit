@@ -403,6 +403,8 @@ export async function GET(req: NextRequest) {
           "commissionPayments.type": "COMMISSION",
         },
       },
+      // PERF-AGG-001: Limit to prevent memory exhaustion on large datasets
+      { $limit: 500 },
     ], { maxTimeMS: 10_000 });
 
     agentPayments.forEach((contract: unknown) => {
