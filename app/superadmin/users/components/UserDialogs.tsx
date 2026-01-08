@@ -40,6 +40,7 @@ import {
 import { RBAC_MODULES, RBAC_ROLE_PERMISSIONS, type ModulePermissions } from "@/config/rbac.matrix";
 import { getSubModulesForParent } from "@/config/rbac.submodules";
 import { CANONICAL_ROLES, type UserRoleType } from "@/types/user";
+import { formatDateLocale } from "@/lib/utils";
 import type { UserData, Organization, CreateUserFormData, PermissionOverrides } from "./types";
 import { STATUS_COLORS } from "./types";
 
@@ -47,15 +48,10 @@ import { STATUS_COLORS } from "./types";
 // Helpers
 // ============================================================================
 
+// Use centralized formatDateLocale for consistency (CodeRabbit review)
 function formatDate(dateStr?: string, locale: string = "en-US"): string {
   if (!dateStr) return "—";
-  // Map to proper BCP 47 locale tag for Arabic (Saudi Arabia)
-  const localeTag = locale === "ar" ? "ar-SA" : locale;
-  return new Date(dateStr).toLocaleDateString(localeTag, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDateLocale(dateStr, locale);
 }
 
 function getUserName(user: UserData): string {

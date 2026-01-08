@@ -28,7 +28,7 @@ import { ClaimsOrder } from "@/server/models/souq/ClaimsOrder";
 import { SouqClaim } from "@/server/models/souq/Claim";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
-import { buildOrgScopeFilter as buildOrgScope } from "@/services/souq/org-scope";
+import { buildSouqOrgFilter as buildOrgScope } from "@/services/souq/org-scope";
 import { CreateClaimSchema } from "@/lib/validations/souq-claims";
 
 const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;

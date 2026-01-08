@@ -20,7 +20,7 @@ import { ClaimsOrder } from "@/server/models/souq/ClaimsOrder";
 import { User } from "@/server/models/User";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
-import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
@@ -70,7 +70,7 @@ export async function GET(
     }
 
     await connectDb();
-    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
+    const orgFilter = buildSouqOrgFilter(userOrgId.toString());
     const orderIdValue = String(claim.orderId);
     let order = null;
     if (ObjectId.isValid(orderIdValue)) {
@@ -127,7 +127,7 @@ export async function PUT(
     if (!session?.user?.id || !userOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
+    const orgFilter = buildSouqOrgFilter(userOrgId.toString());
 
     const { data: body, error: parseError } = await parseBodySafe<{ status?: string }>(request, { logPrefix: "[Souq Claims]" });
     if (parseError) {

@@ -1704,6 +1704,7 @@ Run this loop for every issue to ensure full implementation and verification:
 6. SMART Report: prepare and log the SMART report (Section 14).
 7. Completion Gate: if any SMART metric or acceptance criteria is below 100%, return to Step 3.
 8. Main Protection: all changes go through PRs only; never work directly on `main` (Section 5.4 + 10).
+
 8. Scope Expansion & Delegation Protocol
 8.1 Problem Statement
 

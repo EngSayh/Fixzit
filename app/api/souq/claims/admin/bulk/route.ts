@@ -24,7 +24,7 @@ import { RefundProcessor } from "@/services/souq/claims/refund-processor";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { isValidObjectId } from "@/lib/utils/objectid";
 import { Role } from "@/lib/rbac/client-roles";
-import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
 
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch all claims to validate they exist and can be bulk processed
     // 🔐 Use centralized org scope helper for consistent string/ObjectId handling
-    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildOrgScopeFilter(orgId) : {});
+    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildSouqOrgFilter(orgId) : {});
     const claimQuery = {
       ...baseOrgScope,
       $and: [
