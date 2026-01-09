@@ -120,8 +120,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Search filter - search in userName, userEmail, action, entityType
+    // Length cap to prevent expensive regex queries (max 100 chars)
     if (search) {
-      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const truncatedSearch = search.slice(0, 100);
+      const escapedSearch = truncatedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
         { userName: { $regex: escapedSearch, $options: "i" } },
         { userEmail: { $regex: escapedSearch, $options: "i" } },

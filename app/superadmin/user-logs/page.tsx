@@ -324,18 +324,6 @@ export default function SuperadminUserLogsPage() {
     setSessionDialogOpen(true);
   };
 
-  // CSV escape helper to prevent injection and handle special characters
-  const escapeCsvField = (value: unknown): string => {
-    const str = String(value ?? "");
-    // Prevent CSV injection by prefixing dangerous characters
-    const sanitized = str.replace(/^([=+\-@])/, "'$1");
-    // Escape quotes and wrap in quotes if contains comma, quote, newline, or CR
-    if (/[,"\n\r]/.test(sanitized)) {
-      return `"${sanitized.replace(/"/g, '""')}"`;
-    }
-    return sanitized;
-  };
-
   // Show export consent dialog
   const handleExportClick = () => {
     setIncludeEmails(false);
@@ -343,56 +331,49 @@ export default function SuperadminUserLogsPage() {
     setExportDialogOpen(true);
   };
 
-  // Perform actual export after consent
+  // Perform actual export after consent - uses full export API for all matching records
   const handleExportConfirm = async () => {
     if (!exportConsent) return;
     
     setExporting(true);
     
     try {
-      // Log export action for audit trail
-      await fetch("/api/superadmin/audit-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          action: "user_logs_export",
-          details: {
-            includeEmails,
-            filters: { categoryFilter, statusFilter, dateRange, search },
-            recordCount: filteredLogs.length,
-          },
-        }),
-      }).catch(() => {
-        // Queue retry if audit log fails - don't block export
-        // eslint-disable-next-line no-console -- SuperAdmin audit failure logging
-        console.warn("Audit log call failed - export proceeding");
+      // Map UI dateRange values to API expected values
+      const rangeMap: Record<string, string> = {
+        today: "24h",
+        week: "7d",
+        month: "30d",
+        all: "90d",
+      };
+      const apiRange = rangeMap[dateRange] || "7d";
+      
+      // Build query params with all current filters
+      const params = new URLSearchParams({
+        format: "csv",
+        range: apiRange,
+        includeEmails: includeEmails.toString(),
       });
       
-      // Build CSV with PII masking unless consent given
-      const headers = includeEmails 
-        ? ["Timestamp", "User", "Email", "Tenant", "Action", "Category", "Status", "Details"]
-        : ["Timestamp", "User", "Tenant", "Action", "Category", "Status", "Details"];
-        
-      const csvContent = [
-        headers.join(","),
-        ...filteredLogs.map(log => {
-          const row = [
-            new Date(log.timestamp).toISOString(),
-            escapeCsvField(log.userName),
-            ...(includeEmails ? [escapeCsvField(log.userEmail)] : []),
-            escapeCsvField(log.tenantName),
-            escapeCsvField(log.action),
-            escapeCsvField(log.category),
-            escapeCsvField(log.status),
-            escapeCsvField(log.details),
-          ];
-          return row.join(",");
-        })
-      ].join("\n");
+      // Add optional filters to get consistent export with current view
+      if (search) params.set("search", search);
+      if (categoryFilter && categoryFilter !== "all") params.set("category", categoryFilter);
+      if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
       
-      const BOM = "\uFEFF";
-      const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+      // Use the export API endpoint for complete dataset (up to 10k records)
+      // This avoids the pagination limitation of the regular endpoint
+      const response = await fetch(`/api/superadmin/user-logs/export?${params.toString()}`, {
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+      
+      // Get CSV content from API response
+      const csvContent = await response.text();
+      
+      // Download the CSV file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -405,6 +386,9 @@ export default function SuperadminUserLogsPage() {
       }, 0);
       
       setExportDialogOpen(false);
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin export error logging
+      console.error("Export failed:", error);
     } finally {
       setExporting(false);
     }

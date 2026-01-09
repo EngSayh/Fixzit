@@ -226,11 +226,15 @@ describe("User Logs API Contract Validation", () => {
       }
     });
 
-    it("should return avgSessionDuration as a number", async () => {
+    it("should return avgSessionDuration as a number or null", async () => {
       const res = await getStatsRoute(createRequest("/api/superadmin/user-logs/stats") as any);
       if (res.status === 200) {
         const json = await res.json();
-        expect(typeof json.avgSessionDuration).toBe("number");
+        // avgSessionDuration is null when no session data available, otherwise number
+        expect(["number", "object"]).toContain(typeof json.avgSessionDuration);
+        if (json.avgSessionDuration !== null) {
+          expect(typeof json.avgSessionDuration).toBe("number");
+        }
       }
     });
   });
