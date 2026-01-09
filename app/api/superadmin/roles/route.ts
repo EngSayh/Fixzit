@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { connectDb } from "@/lib/mongodb-unified";
 import Role from "@/server/models/Role";
+import { AuditLogModel } from "@/server/models/AuditLog";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -124,6 +125,23 @@ export async function POST(request: NextRequest) {
       name: body.name,
       description: body.description || "",
       permissions: body.permissions || [],
+    });
+
+    // Audit log for role creation
+    await AuditLogModel.create({
+      entityType: "Role",
+      entityId: role._id,
+      action: "role.create",
+      userId: session.username,
+      timestamp: new Date(),
+      details: {
+        roleName: body.name,
+        description: body.description || "",
+        permissionsCount: (body.permissions || []).length,
+      },
+      result: { success: true },
+    }).catch((err: Error) => {
+      logger.warn("[Superadmin:Roles] Failed to create audit log", { error: err.message });
     });
 
     logger.info("[Superadmin:Roles] Role created", {
