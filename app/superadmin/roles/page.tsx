@@ -40,6 +40,7 @@ import {
   Eye,
   EyeOff,
   Package,
+  Clock,
 } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,18 @@ interface CanonicalMismatch {
 interface GroupedPermission {
   module: string;
   permissions: string[];
+}
+
+// Role change history entry
+interface RoleHistoryEntry {
+  id: string;
+  action: string;
+  roleName: string;
+  userId: string;
+  timestamp: string;
+  details: Record<string, unknown>;
+  success: boolean;
+  ipAddress?: string;
 }
 
 // Canonical slug to category mapping for reliable categorization
@@ -178,6 +191,9 @@ export default function SuperadminRolesPage() {
   const [canonicalDiffDialogOpen, setCanonicalDiffDialogOpen] = useState(false);
   const [selectedRoleForDetail, setSelectedRoleForDetail] = useState<RoleData | null>(null);
   const [showOnlyDifferences, setShowOnlyDifferences] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [roleHistory, setRoleHistory] = useState<RoleHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Infer category from role slug or name (slug-based is more reliable)
   const inferCategory = useCallback((role: { slug?: string; name: string }): string => {
@@ -269,6 +285,26 @@ export default function SuperadminRolesPage() {
       setLoading(false);
     }
   }, [inferCategory, normalizePermission]);
+
+  // Fetch role change history
+  const fetchRoleHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const response = await fetch("/api/superadmin/roles/history?limit=50", {
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRoleHistory(data.history || []);
+      }
+    } catch (_err) {
+      // Silently fail - history is optional
+      setRoleHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchRoles();
@@ -572,6 +608,19 @@ export default function SuperadminRolesPage() {
           >
             <FileJson className="h-4 w-4" aria-hidden="true" />
             {t("superadmin.roles.json", "JSON")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setHistoryDialogOpen(true);
+              fetchRoleHistory();
+            }}
+            className="gap-2"
+            aria-label={t("superadmin.roles.viewHistory", "View role change history")}
+          >
+            <Clock className="h-4 w-4" aria-hidden="true" />
+            {t("superadmin.roles.history", "History")}
           </Button>
           <Button
             variant="ghost"
@@ -1185,6 +1234,77 @@ export default function SuperadminRolesPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Change History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto" aria-labelledby="history-dialog-title">
+          <DialogHeader>
+            <DialogTitle id="history-dialog-title" className="flex items-center gap-2">
+              <Clock className="h-5 w-5" aria-hidden="true" />
+              {t("superadmin.roles.roleHistory", "Role Change History")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.roles.historyDescription", "View recent changes to roles and permissions")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                <span className="ms-2 text-muted-foreground">{t("common.loading", "Loading...")}</span>
+              </div>
+            ) : roleHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Clock className="h-12 w-12 text-muted-foreground/50 mb-3" aria-hidden="true" />
+                <p className="text-muted-foreground">{t("superadmin.roles.noHistory", "No role changes recorded yet")}</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  {t("superadmin.roles.noHistoryDesc", "Changes to roles will appear here once audit logging is active.")}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("superadmin.roles.action", "Action")}</TableHead>
+                    <TableHead>{t("superadmin.roles.roleName", "Role")}</TableHead>
+                    <TableHead>{t("superadmin.roles.timestamp", "Time")}</TableHead>
+                    <TableHead>{t("superadmin.roles.status", "Status")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roleHistory.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {entry.action.replace("role.", "")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono">{entry.roleName}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(entry.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        {entry.success ? (
+                          <Badge variant="outline" className="text-green-400 border-green-500/30">
+                            <CheckCircle className="h-3 w-3 me-1" aria-hidden="true" />
+                            {t("common.success", "Success")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive">
+                            <X className="h-3 w-3 me-1" aria-hidden="true" />
+                            {t("common.failed", "Failed")}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
