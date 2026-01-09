@@ -19,6 +19,59 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-09T14:30 (Asia/Riyadh) — Roles History API Schema Alignment [AGENT-0015]
+
+**Agent Token:** [AGENT-0015]  
+**Branch:** `Fixzit-v2.0.27-20260109-0042-test-100-percent`  
+**PR:** #682  
+**Commit:** `d749dc4c2`  
+**Status:** ✅ FIXED & PUSHED
+
+#### SMART_SUPERADMIN_ROLES_PATCH_REVIEW Fixes
+
+| Issue | Severity | Fix |
+|-------|----------|-----|
+| History API queries `entityType: "Role"` | Medium | Changed to `$or` with `entityType: { $in: ["SETTING", "OTHER"] }` |
+| History API queries `action: /^role\./` | Medium | Changed to `action: { $in: ["CREATE", "UPDATE", "DELETE"] }` |
+| History API reads `details.roleName` | Medium | Derive from `entityName` or `metadata.reason` |
+| History API reads top-level `ipAddress` | Medium | Changed to `context.ipAddress` |
+| Clock import missing | High | Verified already imported at line 43 - no fix needed |
+
+#### New Tests Created
+
+**File:** `tests/api/superadmin/roles-history.route.test.ts`  
+**Tests:** 6/6 pass
+
+1. Returns 401 without valid session
+2. Returns 429 when rate limited
+3. Returns role history entries
+4. Supports pagination (page, limit)
+5. Filters by roleName query param
+6. Extracts role name from metadata.reason
+
+#### Schema Alignment Details
+
+**AuditLog Schema (models/audit/AuditLog.ts):**
+- `entityType` enum: `["USER", "PROPERTY", "TENANT", "OWNER", "CONTRACT", "PAYMENT", "INVOICE", "WORKORDER", "TICKET", "PROJECT", "BID", "VENDOR", "SERVICE_PROVIDER", "DOCUMENT", "SETTING", "OTHER"]` — No "Role" value
+- `action` enum: `["CREATE", "UPDATE", "DELETE", "LOGIN", ...]` — Not pattern-based
+- `ipAddress` at: `context.ipAddress` — Not top-level
+- Role name: Derived from `entityName` or parsed from `metadata.reason`
+
+#### Verification
+
+```bash
+pnpm vitest run tests/api/superadmin/roles-history.route.test.ts --project=server
+# ✓ 6/6 tests pass
+
+pnpm typecheck
+# ✓ 0 errors
+
+git push origin HEAD
+# ✓ Pre-push hooks pass (lint:mongo-unwrap, typecheck)
+```
+
+---
+
 ### 2026-01-09T13:50 (Asia/Riyadh) — Full Test Suite Verification [AGENT-0014]
 
 **Agent Token:** [AGENT-0014]  
