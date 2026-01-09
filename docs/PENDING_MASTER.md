@@ -19,6 +19,50 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-11T20:55 (Asia/Riyadh) — Tap Payments Wallet Integration [AGENT-0031]
+
+**Agent Token:** [AGENT-0031]  
+**Branch:** `docs/ssot-update-20260109-agent-0029`  
+**Status:** ✅ 100% SPRINT COMPLETE — 0 FAILURES, 0 SKIPS
+
+#### Summary
+
+Completed Tap Payments gateway integration for wallet top-up. Resolved TODO marker by connecting to existing TapPaymentsClient. Added payment callback route for redirect handling with mock mode fallback.
+
+#### CI Verification (Local)
+
+| Check | Result |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+| Test Files | ✅ 712 passed (712) |
+| Tests | ✅ 4688 passed (4688) |
+| Failures | ✅ 0 |
+| Skips | ✅ 0 |
+| Duration | 855.78s |
+
+#### Changes
+
+| File | Change |
+|------|--------|
+| `app/api/wallet/top-up/route.ts` | Integrated TapPaymentsClient for production payments |
+| `app/api/wallet/top-up/callback/route.ts` | NEW - Payment callback handler for Tap redirects |
+
+#### Implementation Details
+
+- **Production Mode:** Creates Tap charge via TapPaymentsClient, returns Tap hosted checkout URL
+- **Mock Mode:** When TAP credentials not configured, returns mock checkout URL for development
+- **Callback Handler:** Verifies charge status, updates wallet balance on success, handles failures gracefully
+- **Observability:** Full structured logging for payment flow tracing
+
+#### Verification
+
+- All TODO markers in `app/api/` routes: **NONE REMAINING**
+- All TODO markers in `lib/` and `services/`: **NONE REMAINING**
+- parseBodySafe migration: Previous session completed 4 additional routes
+
+---
+
 ### 2026-01-10T23:10 (Asia/Riyadh) — Sprint 100% Complete - All Tests Pass [AGENT-0030]
 
 **Agent Token:** [AGENT-0030]  
