@@ -194,6 +194,7 @@ export default function SuperadminRolesPage() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [roleHistory, setRoleHistory] = useState<RoleHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // Infer category from role slug or name (slug-based is more reliable)
   const inferCategory = useCallback((role: { slug?: string; name: string }): string => {
@@ -289,6 +290,7 @@ export default function SuperadminRolesPage() {
   // Fetch role change history
   const fetchRoleHistory = useCallback(async () => {
     setHistoryLoading(true);
+    setHistoryError(null);
     try {
       const response = await fetch("/api/superadmin/roles/history?limit=50", {
         credentials: "include",
@@ -297,9 +299,16 @@ export default function SuperadminRolesPage() {
       if (response.ok) {
         const data = await response.json();
         setRoleHistory(data.history || []);
+      } else if (response.status === 401) {
+        setHistoryError("Unauthorized - superadmin access required");
+        setRoleHistory([]);
+      } else {
+        setHistoryError(`Failed to load history (HTTP ${response.status})`);
+        setRoleHistory([]);
       }
     } catch (_err) {
-      // Silently fail - history is optional
+      // Show error instead of silently failing
+      setHistoryError("Unable to fetch role history - network error");
       setRoleHistory([]);
     } finally {
       setHistoryLoading(false);
@@ -1255,6 +1264,20 @@ export default function SuperadminRolesPage() {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
                 <span className="ms-2 text-muted-foreground">{t("common.loading", "Loading...")}</span>
+              </div>
+            ) : historyError ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <AlertCircle className="h-12 w-12 text-destructive/70 mb-3" aria-hidden="true" />
+                <p className="text-destructive">{historyError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => fetchRoleHistory()}
+                >
+                  <RefreshCw className="h-4 w-4 me-2" aria-hidden="true" />
+                  {t("common.retry", "Retry")}
+                </Button>
               </div>
             ) : roleHistory.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
