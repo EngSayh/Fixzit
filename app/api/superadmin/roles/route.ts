@@ -23,7 +23,7 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 /**
  * GET /api/superadmin/roles
- * List all roles
+ * List all roles with populated permissions
  */
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
@@ -45,12 +45,32 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide role management
-    const roles = await Role.find({}).sort({ name: 1 }).lean();
+    const roles = await Role.find({})
+      .populate("permissions", "key description module")
+      .sort({ name: 1 })
+      .lean();
+
+    // Transform permissions from ObjectIds to string keys for UI consumption
+    const transformedRoles = roles.map((role) => ({
+      ...role,
+      // Convert populated permissions to string keys, or keep as-is if already strings
+      permissions: Array.isArray(role.permissions)
+        ? role.permissions.map((p: unknown) => {
+            if (typeof p === "string") return p;
+            if (p && typeof p === "object" && "key" in p) return (p as { key: string }).key;
+            // ObjectId case - convert to string
+            return String(p);
+          })
+        : [],
+      // Add permission count for UI
+      permissionCount: Array.isArray(role.permissions) ? role.permissions.length : 0,
+    }));
 
     return NextResponse.json(
       {
-        roles,
-        total: roles.length,
+        roles: transformedRoles,
+        total: transformedRoles.length,
+        fetchedAt: new Date().toISOString(),
       },
       { headers: ROBOTS_HEADER }
     );
