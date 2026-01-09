@@ -15,7 +15,7 @@
  * - CSV export for compliance/audit
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import { 
   Shield, 
