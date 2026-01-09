@@ -160,8 +160,63 @@ describe("GET /api/superadmin/roles/history", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    // Verify the find was called (query structure validated by TypeScript)
+    // Verify find was called with proper query structure
     expect(AuditLogModel.find).toHaveBeenCalled();
+    const query = vi.mocked(AuditLogModel.find).mock.calls[0][0] as Record<string, unknown>;
+    // When roleName is provided, query should search by that name (not require base predicate)
+    expect(query.$or).toBeDefined();
+    expect(Array.isArray(query.$or)).toBe(true);
+    const orArray = query.$or as Array<Record<string, unknown>>;
+    expect(orArray.some((cond) => cond.entityName?.$regex?.toString().includes("ADMIN"))).toBe(true);
+  });
+
+  it("should escape regex special chars in roleName filter", async () => {
+    vi.mocked(getSuperadminSession).mockResolvedValue({
+      id: "superadmin-123",
+      username: "superadmin",
+      role: "SUPER_ADMIN",
+      orgId: "org-123",
+    } as any);
+
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+
+    // Test with regex special chars that should be escaped
+    const request = new NextRequest("http://localhost/api/superadmin/roles/history?roleName=Admin.*Test");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(AuditLogModel.find).toHaveBeenCalled();
+    const query = vi.mocked(AuditLogModel.find).mock.calls[0][0] as Record<string, unknown>;
+    const orArray = query.$or as Array<Record<string, unknown>>;
+    // Should contain escaped regex (not raw .* which would be a regex wildcard)
+    const entityNameCond = orArray.find((cond) => cond.entityName?.$regex);
+    expect(entityNameCond).toBeDefined();
+    expect(String(entityNameCond!.entityName.$regex)).toContain("\\.");
+    expect(String(entityNameCond!.entityName.$regex)).toContain("\\*");
+  });
+
+  it("should truncate long roleName to 100 chars", async () => {
+    vi.mocked(getSuperadminSession).mockResolvedValue({
+      id: "superadmin-123",
+      username: "superadmin",
+      role: "SUPER_ADMIN",
+      orgId: "org-123",
+    } as any);
+
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+
+    // Test with excessively long roleName
+    const longRoleName = "A".repeat(200);
+    const request = new NextRequest(`http://localhost/api/superadmin/roles/history?roleName=${longRoleName}`);
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(AuditLogModel.find).toHaveBeenCalled();
+    const query = vi.mocked(AuditLogModel.find).mock.calls[0][0] as Record<string, unknown>;
+    const orArray = query.$or as Array<Record<string, unknown>>;
+    const entityNameCond = orArray.find((cond) => cond.entityName?.$regex);
+    // Regex should only contain 100 chars, not 200
+    expect(String(entityNameCond!.entityName.$regex).length).toBeLessThanOrEqual(100);
   });
 
   it("should extract role name from metadata.reason when entityName is missing", async () => {
