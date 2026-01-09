@@ -69,11 +69,14 @@ export function initSentryClient(): void {
     return;
   }
 
-  // Build integrations array - types are inferred from Sentry
-  const integrations: ReturnType<typeof Sentry.replayIntegration>[] = [];
-  if (typeof Sentry.replayIntegration === 'function') {
+  // Build integrations array - use any[] since replayIntegration may not exist in all versions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const integrations: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sdk = Sentry as any;
+  if (typeof sdk.replayIntegration === 'function') {
     integrations.push(
-      Sentry.replayIntegration({
+      sdk.replayIntegration({
         maskAllText: true,
         blockAllMedia: true,
       })
