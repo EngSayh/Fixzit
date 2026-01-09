@@ -56,13 +56,39 @@ export async function GET(request: NextRequest) {
     const roleName = searchParams.get("roleName");
 
     // Build query for role-related audit logs
+    // AuditLog schema uses:
+    // - entityType: "SETTING" or "OTHER" for role changes (no "Role" enum value)
+    // - action: "CREATE" | "UPDATE" | "DELETE" (not "role.create" patterns)
+    // - entityName: contains role name
+    // - metadata.reason: may contain role info
+    // - context.ipAddress: IP address (not top-level)
     const query: Record<string, unknown> = {
-      entityType: "Role",
-      action: { $regex: /^role\./, $options: "i" },
+      $or: [
+        // Role-related by entity name pattern
+        { entityName: { $regex: /role|permission/i } },
+        // Role-related by action + entityType
+        { 
+          action: { $in: ["CREATE", "UPDATE", "DELETE"] },
+          entityType: { $in: ["SETTING", "OTHER"] },
+          "metadata.tags": "role",
+        },
+        // Role-related by metadata reason
+        { "metadata.reason": { $regex: /role|permission/i } },
+      ],
     };
 
     if (roleName) {
-      query["details.roleName"] = { $regex: roleName, $options: "i" };
+      // Filter by specific role name
+      query.$and = [
+        { $or: query.$or as unknown[] },
+        { 
+          $or: [
+            { entityName: { $regex: roleName, $options: "i" } },
+            { "metadata.reason": { $regex: roleName, $options: "i" } },
+          ],
+        },
+      ];
+      delete query.$or;
     }
 
     const [logs, total] = await Promise.all([
@@ -75,16 +101,39 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Transform logs for UI consumption
-    const history = logs.map((log: Record<string, unknown>) => ({
-      id: String(log._id),
-      action: log.action,
-      roleName: (log.details as Record<string, unknown>)?.roleName || "Unknown",
-      userId: log.userId,
-      timestamp: log.timestamp,
-      details: log.details,
-      success: (log.result as Record<string, unknown>)?.success ?? true,
-      ipAddress: log.ipAddress || (log.security as Record<string, unknown>)?.ip,
-    }));
+    // Map AuditLog schema fields to UI expectations:
+    // - roleName: from entityName or metadata.reason
+    // - ipAddress: from context.ipAddress
+    // - success: from result.success
+    const history = logs.map((log: Record<string, unknown>) => {
+      const context = log.context as Record<string, unknown> | undefined;
+      const result = log.result as Record<string, unknown> | undefined;
+      const metadata = log.metadata as Record<string, unknown> | undefined;
+      
+      // Extract role name from entityName or metadata
+      let derivedRoleName = (log.entityName as string) || "Unknown";
+      if (derivedRoleName === "Unknown" && metadata?.reason) {
+        // Try to extract from reason if it mentions a role
+        const reasonStr = String(metadata.reason);
+        const roleMatch = reasonStr.match(/role[:\s]+([A-Z_]+)/i);
+        if (roleMatch) {
+          derivedRoleName = roleMatch[1];
+        }
+      }
+      
+      return {
+        id: String(log._id),
+        action: log.action,
+        roleName: derivedRoleName,
+        userId: log.userId,
+        userName: log.userName,
+        userEmail: log.userEmail,
+        timestamp: log.timestamp,
+        details: metadata || log.changes,
+        success: result?.success ?? true,
+        ipAddress: context?.ipAddress || "",
+      };
+    });
 
     return NextResponse.json(
       {
