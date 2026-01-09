@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T19:00:00+03:00
+  Last-Sync: 2026-01-09T21:15:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,50 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T21:15 (Asia/Riyadh) — SMART-001 Roles History Error Handling Fix [AGENT-0031]
+
+**Agent Token:** [AGENT-0031]  
+**Branch:** `main`  
+**PR:** #685 (merged)  
+**Status:** ✅ 100% SPRINT COMPLETE — 0 FAILURES, 0 SKIPS
+
+#### Summary
+
+Fixed SMART-001 issue identified in SMART_SUPERADMIN_ROLES_ANALYSIS_2026-01-09.md - history fetch errors were being silently masked, showing misleading 'No history' message on API failures.
+
+#### Changes Applied
+
+1. **Added `historyError` state** to track fetch failures explicitly
+2. **Fixed `fetchRoleHistory`** to show proper error messages instead of silently failing
+3. **Added retry button** in history dialog for error recovery
+4. **Shows clear error state** with AlertCircle icon for 401/network errors
+5. **Prevents misleading 'No history'** message when API is actually failing
+
+#### CI Verification (Local)
+
+| Check | Result |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
+| Test Files | ✅ 872 passed |
+| Tests | ✅ 6322 passed |
+| Failures | ✅ 0 |
+| Skips | ✅ 0 |
+
+#### SMART Report Updated
+
+- `docs/reports/SMART_SUPERADMIN_ROLES_ANALYSIS_2026-01-09.md` - Status: ✅ COMPLETE
+
+#### Large Effort DEFERRED Items (Future Sprints)
+
+| ID | Item | Effort | Status |
+|----|------|--------|--------|
+| BOT-004 | OCR/Document AI | 40h+ | Deferred |
+| IMP-UX-004 | Offline Technician Mode | 40h+ | Deferred |
+| FEAT-MOBILE-001 | Native Mobile Apps | 120h+ | Deferred |
 
 ---
 
