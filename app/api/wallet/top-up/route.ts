@@ -27,6 +27,8 @@ import { WalletTransaction } from "@/server/models/souq/WalletTransaction";
 import { SavedPaymentMethod } from "@/server/models/souq/SavedPaymentMethod";
 import { connectMongo as connectDB } from "@/lib/db/mongoose";
 import { z } from "zod";
+import { tapPayments, buildTapCustomer, buildWebhookConfig, type TapChargeRequest } from "@/lib/finance/tap-payments";
+import { getTapConfig } from "@/lib/tapConfig";
 
 // ============================================================================
 // VALIDATION
@@ -119,14 +121,79 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Integrate with actual payment gateway (Tap/HyperPay/Moyasar)
-    // For now, return mock checkout URL
-    const checkoutUrl = `/checkout/wallet?transaction_id=${transaction._id}&amount=${amount}`;
+    // Integrate with Tap Payments gateway
+    const tapConfig = getTapConfig();
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://fixzit.co";
+    
+    // Check if Tap is configured - fall back to mock if not
+    if (!tapConfig.isConfigured) {
+      // Development/unconfigured mode: return mock checkout URL
+      const checkoutUrl = `/checkout/wallet?transaction_id=${transaction._id}&amount=${amount}`;
+      return NextResponse.json({
+        transaction_id: transaction._id,
+        reference: transaction.reference,
+        checkout_url: return_url ? `${checkoutUrl}&return_url=${encodeURIComponent(return_url)}` : checkoutUrl,
+        amount,
+        amount_halalas: amountInHalalas,
+        status: "pending",
+        mode: "mock", // Indicate mock mode
+      });
+    }
+
+    // Production mode: Create Tap charge
+    const userEmail = session?.user?.email || `user-${userId}@fixzit.co`;
+    const userName = session?.user?.name || "Fixzit User";
+    const nameParts = userName.trim().split(/\s+/);
+    
+    const chargeRequest: TapChargeRequest = {
+      amount: amountInHalalas, // Tap expects amount in halalas for SAR
+      currency: "SAR",
+      customer: buildTapCustomer({
+        firstName: nameParts[0] || "Customer",
+        lastName: nameParts.slice(1).join(" ") || "",
+        email: userEmail,
+      }),
+      redirect: {
+        url: `${baseUrl}/api/wallet/top-up/callback?transaction_id=${transaction._id}${return_url ? `&return_url=${encodeURIComponent(return_url)}` : ""}`,
+      },
+      post: buildWebhookConfig(baseUrl),
+      description: `Wallet top-up ${amount} SAR`,
+      metadata: {
+        transactionId: transaction._id.toString(),
+        walletId: wallet._id.toString(),
+        userId,
+        organizationId: tenantId,
+        type: "wallet_top_up",
+      },
+      reference: {
+        transaction: transaction._id.toString(),
+        order: transaction.reference,
+      },
+      receipt: {
+        email: true,
+        sms: false,
+      },
+    };
+
+    const chargeResponse = await tapPayments.createCharge(chargeRequest);
+
+    // Update transaction with Tap charge ID
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: updating own transaction by _id
+    await WalletTransaction.updateOne(
+      { _id: transaction._id },
+      { 
+        $set: { 
+          "metadata.tap_charge_id": chargeResponse.id,
+          gateway_reference: chargeResponse.id,
+        } 
+      }
+    );
 
     return NextResponse.json({
       transaction_id: transaction._id,
       reference: transaction.reference,
-      checkout_url: return_url ? `${checkoutUrl}&return_url=${encodeURIComponent(return_url)}` : checkoutUrl,
+      checkout_url: chargeResponse.transaction.url, // Tap hosted payment page
+      tap_charge_id: chargeResponse.id,
       amount,
       amount_halalas: amountInHalalas,
       status: "pending",
