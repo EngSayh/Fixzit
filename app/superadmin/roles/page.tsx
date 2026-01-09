@@ -32,6 +32,9 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  FileJson,
+  Star,
+  Lock,
 } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,10 +66,37 @@ interface RoleData {
   description: string;
   category: string;
   permissions: string[];
+  permissionCount?: number;
   wildcard?: boolean;
   systemReserved?: boolean;
   level?: number;
 }
+
+// Canonical slug to category mapping for reliable categorization
+const SLUG_CATEGORY_MAP: Record<string, string> = {
+  super_admin: "Administrative",
+  corporate_admin: "Administrative",
+  admin: "Administrative",
+  manager: "Administrative",
+  fm_manager: "FM",
+  property_manager: "FM",
+  technician: "FM",
+  team_member: "Staff",
+  finance: "Staff",
+  finance_officer: "Staff",
+  hr: "Staff",
+  hr_officer: "Staff",
+  procurement: "Staff",
+  support_agent: "Staff",
+  operations_manager: "Staff",
+  souq_admin: "Staff",
+  marketplace_moderator: "Staff",
+  owner: "External",
+  tenant: "External",
+  vendor: "External",
+  auditor: "External",
+  corporate_owner: "External",
+};
 
 // Fallback role data using CANONICAL_ROLES
 const FALLBACK_ROLES: RoleData[] = [
@@ -124,6 +154,45 @@ export default function SuperadminRolesPage() {
   const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [selectedRolesForCompare, setSelectedRolesForCompare] = useState<[string | null, string | null]>([null, null]);
   const [dataSource, setDataSource] = useState<"api" | "fallback">("fallback");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [showOnlyWildcard, setShowOnlyWildcard] = useState(false);
+  const [showOnlySystemReserved, setShowOnlySystemReserved] = useState(false);
+
+  // Infer category from role slug or name (slug-based is more reliable)
+  const inferCategory = useCallback((role: { slug?: string; name: string }): string => {
+    // Try slug first (more reliable)
+    if (role.slug) {
+      const slugLower = role.slug.toLowerCase();
+      if (SLUG_CATEGORY_MAP[slugLower]) {
+        return SLUG_CATEGORY_MAP[slugLower];
+      }
+    }
+    // Fallback to name-based inference
+    const nameLower = role.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    if (SLUG_CATEGORY_MAP[nameLower]) {
+      return SLUG_CATEGORY_MAP[nameLower];
+    }
+    // Check patterns in name
+    if (/admin|manager/i.test(role.name) && !/fm_|property_|operations_/i.test(role.name)) {
+      return "Administrative";
+    }
+    if (/fm_|property_|technician/i.test(role.name)) {
+      return "FM";
+    }
+    if (/owner|tenant|vendor|auditor/i.test(role.name)) {
+      return "External";
+    }
+    return "Staff";
+  }, []);
+
+  // Normalize permission to string (handles ObjectId case)
+  const normalizePermission = useCallback((perm: unknown): string => {
+    if (typeof perm === "string") return perm;
+    if (perm && typeof perm === "object" && "key" in perm) {
+      return String((perm as { key: string }).key);
+    }
+    return String(perm);
+  }, []);
 
   // Fetch roles from API
   const fetchRoles = useCallback(async () => {
@@ -142,66 +211,78 @@ export default function SuperadminRolesPage() {
       const data = await response.json();
       
       if (data.roles && Array.isArray(data.roles) && data.roles.length > 0) {
-        // Map API roles to our interface, adding category based on role name if not present
-        const mappedRoles = data.roles.map((role: RoleData) => ({
-          ...role,
-          category: role.category || inferCategory(role.name),
-          permissions: role.permissions || (role.wildcard ? ["*"] : []),
-        }));
+        // Map API roles with normalized permissions
+        const mappedRoles = data.roles.map((role: RoleData & { permissions?: unknown[] }) => {
+          const normalizedPermissions = Array.isArray(role.permissions)
+            ? role.permissions.map(normalizePermission)
+            : [];
+          
+          // For wildcard roles with no explicit permissions, show "*"
+          const displayPermissions = role.wildcard && normalizedPermissions.length === 0
+            ? ["*"]
+            : normalizedPermissions;
+
+          return {
+            ...role,
+            category: role.category || inferCategory(role),
+            permissions: displayPermissions,
+            permissionCount: role.permissionCount ?? displayPermissions.length,
+          };
+        });
         setRoles(mappedRoles);
         setDataSource("api");
+        setLastUpdated(data.fetchedAt || new Date().toISOString());
       } else {
         // API returned empty or no roles, use fallback
         setRoles(FALLBACK_ROLES);
         setDataSource("fallback");
+        setLastUpdated(null);
       }
     } catch (_err) {
       // API failed, use fallback data
       setRoles(FALLBACK_ROLES);
       setDataSource("fallback");
+      setLastUpdated(null);
       setError("Using cached role definitions (API unavailable)");
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Infer category from role name
-  function inferCategory(name: string): string {
-    if (["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "MANAGER"].includes(name)) {
-      return "Administrative";
-    }
-    if (["FM_MANAGER", "PROPERTY_MANAGER", "TECHNICIAN"].includes(name)) {
-      return "FM";
-    }
-    if (["OWNER", "TENANT", "VENDOR", "AUDITOR", "CORPORATE_OWNER"].includes(name)) {
-      return "External";
-    }
-    return "Staff";
-  }
+  }, [inferCategory, normalizePermission]);
 
   useEffect(() => {
     fetchRoles();
   }, [fetchRoles]);
 
-  // Filtered roles
+  // Filtered roles with safe search handling for ObjectIds
   const filteredRoles = useMemo(() => {
     return roles.filter((role) => {
       // Category filter
       if (categoryFilter !== "All" && role.category !== categoryFilter) {
         return false;
       }
-      // Search filter
+      // Wildcard filter
+      if (showOnlyWildcard && !role.wildcard) {
+        return false;
+      }
+      // System reserved filter
+      if (showOnlySystemReserved && !role.systemReserved) {
+        return false;
+      }
+      // Search filter with safe string handling
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        return (
-          role.name.toLowerCase().includes(query) ||
-          role.description.toLowerCase().includes(query) ||
-          role.permissions.some((p) => p.toLowerCase().includes(query))
-        );
+        const nameMatch = role.name.toLowerCase().includes(query);
+        const descMatch = role.description.toLowerCase().includes(query);
+        // Safe permission search - ensure each permission is a string
+        const permMatch = Array.isArray(role.permissions) && role.permissions.some((p) => {
+          const permStr = typeof p === "string" ? p : String(p);
+          return permStr.toLowerCase().includes(query);
+        });
+        return nameMatch || descMatch || permMatch;
       }
       return true;
     });
-  }, [roles, categoryFilter, searchQuery]);
+  }, [roles, categoryFilter, searchQuery, showOnlyWildcard, showOnlySystemReserved]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -216,6 +297,10 @@ export default function SuperadminRolesPage() {
     return counts;
   }, [roles]);
 
+  // Wildcard and system reserved counts
+  const wildcardCount = useMemo(() => roles.filter(r => r.wildcard).length, [roles]);
+  const systemReservedCount = useMemo(() => roles.filter(r => r.systemReserved).length, [roles]);
+
   // Toggle row expansion
   const toggleRowExpansion = (roleName: string) => {
     setExpandedRows((prev) => {
@@ -229,17 +314,22 @@ export default function SuperadminRolesPage() {
     });
   };
 
-  // Export to CSV
+  // Export to CSV with normalized permissions
   const exportToCSV = useCallback(() => {
-    const headers = ["Role", "Category", "Description", "Permissions", "Wildcard", "System Reserved"];
-    const rows = roles.map((role) => [
-      role.name,
-      role.category,
-      `"${role.description}"`,
-      `"${role.permissions.join(", ")}"`,
+    const headers = ["Role", "Slug", "Category", "Description", "Permission Count", "Permissions", "Wildcard", "System Reserved"];
+    const rows = roles.map((role) => {
+      const permStrings = role.permissions.map(p => typeof p === "string" ? p : String(p));
+      return [
+        role.name,
+        role.slug || "",
+        role.category,
+        `"${role.description.replace(/"/g, '""')}"`,
+        String(role.permissionCount ?? permStrings.length),
+        `"${permStrings.join(", ")}"`,
       role.wildcard ? "Yes" : "No",
       role.systemReserved ? "Yes" : "No",
-    ]);
+      ];
+    });
 
     const csvContent = [
       headers.join(","),
@@ -256,8 +346,41 @@ export default function SuperadminRolesPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    toast.success("Roles matrix exported to CSV");
-  }, [roles]);
+    toast.success(t("superadmin.roles.csvExportSuccess", "Roles matrix exported to CSV"));
+  }, [roles, t]);
+
+  // Export to JSON for audits
+  const exportToJSON = useCallback(() => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      dataSource,
+      lastUpdated,
+      totalRoles: roles.length,
+      roles: roles.map((role) => ({
+        name: role.name,
+        slug: role.slug,
+        category: role.category,
+        description: role.description,
+        permissions: role.permissions.map(p => typeof p === "string" ? p : String(p)),
+        permissionCount: role.permissionCount ?? role.permissions.length,
+        wildcard: role.wildcard || false,
+        systemReserved: role.systemReserved || false,
+        level: role.level,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `fixzit-roles-audit-${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(t("superadmin.roles.jsonExportSuccess", "Roles exported to JSON for audit"));
+  }, [roles, dataSource, lastUpdated, t]);
 
   // Get role by name for comparison
   const getRoleByName = (name: string | null): RoleData | undefined => {
@@ -265,13 +388,33 @@ export default function SuperadminRolesPage() {
     return roles.find((r) => r.name === name);
   };
 
+  // Normalize permissions to string set for comparison
+  const normalizePermissions = useCallback((role: RoleData | undefined): Set<string> => {
+    if (!role) return new Set();
+    const perms = new Set<string>();
+    if (role.wildcard) perms.add("*");
+    role.permissions.forEach((p) => {
+      const permStr = typeof p === "string" ? p : String(p);
+      perms.add(permStr);
+    });
+    return perms;
+  }, []);
+
   // Get all unique permissions for comparison
-  const getAllPermissions = (role1: RoleData | undefined, role2: RoleData | undefined): string[] => {
-    const allPerms = new Set<string>();
-    role1?.permissions.forEach((p) => allPerms.add(p));
-    role2?.permissions.forEach((p) => allPerms.add(p));
+  const getAllPermissions = useCallback((role1: RoleData | undefined, role2: RoleData | undefined): string[] => {
+    const perms1 = normalizePermissions(role1);
+    const perms2 = normalizePermissions(role2);
+    const allPerms = new Set([...perms1, ...perms2]);
     return Array.from(allPerms).sort();
-  };
+  }, [normalizePermissions]);
+
+  // Check if role has permission
+  const roleHasPermission = useCallback((role: RoleData | undefined, perm: string): boolean => {
+    if (!role) return false;
+    if (role.wildcard) return true;
+    const perms = normalizePermissions(role);
+    return perms.has(perm) || perms.has("*");
+  }, [normalizePermissions]);
 
   return (
     <div className="p-6 space-y-6">
@@ -281,11 +424,11 @@ export default function SuperadminRolesPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">
             {t("superadmin.nav.roles", "Roles & Permissions")}
           </h1>
-          <p className="text-muted-foreground flex items-center gap-2">
+          <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
             RBAC role matrix ({roles.length} roles)
             {dataSource === "api" && (
               <Badge variant="outline" className="text-green-400 border-green-500/30">
-                <CheckCircle className="h-3 w-3 me-1" />
+                <CheckCircle className="h-3 w-3 me-1" aria-hidden="true" />
                 Live
               </Badge>
             )}
@@ -294,26 +437,43 @@ export default function SuperadminRolesPage() {
                 Cached
               </Badge>
             )}
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground">
+                • Updated {new Date(lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCompareDialogOpen(true)}
             className="gap-2"
+            aria-label={t("superadmin.roles.compareRoles", "Compare two roles")}
           >
-            <ArrowLeftRight className="h-4 w-4" />
-            Compare
+            <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+            {t("superadmin.roles.compare", "Compare")}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={exportToCSV}
             className="gap-2"
+            aria-label={t("superadmin.roles.exportCsv", "Export roles to CSV")}
           >
-            <Download className="h-4 w-4" />
-            Export CSV
+            <Download className="h-4 w-4" aria-hidden="true" />
+            {t("superadmin.roles.csv", "CSV")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToJSON}
+            className="gap-2"
+            aria-label={t("superadmin.roles.exportJson", "Export roles to JSON")}
+          >
+            <FileJson className="h-4 w-4" aria-hidden="true" />
+            {t("superadmin.roles.json", "JSON")}
           </Button>
           <Button
             variant="ghost"
@@ -321,16 +481,17 @@ export default function SuperadminRolesPage() {
             onClick={fetchRoles}
             disabled={loading}
             className="gap-2"
+            aria-label={t("common.refresh", "Refresh")}
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
           </Button>
         </div>
       </div>
 
       {/* Error banner */}
       {error && (
-        <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3 flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-yellow-400" />
+        <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3 flex items-center gap-2" role="alert">
+          <AlertCircle className="h-4 w-4 text-yellow-400" aria-hidden="true" />
           <span className="text-sm text-yellow-300">{error}</span>
         </div>
       )}
@@ -339,19 +500,21 @@ export default function SuperadminRolesPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Input
-            placeholder="Search roles by name, description, or permission..."
+            placeholder={t("superadmin.roles.searchPlaceholder", "Search roles by name, description, or permission...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="ps-10"
+            aria-label={t("superadmin.roles.searchLabel", "Search roles")}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label={t("common.clearSearch", "Clear search")}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -365,12 +528,37 @@ export default function SuperadminRolesPage() {
               size="sm"
               onClick={() => setCategoryFilter(cat)}
               className="gap-1"
+              aria-pressed={categoryFilter === cat}
             >
               {cat !== "All" && CATEGORY_ICONS[cat]}
               {cat} ({categoryCounts[cat]})
             </Button>
           ))}
         </div>
+      </div>
+
+      {/* Special Filters */}
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          variant={showOnlyWildcard ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowOnlyWildcard(!showOnlyWildcard)}
+          className="gap-1"
+          aria-pressed={showOnlyWildcard}
+        >
+          <Star className="h-4 w-4" aria-hidden="true" />
+          {t("superadmin.roles.wildcardRoles", "Wildcard")} ({wildcardCount})
+        </Button>
+        <Button
+          variant={showOnlySystemReserved ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowOnlySystemReserved(!showOnlySystemReserved)}
+          className="gap-1"
+          aria-pressed={showOnlySystemReserved}
+        >
+          <Lock className="h-4 w-4" aria-hidden="true" />
+          {t("superadmin.roles.systemReserved", "System Reserved")} ({systemReservedCount})
+        </Button>
       </div>
 
       {/* Role Categories Summary */}
@@ -380,6 +568,9 @@ export default function SuperadminRolesPage() {
             key={category} 
             className={`cursor-pointer transition-all ${categoryFilter === category ? "ring-2 ring-primary" : ""}`}
             onClick={() => setCategoryFilter(categoryFilter === category ? "All" : category)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setCategoryFilter(categoryFilter === category ? "All" : category)}
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -415,23 +606,24 @@ export default function SuperadminRolesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Permissions</TableHead>
+                <TableHead>{t("superadmin.roles.role", "Role")}</TableHead>
+                <TableHead>{t("superadmin.roles.category", "Category")}</TableHead>
+                <TableHead>{t("superadmin.roles.description", "Description")}</TableHead>
+                <TableHead>{t("superadmin.roles.permissionCount", "Permissions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRoles.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No roles match your search criteria
+                    {t("superadmin.roles.noResults", "No roles match your search criteria")}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredRoles.map((role) => {
                   const isExpanded = expandedRows.has(role.name);
                   const hasMany = role.permissions.length > 4;
+                  const permCount = role.permissionCount ?? role.permissions.length;
                   
                   return (
                     <TableRow key={role.name} className="group">
@@ -440,11 +632,16 @@ export default function SuperadminRolesPage() {
                           <button
                             onClick={() => toggleRowExpansion(role.name)}
                             className="p-1 hover:bg-muted rounded"
+                            aria-label={isExpanded 
+                              ? t("superadmin.roles.collapsePermissions", `Collapse permissions for ${role.name}`)
+                              : t("superadmin.roles.expandPermissions", `Expand permissions for ${role.name}`)
+                            }
+                            aria-expanded={isExpanded}
                           >
                             {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
+                              <ChevronUp className="h-4 w-4" aria-hidden="true" />
                             ) : (
-                              <ChevronDown className="h-4 w-4" />
+                              <ChevronDown className="h-4 w-4" aria-hidden="true" />
                             )}
                           </button>
                         )}
@@ -453,12 +650,15 @@ export default function SuperadminRolesPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-mono">{role.name}</span>
                           {(role.permissions.includes("*") || role.wildcard) && (
-                            <span title="Full Access">
-                              <CheckCircle className="h-4 w-4 text-green-500" aria-hidden="true" />
+                            <span title={t("superadmin.roles.fullAccess", "Full Access")}>
+                              <Star className="h-4 w-4 text-yellow-500" aria-hidden="true" />
                             </span>
                           )}
                           {role.systemReserved && (
-                            <Badge variant="outline" className="text-xs">System</Badge>
+                            <Badge variant="outline" className="text-xs" title={t("superadmin.roles.systemReservedTooltip", "Protected from modification")}>
+                              <Lock className="h-3 w-3 me-1" aria-hidden="true" />
+                              {t("superadmin.roles.system", "System")}
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
@@ -471,20 +671,28 @@ export default function SuperadminRolesPage() {
                       <TableCell className="text-muted-foreground">{role.description}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {(isExpanded ? role.permissions : role.permissions.slice(0, 4)).map((perm) => (
-                            <Badge key={perm} variant="outline" className="text-xs">
-                              {perm}
-                            </Badge>
-                          ))}
+                          {(isExpanded ? role.permissions : role.permissions.slice(0, 4)).map((perm) => {
+                            const permStr = typeof perm === "string" ? perm : String(perm);
+                            return (
+                              <Badge key={permStr} variant="outline" className="text-xs">
+                                {permStr}
+                              </Badge>
+                            );
+                          })}
                           {!isExpanded && hasMany && (
                             <Badge 
                               variant="outline" 
                               className="text-xs text-muted-foreground cursor-pointer hover:text-foreground"
                               onClick={() => toggleRowExpansion(role.name)}
+                              role="button"
+                              aria-label={t("superadmin.roles.showMorePermissions", `Show ${permCount - 4} more permissions`)}
                             >
-                              +{role.permissions.length - 4} more
+                              +{permCount - 4} {t("superadmin.roles.more", "more")}
                             </Badge>
                           )}
+                          <span className="text-xs text-muted-foreground ms-2">
+                            ({permCount} {t("superadmin.roles.total", "total")})
+                          </span>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -500,13 +708,13 @@ export default function SuperadminRolesPage() {
       <Card className="bg-blue-950/30 border-blue-800/50">
         <CardContent className="p-4">
           <div className="flex gap-3">
-            <Shield className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+            <Shield className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" aria-hidden="true" />
             <div>
-              <p className="text-blue-300 font-medium">RBAC Configuration</p>
+              <p className="text-blue-300 font-medium">{t("superadmin.roles.rbacConfig", "RBAC Configuration")}</p>
               <p className="text-sm text-blue-400/80 mt-1">
-                Roles are sourced from <code className="text-blue-300">/api/superadmin/roles</code> (primary) 
-                with fallback to <code className="text-blue-300">types/user.ts</code>. 
-                {CANONICAL_ROLES.length} canonical roles are defined in the system.
+                {t("superadmin.roles.rbacNote", 
+                  `Roles are sourced from /api/superadmin/roles (primary) with fallback to types/user.ts. ${CANONICAL_ROLES.length} canonical roles are defined in the system.`
+                )}
               </p>
             </div>
           </div>
@@ -515,27 +723,31 @@ export default function SuperadminRolesPage() {
 
       {/* Role Comparison Dialog */}
       <Dialog open={compareDialogOpen} onOpenChange={setCompareDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" aria-labelledby="compare-dialog-title">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5" />
-              Compare Roles
+            <DialogTitle id="compare-dialog-title" className="flex items-center gap-2">
+              <ArrowLeftRight className="h-5 w-5" aria-hidden="true" />
+              {t("superadmin.roles.compareRoles", "Compare Roles")}
             </DialogTitle>
             <DialogDescription>
-              Select two roles to compare their permissions side-by-side
+              {t("superadmin.roles.compareDescription", "Select two roles to compare their permissions side-by-side")}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-2 gap-4 mt-4">
             {/* Role 1 selector */}
             <div>
-              <label className="text-sm font-medium mb-2 block">First Role</label>
+              <label htmlFor="compare-role-1" className="text-sm font-medium mb-2 block">
+                {t("superadmin.roles.firstRole", "First Role")}
+              </label>
               <select
+                id="compare-role-1"
                 value={selectedRolesForCompare[0] || ""}
                 onChange={(e) => setSelectedRolesForCompare([e.target.value || null, selectedRolesForCompare[1]])}
                 className="w-full p-2 rounded-md border bg-background text-foreground"
+                aria-label={t("superadmin.roles.selectFirstRole", "Select first role for comparison")}
               >
-                <option value="">Select a role...</option>
+                <option value="">{t("superadmin.roles.selectRole", "Select a role...")}</option>
                 {roles.map((role) => (
                   <option key={role.name} value={role.name} disabled={role.name === selectedRolesForCompare[1]}>
                     {role.name}
@@ -546,13 +758,17 @@ export default function SuperadminRolesPage() {
             
             {/* Role 2 selector */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Second Role</label>
+              <label htmlFor="compare-role-2" className="text-sm font-medium mb-2 block">
+                {t("superadmin.roles.secondRole", "Second Role")}
+              </label>
               <select
+                id="compare-role-2"
                 value={selectedRolesForCompare[1] || ""}
                 onChange={(e) => setSelectedRolesForCompare([selectedRolesForCompare[0], e.target.value || null])}
                 className="w-full p-2 rounded-md border bg-background text-foreground"
+                aria-label={t("superadmin.roles.selectSecondRole", "Select second role for comparison")}
               >
-                <option value="">Select a role...</option>
+                <option value="">{t("superadmin.roles.selectRole", "Select a role...")}</option>
                 {roles.map((role) => (
                   <option key={role.name} value={role.name} disabled={role.name === selectedRolesForCompare[0]}>
                     {role.name}
@@ -568,7 +784,7 @@ export default function SuperadminRolesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Permission</TableHead>
+                    <TableHead>{t("superadmin.roles.permission", "Permission")}</TableHead>
                     <TableHead className="text-center">{selectedRolesForCompare[0]}</TableHead>
                     <TableHead className="text-center">{selectedRolesForCompare[1]}</TableHead>
                   </TableRow>
@@ -580,24 +796,25 @@ export default function SuperadminRolesPage() {
                   ).map((perm) => {
                     const role1 = getRoleByName(selectedRolesForCompare[0]);
                     const role2 = getRoleByName(selectedRolesForCompare[1]);
-                    const hasRole1 = role1?.permissions.includes(perm) || role1?.permissions.includes("*") || role1?.wildcard;
-                    const hasRole2 = role2?.permissions.includes(perm) || role2?.permissions.includes("*") || role2?.wildcard;
+                    const hasRole1 = roleHasPermission(role1, perm);
+                    const hasRole2 = roleHasPermission(role2, perm);
+                    const permStr = typeof perm === "string" ? perm : String(perm);
                     
                     return (
-                      <TableRow key={perm}>
-                        <TableCell className="font-mono text-sm">{perm}</TableCell>
+                      <TableRow key={permStr}>
+                        <TableCell className="font-mono text-sm">{permStr}</TableCell>
                         <TableCell className="text-center">
                           {hasRole1 ? (
-                            <CheckCircle className="h-5 w-5 text-green-500 inline" />
+                            <CheckCircle className="h-5 w-5 text-green-500 inline" aria-label={t("superadmin.roles.hasPermission", "Has permission")} />
                           ) : (
-                            <X className="h-5 w-5 text-red-500/50 inline" />
+                            <X className="h-5 w-5 text-red-500/50 inline" aria-label={t("superadmin.roles.noPermission", "Does not have permission")} />
                           )}
                         </TableCell>
                         <TableCell className="text-center">
                           {hasRole2 ? (
-                            <CheckCircle className="h-5 w-5 text-green-500 inline" />
+                            <CheckCircle className="h-5 w-5 text-green-500 inline" aria-label={t("superadmin.roles.hasPermission", "Has permission")} />
                           ) : (
-                            <X className="h-5 w-5 text-red-500/50 inline" />
+                            <X className="h-5 w-5 text-red-500/50 inline" aria-label={t("superadmin.roles.noPermission", "Does not have permission")} />
                           )}
                         </TableCell>
                       </TableRow>
