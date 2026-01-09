@@ -167,12 +167,24 @@ export async function GET(request: NextRequest) {
         category = "error";
       }
 
-      // Derive status from result.success
+      // Derive status from result.success and warning criteria
+      // Aligned with warning filter: slow (>3000ms), has errorMessage, or tagged as warning [AGENT-0025]
       const statusCode = (metadata?.statusCode as number | undefined) ?? 0;
+      const resultData = result as { success?: boolean; duration?: number; errorMessage?: string } | undefined;
+      const resultDuration = resultData?.duration ?? 0;
+      const hasErrorMessage = !!resultData?.errorMessage;
+      const hasWarningTag = Array.isArray((metadata as Record<string, unknown>)?.tags) 
+        && ((metadata as Record<string, unknown>).tags as string[]).includes("warning");
+      
       let status: "success" | "warning" | "error" = "success";
       if (result?.success === false) {
         status = "error";
-      } else if (statusCode >= 400 && statusCode < 500) {
+      } else if (
+        (statusCode >= 400 && statusCode < 500) ||
+        resultDuration > 3000 ||
+        hasErrorMessage ||
+        hasWarningTag
+      ) {
         status = "warning";
       }
 

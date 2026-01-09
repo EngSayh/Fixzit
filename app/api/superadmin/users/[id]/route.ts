@@ -178,8 +178,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (orgId !== undefined) {
       if (orgId === "") {
-        // Clear organization
-        updateData["employment.orgId"] = null;
+        // Clear organization - use top-level orgId to align with GET read path [AGENT-0025]
+        updateData["orgId"] = null;
       } else if (mongoose.isValidObjectId(orgId)) {
         // Validate org exists
         const org = await Organization.findById(orgId).lean();
@@ -189,7 +189,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 404 }
           );
         }
-        updateData["employment.orgId"] = new mongoose.Types.ObjectId(orgId);
+        // Use top-level orgId to align with GET read path (tenantIsolationPlugin) [AGENT-0025]
+        updateData["orgId"] = new mongoose.Types.ObjectId(orgId);
       } else {
         return NextResponse.json(
           { error: "Invalid organization ID" },

@@ -173,12 +173,10 @@ describe("API /api/superadmin/users/[id]/audit-logs", () => {
       const req = createRequest();
       const response = await GET(req, mockInvalidParams);
       
-      // Route may return 400 (validation) or 500 (thrown error)
-      expect([400, 500]).toContain(response.status);
-      if (response.status === 400) {
-        const json = await response.json();
-        expect(json.error).toContain("Invalid user ID");
-      }
+      // Route must return 400 for validation errors - 500 indicates a regression [AGENT-0025]
+      expect(response.status).toBe(400);
+      const json = await response.json();
+      expect(json.error).toContain("Invalid user ID");
     });
 
     it("returns 404 when user not found", async () => {
@@ -191,12 +189,10 @@ describe("API /api/superadmin/users/[id]/audit-logs", () => {
       const req = createRequest();
       const response = await GET(req, mockParams);
       
-      // Route returns 404 for user not found, or 500 if mock throws
-      expect([404, 500]).toContain(response.status);
-      if (response.status === 404) {
-        const json = await response.json();
-        expect(json.error).toContain("User not found");
-      }
+      // Route must return 404 for user not found - 500 indicates a regression [AGENT-0025]
+      expect(response.status).toBe(404);
+      const json = await response.json();
+      expect(json.error).toContain("User not found");
     });
 
     it("returns audit logs with pagination for valid request", async () => {

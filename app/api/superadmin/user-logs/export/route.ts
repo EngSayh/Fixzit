@@ -112,6 +112,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Search filter - length cap to prevent expensive regex queries (max 100 chars)
+    // Includes metadata.reason for parity with list search [AGENT-0025]
     if (search) {
       const truncatedSearch = search.slice(0, 100);
       const escapedSearch = truncatedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -120,6 +121,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { userEmail: { $regex: escapedSearch, $options: "i" } },
         { action: { $regex: escapedSearch, $options: "i" } },
         { entityType: { $regex: escapedSearch, $options: "i" } },
+        { "metadata.reason": { $regex: escapedSearch, $options: "i" } },
       ];
     }
 

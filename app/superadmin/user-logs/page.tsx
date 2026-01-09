@@ -75,7 +75,7 @@ interface ActivityStats {
   todayLogs: number;
   uniqueUsers: number;
   errorRate: number;
-  avgSessionDuration: number;
+  avgSessionDuration: number | null; // Can be null if no data available [AGENT-0025]
   topActions: { action: string; count: number }[];
 }
 
@@ -455,7 +455,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-yellow-500/20"><History className="h-5 w-5 text-yellow-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.avgSessionDuration}m</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.avgSession", "Avg Session")}</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.avgSessionDuration !== null ? `${stats.avgSessionDuration}m` : "N/A"}</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.avgSession", "Avg Session")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -854,7 +854,7 @@ export default function SuperadminUserLogsPage() {
               </label>
             </div>
             <div className="text-xs text-muted-foreground">
-              {t("superadmin.userLogs.recordCount", "Records to export")}: {filteredLogs.length}
+              {t("superadmin.userLogs.recordCount", "Records to export")}: {totalCount}
             </div>
           </div>
           <DialogFooter className="gap-2">
