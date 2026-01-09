@@ -192,7 +192,7 @@ describe("Leads API", () => {
 
     it("should reject missing lead ID", async () => {
       vi.mocked(auth).mockResolvedValue({
-        user: { id: "user1", orgId: "org1" },
+        user: { id: "user1", tenantId: "org1" },
         expires: new Date().toISOString(),
       });
       

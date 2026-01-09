@@ -80,9 +80,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get organization name if user has orgId
+    // User model uses top-level orgId from tenantIsolationPlugin [AGENT-0018]
     let orgName: string | undefined;
-    // User model uses employment.orgId pattern
-    const userOrgId = (user as typeof user & { employment?: { orgId?: string } })?.employment?.orgId;
+    const userOrgId = (user as typeof user & { orgId?: mongoose.Types.ObjectId | string })?.orgId;
     if (userOrgId) {
       const org = await Organization.findById(userOrgId).select("name").lean();
       orgName = org?.name;
