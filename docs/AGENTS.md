@@ -32,6 +32,7 @@
      - 4.2.17 [Forbidden Actions (Validation Violations)](#4217-forbidden-actions-validation-violations)
 5. [Multi-Agent Coordination](#5-multi-agent-coordination)
    - 5.8 [Terminal Management Protocol](#58-terminal-management-protocol-mandatory)
+   - 5.9 [Memory & Process Hygiene Protocol](#59-memory--process-hygiene-protocol-mandatory)
 6. [Pre-Claim SSOT Validation (MANDATORY)](#6-pre-claim-ssot-validation-mandatory)
 7. [Deep-Dive & Fix-Once Protocol](#7-deep-dive--fix-once-protocol)
 8. [Scope Expansion & Delegation Protocol](#8-scope-expansion--delegation-protocol)
@@ -1573,9 +1574,168 @@ $host.UI.RawUI.WindowTitle = "[AGENT-XXXX] Purpose"; Get-Process powershell -EA 
 [AGENT-XXXX] Terminal cleanup complete. Orphans killed: N. Active agents: [list or none].
 ```
 
+### 5.9 Memory & Process Hygiene Protocol (MANDATORY)
+
+> **Purpose:** Prevent VS Code slowness by cleaning orphaned Node.js processes and ensuring optimal workspace performance.
+> **When:** BEFORE starting any task AND AFTER completing any task.
+
+#### 5.9.0 Why This Matters
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🧠 MEMORY HYGIENE — VS CODE PERFORMANCE IS CRITICAL                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Common causes of VS Code slowness in this workspace:                   │
+│ • Orphaned vitest processes (can consume 2-4 GB each!)                 │
+│ • Tinypool workers that never got cleaned up                           │
+│ • Multiple dev server instances running                                │
+│ • Large JSON files being indexed (docs/artifacts/, reports/)           │
+│ • Stale TypeScript build cache (tsconfig.tsbuildinfo)                  │
+│                                                                        │
+│ A "fresh" VS Code = Faster responses + Lower CPU + Better UX           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+#### 5.9.1 Pre-Task Memory Cleanup (MANDATORY)
+
+**Run this BEFORE starting any work:**
+
+```powershell
+# ============================================================
+# [AGENT-XXXX] PRE-TASK MEMORY CLEANUP
+# Run at the START of every session/task
+# ============================================================
+
+Write-Host "=== PRE-TASK MEMORY CLEANUP ===" -ForegroundColor Cyan
+
+# Step 1: Check current Node.js memory usage
+$nodeMem = (Get-Process node -EA 0 | Measure-Object WorkingSet64 -Sum).Sum/1GB
+$nodeCount = (Get-Process node -EA 0).Count
+Write-Host "Node.js: $([math]::Round($nodeMem,2)) GB across $nodeCount processes"
+
+# Step 2: Kill orphaned vitest/tinypool processes (NOT dev server)
+$devServerPID = (Get-NetTCPConnection -LocalPort 3000 -EA 0).OwningProcess | Select-Object -First 1
+Get-CimInstance Win32_Process -Filter "name = 'node.exe'" | Where-Object { 
+    ($_.CommandLine -like "*vitest*" -or $_.CommandLine -like "*tinypool*") -and 
+    $_.ProcessId -ne $devServerPID
+} | ForEach-Object {
+    Write-Host "Killing orphaned: PID $($_.ProcessId) - vitest/tinypool" -ForegroundColor Red
+    Stop-Process -Id $_.ProcessId -Force -EA 0
+}
+
+# Step 3: Kill duplicate dev server instances (keep only the one on port 3000)
+Get-CimInstance Win32_Process -Filter "name = 'node.exe'" | Where-Object { 
+    $_.CommandLine -like "*next*dev*" -and $_.ProcessId -ne $devServerPID
+} | ForEach-Object {
+    Write-Host "Killing duplicate dev server: PID $($_.ProcessId)" -ForegroundColor Red
+    Stop-Process -Id $_.ProcessId -Force -EA 0
+}
+
+# Step 4: Report final state
+$nodeMemAfter = (Get-Process node -EA 0 | Measure-Object WorkingSet64 -Sum).Sum/1GB
+$nodeCountAfter = (Get-Process node -EA 0).Count
+Write-Host "After cleanup: $([math]::Round($nodeMemAfter,2)) GB across $nodeCountAfter processes" -ForegroundColor Green
+
+# Step 5: Verify dev server still running
+if ((Test-NetConnection -ComputerName localhost -Port 3000 -WarningAction SilentlyContinue).TcpTestSucceeded) {
+    Write-Host "✓ Dev server running on localhost:3000" -ForegroundColor Green
+} else {
+    Write-Host "⚠️ Dev server not running! Start with: pnpm dev" -ForegroundColor Yellow
+}
+```
+
+#### 5.9.2 Post-Task Memory Cleanup (MANDATORY)
+
+**Run this AFTER completing any task:**
+
+```powershell
+# ============================================================
+# [AGENT-XXXX] POST-TASK MEMORY CLEANUP
+# Run at the END of every session/task
+# ============================================================
+
+Write-Host "=== POST-TASK MEMORY CLEANUP ===" -ForegroundColor Cyan
+
+# Step 1: Kill any vitest processes spawned during this task
+$devServerPID = (Get-NetTCPConnection -LocalPort 3000 -EA 0).OwningProcess | Select-Object -First 1
+$killed = 0
+Get-CimInstance Win32_Process -Filter "name = 'node.exe'" | Where-Object { 
+    ($_.CommandLine -like "*vitest*" -or $_.CommandLine -like "*tinypool*") -and 
+    $_.ProcessId -ne $devServerPID
+} | ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force -EA 0
+    $killed++
+}
+Write-Host "Killed $killed orphaned test processes" -ForegroundColor Green
+
+# Step 2: Clear stale caches (optional, run if experiencing slowness)
+# Remove-Item tsconfig.tsbuildinfo -Force -EA 0
+# Remove-Item .eslintcache -Force -EA 0
+
+# Step 3: Report final memory state
+$nodeMem = (Get-Process node -EA 0 | Measure-Object WorkingSet64 -Sum).Sum/1GB
+Write-Host "Final Node.js memory: $([math]::Round($nodeMem,2)) GB" -ForegroundColor Green
+```
+
+#### 5.9.3 Quick One-Liner (Copy-Paste Ready)
+
+**Pre-Task Cleanup:**
+```powershell
+$dp=(Get-NetTCPConnection -LocalPort 3000 -EA 0).OwningProcess|Select -First 1; Get-CimInstance Win32_Process -Filter "name='node.exe'" | ?{($_.CommandLine -like "*vitest*" -or $_.CommandLine -like "*tinypool*") -and $_.ProcessId -ne $dp} | %{Stop-Process -Id $_.ProcessId -F -EA 0}; Write-Host "Cleanup done. Node: $([math]::Round((Get-Process node -EA 0|Measure WorkingSet64 -Sum).Sum/1GB,2))GB"
+```
+
+**Post-Task Cleanup (same command):**
+```powershell
+$dp=(Get-NetTCPConnection -LocalPort 3000 -EA 0).OwningProcess|Select -First 1; Get-CimInstance Win32_Process -Filter "name='node.exe'" | ?{($_.CommandLine -like "*vitest*" -or $_.CommandLine -like "*tinypool*") -and $_.ProcessId -ne $dp} | %{Stop-Process -Id $_.ProcessId -F -EA 0}; Write-Host "Cleanup done. Node: $([math]::Round((Get-Process node -EA 0|Measure WorkingSet64 -Sum).Sum/1GB,2))GB"
+```
+
+#### 5.9.4 Memory Usage Thresholds
+
+| Metric | Healthy | Warning | Critical |
+|--------|---------|---------|----------|
+| **Total Node.js Memory** | < 4 GB | 4-8 GB | > 8 GB |
+| **Node.js Process Count** | < 10 | 10-30 | > 30 |
+| **Vitest Processes** | 0-1 | 2-3 | > 3 |
+| **Dev Server Instances** | 1 | 2 | > 2 |
+
+**If CRITICAL thresholds are exceeded:**
+1. Run post-task cleanup immediately
+2. If still critical, consider VS Code reload (`Developer: Reload Window`)
+3. Log the issue in your session report
+
+#### 5.9.5 Excluded Folders (Already Configured)
+
+The following folders are excluded from VS Code indexing/watching to improve performance:
+
+| Folder | Size | Reason |
+|--------|------|--------|
+| `docs/artifacts/` | ~57 MB | Large JSON scan results |
+| `artifacts/` | Variable | Audit/test outputs |
+| `.artifacts/` | Variable | Build artifacts |
+| `reports/` | Variable | Generated reports |
+| `logs/` | Variable | Log files |
+| `ai-memory/` | Variable | AI context chunks |
+| `.next/` | Variable | Next.js build cache |
+| `node_modules/` | Large | Dependencies |
+
+**If VS Code is still slow after cleanup:**
+1. Check if new large folders were added
+2. Add them to `.vscode/settings.json` → `files.watcherExclude`
+3. Add them to `tsconfig.json` → `exclude`
+4. Add them to `eslint.config.mjs` → `ignores`
+
+#### 5.9.6 Memory Hygiene Rules (NON-NEGOTIABLE)
+
+| Rule | Requirement |
+|------|-------------|
+| **Pre-Task Cleanup** | Run memory cleanup BEFORE starting any task |
+| **Post-Task Cleanup** | Run memory cleanup AFTER completing any task |
+| **Monitor Thresholds** | Check memory if VS Code feels slow |
+| **Protect Dev Server** | NEVER kill the process on port 3000 |
+| **Report Issues** | Log persistent memory issues in session report |
+| **No Test Orphans** | Kill all vitest/tinypool when tests complete |
+
 ---
 
-6. Pre-Claim SSOT Validation (MANDATORY)
+## 6. Pre-Claim SSOT Validation (MANDATORY)
 
 Every agent MUST execute this checklist before claiming ANY work.
 Prefer using SSOT tooling (CLI/script/API) when available; the Mongo shell snippets below define the required logic.

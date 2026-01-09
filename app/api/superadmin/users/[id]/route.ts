@@ -80,9 +80,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get organization name if user has orgId
+    // User model uses top-level orgId from tenantIsolationPlugin [AGENT-0018]
     let orgName: string | undefined;
-    // User model uses employment.orgId pattern
-    const userOrgId = (user as typeof user & { employment?: { orgId?: string } })?.employment?.orgId;
+    const userOrgId = (user as typeof user & { orgId?: mongoose.Types.ObjectId | string })?.orgId;
     if (userOrgId) {
       const org = await Organization.findById(userOrgId).select("name").lean();
       orgName = org?.name;
@@ -178,8 +178,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (orgId !== undefined) {
       if (orgId === "") {
-        // Clear organization
-        updateData["employment.orgId"] = null;
+        // Clear organization - use top-level orgId to align with GET read path [AGENT-0025]
+        updateData["orgId"] = null;
       } else if (mongoose.isValidObjectId(orgId)) {
         // Validate org exists
         const org = await Organization.findById(orgId).lean();
@@ -189,7 +189,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 404 }
           );
         }
-        updateData["employment.orgId"] = new mongoose.Types.ObjectId(orgId);
+        // Use top-level orgId to align with GET read path (tenantIsolationPlugin) [AGENT-0025]
+        updateData["orgId"] = new mongoose.Types.ObjectId(orgId);
       } else {
         return NextResponse.json(
           { error: "Invalid organization ID" },

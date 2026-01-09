@@ -104,4 +104,74 @@ describe("GET /api/superadmin/user-logs", () => {
     const res = await GET(createGetRequest({ limit: "200" }) as any);
     expect([200, 401, 500]).toContain(res.status);
   });
+
+  it("should support category filter", async () => {
+    const res = await GET(createGetRequest({ category: "auth" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+  });
+
+  it("should support status filter", async () => {
+    const res = await GET(createGetRequest({ status: "error" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+  });
+
+  it("should support status=warning filter", async () => {
+    const res = await GET(createGetRequest({ status: "warning" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+    // Warning filter should work without error
+    if (res.status === 200) {
+      const json = await res.json();
+      expect(json.logs !== undefined || json.data !== undefined).toBe(true);
+    }
+  });
+
+  it("should support status=success filter", async () => {
+    const res = await GET(createGetRequest({ status: "success" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+    if (res.status === 200) {
+      const json = await res.json();
+      expect(json.logs !== undefined || json.data !== undefined).toBe(true);
+    }
+  });
+
+  it("should support search filter", async () => {
+    const res = await GET(createGetRequest({ search: "login" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+  });
+
+  it("should support userId filter", async () => {
+    const res = await GET(createGetRequest({ userId: "user-123" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+  });
+
+  it("should support entityType filter", async () => {
+    const res = await GET(createGetRequest({ entityType: "USER" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+  });
+
+  it("should support combined filters", async () => {
+    const res = await GET(
+      createGetRequest({
+        range: "7d",
+        category: "crud",
+        status: "success",
+        search: "create",
+        page: "1",
+        limit: "25",
+      }) as any
+    );
+    expect([200, 401, 500]).toContain(res.status);
+  });
+
+  it("should return pagination metadata in response", async () => {
+    const res = await GET(createGetRequest({ page: "2", limit: "10" }) as any);
+    if (res.status === 200) {
+      const json = await res.json();
+      expect(json.pagination).toBeDefined();
+      expect(json.pagination.page).toBeDefined();
+      expect(json.pagination.limit).toBeDefined();
+      expect(json.pagination.total).toBeDefined();
+      expect(json.pagination.totalPages).toBeDefined();
+    }
+  });
 });

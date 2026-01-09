@@ -75,7 +75,7 @@ interface ActivityStats {
   todayLogs: number;
   uniqueUsers: number;
   errorRate: number;
-  avgSessionDuration: number;
+  avgSessionDuration: number | null; // Can be null if no data available [AGENT-0025]
   topActions: { action: string; count: number }[];
 }
 
@@ -111,6 +111,12 @@ export default function SuperadminUserLogsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("today");
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 50;
+  
   // Dialog
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<UserActivityLog | null>(null);
@@ -125,10 +131,40 @@ export default function SuperadminUserLogsPage() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await fetch(`/api/superadmin/user-logs?range=${dateRange}`, { credentials: "include" });
+      // Map UI dateRange values to API expected values
+      const rangeMap: Record<string, string> = {
+        today: "24h",
+        week: "7d",
+        month: "30d",
+        all: "90d",
+      };
+      const apiRange = rangeMap[dateRange] || "7d";
+      
+      // Build query params with server-side filters
+      const params = new URLSearchParams({
+        range: apiRange,
+        page: String(currentPage),
+        limit: String(pageSize),
+      });
+      
+      // Add optional filters
+      if (search) params.set("search", search);
+      if (categoryFilter && categoryFilter !== "all") params.set("category", categoryFilter);
+      if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
+      
+      const response = await fetch(`/api/superadmin/user-logs?${params.toString()}`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setLogs(Array.isArray(data) ? data : data.logs || []);
+        // Update pagination from API response
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages || 1);
+          setTotalCount(data.pagination.total || 0);
+          setCurrentPage(data.pagination.page || 1);
+        } else if (data.total !== undefined) {
+          setTotalCount(data.total);
+          setTotalPages(Math.ceil(data.total / pageSize));
+        }
         return; // Success - don't use demo data
       } else {
         // Handle non-OK responses
@@ -140,116 +176,16 @@ export default function SuperadminUserLogsPage() {
           // Could redirect to login or show unauthorized state
           return; // Don't fall through to demo data on auth failures
         }
-        // For other errors (500, network, etc.), fall through to demo data
+        // For other errors, set empty logs instead of demo data
+        setLogs([]);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching logs:", error);
-      // Fall through to demo data
+      // Set empty logs instead of demo data
+      setLogs([]);
     }
-    // Demo data fallback for non-auth errors
-    const now = new Date();
-    setLogs([
-        {
-          _id: "log-1",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantId: "tenant-1",
-          tenantName: "Acme Corp",
-          action: "Login",
-          category: "auth",
-          details: "User logged in successfully",
-          metadata: { ip: "192.168.1.1", browser: "Chrome 120", os: "Windows 11", device: "desktop", location: "Riyadh, SA" },
-          status: "success",
-          timestamp: new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-2",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantId: "tenant-1",
-          tenantName: "Acme Corp",
-          action: "View Dashboard",
-          category: "navigation",
-          details: "Navigated to FM Dashboard",
-          metadata: { path: "/fm/dashboard", duration: 2500 },
-          status: "success",
-          timestamp: new Date(now.getTime() - 4 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-3",
-          userId: "user-2",
-          userName: "Sara Mohammed",
-          userEmail: "sara@techsolutions.com",
-          tenantId: "tenant-2",
-          tenantName: "Tech Solutions",
-          action: "Create Work Order",
-          category: "crud",
-          details: "Created new work order WO-2024-001",
-          metadata: { path: "/api/workorders", method: "POST", statusCode: 201 },
-          status: "success",
-          timestamp: new Date(now.getTime() - 3 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-4",
-          userId: "user-3",
-          userName: "Khalid Ibrahim",
-          userEmail: "khalid@startup.com",
-          tenantId: "tenant-3",
-          tenantName: "StartupXYZ",
-          action: "API Request Failed",
-          category: "error",
-          details: "Rate limit exceeded on /api/properties",
-          metadata: { path: "/api/properties", method: "GET", statusCode: 429, duration: 50 },
-          status: "error",
-          timestamp: new Date(now.getTime() - 2 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-5",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantId: "tenant-1",
-          tenantName: "Acme Corp",
-          action: "Update Settings",
-          category: "settings",
-          details: "Updated notification preferences",
-          metadata: { path: "/api/settings/notifications", method: "PUT", statusCode: 200 },
-          status: "success",
-          timestamp: new Date(now.getTime() - 1 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-6",
-          userId: "user-4",
-          userName: "Fatima Al-Saud",
-          userEmail: "fatima@enterprise.sa",
-          tenantId: "tenant-4",
-          tenantName: "Enterprise SA",
-          action: "Export Report",
-          category: "api",
-          details: "Exported financial report for Q4",
-          metadata: { path: "/api/reports/export", method: "POST", statusCode: 200, duration: 4500 },
-          status: "success",
-          timestamp: now.toISOString(),
-        },
-        {
-          _id: "log-7",
-          userId: "user-2",
-          userName: "Sara Mohammed",
-          userEmail: "sara@techsolutions.com",
-          tenantId: "tenant-2",
-          tenantName: "Tech Solutions",
-          action: "Permission Denied",
-          category: "auth",
-          details: "Attempted to access admin settings without permission",
-          metadata: { path: "/admin/settings", statusCode: 403 },
-          status: "warning",
-          timestamp: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
-        },
-      ]);
-  }, [dateRange]);
+  }, [dateRange, currentPage, search, categoryFilter, statusFilter]);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -257,117 +193,42 @@ export default function SuperadminUserLogsPage() {
       if (response.ok) {
         const data = await response.json();
         setSessions(Array.isArray(data) ? data : data.sessions || []);
-        return; // Success - don't use demo data
+        return; // Success
       } else {
         // Handle non-OK responses like errors
         const errorText = await response.text().catch(() => "");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
         console.error("Failed to fetch sessions:", response.status, errorText);
-        if (response.status === 401 || response.status === 403) {
-          setSessions([]);
-          // Could redirect to login or show unauthorized state
-          return; // Don't fall through to demo data on auth failures
-        }
-        // Throw to trigger catch block for demo data fallback
-        throw new Error(`HTTP ${response.status}: ${errorText || "Failed to fetch sessions"}`);
+        // Set empty sessions instead of demo data
+        setSessions([]);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching sessions:", error);
-      // Demo data
-      const now = new Date();
-      setSessions([
-        {
-          _id: "session-1",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantName: "Acme Corp",
-          startedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-          device: "desktop",
-          browser: "Chrome 120",
-          os: "Windows 11",
-          ip: "192.168.1.1",
-          location: "Riyadh, SA",
-          pagesVisited: 15,
-          actionsPerformed: 23,
-          isActive: true,
-        },
-        {
-          _id: "session-2",
-          userId: "user-2",
-          userName: "Sara Mohammed",
-          userEmail: "sara@techsolutions.com",
-          tenantName: "Tech Solutions",
-          startedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
-          device: "mobile",
-          browser: "Safari",
-          os: "iOS 17",
-          ip: "10.0.0.55",
-          location: "Jeddah, SA",
-          pagesVisited: 8,
-          actionsPerformed: 12,
-          isActive: true,
-        },
-        {
-          _id: "session-3",
-          userId: "user-3",
-          userName: "Khalid Ibrahim",
-          userEmail: "khalid@startup.com",
-          tenantName: "StartupXYZ",
-          startedAt: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString(),
-          endedAt: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
-          duration: 7200,
-          device: "tablet",
-          browser: "Firefox",
-          os: "Android 14",
-          ip: "172.16.0.10",
-          pagesVisited: 25,
-          actionsPerformed: 45,
-          isActive: false,
-        },
-      ]);
+      // Set empty sessions instead of demo data
+      setSessions([]);
     }
   }, []);
 
-  const fetchStats = useCallback(async (currentLogs: typeof logs) => {
+  const fetchStats = useCallback(async (_currentLogs: typeof logs) => {
     try {
       const response = await fetch("/api/superadmin/user-logs/stats", { credentials: "include" });
       if (response.ok) {
         setStats(await response.json());
-        return; // Success - don't use demo data
+        return; // Success
       } else {
         // Handle non-OK responses
         const errorText = await response.text().catch(() => "");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
         console.error("Failed to fetch stats:", response.status, errorText);
-        if (response.status === 401 || response.status === 403) {
-          setStats(null);
-          // Could redirect to login or show unauthorized state
-          return; // Don't fall through to demo data on auth failures
-        }
-        // Throw to trigger catch block for demo data fallback
-        throw new Error(`HTTP ${response.status}: ${errorText || "Failed to fetch stats"}`);
+        // Set null stats instead of demo data
+        setStats(null);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching stats:", error);
-      // Demo stats - guard against division by zero, use passed currentLogs to avoid stale closure
-      const errorCount = currentLogs.filter(l => l.status === "error").length;
-      const errorRate = currentLogs.length > 0 ? (errorCount / currentLogs.length) * 100 : 0;
-      setStats({
-        totalLogs: currentLogs.length,
-        todayLogs: currentLogs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length,
-        uniqueUsers: new Set(currentLogs.map(l => l.userId)).size,
-        errorRate,
-        avgSessionDuration: 45,
-        topActions: [
-          { action: "View Dashboard", count: 145 },
-          { action: "Login", count: 89 },
-          { action: "Create Work Order", count: 67 },
-          { action: "Export Report", count: 34 },
-        ],
-      });
+      // Set null stats instead of demo data
+      setStats(null);
     }
   }, []);
 
@@ -380,16 +241,29 @@ export default function SuperadminUserLogsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useEffect(() => { if (logs.length > 0) fetchStats(logs); }, [logs, fetchStats]);
 
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch = !search || 
-      log.userName.toLowerCase().includes(search.toLowerCase()) ||
-      log.userEmail.toLowerCase().includes(search.toLowerCase()) ||
-      log.action.toLowerCase().includes(search.toLowerCase()) ||
-      log.tenantName.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || log.category === categoryFilter;
-    const matchesStatus = statusFilter === "all" || log.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  // Reset page when filters change
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (value: string) => {
+    setDateRange(value);
+    setCurrentPage(1);
+  };
+
+  // Logs are now filtered server-side, use directly
+  const filteredLogs = logs;
 
   const formatTimestamp = (ts: string) => {
     const date = new Date(ts);
@@ -450,18 +324,6 @@ export default function SuperadminUserLogsPage() {
     setSessionDialogOpen(true);
   };
 
-  // CSV escape helper to prevent injection and handle special characters
-  const escapeCsvField = (value: unknown): string => {
-    const str = String(value ?? "");
-    // Prevent CSV injection by prefixing dangerous characters
-    const sanitized = str.replace(/^([=+\-@])/, "'$1");
-    // Escape quotes and wrap in quotes if contains comma, quote, newline, or CR
-    if (/[,"\n\r]/.test(sanitized)) {
-      return `"${sanitized.replace(/"/g, '""')}"`;
-    }
-    return sanitized;
-  };
-
   // Show export consent dialog
   const handleExportClick = () => {
     setIncludeEmails(false);
@@ -469,57 +331,50 @@ export default function SuperadminUserLogsPage() {
     setExportDialogOpen(true);
   };
 
-  // Perform actual export after consent
+  // Perform actual export after consent - uses full export API for all matching records
   const handleExportConfirm = async () => {
     if (!exportConsent) return;
     
     setExporting(true);
     
     try {
-      // Log export action for audit trail
-      await fetch("/api/superadmin/audit-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          action: "user_logs_export",
-          details: {
-            includeEmails,
-            filters: { categoryFilter, statusFilter, dateRange, search },
-            recordCount: filteredLogs.length,
-          },
-        }),
-      }).catch(() => {
-        // Queue retry if audit log fails - don't block export
-        // eslint-disable-next-line no-console -- SuperAdmin audit failure logging
-        console.warn("Audit log call failed - export proceeding");
+      // Map UI dateRange values to API expected values
+      const rangeMap: Record<string, string> = {
+        today: "24h",
+        week: "7d",
+        month: "30d",
+        all: "90d",
+      };
+      const apiRange = rangeMap[dateRange] || "7d";
+      
+      // Build query params with all current filters
+      const params = new URLSearchParams({
+        format: "csv",
+        range: apiRange,
+        includeEmails: includeEmails.toString(),
       });
       
-      // Build CSV with PII masking unless consent given
-      const headers = includeEmails 
-        ? ["Timestamp", "User", "Email", "Tenant", "Action", "Category", "Status", "Details"]
-        : ["Timestamp", "User", "Tenant", "Action", "Category", "Status", "Details"];
-        
-      const csvContent = [
-        headers.join(","),
-        ...filteredLogs.map(log => {
-          const row = [
-            new Date(log.timestamp).toISOString(),
-            escapeCsvField(log.userName),
-            ...(includeEmails ? [escapeCsvField(log.userEmail)] : []),
-            escapeCsvField(log.tenantName),
-            escapeCsvField(log.action),
-            escapeCsvField(log.category),
-            escapeCsvField(log.status),
-            escapeCsvField(log.details),
-          ];
-          return row.join(",");
-        })
-      ].join("\n");
+      // Add optional filters to get consistent export with current view
+      if (search) params.set("search", search);
+      if (categoryFilter && categoryFilter !== "all") params.set("category", categoryFilter);
+      if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
       
-      const BOM = "\uFEFF";
-      const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
+      // Use the export API endpoint for complete dataset (up to 10k records)
+      // This avoids the pagination limitation of the regular endpoint
+      const response = await fetch(`/api/superadmin/user-logs/export?${params.toString()}`, {
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+      
+      // Use response.blob() to preserve BOM for Excel UTF-8 detection
+      // (response.text() may strip the BOM character)
+      const csvBlob = await response.blob();
+      
+      // Download the CSV file directly from server response
+      const url = URL.createObjectURL(csvBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `user-activity-logs-${new Date().toISOString().split("T")[0]}.csv`;
@@ -531,6 +386,9 @@ export default function SuperadminUserLogsPage() {
       }, 0);
       
       setExportDialogOpen(false);
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin export error logging
+      console.error("Export failed:", error);
     } finally {
       setExporting(false);
     }
@@ -597,7 +455,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-yellow-500/20"><History className="h-5 w-5 text-yellow-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.avgSessionDuration}m</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.avgSession", "Avg Session")}</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.avgSessionDuration !== null ? `${stats.avgSessionDuration}m` : "N/A"}</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.avgSession", "Avg Session")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -622,7 +480,7 @@ export default function SuperadminUserLogsPage() {
                   <Input
                     placeholder={t("superadmin.userLogs.searchPlaceholder", "Search by user, email, action, or tenant...")}
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
@@ -630,7 +488,7 @@ export default function SuperadminUserLogsPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select 
                     value={categoryFilter} 
-                    onValueChange={setCategoryFilter}
+                    onValueChange={handleCategoryChange}
                     placeholder={t("superadmin.userLogs.filters.allCategories", "All Categories")}
                     className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
@@ -645,7 +503,7 @@ export default function SuperadminUserLogsPage() {
                   
                   <Select 
                     value={statusFilter} 
-                    onValueChange={setStatusFilter}
+                    onValueChange={handleStatusChange}
                     placeholder={t("superadmin.userLogs.filters.allStatus", "All Status")}
                     className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
@@ -657,7 +515,7 @@ export default function SuperadminUserLogsPage() {
                   
                   <Select 
                     value={dateRange} 
-                    onValueChange={setDateRange}
+                    onValueChange={handleDateRangeChange}
                     placeholder={t("superadmin.userLogs.filters.dateRange.today", "Today")}
                     className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
@@ -739,6 +597,60 @@ export default function SuperadminUserLogsPage() {
                 </Table>
               )}
             </CardContent>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+                <div className="text-sm text-muted-foreground">
+                  {t("superadmin.userLogs.pagination.showing", "Showing")} {Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)} {t("superadmin.userLogs.pagination.of", "of")} {totalCount} {t("superadmin.userLogs.pagination.entries", "entries")}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1 || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.first", "First page")}
+                  >
+                    {t("superadmin.userLogs.pagination.first", "First")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.previous", "Previous page")}
+                  >
+                    {t("superadmin.userLogs.pagination.previous", "Previous")}
+                  </Button>
+                  <span className="text-sm text-foreground px-2">
+                    {t("superadmin.userLogs.pagination.page", "Page")} {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.next", "Next page")}
+                  >
+                    {t("superadmin.userLogs.pagination.next", "Next")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.last", "Last page")}
+                  >
+                    {t("superadmin.userLogs.pagination.last", "Last")}
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -942,7 +854,7 @@ export default function SuperadminUserLogsPage() {
               </label>
             </div>
             <div className="text-xs text-muted-foreground">
-              {t("superadmin.userLogs.recordCount", "Records to export")}: {filteredLogs.length}
+              {t("superadmin.userLogs.recordCount", "Records to export")}: {totalCount}
             </div>
           </div>
           <DialogFooter className="gap-2">

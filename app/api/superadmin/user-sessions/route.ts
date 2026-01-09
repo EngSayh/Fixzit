@@ -58,12 +58,18 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Transform users to session format
+    // Determine if session is "active" based on lastLogin within the last 30 minutes
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    
     const sessions = users.map((user) => {
       const firstName = user.personal?.firstName || "";
       const lastName = user.personal?.lastName || "";
       const displayName = firstName || lastName 
         ? `${firstName} ${lastName}`.trim() 
         : user.username || user.email?.split("@")[0] || "Unknown";
+      
+      const lastLoginDate = user.security?.lastLogin ? new Date(user.security.lastLogin) : null;
+      const isActive = lastLoginDate ? lastLoginDate >= thirtyMinutesAgo : false;
       
       return {
         _id: user._id.toString(),
@@ -73,15 +79,25 @@ export async function GET(request: NextRequest) {
         userEmail: user.email || "",
         userRole: user.professional?.role || "USER",
         status: user.status || "ACTIVE",
+        tenantName: "", // Would need org lookup
         device: "Unknown", // Would need session tracking
         browser: "Unknown", // Would need session tracking
-        ipAddress: "", // Would need session tracking
+        os: "Unknown", // Would need session tracking
+        // UI expects 'ip', not 'ipAddress'
+        ip: "", // Would need session tracking
+        ipAddress: "", // Keep for backward compatibility
         location: "", // Would need IP geolocation service
+        // UI expects 'startedAt', not just 'loginTime'
+        startedAt: user.security?.lastLogin,
         loginTime: user.security?.lastLogin,
         lastActive: user.security?.lastLogin,
         expiresAt: user.security?.lastLogin
           ? new Date(new Date(user.security.lastLogin).getTime() + 24 * 60 * 60 * 1000)
           : null,
+        // UI expects these fields
+        pagesVisited: 0, // Would need activity tracking
+        actionsPerformed: 0, // Would need activity tracking
+        isActive, // Based on lastLogin within 30 minutes
       };
     });
 

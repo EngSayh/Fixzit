@@ -152,6 +152,17 @@ export function formatRelativeTime(
     if (Math.abs(diffHour) < 24) return rtf.format(diffHour, "hour");
     if (Math.abs(diffDay) < 30) return rtf.format(diffDay, "day");
     if (Math.abs(diffMonth) < 12) return rtf.format(diffMonth, "month");
+    
+    // NIT-002: Fallback to calendar date for dates older than 1 year
+    // More readable than "2 years ago" for historical data
+    if (Math.abs(diffYear) >= 1) {
+      return new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(date);
+    }
+    
     return rtf.format(diffYear, "year");
   } catch {
     return "N/A";

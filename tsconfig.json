@@ -86,6 +86,11 @@
     "Incoming",
     "tmp",
     ".artifacts",
-    "_artifacts"
+    "_artifacts",
+    "artifacts",
+    "docs/artifacts",
+    "reports",
+    "logs",
+    "ai-memory"
   ]
 }

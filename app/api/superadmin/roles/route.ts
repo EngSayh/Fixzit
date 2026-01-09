@@ -11,9 +11,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { connectDb } from "@/lib/mongodb-unified";
 import Role from "@/server/models/Role";
+import { AuditLogModel } from "@/server/models/AuditLog";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { Config, DEFAULT_PLATFORM_ORG_ID } from "@/lib/config/constants";
 
 // Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
@@ -23,7 +25,7 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 /**
  * GET /api/superadmin/roles
- * List all roles
+ * List all roles with populated permissions
  */
 export async function GET(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request, {
@@ -45,12 +47,32 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide role management
-    const roles = await Role.find({}).sort({ name: 1 }).lean();
+    const roles = await Role.find({})
+      .populate("permissions", "key description module")
+      .sort({ name: 1 })
+      .lean();
+
+    // Transform permissions from ObjectIds to string keys for UI consumption
+    const transformedRoles = roles.map((role) => ({
+      ...role,
+      // Convert populated permissions to string keys, or keep as-is if already strings
+      permissions: Array.isArray(role.permissions)
+        ? role.permissions.map((p: unknown) => {
+            if (typeof p === "string") return p;
+            if (p && typeof p === "object" && "key" in p) return (p as { key: string }).key;
+            // ObjectId case - convert to string
+            return String(p);
+          })
+        : [],
+      // Add permission count for UI
+      permissionCount: Array.isArray(role.permissions) ? role.permissions.length : 0,
+    }));
 
     return NextResponse.json(
       {
-        roles,
-        total: roles.length,
+        roles: transformedRoles,
+        total: transformedRoles.length,
+        fetchedAt: new Date().toISOString(),
       },
       { headers: ROBOTS_HEADER }
     );
@@ -99,11 +121,45 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide role creation
+    // Generate slug from name (lowercase, replace non-alphanumeric with underscore)
+    const slug = body.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    // Get platform org ID from config (required for Role model)
+    const platformOrgId = Config.features.platformOrgId || DEFAULT_PLATFORM_ORG_ID;
+
     const role = await Role.create({
+      orgId: platformOrgId,
       name: body.name,
+      slug,
       description: body.description || "",
       permissions: body.permissions || [],
+    });
+
+    // Audit log for role creation
+    // Schema requires: orgId, action (enum), entityType (enum), userId
+    // Using SETTING for role-related changes, CREATE action
+    await AuditLogModel.create({
+      orgId: "PLATFORM", // Platform-wide operation
+      entityType: "SETTING",
+      entityId: String(role._id),
+      entityName: `Role: ${body.name}`,
+      action: "CREATE",
+      userId: session.username,
+      userName: session.username,
+      timestamp: new Date(),
+      metadata: {
+        reason: `Created role: ${body.name}`,
+        tags: ["role", "superadmin"],
+      },
+      result: { 
+        success: true,
+        affectedRecords: 1,
+      },
+    }).catch((err: Error) => {
+      logger.warn("[Superadmin:Roles] Failed to create audit log", { error: err.message });
     });
 
     logger.info("[Superadmin:Roles] Role created", {

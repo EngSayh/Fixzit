@@ -43,7 +43,7 @@
   },
 
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.tsserver.maxTsServerMemory": 8192,
+  "typescript.tsserver.maxTsServerMemory": 16384,
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.disableAutomaticTypeAcquisition": true,
 
@@ -58,24 +58,39 @@
     "**/node_modules/**": true,
     "**/.next/**": true,
     "**/_artifacts/**": true,
+    "**/artifacts/**": true,
+    "**/.artifacts/**": true,
+    "**/docs/artifacts/**": true,
     "**/coverage/**": true,
     "**/playwright-report/**": true,
     "**/database/**": true,
-    "**/models/**": true,
-    "**/dist/**": true
+    "**/dist/**": true,
+    "**/logs/**": true,
+    "**/reports/**": true
+  },
+
+  // Hide large artifact folders from explorer (reduces indexing)
+  "files.exclude": {
+    "**/docs/artifacts": true,
+    "**/artifacts/audit": true,
+    "**/.artifacts": true,
+    "**/logs": true
   },
 
   "search.exclude": {
     "**/node_modules": true,
     "**/.next": true,
+    "**/docs/artifacts": true,
+    "**/artifacts": true,
+    "**/.artifacts": true,
     "**/dist": true,
     "**/_artifacts": true,
     "**/coverage": true,
     "**/*.lock": true
   },
 
-  // Performance optimizations for 12-core/36GB MacBook
-  "files.maxMemoryForLargeFilesMB": 8192,
+  // Performance optimizations for 35GB allocated to VS Code
+  "files.maxMemoryForLargeFilesMB": 16384,
 
   // Git performance
   "git.untrackedChanges": "hidden",

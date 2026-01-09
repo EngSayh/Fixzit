@@ -206,14 +206,14 @@ export async function DELETE(
 
     await connectDb();
 
-    // Soft delete by setting status to CANCELLED
+    // Soft delete by setting status to SUSPENDED (not CANCELLED - aligns with UI "Suspend" action)
     const org = await Organization.findByIdAndUpdate(
       id,
       {
         $set: {
-          subscriptionStatus: "CANCELLED",
-          deletedAt: new Date(),
-          deletedBy: session.username,
+          subscriptionStatus: "SUSPENDED",
+          suspendedAt: new Date(),
+          suspendedBy: session.username,
           updatedAt: new Date(),
         },
       },
@@ -227,14 +227,14 @@ export async function DELETE(
       );
     }
 
-    logger.info("[Superadmin Tenants] Organization soft-deleted", {
+    logger.info("[Superadmin Tenants] Organization suspended", {
       orgId: id,
-      deletedBy: session.username,
+      suspendedBy: session.username,
     });
 
     return NextResponse.json({ 
       success: true, 
-      message: "Organization has been suspended/cancelled" 
+      message: "Organization has been suspended" 
     });
   } catch (error) {
     logger.error("[Superadmin Tenants] Failed to delete organization", error as Error);

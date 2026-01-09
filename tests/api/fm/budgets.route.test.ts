@@ -55,7 +55,7 @@ describe("API /api/fm/finance/budgets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
-  });
+  }, 10000); // 10s timeout for beforeEach to prevent hook timeout
 
   describe("GET - List Budgets", () => {
     it("returns 429 when rate limit exceeded", async () => {

@@ -69,6 +69,20 @@ export function initSentryClient(): void {
     return;
   }
 
+  // Build integrations array - use any[] since replayIntegration may not exist in all versions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const integrations: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sdk = Sentry as any;
+  if (typeof sdk.replayIntegration === 'function') {
+    integrations.push(
+      sdk.replayIntegration({
+        maskAllText: true,
+        blockAllMedia: true,
+      })
+    );
+  }
+
   Sentry.init({
     dsn: config.dsn,
     environment: config.environment,
@@ -76,12 +90,7 @@ export function initSentryClient(): void {
     tracesSampleRate: config.tracesSampleRate,
     replaysSessionSampleRate: config.replaysSessionSampleRate,
     replaysOnErrorSampleRate: config.replaysOnErrorSampleRate,
-    integrations: [
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
-    ],
+    integrations,
   });
 }
 
@@ -179,27 +188,41 @@ export function addBreadcrumb(
   });
 }
 
+// Define a minimal Scope interface for the noop case
+interface NoopScope {
+  setTag: () => NoopScope;
+  setExtra: () => NoopScope;
+  setContext: () => NoopScope;
+  setUser: () => NoopScope;
+  setLevel: () => NoopScope;
+  setFingerprint: () => NoopScope;
+}
+
 /**
  * Execute callback with scoped Sentry context
  * Used for enriching error reports with additional context
  */
-export function withScope(callback: (scope: Sentry.Scope) => void): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withScope(callback: (scope: any) => void): void {
   if (!isSentryEnabled()) {
     // Still call callback with a no-op scope for consistency
-    const noopScope = {
+    const noopScope: NoopScope = {
       setTag: () => noopScope,
       setExtra: () => noopScope,
       setContext: () => noopScope,
       setUser: () => noopScope,
       setLevel: () => noopScope,
       setFingerprint: () => noopScope,
-    } as unknown as Sentry.Scope;
+    };
     callback(noopScope);
     return;
   }
 
   Sentry.withScope(callback);
 }
+
+// Note: captureException, captureMessage, setUser, addBreadcrumb, withScope 
+// are defined locally above with enhanced error handling
 
 export default {
   isSentryEnabled,

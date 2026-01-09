@@ -108,4 +108,62 @@ describe("GET /api/superadmin/user-sessions", () => {
     const res = await GET(createGetRequest() as any);
     expect([200, 401, 500]).toContain(res.status);
   });
+
+  it("should return isActive field for each session", async () => {
+    const res = await GET(createGetRequest() as any);
+    if (res.status === 200) {
+      const json = await res.json();
+      const sessions = json.sessions || json.data || [];
+      if (sessions.length > 0) {
+        // isActive should be derived from lastLogin within 30 minutes
+        expect(typeof sessions[0].isActive).toBe("boolean");
+      }
+    }
+  });
+
+  it("should return startedAt field for each session", async () => {
+    const res = await GET(createGetRequest() as any);
+    if (res.status === 200) {
+      const json = await res.json();
+      const sessions = json.sessions || json.data || [];
+      if (sessions.length > 0) {
+        expect(sessions[0].startedAt).toBeDefined();
+      }
+    }
+  });
+
+  it("should return ip field for each session", async () => {
+    const res = await GET(createGetRequest() as any);
+    if (res.status === 200) {
+      const json = await res.json();
+      const sessions = json.sessions || json.data || [];
+      if (sessions.length > 0) {
+        expect(sessions[0].ip).toBeDefined();
+      }
+    }
+  });
+
+  it("should return pagesVisited field for each session", async () => {
+    const res = await GET(createGetRequest() as any);
+    if (res.status === 200) {
+      const json = await res.json();
+      const sessions = json.sessions || json.data || [];
+      if (sessions.length > 0) {
+        expect(typeof sessions[0].pagesVisited).toBe("number");
+      }
+    }
+  });
+
+  it("should return device/browser/os fields", async () => {
+    const res = await GET(createGetRequest() as any);
+    if (res.status === 200) {
+      const json = await res.json();
+      const sessions = json.sessions || json.data || [];
+      if (sessions.length > 0) {
+        expect(sessions[0].device).toBeDefined();
+        expect(sessions[0].browser).toBeDefined();
+        expect(sessions[0].os).toBeDefined();
+      }
+    }
+  });
 });

@@ -41,6 +41,13 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
     const skip = (page - 1) * limit;
 
+    // Server-side filters
+    const search = searchParams.get("search") || "";
+    const category = searchParams.get("category") || "";
+    const status = searchParams.get("status") || "";
+    const userId = searchParams.get("userId") || "";
+    const entityType = searchParams.get("entityType") || "";
+
     // Calculate date filter based on range
     const now = new Date();
     let startDate: Date;
@@ -61,10 +68,70 @@ export async function GET(request: NextRequest) {
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    // Query audit logs
-    const query = {
+    // Build query with server-side filters
+    const query: Record<string, unknown> = {
       timestamp: { $gte: startDate },
     };
+
+    // Category filter - map to action patterns
+    if (category && category !== "all") {
+      const categoryActionMap: Record<string, RegExp> = {
+        auth: /^(LOGIN|LOGOUT|password|auth)/i,
+        navigation: /^(view|navigate|visit|read)/i,
+        crud: /^(CREATE|UPDATE|DELETE|add|remove)/i,
+        settings: /^(settings|config|preference)/i,
+        api: /^(api|request|call)/i,
+        error: /^(error|fail)/i,
+      };
+      if (categoryActionMap[category]) {
+        query.action = categoryActionMap[category];
+      }
+    }
+
+    // Status filter - map to result.success
+    // Supports: success, error, warning (partial success or slow operations)
+    if (status && status !== "all") {
+      if (status === "error") {
+        query["result.success"] = false;
+      } else if (status === "success") {
+        query["result.success"] = true;
+      } else if (status === "warning") {
+        // Warning = success but with warnings (errorMessage exists) or slow (duration > 3000ms)
+        const andConditions = (query.$and as unknown[] | undefined) || [];
+        andConditions.push({
+          $or: [
+            { "result.success": true, "result.errorMessage": { $exists: true, $ne: "" } },
+            { "result.success": true, "result.duration": { $gt: 3000 } },
+            { "metadata.tags": "warning" },
+          ],
+        });
+        query.$and = andConditions;
+      }
+    }
+
+    // User filter
+    if (userId) {
+      query.userId = userId;
+    }
+
+    // Entity type filter
+    if (entityType && entityType !== "all") {
+      query.entityType = entityType.toUpperCase();
+    }
+
+    // Search filter - search in userName, userEmail, action, entityType
+    // Length cap to prevent expensive regex queries (max 100 chars)
+    if (search) {
+      const truncatedSearch = search.slice(0, 100);
+      const escapedSearch = truncatedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { userName: { $regex: escapedSearch, $options: "i" } },
+        { userEmail: { $regex: escapedSearch, $options: "i" } },
+        { action: { $regex: escapedSearch, $options: "i" } },
+        { entityType: { $regex: escapedSearch, $options: "i" } },
+        { "metadata.reason": { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
 
     const [logs, total] = await Promise.all([
       AuditLogModel.find(query)
@@ -75,22 +142,85 @@ export async function GET(request: NextRequest) {
       AuditLogModel.countDocuments(query),
     ]);
 
+    // Type for the raw log document with possible additional fields
+    type LogRecord = Record<string, unknown>;
+
     // Transform logs to expected format
-    const transformedLogs = logs.map((log) => ({
-      _id: log._id.toString(),
-      userId: log.userId?.toString() || "system",
-      userName: log.userName || log.userEmail || "Unknown",
-      userEmail: log.userEmail || "",
-      action: log.action || "unknown",
-      entityType: log.entityType || "",
-      entityId: log.entityId || "",
-      description: log.metadata?.reason || log.metadata?.comment || "",
-      ipAddress: log.context?.ipAddress || "",
-      userAgent: log.context?.userAgent || "",
-      timestamp: log.timestamp,
-      success: log.result?.success !== false,
-      metadata: log.metadata || {},
-    }));
+    const transformedLogs = logs.map((rawLog) => {
+      const log = rawLog as LogRecord;
+      const action = (typeof log.action === "string" ? log.action : "").toLowerCase();
+      const metadata = log.metadata as Record<string, unknown> | undefined;
+      const context = log.context as Record<string, unknown> | undefined;
+      const result = log.result as { success?: boolean; statusCode?: number; duration?: number } | undefined;
+
+      // Derive category from action/entityType
+      let category: "auth" | "navigation" | "crud" | "settings" | "api" | "error" = "api";
+      if (action.includes("login") || action.includes("logout") || action.includes("auth") || action.includes("password")) {
+        category = "auth";
+      } else if (action.includes("view") || action.includes("navigate") || action.includes("visit")) {
+        category = "navigation";
+      } else if (action.includes("create") || action.includes("update") || action.includes("delete") || action.includes("add") || action.includes("remove")) {
+        category = "crud";
+      } else if (action.includes("settings") || action.includes("config") || action.includes("preference")) {
+        category = "settings";
+      } else if (result?.success === false || action.includes("error") || action.includes("fail")) {
+        category = "error";
+      }
+
+      // Derive status from result.success and warning criteria
+      // Aligned with warning filter: slow (>3000ms), has errorMessage, or tagged as warning [AGENT-0025]
+      const statusCode = (metadata?.statusCode as number | undefined) ?? 0;
+      const resultData = result as { success?: boolean; duration?: number; errorMessage?: string } | undefined;
+      const resultDuration = resultData?.duration ?? 0;
+      const hasErrorMessage = !!resultData?.errorMessage;
+      const hasWarningTag = Array.isArray((metadata as Record<string, unknown>)?.tags) 
+        && ((metadata as Record<string, unknown>).tags as string[]).includes("warning");
+      
+      let status: "success" | "warning" | "error" = "success";
+      if (result?.success === false) {
+        status = "error";
+      } else if (
+        (statusCode >= 400 && statusCode < 500) ||
+        resultDuration > 3000 ||
+        hasErrorMessage ||
+        hasWarningTag
+      ) {
+        status = "warning";
+      }
+
+      return {
+        _id: String(log._id),
+        userId: log.userId ? String(log.userId) : "system",
+        userName: (log.userName as string) || (log.userEmail as string) || "Unknown",
+        userEmail: (log.userEmail as string) || "",
+        action: (log.action as string) || "unknown",
+        entityType: (log.entityType as string) || "",
+        entityId: (log.entityId as string) || "",
+        // UI expects these fields
+        category,
+        status,
+        tenantId: log.orgId ? String(log.orgId) : "",
+        tenantName: (metadata?.orgName as string) || "",
+        details: (metadata?.reason as string) || (metadata?.comment as string) || "",
+        description: (metadata?.reason as string) || (metadata?.comment as string) || "",
+        ipAddress: (context?.ipAddress as string) || "",
+        userAgent: (context?.userAgent as string) || "",
+        timestamp: log.timestamp,
+        success: result?.success !== false,
+        metadata: {
+          path: (context?.endpoint as string) || "",
+          method: (context?.method as string) || "",
+          statusCode: statusCode || undefined,
+          duration: (result?.duration as number | undefined) || (metadata?.duration as number | undefined),
+          userAgent: (context?.userAgent as string) || "",
+          device: (context?.device as string) || "",
+          browser: (context?.browser as string) || "",
+          os: (context?.os as string) || "",
+          ip: (context?.ipAddress as string) || "",
+          location: "",
+        },
+      };
+    });
 
     return NextResponse.json(
       {
@@ -98,6 +228,12 @@ export async function GET(request: NextRequest) {
         total,
         page,
         pages: Math.ceil(total / limit),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
       { headers: ROBOTS_HEADER }
     );
