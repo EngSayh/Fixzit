@@ -295,7 +295,7 @@ function extractFieldsFromText(text: string, _documentType: string): Record<stri
     id_number: /(?:رقم الهوية|ID|National ID)[:\s]*(\d{10})/i,
     cr_number: /(?:رقم السجل|CR|Commercial Register)[:\s]*(\d{10})/i,
     iban: /(?:IBAN|آيبان)[:\s]*(SA\d{22})/i,
-    date: /(\d{4}[-/]\d{2}[-/]\d{2})/g,
+    date: /(\d{4}[-/]\d{2}[-/]\d{2})/i, // Fixed: removed global flag for match[1] to work
   };
 
   for (const [key, pattern] of Object.entries(patterns)) {
