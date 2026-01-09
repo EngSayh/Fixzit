@@ -49,7 +49,6 @@ import {
   type UserDetail,
   type AuditLogEntry,
   type ErrorLogEntry,
-  type ActivityStats,
   type Pagination,
   type ModuleAccessItem,
 } from "./components";
