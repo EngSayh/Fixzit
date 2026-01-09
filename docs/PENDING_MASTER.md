@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T19:30:00+03:00
+  Last-Sync: 2026-01-09T22:00:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,40 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T22:00 (Asia/Riyadh) — Test Fix + PR #679 Review [AGENT-0021]
+
+**Agent Token:** [AGENT-0021]  
+**Branch:** `Fixzit-v2.0.27-20260109-0042-test-100-percent`  
+**PR:** #682  
+**Commit:** `2ef7d49f9`  
+**Status:** ✅ FIXED AND TESTED
+
+#### Test Fix Applied
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `tests/api/leads/leads.route.test.ts` | Auth mock used `orgId` but route checks `tenantId` first | Changed mock to use `tenantId: "org1"` |
+
+**Root Cause:** The route handler checks `session?.user?.tenantId || (session?.user as { orgId?: string })?.orgId`. Test mock provided `{ user: { id: "user1", orgId: "org1" } }` but TypeScript type may not recognize `orgId`, causing `tenantId` to be undefined → 401 Unauthorized instead of 400 validation error.
+
+#### PR #679 Governance Review
+
+Posted governance review comment on PR #679 (sub-PR of merged #678).
+- **Status:** 🟢 Ready to Merge
+- **Changes:** Unused state variables removal, rate limit mock fix, test cleanup
+- **CI:** All 9 checks passing
+- **Recommendation:** APPROVE
+
+#### CI Verification (Local)
+
+| Check | Status |
+|-------|--------|
+| TypeCheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+| Tests | ✅ 711 files, 4664 tests pass |
 
 ---
 
