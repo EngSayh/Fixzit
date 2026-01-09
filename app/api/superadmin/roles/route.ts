@@ -15,6 +15,7 @@ import { AuditLogModel } from "@/server/models/AuditLog";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { Config, DEFAULT_PLATFORM_ORG_ID } from "@/lib/config/constants";
 
 // Prevent prerendering/export of this API route
 export const dynamic = "force-dynamic";
@@ -120,9 +121,19 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide role creation
+    // Generate slug from name (lowercase, replace non-alphanumeric with underscore)
+    const slug = body.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    // Get platform org ID from config (required for Role model)
+    const platformOrgId = Config.features.platformOrgId || DEFAULT_PLATFORM_ORG_ID;
+
     const role = await Role.create({
+      orgId: platformOrgId,
       name: body.name,
+      slug,
       description: body.description || "",
       permissions: body.permissions || [],
     });

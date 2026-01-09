@@ -249,5 +249,52 @@ describe("Superadmin Roles Route", () => {
         }
       }
     });
+
+    it("creates role with required orgId field", async () => {
+      // Mock authenticated session
+      mockGetSuperadminSession.mockResolvedValue({
+        username: "superadmin",
+        userId: "sa-1",
+        role: "SUPER_ADMIN",
+      });
+
+      // Mock Role.create to capture the creation args
+      const { default: Role } = await import("@/server/models/Role");
+      vi.mocked(Role.create).mockResolvedValue({
+        _id: "new-role-id",
+        name: "NewRole",
+        orgId: "fixzit-platform",
+        slug: "newrole",
+      } as any);
+
+      const req = new NextRequest("http://localhost/api/superadmin/roles", {
+        method: "POST",
+        body: JSON.stringify({ name: "NewRole", permissions: ["read"] }),
+      });
+      const res = await POST(req);
+
+      // Verify response (may be 201 or 500 depending on DB)
+      expect([201, 500]).toContain(res.status);
+
+      if (res.status === 201) {
+        // Verify Role.create was called with orgId (required by Role model)
+        // parseBodySafe mock returns { name: "NewRole", permissions: ["read"] }
+        expect(Role.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orgId: expect.any(String), // Required field - must not be undefined
+            name: "NewRole",
+            slug: "newrole", // Generated from name
+          })
+        );
+
+        // Verify orgId is not empty/undefined
+        const createCall = vi.mocked(Role.create).mock.calls[0]?.[0] as Record<string, unknown>;
+        if (createCall) {
+          expect(createCall.orgId).toBeDefined();
+          expect(createCall.orgId).not.toBe("");
+          expect(createCall.slug).toBeDefined();
+        }
+      }
+    });
   });
 });

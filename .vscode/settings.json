@@ -58,16 +58,31 @@
     "**/node_modules/**": true,
     "**/.next/**": true,
     "**/_artifacts/**": true,
+    "**/artifacts/**": true,
+    "**/.artifacts/**": true,
+    "**/docs/artifacts/**": true,
     "**/coverage/**": true,
     "**/playwright-report/**": true,
     "**/database/**": true,
-    "**/models/**": true,
-    "**/dist/**": true
+    "**/dist/**": true,
+    "**/logs/**": true,
+    "**/reports/**": true
+  },
+
+  // Hide large artifact folders from explorer (reduces indexing)
+  "files.exclude": {
+    "**/docs/artifacts": true,
+    "**/artifacts/audit": true,
+    "**/.artifacts": true,
+    "**/logs": true
   },
 
   "search.exclude": {
     "**/node_modules": true,
     "**/.next": true,
+    "**/docs/artifacts": true,
+    "**/artifacts": true,
+    "**/.artifacts": true,
     "**/dist": true,
     "**/_artifacts": true,
     "**/coverage": true,
