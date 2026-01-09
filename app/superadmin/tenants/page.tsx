@@ -7,7 +7,7 @@
  * @module app/superadmin/tenants/page
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useI18n } from "@/i18n/useI18n";
 import {
@@ -137,8 +137,12 @@ export default function SuperadminTenantsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Fetch organizations
-  const fetchOrganizations = useCallback(async () => {
+  // Refs for debounce and abort
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch organizations with AbortController for canceling stale requests
+  const fetchOrganizations = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError(null);
@@ -156,6 +160,7 @@ export default function SuperadminTenantsPage() {
 
       const response = await fetch(`/api/superadmin/tenants?${params}`, {
         credentials: "include",
+        signal,
       });
 
       if (!response.ok) {
@@ -167,26 +172,77 @@ export default function SuperadminTenantsPage() {
       setOrganizations(data.organizations);
       setPagination(data.pagination);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load organizations";
+      // Ignore abort errors (expected when canceling stale requests)
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+      const message = err instanceof Error ? err.message : t("superadmin.tenants.loadError", "Failed to load organizations");
       setError(message);
       toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, statusFilter, typeFilter]);
+  }, [page, limit, search, statusFilter, typeFilter, t]);
 
-  // Initial load and filter changes
-  useEffect(() => {
-    fetchOrganizations();
+  // Debounced fetch with AbortController
+  const debouncedFetch = useCallback(() => {
+    // Cancel any pending debounce
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      abortControllerRef.current = new AbortController();
+      fetchOrganizations(abortControllerRef.current.signal);
+    }, 300);
   }, [fetchOrganizations]);
 
-  // Debounced search
+  // Initial load
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [search]);
+    abortControllerRef.current = new AbortController();
+    fetchOrganizations(abortControllerRef.current.signal);
+    
+    return () => {
+      // Cleanup on unmount
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+    // Only run on mount - fetchOrganizations and debouncedFetch are stable refs
+  }, [fetchOrganizations, debouncedFetch]);
+
+  // Debounced search - reset page to 1 and fetch
+  useEffect(() => {
+    // Skip initial render
+    if (search === "") return;
+    
+    setPage(1);
+    debouncedFetch();
+  }, [search, debouncedFetch]);
+
+  // Reset pagination and fetch on filter changes (status/type)
+  useEffect(() => {
+    setPage(1);
+    debouncedFetch();
+  }, [statusFilter, typeFilter, debouncedFetch]);
+
+  // Fetch on page change (not debounced)
+  useEffect(() => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    fetchOrganizations(abortControllerRef.current.signal);
+  }, [page, fetchOrganizations]);
 
   // Handle delete
   const handleDelete = async () => {
@@ -201,15 +257,20 @@ export default function SuperadminTenantsPage() {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete organization");
+        throw new Error(err.error || t("superadmin.tenants.suspendError", "Failed to suspend organization"));
       }
 
-      toast.success(`Organization "${selectedOrg.name}" has been suspended`);
+      toast.success(t("superadmin.tenants.suspendSuccess", `Organization "${selectedOrg.name}" has been suspended`));
       setDeleteDialogOpen(false);
       setSelectedOrg(null);
-      fetchOrganizations();
+      // Re-fetch with new AbortController
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      fetchOrganizations(abortControllerRef.current.signal);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Delete failed";
+      const message = err instanceof Error ? err.message : t("superadmin.tenants.suspendError", "Suspend failed");
       toast.error(message);
     } finally {
       setActionLoading(false);
@@ -234,26 +295,32 @@ export default function SuperadminTenantsPage() {
             {t("superadmin.nav.tenants")}
           </h1>
           <p className="text-muted-foreground">
-            Manage all organizations and tenant accounts
+            {t("superadmin.tenants.subtitle", "Manage all organizations and tenant accounts")}
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchOrganizations}
+            onClick={() => {
+              if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+              }
+              abortControllerRef.current = new AbortController();
+              fetchOrganizations(abortControllerRef.current.signal);
+            }}
             disabled={loading}
             className="border-input text-muted-foreground"
             aria-label={t("common.refresh", "Refresh organizations list")}
             title={t("common.refresh", "Refresh organizations list")}
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </Button>
           <Button size="sm" className="bg-blue-600 hover:bg-blue-700" asChild>
             <Link href="/superadmin/tenants/new" aria-label={t("superadmin.tenants.add", "Add new organization")} title={t("superadmin.tenants.add", "Add new organization")}>
               <Plus className="h-4 w-4 me-2" />
-              Add Organization
+              {t("superadmin.tenants.add", "Add Organization")}
             </Link>
           </Button>
         </div>
@@ -266,7 +333,7 @@ export default function SuperadminTenantsPage() {
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, code, or email..."
+                placeholder={t("superadmin.tenants.searchPlaceholder", "Search by name, code, or email...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
@@ -314,16 +381,22 @@ export default function SuperadminTenantsPage() {
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
               <p className="text-red-400 mb-4">{error}</p>
-              <Button variant="outline" onClick={fetchOrganizations} aria-label={t("common.tryAgain", "Try again to load organizations")} title={t("common.tryAgain", "Try again to load organizations")}>
-                Try Again
+              <Button variant="outline" onClick={() => {
+                if (abortControllerRef.current) {
+                  abortControllerRef.current.abort();
+                }
+                abortControllerRef.current = new AbortController();
+                fetchOrganizations(abortControllerRef.current.signal);
+              }} aria-label={t("common.tryAgain", "Try again to load organizations")} title={t("common.tryAgain", "Try again to load organizations")}>
+                {t("common.tryAgain", "Try Again")}
               </Button>
             </div>
           ) : organizations.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No organizations found</p>
+              <p className="text-muted-foreground">{t("superadmin.tenants.noResults", "No organizations found")}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting your filters or create a new organization
+                {t("superadmin.tenants.noResultsHint", "Try adjusting your filters or create a new organization")}
               </p>
             </div>
           ) : (
