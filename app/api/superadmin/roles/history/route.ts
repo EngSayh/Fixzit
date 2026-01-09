@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { connectDb } from "@/lib/mongodb-unified";
-import { AuditLogModel } from "@/server/models/AuditLog";
+import { AuditLogModel, type AuditLog } from "@/server/models/AuditLog";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -78,18 +78,17 @@ export async function GET(request: NextRequest) {
     };
 
     if (roleName) {
+      // Truncate to prevent slow regex queries (MED: length cap)
+      const truncatedRoleName = roleName.slice(0, 100);
       // Filter by specific role name - escape regex special chars to prevent ReDoS
-      const escapedRoleName = roleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.$and = [
-        { $or: query.$or as unknown[] },
-        { 
-          $or: [
-            { entityName: { $regex: escapedRoleName, $options: "i" } },
-            { "metadata.reason": { $regex: escapedRoleName, $options: "i" } },
-          ],
-        },
+      const escapedRoleName = truncatedRoleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // When filtering by specific roleName, search only by that name without base predicate
+      // This avoids false negatives from requiring role|permission in entityName
+      query.$or = [
+        { entityName: { $regex: escapedRoleName, $options: "i" } },
+        { "metadata.reason": { $regex: escapedRoleName, $options: "i" } },
+        { "metadata.tags": "role", entityName: { $regex: escapedRoleName, $options: "i" } },
       ];
-      delete query.$or;
     }
 
     const [logs, total] = await Promise.all([
@@ -106,7 +105,8 @@ export async function GET(request: NextRequest) {
     // - roleName: from entityName or metadata.reason
     // - ipAddress: from context.ipAddress
     // - success: from result.success
-    const history = logs.map((log: any) => {
+    // Use proper typing for logs (was: any)
+    const history = logs.map((log: AuditLog & { _id: unknown }) => {
       const context = log.context as Record<string, unknown> | undefined;
       const result = log.result as Record<string, unknown> | undefined;
       const metadata = log.metadata as Record<string, unknown> | undefined;
@@ -115,10 +115,11 @@ export async function GET(request: NextRequest) {
       let derivedRoleName = (log.entityName as string) || "Unknown";
       if (derivedRoleName === "Unknown" && metadata?.reason) {
         // Try to extract from reason if it mentions a role
+        // Expanded regex to capture roles with spaces, hyphens, numbers (e.g. "Senior Manager-HR")
         const reasonStr = String(metadata.reason);
-        const roleMatch = reasonStr.match(/role[:\s]+([A-Z_]+)/i);
+        const roleMatch = reasonStr.match(/role[:\s]+([A-Za-z0-9_\s-]+)/i);
         if (roleMatch) {
-          derivedRoleName = roleMatch[1];
+          derivedRoleName = roleMatch[1].trim();
         }
       }
       
