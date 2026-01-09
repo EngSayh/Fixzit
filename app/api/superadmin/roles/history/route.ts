@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     // - roleName: from entityName or metadata.reason
     // - ipAddress: from context.ipAddress
     // - success: from result.success
-    const history = logs.map((log: Record<string, unknown>) => {
+    const history = logs.map((log: any) => {
       const context = log.context as Record<string, unknown> | undefined;
       const result = log.result as Record<string, unknown> | undefined;
       const metadata = log.metadata as Record<string, unknown> | undefined;

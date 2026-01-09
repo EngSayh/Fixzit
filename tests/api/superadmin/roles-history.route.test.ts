@@ -67,7 +67,7 @@ describe("GET /api/superadmin/roles/history", () => {
 
   it("should return 429 when rate limited", async () => {
     vi.mocked(enforceRateLimit).mockReturnValue(
-      new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
+      new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 }) as any
     );
 
     const request = new NextRequest("http://localhost/api/superadmin/roles/history");
@@ -81,7 +81,8 @@ describe("GET /api/superadmin/roles/history", () => {
       id: "superadmin-123",
       username: "superadmin",
       role: "SUPER_ADMIN",
-    } as ReturnType<typeof getSuperadminSession> extends Promise<infer T> ? T : never);
+      orgId: "org-123",
+    } as any);
 
     vi.mocked(enforceRateLimit).mockReturnValue(null);
 
@@ -129,7 +130,8 @@ describe("GET /api/superadmin/roles/history", () => {
       id: "superadmin-123",
       username: "superadmin",
       role: "SUPER_ADMIN",
-    } as ReturnType<typeof getSuperadminSession> extends Promise<infer T> ? T : never);
+      orgId: "org-123",
+    } as any);
 
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(AuditLogModel.countDocuments).mockResolvedValue(100);
@@ -149,7 +151,8 @@ describe("GET /api/superadmin/roles/history", () => {
       id: "superadmin-123",
       username: "superadmin",
       role: "SUPER_ADMIN",
-    } as ReturnType<typeof getSuperadminSession> extends Promise<infer T> ? T : never);
+      orgId: "org-123",
+    } as any);
 
     vi.mocked(enforceRateLimit).mockReturnValue(null);
 
@@ -166,7 +169,8 @@ describe("GET /api/superadmin/roles/history", () => {
       id: "superadmin-123",
       username: "superadmin",
       role: "SUPER_ADMIN",
-    } as ReturnType<typeof getSuperadminSession> extends Promise<infer T> ? T : never);
+      orgId: "org-123",
+    } as any);
 
     vi.mocked(enforceRateLimit).mockReturnValue(null);
 
