@@ -19,6 +19,53 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-09T12:50 (Asia/Riyadh) — SMART User Logs API Contract Fixes [AGENT-0012]
+
+**Agent Token:** [AGENT-0012]  
+**Branch:** `Fixzit-v2.0.27-20260109-0042-test-100-percent`  
+**Status:** ✅ COMPLETE
+
+#### 🎯 SMART Analysis: Superadmin User Logs Page
+
+Reviewed superadmin user-logs UI and supporting APIs to identify data contract gaps, UX issues, and operational risks.
+
+| Metric | Baseline | Target | Final | Status |
+|--------|----------|--------|-------|--------|
+| Contract mismatches fixed | 0 | 5 | 5 | ✅ |
+| Demo fallback removed | 0 | 3 | 3 | ✅ |
+| Tests passing | N/A | 16 | 16 | ✅ |
+
+#### Bugs Fixed
+
+| ID | Severity | Issue | Fix |
+|----|----------|-------|-----|
+| ULOGS-001 | Critical | Stats API missing `errorRate`, `uniqueUsers`, `topActions` - UI throws on `.toFixed()` | Added aggregation for uniqueUsers, error count, and top-level stats fields |
+| ULOGS-002 | High | Sessions API missing `isActive`, `startedAt`, `ip`, `pagesVisited` | Added all fields with proper derivation logic |
+| ULOGS-003 | High | Logs API missing `category`, `status`, `tenantName`, `details` | Derived category from action, status from result.success |
+| ULOGS-004 | Medium | DateRange mismatch (today/week/month/all vs 24h/7d/30d/90d) | Added mapping in fetchLogs function |
+| ULOGS-005 | Medium | Demo data fallback masks API errors | Removed all demo data fallbacks, show empty state |
+
+#### Files Modified
+
+| File | Changes |
+|------|---------|
+| `app/api/superadmin/user-logs/route.ts` | Added category, status, tenantName, details derivation with proper typing |
+| `app/api/superadmin/user-logs/stats/route.ts` | Added uniqueUsers, errorRate aggregation, top-level stats fields |
+| `app/api/superadmin/user-sessions/route.ts` | Added isActive, startedAt, ip, pagesVisited fields |
+| `app/superadmin/user-logs/page.tsx` | Fixed dateRange mapping, removed demo data fallbacks |
+
+#### CI Verification
+
+| Check | Result |
+|-------|--------|
+| pnpm typecheck | ✅ 0 errors |
+| pnpm lint | ✅ 0 warnings (1 expected: roles route tenant scope) |
+| User logs tests | ✅ 7 tests pass |
+| User logs stats tests | ✅ 3 tests pass |
+| User sessions tests | ✅ 6 tests pass |
+
+---
+
 ### 2026-01-09T12:15 (Asia/Riyadh) — Sprint 74+75+76 FINAL: 100% Test Coverage + Full CI Pass [AGENT-0001]
 
 **Agent Token:** [AGENT-0001]  

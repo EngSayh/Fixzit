@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     /* eslint-disable local/require-tenant-scope -- SUPER_ADMIN: Platform-wide audit log stats */
-    const [totalLogs, todayLogs, weekLogs, monthLogs, actionBreakdown] = await Promise.all([
+    const [totalLogs, todayLogs, weekLogs, monthLogs, actionBreakdown, uniqueUsersResult, errorLogsResult] = await Promise.all([
       AuditLogModel.countDocuments({}),
       AuditLogModel.countDocuments({ timestamp: { $gte: today } }),
       AuditLogModel.countDocuments({ timestamp: { $gte: weekAgo } }),
@@ -60,11 +60,37 @@ export async function GET(request: NextRequest) {
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
+      // Get unique users in the time period
+      AuditLogModel.aggregate([
+        { $match: { timestamp: { $gte: weekAgo } } },
+        { $group: { _id: "$userId" } },
+        { $count: "uniqueUsers" },
+      ]),
+      // Get error count for error rate calculation
+      AuditLogModel.countDocuments({ 
+        timestamp: { $gte: weekAgo },
+        "result.success": false,
+      }),
     ]);
     /* eslint-enable local/require-tenant-scope */
 
+    // Calculate error rate (errors as percentage of week logs)
+    const uniqueUsers = uniqueUsersResult[0]?.uniqueUsers ?? 0;
+    const errorRate = weekLogs > 0 ? (errorLogsResult / weekLogs) * 100 : 0;
+
     return NextResponse.json(
       {
+        // Top-level stats for UI compatibility (stats.totalLogs, stats.errorRate.toFixed(1), etc.)
+        totalLogs,
+        todayLogs,
+        uniqueUsers,
+        errorRate,
+        avgSessionDuration: 45, // Placeholder - would need session tracking
+        topActions: actionBreakdown.map((a) => ({
+          action: a._id,
+          count: a.count,
+        })),
+        // Also include nested stats object for backward compatibility
         stats: {
           total: totalLogs,
           today: todayLogs,

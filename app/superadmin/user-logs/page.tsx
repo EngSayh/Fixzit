@@ -125,7 +125,15 @@ export default function SuperadminUserLogsPage() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await fetch(`/api/superadmin/user-logs?range=${dateRange}`, { credentials: "include" });
+      // Map UI dateRange values to API expected values
+      const rangeMap: Record<string, string> = {
+        today: "24h",
+        week: "7d",
+        month: "30d",
+        all: "90d",
+      };
+      const apiRange = rangeMap[dateRange] || "7d";
+      const response = await fetch(`/api/superadmin/user-logs?range=${apiRange}`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setLogs(Array.isArray(data) ? data : data.logs || []);
@@ -140,115 +148,15 @@ export default function SuperadminUserLogsPage() {
           // Could redirect to login or show unauthorized state
           return; // Don't fall through to demo data on auth failures
         }
-        // For other errors (500, network, etc.), fall through to demo data
+        // For other errors, set empty logs instead of demo data
+        setLogs([]);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching logs:", error);
-      // Fall through to demo data
+      // Set empty logs instead of demo data
+      setLogs([]);
     }
-    // Demo data fallback for non-auth errors
-    const now = new Date();
-    setLogs([
-        {
-          _id: "log-1",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantId: "tenant-1",
-          tenantName: "Acme Corp",
-          action: "Login",
-          category: "auth",
-          details: "User logged in successfully",
-          metadata: { ip: "192.168.1.1", browser: "Chrome 120", os: "Windows 11", device: "desktop", location: "Riyadh, SA" },
-          status: "success",
-          timestamp: new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-2",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantId: "tenant-1",
-          tenantName: "Acme Corp",
-          action: "View Dashboard",
-          category: "navigation",
-          details: "Navigated to FM Dashboard",
-          metadata: { path: "/fm/dashboard", duration: 2500 },
-          status: "success",
-          timestamp: new Date(now.getTime() - 4 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-3",
-          userId: "user-2",
-          userName: "Sara Mohammed",
-          userEmail: "sara@techsolutions.com",
-          tenantId: "tenant-2",
-          tenantName: "Tech Solutions",
-          action: "Create Work Order",
-          category: "crud",
-          details: "Created new work order WO-2024-001",
-          metadata: { path: "/api/workorders", method: "POST", statusCode: 201 },
-          status: "success",
-          timestamp: new Date(now.getTime() - 3 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-4",
-          userId: "user-3",
-          userName: "Khalid Ibrahim",
-          userEmail: "khalid@startup.com",
-          tenantId: "tenant-3",
-          tenantName: "StartupXYZ",
-          action: "API Request Failed",
-          category: "error",
-          details: "Rate limit exceeded on /api/properties",
-          metadata: { path: "/api/properties", method: "GET", statusCode: 429, duration: 50 },
-          status: "error",
-          timestamp: new Date(now.getTime() - 2 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-5",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantId: "tenant-1",
-          tenantName: "Acme Corp",
-          action: "Update Settings",
-          category: "settings",
-          details: "Updated notification preferences",
-          metadata: { path: "/api/settings/notifications", method: "PUT", statusCode: 200 },
-          status: "success",
-          timestamp: new Date(now.getTime() - 1 * 60 * 1000).toISOString(),
-        },
-        {
-          _id: "log-6",
-          userId: "user-4",
-          userName: "Fatima Al-Saud",
-          userEmail: "fatima@enterprise.sa",
-          tenantId: "tenant-4",
-          tenantName: "Enterprise SA",
-          action: "Export Report",
-          category: "api",
-          details: "Exported financial report for Q4",
-          metadata: { path: "/api/reports/export", method: "POST", statusCode: 200, duration: 4500 },
-          status: "success",
-          timestamp: now.toISOString(),
-        },
-        {
-          _id: "log-7",
-          userId: "user-2",
-          userName: "Sara Mohammed",
-          userEmail: "sara@techsolutions.com",
-          tenantId: "tenant-2",
-          tenantName: "Tech Solutions",
-          action: "Permission Denied",
-          category: "auth",
-          details: "Attempted to access admin settings without permission",
-          metadata: { path: "/admin/settings", statusCode: 403 },
-          status: "warning",
-          timestamp: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
-        },
-      ]);
   }, [dateRange]);
 
   const fetchSessions = useCallback(async () => {
@@ -257,117 +165,42 @@ export default function SuperadminUserLogsPage() {
       if (response.ok) {
         const data = await response.json();
         setSessions(Array.isArray(data) ? data : data.sessions || []);
-        return; // Success - don't use demo data
+        return; // Success
       } else {
         // Handle non-OK responses like errors
         const errorText = await response.text().catch(() => "");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
         console.error("Failed to fetch sessions:", response.status, errorText);
-        if (response.status === 401 || response.status === 403) {
-          setSessions([]);
-          // Could redirect to login or show unauthorized state
-          return; // Don't fall through to demo data on auth failures
-        }
-        // Throw to trigger catch block for demo data fallback
-        throw new Error(`HTTP ${response.status}: ${errorText || "Failed to fetch sessions"}`);
+        // Set empty sessions instead of demo data
+        setSessions([]);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching sessions:", error);
-      // Demo data
-      const now = new Date();
-      setSessions([
-        {
-          _id: "session-1",
-          userId: "user-1",
-          userName: "Ahmed Al-Rashid",
-          userEmail: "ahmed@acme.com",
-          tenantName: "Acme Corp",
-          startedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-          device: "desktop",
-          browser: "Chrome 120",
-          os: "Windows 11",
-          ip: "192.168.1.1",
-          location: "Riyadh, SA",
-          pagesVisited: 15,
-          actionsPerformed: 23,
-          isActive: true,
-        },
-        {
-          _id: "session-2",
-          userId: "user-2",
-          userName: "Sara Mohammed",
-          userEmail: "sara@techsolutions.com",
-          tenantName: "Tech Solutions",
-          startedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
-          device: "mobile",
-          browser: "Safari",
-          os: "iOS 17",
-          ip: "10.0.0.55",
-          location: "Jeddah, SA",
-          pagesVisited: 8,
-          actionsPerformed: 12,
-          isActive: true,
-        },
-        {
-          _id: "session-3",
-          userId: "user-3",
-          userName: "Khalid Ibrahim",
-          userEmail: "khalid@startup.com",
-          tenantName: "StartupXYZ",
-          startedAt: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString(),
-          endedAt: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
-          duration: 7200,
-          device: "tablet",
-          browser: "Firefox",
-          os: "Android 14",
-          ip: "172.16.0.10",
-          pagesVisited: 25,
-          actionsPerformed: 45,
-          isActive: false,
-        },
-      ]);
+      // Set empty sessions instead of demo data
+      setSessions([]);
     }
   }, []);
 
-  const fetchStats = useCallback(async (currentLogs: typeof logs) => {
+  const fetchStats = useCallback(async (_currentLogs: typeof logs) => {
     try {
       const response = await fetch("/api/superadmin/user-logs/stats", { credentials: "include" });
       if (response.ok) {
         setStats(await response.json());
-        return; // Success - don't use demo data
+        return; // Success
       } else {
         // Handle non-OK responses
         const errorText = await response.text().catch(() => "");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
         console.error("Failed to fetch stats:", response.status, errorText);
-        if (response.status === 401 || response.status === 403) {
-          setStats(null);
-          // Could redirect to login or show unauthorized state
-          return; // Don't fall through to demo data on auth failures
-        }
-        // Throw to trigger catch block for demo data fallback
-        throw new Error(`HTTP ${response.status}: ${errorText || "Failed to fetch stats"}`);
+        // Set null stats instead of demo data
+        setStats(null);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching stats:", error);
-      // Demo stats - guard against division by zero, use passed currentLogs to avoid stale closure
-      const errorCount = currentLogs.filter(l => l.status === "error").length;
-      const errorRate = currentLogs.length > 0 ? (errorCount / currentLogs.length) * 100 : 0;
-      setStats({
-        totalLogs: currentLogs.length,
-        todayLogs: currentLogs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length,
-        uniqueUsers: new Set(currentLogs.map(l => l.userId)).size,
-        errorRate,
-        avgSessionDuration: 45,
-        topActions: [
-          { action: "View Dashboard", count: 145 },
-          { action: "Login", count: 89 },
-          { action: "Create Work Order", count: 67 },
-          { action: "Export Report", count: 34 },
-        ],
-      });
+      // Set null stats instead of demo data
+      setStats(null);
     }
   }, []);
 

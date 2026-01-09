@@ -75,22 +75,73 @@ export async function GET(request: NextRequest) {
       AuditLogModel.countDocuments(query),
     ]);
 
+    // Type for the raw log document with possible additional fields
+    type LogRecord = Record<string, unknown>;
+
     // Transform logs to expected format
-    const transformedLogs = logs.map((log) => ({
-      _id: log._id.toString(),
-      userId: log.userId?.toString() || "system",
-      userName: log.userName || log.userEmail || "Unknown",
-      userEmail: log.userEmail || "",
-      action: log.action || "unknown",
-      entityType: log.entityType || "",
-      entityId: log.entityId || "",
-      description: log.metadata?.reason || log.metadata?.comment || "",
-      ipAddress: log.context?.ipAddress || "",
-      userAgent: log.context?.userAgent || "",
-      timestamp: log.timestamp,
-      success: log.result?.success !== false,
-      metadata: log.metadata || {},
-    }));
+    const transformedLogs = logs.map((rawLog) => {
+      const log = rawLog as LogRecord;
+      const action = (typeof log.action === "string" ? log.action : "").toLowerCase();
+      const metadata = log.metadata as Record<string, unknown> | undefined;
+      const context = log.context as Record<string, unknown> | undefined;
+      const result = log.result as { success?: boolean; statusCode?: number } | undefined;
+
+      // Derive category from action/entityType
+      let category: "auth" | "navigation" | "crud" | "settings" | "api" | "error" = "api";
+      if (action.includes("login") || action.includes("logout") || action.includes("auth") || action.includes("password")) {
+        category = "auth";
+      } else if (action.includes("view") || action.includes("navigate") || action.includes("visit")) {
+        category = "navigation";
+      } else if (action.includes("create") || action.includes("update") || action.includes("delete") || action.includes("add") || action.includes("remove")) {
+        category = "crud";
+      } else if (action.includes("settings") || action.includes("config") || action.includes("preference")) {
+        category = "settings";
+      } else if (result?.success === false || action.includes("error") || action.includes("fail")) {
+        category = "error";
+      }
+
+      // Derive status from result.success
+      const statusCode = (metadata?.statusCode as number | undefined) ?? 0;
+      let status: "success" | "warning" | "error" = "success";
+      if (result?.success === false) {
+        status = "error";
+      } else if (statusCode >= 400 && statusCode < 500) {
+        status = "warning";
+      }
+
+      return {
+        _id: String(log._id),
+        userId: log.userId ? String(log.userId) : "system",
+        userName: (log.userName as string) || (log.userEmail as string) || "Unknown",
+        userEmail: (log.userEmail as string) || "",
+        action: (log.action as string) || "unknown",
+        entityType: (log.entityType as string) || "",
+        entityId: (log.entityId as string) || "",
+        // UI expects these fields
+        category,
+        status,
+        tenantId: log.orgId ? String(log.orgId) : "",
+        tenantName: (metadata?.orgName as string) || "",
+        details: (metadata?.reason as string) || (metadata?.comment as string) || "",
+        description: (metadata?.reason as string) || (metadata?.comment as string) || "",
+        ipAddress: (context?.ipAddress as string) || "",
+        userAgent: (context?.userAgent as string) || "",
+        timestamp: log.timestamp,
+        success: result?.success !== false,
+        metadata: {
+          path: (context?.endpoint as string) || "",
+          method: (context?.method as string) || "",
+          statusCode: statusCode || undefined,
+          duration: (result?.statusCode as number | undefined) || (metadata?.duration as number | undefined),
+          userAgent: (context?.userAgent as string) || "",
+          device: (context?.device as string) || "",
+          browser: (context?.browser as string) || "",
+          os: (context?.os as string) || "",
+          ip: (context?.ipAddress as string) || "",
+          location: "",
+        },
+      };
+    });
 
     return NextResponse.json(
       {
