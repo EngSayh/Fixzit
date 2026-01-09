@@ -41,6 +41,13 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
     const skip = (page - 1) * limit;
 
+    // Server-side filters
+    const search = searchParams.get("search") || "";
+    const category = searchParams.get("category") || "";
+    const status = searchParams.get("status") || "";
+    const userId = searchParams.get("userId") || "";
+    const entityType = searchParams.get("entityType") || "";
+
     // Calculate date filter based on range
     const now = new Date();
     let startDate: Date;
@@ -61,10 +68,56 @@ export async function GET(request: NextRequest) {
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    // Query audit logs
-    const query = {
+    // Build query with server-side filters
+    const query: Record<string, unknown> = {
       timestamp: { $gte: startDate },
     };
+
+    // Category filter - map to action patterns
+    if (category && category !== "all") {
+      const categoryActionMap: Record<string, RegExp> = {
+        auth: /^(LOGIN|LOGOUT|password|auth)/i,
+        navigation: /^(view|navigate|visit|read)/i,
+        crud: /^(CREATE|UPDATE|DELETE|add|remove)/i,
+        settings: /^(settings|config|preference)/i,
+        api: /^(api|request|call)/i,
+        error: /^(error|fail)/i,
+      };
+      if (categoryActionMap[category]) {
+        query.action = categoryActionMap[category];
+      }
+    }
+
+    // Status filter - map to result.success
+    if (status && status !== "all") {
+      if (status === "error") {
+        query["result.success"] = false;
+      } else if (status === "success") {
+        query["result.success"] = { $ne: false };
+      }
+    }
+
+    // User filter
+    if (userId) {
+      query.userId = userId;
+    }
+
+    // Entity type filter
+    if (entityType && entityType !== "all") {
+      query.entityType = entityType.toUpperCase();
+    }
+
+    // Search filter - search in userName, userEmail, action, entityType
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { userName: { $regex: escapedSearch, $options: "i" } },
+        { userEmail: { $regex: escapedSearch, $options: "i" } },
+        { action: { $regex: escapedSearch, $options: "i" } },
+        { entityType: { $regex: escapedSearch, $options: "i" } },
+        { "metadata.reason": { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
 
     const [logs, total] = await Promise.all([
       AuditLogModel.find(query)
@@ -149,6 +202,12 @@ export async function GET(request: NextRequest) {
         total,
         page,
         pages: Math.ceil(total / limit),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
       { headers: ROBOTS_HEADER }
     );

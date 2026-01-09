@@ -292,6 +292,8 @@ vi.mock("@/components/ui/icons", () => ({
   ChevronUp: () => <span data-testid="icon-chevron-up">ChevronUp</span>,
   Loader2: () => <span data-testid="icon-loader">Loader2</span>,
   AlertCircle: () => <span data-testid="icon-alert">AlertCircle</span>,
+  Clock: () => <span data-testid="icon-clock">Clock</span>,
+  History: () => <span data-testid="icon-history">History</span>,
 }));
 
 vi.mock("@/components/ui/skeleton", () => ({

@@ -111,6 +111,12 @@ export default function SuperadminUserLogsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("today");
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 50;
+  
   // Dialog
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<UserActivityLog | null>(null);
@@ -133,10 +139,32 @@ export default function SuperadminUserLogsPage() {
         all: "90d",
       };
       const apiRange = rangeMap[dateRange] || "7d";
-      const response = await fetch(`/api/superadmin/user-logs?range=${apiRange}`, { credentials: "include" });
+      
+      // Build query params with server-side filters
+      const params = new URLSearchParams({
+        range: apiRange,
+        page: String(currentPage),
+        limit: String(pageSize),
+      });
+      
+      // Add optional filters
+      if (search) params.set("search", search);
+      if (categoryFilter && categoryFilter !== "all") params.set("category", categoryFilter);
+      if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
+      
+      const response = await fetch(`/api/superadmin/user-logs?${params.toString()}`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setLogs(Array.isArray(data) ? data : data.logs || []);
+        // Update pagination from API response
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages || 1);
+          setTotalCount(data.pagination.total || 0);
+          setCurrentPage(data.pagination.page || 1);
+        } else if (data.total !== undefined) {
+          setTotalCount(data.total);
+          setTotalPages(Math.ceil(data.total / pageSize));
+        }
         return; // Success - don't use demo data
       } else {
         // Handle non-OK responses
@@ -157,7 +185,7 @@ export default function SuperadminUserLogsPage() {
       // Set empty logs instead of demo data
       setLogs([]);
     }
-  }, [dateRange]);
+  }, [dateRange, currentPage, search, categoryFilter, statusFilter]);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -213,16 +241,29 @@ export default function SuperadminUserLogsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useEffect(() => { if (logs.length > 0) fetchStats(logs); }, [logs, fetchStats]);
 
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch = !search || 
-      log.userName.toLowerCase().includes(search.toLowerCase()) ||
-      log.userEmail.toLowerCase().includes(search.toLowerCase()) ||
-      log.action.toLowerCase().includes(search.toLowerCase()) ||
-      log.tenantName.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || log.category === categoryFilter;
-    const matchesStatus = statusFilter === "all" || log.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  // Reset page when filters change
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (value: string) => {
+    setDateRange(value);
+    setCurrentPage(1);
+  };
+
+  // Logs are now filtered server-side, use directly
+  const filteredLogs = logs;
 
   const formatTimestamp = (ts: string) => {
     const date = new Date(ts);
@@ -455,7 +496,7 @@ export default function SuperadminUserLogsPage() {
                   <Input
                     placeholder={t("superadmin.userLogs.searchPlaceholder", "Search by user, email, action, or tenant...")}
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
@@ -463,7 +504,7 @@ export default function SuperadminUserLogsPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select 
                     value={categoryFilter} 
-                    onValueChange={setCategoryFilter}
+                    onValueChange={handleCategoryChange}
                     placeholder={t("superadmin.userLogs.filters.allCategories", "All Categories")}
                     className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
@@ -478,7 +519,7 @@ export default function SuperadminUserLogsPage() {
                   
                   <Select 
                     value={statusFilter} 
-                    onValueChange={setStatusFilter}
+                    onValueChange={handleStatusChange}
                     placeholder={t("superadmin.userLogs.filters.allStatus", "All Status")}
                     className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
@@ -490,7 +531,7 @@ export default function SuperadminUserLogsPage() {
                   
                   <Select 
                     value={dateRange} 
-                    onValueChange={setDateRange}
+                    onValueChange={handleDateRangeChange}
                     placeholder={t("superadmin.userLogs.filters.dateRange.today", "Today")}
                     className="w-full sm:w-40 bg-muted border-input text-foreground"
                   >
@@ -572,6 +613,60 @@ export default function SuperadminUserLogsPage() {
                 </Table>
               )}
             </CardContent>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+                <div className="text-sm text-muted-foreground">
+                  {t("superadmin.userLogs.pagination.showing", "Showing")} {Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)} {t("superadmin.userLogs.pagination.of", "of")} {totalCount} {t("superadmin.userLogs.pagination.entries", "entries")}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1 || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.first", "First page")}
+                  >
+                    {t("superadmin.userLogs.pagination.first", "First")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.previous", "Previous page")}
+                  >
+                    {t("superadmin.userLogs.pagination.previous", "Previous")}
+                  </Button>
+                  <span className="text-sm text-foreground px-2">
+                    {t("superadmin.userLogs.pagination.page", "Page")} {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.next", "Next page")}
+                  >
+                    {t("superadmin.userLogs.pagination.next", "Next")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages || loading}
+                    className="border-input"
+                    aria-label={t("superadmin.userLogs.pagination.last", "Last page")}
+                  >
+                    {t("superadmin.userLogs.pagination.last", "Last")}
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
