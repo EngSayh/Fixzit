@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T18:00:00+03:00
+  Last-Sync: 2026-01-09T19:30:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,57 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-09T19:30 (Asia/Riyadh) — Role.create orgId Fix [AGENT-0018]
+
+**Agent Token:** [AGENT-0018]  
+**Branch:** `Fixzit-v2.0.27-20260109-0042-test-100-percent`  
+**PR:** #682  
+**Commit:** `db59ee392`  
+**Status:** ✅ FIXED AND TESTED
+
+#### SMART Finding Fixed
+
+| Priority | Issue | Fix |
+|----------|-------|-----|
+| **High** | Role.create missing required `orgId` field (Mongoose validation failure) | Added `orgId` from `Config.features.platformOrgId` or `DEFAULT_PLATFORM_ORG_ID` |
+| **High** | Role.create missing `slug` field | Added auto-generated slug from name |
+
+#### Code Changes
+
+**File:** `app/api/superadmin/roles/route.ts`
+
+```typescript
+// Added import
+import { Config, DEFAULT_PLATFORM_ORG_ID } from "@/lib/config/constants";
+
+// Fixed Role.create
+const slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+const platformOrgId = Config.features.platformOrgId || DEFAULT_PLATFORM_ORG_ID;
+
+const role = await Role.create({
+  orgId: platformOrgId,  // NEW: Required field
+  name: body.name,
+  slug,                  // NEW: Required field
+  description: body.description || "",
+  permissions: body.permissions || [],
+});
+```
+
+#### Test Added
+
+**File:** `tests/api/superadmin/roles.route.test.ts`  
+**Test:** "creates role with required orgId field"
+
+#### Verification Results
+
+| Check | Result |
+|-------|--------|
+| TypeCheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+| Test Suite | ✅ 709 files, 4626 tests pass |
 
 ---
 
