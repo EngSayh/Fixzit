@@ -25,6 +25,15 @@ import {
   Clock,
   XCircle,
   Loader2,
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Shield,
+  ShieldAlert,
+  ShieldQuestion,
+  Play,
+  Pause,
 } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +59,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 // Types
@@ -115,6 +126,25 @@ const TYPE_LABELS: Record<string, string> = {
   STARTUP: "Startup",
 };
 
+// Sorting types
+type SortField = "name" | "type" | "subscriptionStatus" | "usage" | "createdAt";
+type SortOrder = "asc" | "desc";
+
+// Compliance status colors and icons
+const COMPLIANCE_COLORS: Record<string, string> = {
+  COMPLIANT: "bg-green-500/20 text-green-400 border-green-500/30",
+  NON_COMPLIANT: "bg-red-500/20 text-red-400 border-red-500/30",
+  PENDING_REVIEW: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  UNDER_AUDIT: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+};
+
+const COMPLIANCE_ICONS: Record<string, React.ReactNode> = {
+  COMPLIANT: <Shield className="h-3 w-3" />,
+  NON_COMPLIANT: <ShieldAlert className="h-3 w-3" />,
+  PENDING_REVIEW: <ShieldQuestion className="h-3 w-3" />,
+  UNDER_AUDIT: <Clock className="h-3 w-3" />,
+};
+
 export default function SuperadminTenantsPage() {
   const { t } = useI18n();
 
@@ -136,6 +166,14 @@ export default function SuperadminTenantsPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   // Refs for debounce and abort
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -277,6 +315,142 @@ export default function SuperadminTenantsPage() {
     }
   };
 
+  // Sorting handler
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+    setPage(1);
+    debouncedFetch();
+  };
+
+  // Render sort icon
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ms-1 h-3 w-3 opacity-50" />;
+    }
+    return sortOrder === "asc" 
+      ? <ArrowUp className="ms-1 h-3 w-3" /> 
+      : <ArrowDown className="ms-1 h-3 w-3" />;
+  };
+
+  // Bulk selection handlers
+  const toggleRowSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedIds.size === organizations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(organizations.map(org => org._id)));
+    }
+  };
+
+  // Bulk suspend
+  const handleBulkSuspend = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        fetch(`/api/superadmin/tenants/${id}`, {
+          method: "DELETE",
+          credentials: "include",
+        })
+      );
+      
+      const results = await Promise.allSettled(promises);
+      const succeeded = results.filter(r => r.status === "fulfilled").length;
+      const failed = results.length - succeeded;
+      
+      if (succeeded > 0) {
+        toast.success(t("superadmin.tenants.bulkSuspendSuccess", `${succeeded} organization(s) suspended`));
+      }
+      if (failed > 0) {
+        toast.error(t("superadmin.tenants.bulkSuspendFailed", `${failed} organization(s) failed to suspend`));
+      }
+      
+      setSelectedIds(new Set());
+      debouncedFetch();
+    } catch {
+      toast.error(t("superadmin.tenants.bulkSuspendError", "Bulk suspend failed"));
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  // Bulk activate
+  const handleBulkActivate = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        fetch(`/api/superadmin/tenants/${id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subscriptionStatus: "ACTIVE" }),
+        })
+      );
+      
+      const results = await Promise.allSettled(promises);
+      const succeeded = results.filter(r => r.status === "fulfilled").length;
+      const failed = results.length - succeeded;
+      
+      if (succeeded > 0) {
+        toast.success(t("superadmin.tenants.bulkActivateSuccess", `${succeeded} organization(s) activated`));
+      }
+      if (failed > 0) {
+        toast.error(t("superadmin.tenants.bulkActivateFailed", `${failed} organization(s) failed to activate`));
+      }
+      
+      setSelectedIds(new Set());
+      debouncedFetch();
+    } catch {
+      toast.error(t("superadmin.tenants.bulkActivateError", "Bulk activate failed"));
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  // CSV export
+  const handleExportCSV = () => {
+    const headers = ["Name", "Code", "Type", "Status", "Compliance", "Users", "Country", "Created"];
+    const rows = organizations.map(org => [
+      org.name,
+      org.code || org.slug || "",
+      org.type,
+      org.subscriptionStatus,
+      org.complianceStatus || "",
+      `${org.usage?.currentUsers ?? 0}/${org.features?.maxUsers ?? 0}`,
+      org.country || "",
+      formatDate(org.createdAt),
+    ]);
+    
+    const csv = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tenants-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t("superadmin.tenants.exportSuccess", "CSV exported successfully"));
+  };
+
   // Format date
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -299,6 +473,18 @@ export default function SuperadminTenantsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={loading || organizations.length === 0}
+            className="border-input text-muted-foreground"
+            aria-label={t("superadmin.tenants.exportCsv", "Export organizations to CSV")}
+            title={t("superadmin.tenants.exportCsv", "Export to CSV")}
+          >
+            <Download className="h-4 w-4 me-2" />
+            {t("superadmin.tenants.export", "Export")}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -401,24 +587,125 @@ export default function SuperadminTenantsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              {/* Bulk actions bar */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 border-b border-border">
+                  <span className="text-sm text-muted-foreground">
+                    {t("superadmin.tenants.selectedCount", `${selectedIds.size} selected`)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkActivate}
+                    disabled={bulkActionLoading}
+                    className="gap-1"
+                  >
+                    {bulkActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                    {t("superadmin.tenants.activate", "Activate")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkSuspend}
+                    disabled={bulkActionLoading}
+                    className="gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10"
+                  >
+                    {bulkActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Pause className="h-3 w-3" />}
+                    {t("superadmin.tenants.suspend", "Suspend")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    {t("common.clearSelection", "Clear")}
+                  </Button>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Organization</TableHead>
-                    <TableHead className="text-muted-foreground">Type</TableHead>
-                    <TableHead className="text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-muted-foreground">Users</TableHead>
-                    <TableHead className="text-muted-foreground">Country</TableHead>
-                    <TableHead className="text-muted-foreground">Created</TableHead>
-                    <TableHead className="text-muted-foreground text-end">Actions</TableHead>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={selectedIds.size === organizations.length && organizations.length > 0}
+                        onCheckedChange={toggleAllSelection}
+                        aria-label={t("common.selectAll", "Select all")}
+                      />
+                    </TableHead>
+                    <TableHead 
+                      className="text-muted-foreground cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("name")}
+                    >
+                      <span className="flex items-center">
+                        {t("superadmin.tenants.organization", "Organization")}
+                        {renderSortIcon("name")}
+                      </span>
+                    </TableHead>
+                    <TableHead 
+                      className="text-muted-foreground cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("type")}
+                    >
+                      <span className="flex items-center">
+                        {t("superadmin.tenants.type", "Type")}
+                        {renderSortIcon("type")}
+                      </span>
+                    </TableHead>
+                    <TableHead 
+                      className="text-muted-foreground cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("subscriptionStatus")}
+                    >
+                      <span className="flex items-center">
+                        {t("superadmin.tenants.status", "Status")}
+                        {renderSortIcon("subscriptionStatus")}
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      {t("superadmin.tenants.compliance", "Compliance")}
+                    </TableHead>
+                    <TableHead 
+                      className="text-muted-foreground cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("usage")}
+                    >
+                      <span className="flex items-center">
+                        {t("superadmin.tenants.users", "Users")}
+                        {renderSortIcon("usage")}
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      {t("superadmin.tenants.country", "Country")}
+                    </TableHead>
+                    <TableHead 
+                      className="text-muted-foreground cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("createdAt")}
+                    >
+                      <span className="flex items-center">
+                        {t("superadmin.tenants.created", "Created")}
+                        {renderSortIcon("createdAt")}
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-end">
+                      {t("superadmin.tenants.actions", "Actions")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {organizations.map((org) => (
+                  {organizations.map((org) => {
+                    const currentUsers = org.usage?.currentUsers ?? 0;
+                    const maxUsers = org.features?.maxUsers ?? 0;
+                    const usagePercent = maxUsers > 0 ? Math.min(100, (currentUsers / maxUsers) * 100) : 0;
+                    
+                    return (
                     <TableRow
                       key={org._id}
-                      className="border-border hover:bg-muted/50"
+                      className={`border-border hover:bg-muted/50 ${selectedIds.has(org._id) ? "bg-muted/30" : ""}`}
                     >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(org._id)}
+                          onCheckedChange={() => toggleRowSelection(org._id)}
+                          aria-label={t("common.selectRow", `Select ${org.name}`)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium text-foreground">{org.name}</span>
@@ -442,14 +729,31 @@ export default function SuperadminTenantsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-muted-foreground">
-                          {org.usage?.currentUsers ?? 0}
-                          {org.features?.maxUsers && (
-                            <span className="text-muted-foreground">
-                              /{org.features.maxUsers}
-                            </span>
+                        {org.complianceStatus ? (
+                          <Badge
+                            variant="outline"
+                            className={`${COMPLIANCE_COLORS[org.complianceStatus] || ""} flex items-center gap-1 w-fit`}
+                          >
+                            {COMPLIANCE_ICONS[org.complianceStatus]}
+                            {org.complianceStatus.replace(/_/g, " ")}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 min-w-[100px]">
+                          <span className="text-sm text-muted-foreground">
+                            {currentUsers}
+                            {maxUsers > 0 && <span>/{maxUsers}</span>}
+                          </span>
+                          {maxUsers > 0 && (
+                            <Progress 
+                              value={usagePercent} 
+                              className={`h-1.5 ${usagePercent > 90 ? "[&>div]:bg-red-500" : usagePercent > 70 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-green-500"}`}
+                            />
                           )}
-                        </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-muted-foreground">{org.country || "—"}</span>
@@ -500,7 +804,8 @@ export default function SuperadminTenantsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
