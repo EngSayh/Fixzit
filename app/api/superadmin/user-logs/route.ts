@@ -89,11 +89,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Status filter - map to result.success
+    // Supports: success, error, warning (partial success or slow operations)
     if (status && status !== "all") {
       if (status === "error") {
         query["result.success"] = false;
       } else if (status === "success") {
-        query["result.success"] = { $ne: false };
+        query["result.success"] = true;
+      } else if (status === "warning") {
+        // Warning = success but with warnings (errorMessage exists) or slow (duration > 3000ms)
+        const andConditions = (query.$and as unknown[] | undefined) || [];
+        andConditions.push({
+          $or: [
+            { "result.success": true, "result.errorMessage": { $exists: true, $ne: "" } },
+            { "result.success": true, "result.duration": { $gt: 3000 } },
+            { "metadata.tags": "warning" },
+          ],
+        });
+        query.$and = andConditions;
       }
     }
 
@@ -137,7 +149,7 @@ export async function GET(request: NextRequest) {
       const action = (typeof log.action === "string" ? log.action : "").toLowerCase();
       const metadata = log.metadata as Record<string, unknown> | undefined;
       const context = log.context as Record<string, unknown> | undefined;
-      const result = log.result as { success?: boolean; statusCode?: number } | undefined;
+      const result = log.result as { success?: boolean; statusCode?: number; duration?: number } | undefined;
 
       // Derive category from action/entityType
       let category: "auth" | "navigation" | "crud" | "settings" | "api" | "error" = "api";
@@ -185,7 +197,7 @@ export async function GET(request: NextRequest) {
           path: (context?.endpoint as string) || "",
           method: (context?.method as string) || "",
           statusCode: statusCode || undefined,
-          duration: (result?.statusCode as number | undefined) || (metadata?.duration as number | undefined),
+          duration: (result?.duration as number | undefined) || (metadata?.duration as number | undefined),
           userAgent: (context?.userAgent as string) || "",
           device: (context?.device as string) || "",
           browser: (context?.browser as string) || "",

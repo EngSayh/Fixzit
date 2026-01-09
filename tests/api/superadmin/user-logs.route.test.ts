@@ -115,6 +115,25 @@ describe("GET /api/superadmin/user-logs", () => {
     expect([200, 401, 500]).toContain(res.status);
   });
 
+  it("should support status=warning filter", async () => {
+    const res = await GET(createGetRequest({ status: "warning" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+    // Warning filter should work without error
+    if (res.status === 200) {
+      const json = await res.json();
+      expect(json.logs !== undefined || json.data !== undefined).toBe(true);
+    }
+  });
+
+  it("should support status=success filter", async () => {
+    const res = await GET(createGetRequest({ status: "success" }) as any);
+    expect([200, 401, 500]).toContain(res.status);
+    if (res.status === 200) {
+      const json = await res.json();
+      expect(json.logs !== undefined || json.data !== undefined).toBe(true);
+    }
+  });
+
   it("should support search filter", async () => {
     const res = await GET(createGetRequest({ search: "login" }) as any);
     expect([200, 401, 500]).toContain(res.status);

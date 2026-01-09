@@ -86,11 +86,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Status filter
+    // Supports: success, error, warning (partial success or slow operations)
     if (status && status !== "all") {
       if (status === "error") {
         query["result.success"] = false;
       } else if (status === "success") {
-        query["result.success"] = { $ne: false };
+        query["result.success"] = true;
+      } else if (status === "warning") {
+        // Warning = success but with warnings (errorMessage exists) or slow (duration > 3000ms)
+        const andConditions = (query.$and as unknown[] | undefined) || [];
+        andConditions.push({
+          $or: [
+            { "result.success": true, "result.errorMessage": { $exists: true, $ne: "" } },
+            { "result.success": true, "result.duration": { $gt: 3000 } },
+            { "metadata.tags": "warning" },
+          ],
+        });
+        query.$and = andConditions;
       }
     }
 

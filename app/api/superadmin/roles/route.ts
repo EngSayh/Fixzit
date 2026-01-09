@@ -128,18 +128,25 @@ export async function POST(request: NextRequest) {
     });
 
     // Audit log for role creation
+    // Schema requires: orgId, action (enum), entityType (enum), userId
+    // Using SETTING for role-related changes, CREATE action
     await AuditLogModel.create({
-      entityType: "Role",
-      entityId: role._id,
-      action: "role.create",
+      orgId: "PLATFORM", // Platform-wide operation
+      entityType: "SETTING",
+      entityId: String(role._id),
+      entityName: `Role: ${body.name}`,
+      action: "CREATE",
       userId: session.username,
+      userName: session.username,
       timestamp: new Date(),
-      details: {
-        roleName: body.name,
-        description: body.description || "",
-        permissionsCount: (body.permissions || []).length,
+      metadata: {
+        reason: `Created role: ${body.name}`,
+        tags: ["role", "superadmin"],
       },
-      result: { success: true },
+      result: { 
+        success: true,
+        affectedRecords: 1,
+      },
     }).catch((err: Error) => {
       logger.warn("[Superadmin:Roles] Failed to create audit log", { error: err.message });
     });

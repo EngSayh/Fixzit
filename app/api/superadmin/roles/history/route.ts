@@ -78,13 +78,14 @@ export async function GET(request: NextRequest) {
     };
 
     if (roleName) {
-      // Filter by specific role name
+      // Filter by specific role name - escape regex special chars to prevent ReDoS
+      const escapedRoleName = roleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$and = [
         { $or: query.$or as unknown[] },
         { 
           $or: [
-            { entityName: { $regex: roleName, $options: "i" } },
-            { "metadata.reason": { $regex: roleName, $options: "i" } },
+            { entityName: { $regex: escapedRoleName, $options: "i" } },
+            { "metadata.reason": { $regex: escapedRoleName, $options: "i" } },
           ],
         },
       ];
