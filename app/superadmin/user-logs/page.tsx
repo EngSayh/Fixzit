@@ -369,12 +369,12 @@ export default function SuperadminUserLogsPage() {
         throw new Error(`Export failed: ${response.status}`);
       }
       
-      // Get CSV content from API response
-      const csvContent = await response.text();
+      // Use response.blob() to preserve BOM for Excel UTF-8 detection
+      // (response.text() may strip the BOM character)
+      const csvBlob = await response.blob();
       
-      // Download the CSV file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
+      // Download the CSV file directly from server response
+      const url = URL.createObjectURL(csvBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `user-activity-logs-${new Date().toISOString().split("T")[0]}.csv`;

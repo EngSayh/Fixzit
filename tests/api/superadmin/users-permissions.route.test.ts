@@ -65,18 +65,20 @@ import { GET, PUT, DELETE } from "@/app/api/superadmin/users/[id]/permissions/ro
 
 function createRequest(method: string, body?: unknown): NextRequest {
   const url = new URL("http://localhost:3000/api/superadmin/users/user_123456789012345678901234/permissions");
-  const init: RequestInit = { method };
   
   if (body) {
-    init.body = JSON.stringify(body);
-    init.headers = { "Content-Type": "application/json" };
+    return new NextRequest(url, {
+      method,
+      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+    });
   }
   
-  return new NextRequest(url, init);
+  return new NextRequest(url, { method });
 }
 
-const mockParams = { params: Promise.resolve({ id: "user_123456789012345678901234" }) };
-const mockInvalidParams = { params: Promise.resolve({ id: "invalid" }) };
+const mockParams = { params: { id: "user_123456789012345678901234" } };
+const mockInvalidParams = { params: { id: "invalid" } };
 
 describe("API /api/superadmin/users/[id]/permissions", () => {
   beforeEach(() => {

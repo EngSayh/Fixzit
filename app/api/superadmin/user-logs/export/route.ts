@@ -128,13 +128,39 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .limit(MAX_EXPORT_RECORDS)
       .lean();
 
-    // Log export action for audit trail
+    // Log export action for audit trail (persistent + logger)
     logger.info("[Superadmin Export] User logs exported", {
       adminUser: session.username,
       format,
       recordCount: logs.length,
       filters: { range, category, status, userId, search: search ? "yes" : "no" },
       includeEmails,
+    });
+
+    // Persist audit log entry for compliance tracking
+    await AuditLogModel.create({
+      orgId: "PLATFORM",
+      entityType: "SETTING",
+      entityId: "user-logs-export",
+      entityName: "User Activity Logs Export",
+      action: "READ",
+      userId: session.username,
+      userName: session.username,
+      timestamp: new Date(),
+      metadata: {
+        reason: `Exported ${logs.length} user activity logs`,
+        tags: ["export", "audit-logs", "superadmin"],
+        format,
+        range,
+        includeEmails,
+        filters: { category, status, userId, search: search ? "yes" : "no" },
+      },
+      result: {
+        success: true,
+        affectedRecords: logs.length,
+      },
+    }).catch((err: Error) => {
+      logger.warn("[Superadmin Export] Failed to persist audit log", { error: err.message });
     });
 
     // Transform logs
