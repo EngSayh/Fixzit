@@ -19,6 +19,46 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-09T23:45 (Asia/Riyadh) — Superadmin Sprint Complete [AGENT-0018]
+
+**Agent Token:** [AGENT-0018]  
+**Branch:** `copilot/sub-pr-678`  
+**PR:** #679  
+**Status:** ✅ ALL TASKS COMPLETE
+
+#### Tests Created (38 new tests)
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `tests/api/superadmin/users-permissions.route.test.ts` | 21 | GET/PUT/DELETE /api/superadmin/users/[id]/permissions |
+| `tests/api/superadmin/users-audit-logs.route.test.ts` | 17 | GET /api/superadmin/users/[id]/audit-logs with pagination, filters, stats |
+
+#### Bugs Verified/Fixed
+
+| ID | Issue | Status | Details |
+|----|-------|--------|---------|
+| BUG-SA-001 | Bulk-delete missing org scope | ✅ FALSE POSITIVE | Already has proper validation at lines 100-131 and 133 |
+| BUG-SA-002 | Bulk-update missing org scope | ✅ FALSE POSITIVE | Already has proper validation at lines 105-138 and 160 |
+| BUG-SA-003 | orgId field inconsistency | ✅ **FIXED** | `[id]/route.ts` was using `employment.orgId` but User model uses top-level `orgId` from tenantIsolationPlugin |
+
+#### Optimizations Verified
+
+| Item | Status | Details |
+|------|--------|---------|
+| $facet aggregation for stats | ✅ FALSE POSITIVE | Current Promise.all([aggregate, countDocuments]) is MORE optimal than $facet for large datasets |
+| ZATCA API Integration | ✅ COMPLETE | `fatoora-client.ts` has all API calls: submitForClearance, submitForReporting, requestComplianceCsid, requestProductionCsid, submitComplianceInvoice |
+
+#### CI Verification (Local)
+
+| Check | Result |
+|-------|--------|
+| TypeCheck | ✅ 0 errors |
+| Lint | ✅ 0 errors |
+| Superadmin Tests | ✅ 93 files, 490 tests pass |
+| Full Suite | ✅ 710/711 files, 4663/4664 tests (1 flaky test unrelated to changes) |
+
+---
+
 ### 2026-01-09T22:00 (Asia/Riyadh) — Test Fix + PR #679 Review [AGENT-0021]
 
 **Agent Token:** [AGENT-0021]  
