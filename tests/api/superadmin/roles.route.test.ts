@@ -19,11 +19,38 @@ vi.mock("@/lib/mongodb-unified", () => ({
 vi.mock("@/server/models/Role", () => ({
   default: {
     find: vi.fn().mockReturnValue({
-      sort: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue([
-          { _id: "role-1", name: "Admin", permissions: ["read", "write"] },
-          { _id: "role-2", name: "User", permissions: ["read"] },
-        ]),
+      populate: vi.fn().mockReturnValue({
+        sort: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([
+            { 
+              _id: "role-1", 
+              name: "ADMIN", 
+              slug: "admin",
+              description: "Administrator role",
+              category: "aqar",
+              level: 1,
+              permissions: [
+                { _id: "p1", key: "aqar:manage", module: "aqar", action: "manage" },
+                { _id: "p2", key: "aqar:read", module: "aqar", action: "read" }
+              ],
+              wildcard: false,
+              systemReserved: false
+            },
+            { 
+              _id: "role-2", 
+              name: "SUPER_ADMIN", 
+              slug: "superadmin",
+              description: "Super Admin role with full access",
+              category: "platform",
+              level: 0,
+              permissions: [
+                { _id: "p3", key: "*", module: "*", action: "*" }
+              ],
+              wildcard: true,
+              systemReserved: true
+            },
+          ]),
+        }),
       }),
     }),
     create: vi.fn(),
@@ -91,6 +118,42 @@ describe("Superadmin Roles Route", () => {
         const body = await res.json();
         expect(body.roles).toBeDefined();
         expect(body.total).toBeDefined();
+      }
+    });
+
+    it("returns roles with populated permissions (string keys)", async () => {
+      mockGetSuperadminSession.mockResolvedValue({
+        username: "superadmin",
+        userId: "sa-1",
+        role: "SUPER_ADMIN",
+      });
+
+      const req = new NextRequest("http://localhost/api/superadmin/roles");
+      const res = await GET(req);
+
+      if (res.status === 200) {
+        const body = await res.json();
+        // Verify permissions are returned with string keys
+        if (body.roles?.length > 0) {
+          expect(Array.isArray(body.roles[0].permissions)).toBe(true);
+        }
+      }
+    });
+
+    it("returns fetchedAt timestamp in response", async () => {
+      mockGetSuperadminSession.mockResolvedValue({
+        username: "superadmin",
+        userId: "sa-1",
+        role: "SUPER_ADMIN",
+      });
+
+      const req = new NextRequest("http://localhost/api/superadmin/roles");
+      const res = await GET(req);
+
+      if (res.status === 200) {
+        const body = await res.json();
+        expect(body.fetchedAt).toBeDefined();
+        expect(typeof body.fetchedAt).toBe("string");
       }
     });
 

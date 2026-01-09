@@ -35,6 +35,11 @@ import {
   FileJson,
   Star,
   Lock,
+  GitCompare,
+  Copy,
+  Eye,
+  EyeOff,
+  Package,
 } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +75,19 @@ interface RoleData {
   wildcard?: boolean;
   systemReserved?: boolean;
   level?: number;
+}
+
+// Canonical role mismatch info
+interface CanonicalMismatch {
+  roleName: string;
+  status: "missing" | "extra" | "permission_diff";
+  details: string;
+}
+
+// Permission with module grouping
+interface GroupedPermission {
+  module: string;
+  permissions: string[];
 }
 
 // Canonical slug to category mapping for reliable categorization
@@ -157,6 +175,9 @@ export default function SuperadminRolesPage() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [showOnlyWildcard, setShowOnlyWildcard] = useState(false);
   const [showOnlySystemReserved, setShowOnlySystemReserved] = useState(false);
+  const [canonicalDiffDialogOpen, setCanonicalDiffDialogOpen] = useState(false);
+  const [selectedRoleForDetail, setSelectedRoleForDetail] = useState<RoleData | null>(null);
+  const [showOnlyDifferences, setShowOnlyDifferences] = useState(false);
 
   // Infer category from role slug or name (slug-based is more reliable)
   const inferCategory = useCallback((role: { slug?: string; name: string }): string => {
@@ -388,6 +409,70 @@ export default function SuperadminRolesPage() {
     return roles.find((r) => r.name === name);
   };
 
+  // Group permissions by module
+  const groupPermissionsByModule = useCallback((permissions: string[]): GroupedPermission[] => {
+    const grouped: Record<string, string[]> = {};
+    
+    permissions.forEach((perm) => {
+      const permStr = typeof perm === "string" ? perm : String(perm);
+      // Extract module from permission key (e.g., "finance:read" -> "finance")
+      const permModule = permStr.includes(":") 
+        ? permStr.split(":")[0] 
+        : permStr.includes(".") 
+          ? permStr.split(".")[0]
+          : "general";
+      
+      if (!grouped[permModule]) {
+        grouped[permModule] = [];
+      }
+      grouped[permModule].push(permStr);
+    });
+    
+    return Object.entries(grouped)
+      .map(([mod, perms]) => ({ module: mod, permissions: perms.sort() }))
+      .sort((a, b) => a.module.localeCompare(b.module));
+  }, []);
+
+  // Calculate canonical role mismatches
+  const canonicalMismatches = useMemo((): CanonicalMismatch[] => {
+    const mismatches: CanonicalMismatch[] = [];
+    const canonicalNames = new Set<string>(CANONICAL_ROLES as readonly string[]);
+    const currentNames = new Set(roles.map(r => r.name));
+    
+    // Find roles in canonical that are missing from current
+    CANONICAL_ROLES.forEach((canonicalRole) => {
+      if (!currentNames.has(canonicalRole)) {
+        mismatches.push({
+          roleName: canonicalRole,
+          status: "missing",
+          details: "Defined in CANONICAL_ROLES but not found in database",
+        });
+      }
+    });
+    
+    // Find roles in current that are not in canonical
+    roles.forEach((role) => {
+      if (!canonicalNames.has(role.name)) {
+        mismatches.push({
+          roleName: role.name,
+          status: "extra",
+          details: "Found in database but not defined in CANONICAL_ROLES",
+        });
+      }
+    });
+    
+    return mismatches;
+  }, [roles]);
+
+  // Copy to clipboard helper
+  const copyToClipboard = useCallback((text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(t("common.copied", `${label} copied to clipboard`));
+    }).catch(() => {
+      toast.error(t("common.copyFailed", "Failed to copy to clipboard"));
+    });
+  }, [t]);
+
   // Normalize permissions to string set for comparison
   const normalizePermissions = useCallback((role: RoleData | undefined): Set<string> => {
     if (!role) return new Set();
@@ -454,6 +539,19 @@ export default function SuperadminRolesPage() {
           >
             <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
             {t("superadmin.roles.compare", "Compare")}
+          </Button>
+          <Button
+            variant={canonicalMismatches.length > 0 ? "destructive" : "outline"}
+            size="sm"
+            onClick={() => setCanonicalDiffDialogOpen(true)}
+            className="gap-2"
+            aria-label={t("superadmin.roles.diffCanonical", "Compare with canonical roles")}
+          >
+            <GitCompare className="h-4 w-4" aria-hidden="true" />
+            {t("superadmin.roles.diffCanonical", "Diff")}
+            {canonicalMismatches.length > 0 && (
+              <Badge variant="secondary" className="ms-1">{canonicalMismatches.length}</Badge>
+            )}
           </Button>
           <Button
             variant="outline"
@@ -626,11 +724,22 @@ export default function SuperadminRolesPage() {
                   const permCount = role.permissionCount ?? role.permissions.length;
                   
                   return (
-                    <TableRow key={role.name} className="group">
+                    <TableRow 
+                      key={role.name} 
+                      className="group cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedRoleForDetail(role)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === "Enter" && setSelectedRoleForDetail(role)}
+                      aria-label={t("superadmin.roles.viewDetails", `View details for ${role.name}`)}
+                    >
                       <TableCell>
                         {hasMany && (
                           <button
-                            onClick={() => toggleRowExpansion(role.name)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRowExpansion(role.name);
+                            }}
                             className="p-1 hover:bg-muted rounded"
                             aria-label={isExpanded 
                               ? t("superadmin.roles.collapsePermissions", `Collapse permissions for ${role.name}`)
@@ -778,9 +887,32 @@ export default function SuperadminRolesPage() {
             </div>
           </div>
 
+          {/* Show only differences toggle */}
+          {selectedRolesForCompare[0] && selectedRolesForCompare[1] && (
+            <div className="flex items-center gap-2 mt-4">
+              <Button
+                variant={showOnlyDifferences ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowOnlyDifferences(!showOnlyDifferences)}
+                className="gap-2"
+                aria-pressed={showOnlyDifferences}
+              >
+                {showOnlyDifferences ? (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                )}
+                {showOnlyDifferences 
+                  ? t("superadmin.roles.showingDifferences", "Showing differences only")
+                  : t("superadmin.roles.showAllPermissions", "Show differences only")
+                }
+              </Button>
+            </div>
+          )}
+
           {/* Comparison table */}
           {selectedRolesForCompare[0] && selectedRolesForCompare[1] && (
-            <div className="mt-6">
+            <div className="mt-4">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -793,7 +925,14 @@ export default function SuperadminRolesPage() {
                   {getAllPermissions(
                     getRoleByName(selectedRolesForCompare[0]),
                     getRoleByName(selectedRolesForCompare[1])
-                  ).map((perm) => {
+                  ).filter((perm) => {
+                    if (!showOnlyDifferences) return true;
+                    const role1 = getRoleByName(selectedRolesForCompare[0]);
+                    const role2 = getRoleByName(selectedRolesForCompare[1]);
+                    const hasRole1 = roleHasPermission(role1, perm);
+                    const hasRole2 = roleHasPermission(role2, perm);
+                    return hasRole1 !== hasRole2;
+                  }).map((perm) => {
                     const role1 = getRoleByName(selectedRolesForCompare[0]);
                     const role2 = getRoleByName(selectedRolesForCompare[1]);
                     const hasRole1 = roleHasPermission(role1, perm);
@@ -823,6 +962,228 @@ export default function SuperadminRolesPage() {
                 </TableBody>
               </Table>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Canonical Diff Dialog */}
+      <Dialog open={canonicalDiffDialogOpen} onOpenChange={setCanonicalDiffDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" aria-labelledby="canonical-diff-title">
+          <DialogHeader>
+            <DialogTitle id="canonical-diff-title" className="flex items-center gap-2">
+              <GitCompare className="h-5 w-5" aria-hidden="true" />
+              {t("superadmin.roles.canonicalDiff", "Canonical Role Comparison")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("superadmin.roles.canonicalDiffDescription", "Compare database roles against the canonical role definitions in types/user.ts")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4 space-y-4">
+            {canonicalMismatches.length === 0 ? (
+              <div className="flex items-center gap-3 p-4 bg-green-950/30 border border-green-800/50 rounded-lg">
+                <CheckCircle className="h-6 w-6 text-green-400" aria-hidden="true" />
+                <div>
+                  <p className="text-green-300 font-medium">{t("superadmin.roles.allSynced", "All Roles Synced")}</p>
+                  <p className="text-sm text-green-400/80">
+                    {t("superadmin.roles.allSyncedDesc", "All database roles match the canonical role definitions.")}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 p-4 bg-yellow-950/30 border border-yellow-800/50 rounded-lg">
+                  <AlertCircle className="h-6 w-6 text-yellow-400" aria-hidden="true" />
+                  <div>
+                    <p className="text-yellow-300 font-medium">
+                      {t("superadmin.roles.mismatchesFound", `${canonicalMismatches.length} Mismatch(es) Found`)}
+                    </p>
+                    <p className="text-sm text-yellow-400/80">
+                      {t("superadmin.roles.mismatchesDesc", "Review the differences between database and canonical roles.")}
+                    </p>
+                  </div>
+                </div>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("superadmin.roles.roleName", "Role Name")}</TableHead>
+                      <TableHead>{t("superadmin.roles.status", "Status")}</TableHead>
+                      <TableHead>{t("superadmin.roles.details", "Details")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {canonicalMismatches.map((mismatch) => (
+                      <TableRow key={mismatch.roleName}>
+                        <TableCell className="font-mono">{mismatch.roleName}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={mismatch.status === "missing" ? "destructive" : mismatch.status === "extra" ? "secondary" : "outline"}
+                          >
+                            {mismatch.status === "missing" && t("superadmin.roles.missing", "Missing")}
+                            {mismatch.status === "extra" && t("superadmin.roles.extra", "Extra")}
+                            {mismatch.status === "permission_diff" && t("superadmin.roles.permDiff", "Permission Diff")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{mismatch.details}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+            
+            <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded">
+              <p>{t("superadmin.roles.canonicalCount", `Canonical roles: ${CANONICAL_ROLES.length}`)}</p>
+              <p>{t("superadmin.roles.databaseCount", `Database roles: ${roles.length}`)}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Detail Dialog */}
+      <Dialog open={!!selectedRoleForDetail} onOpenChange={(open) => !open && setSelectedRoleForDetail(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto" aria-labelledby="role-detail-title">
+          {selectedRoleForDetail && (
+            <>
+              <DialogHeader>
+                <DialogTitle id="role-detail-title" className="flex items-center gap-2">
+                  <span className="font-mono">{selectedRoleForDetail.name}</span>
+                  {selectedRoleForDetail.wildcard && (
+                    <Star className="h-5 w-5 text-yellow-500" aria-hidden="true" />
+                  )}
+                  {selectedRoleForDetail.systemReserved && (
+                    <Badge variant="outline" className="text-xs">
+                      <Lock className="h-3 w-3 me-1" aria-hidden="true" />
+                      {t("superadmin.roles.system", "System")}
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <DialogDescription>{selectedRoleForDetail.description}</DialogDescription>
+              </DialogHeader>
+              
+              <div className="mt-6 space-y-6">
+                {/* Role Info */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("superadmin.roles.category", "Category")}</span>
+                    <Badge variant="outline" className={CATEGORY_COLORS[selectedRoleForDetail.category]}>
+                      {CATEGORY_ICONS[selectedRoleForDetail.category]}
+                      <span className="ms-1">{selectedRoleForDetail.category}</span>
+                    </Badge>
+                  </div>
+                  
+                  {selectedRoleForDetail.slug && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{t("superadmin.roles.slug", "Slug")}</span>
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm bg-muted px-2 py-1 rounded">{selectedRoleForDetail.slug}</code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(selectedRoleForDetail.slug || "", "Slug")}
+                          aria-label={t("common.copy", "Copy")}
+                        >
+                          <Copy className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedRoleForDetail.level !== undefined && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{t("superadmin.roles.level", "Level")}</span>
+                      <span className="font-mono">{selectedRoleForDetail.level}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("superadmin.roles.permissionCount", "Permissions")}</span>
+                    <span className="font-mono">{selectedRoleForDetail.permissionCount ?? selectedRoleForDetail.permissions.length}</span>
+                  </div>
+                </div>
+                
+                {/* Permissions by Module */}
+                <div>
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <Package className="h-4 w-4" aria-hidden="true" />
+                    {t("superadmin.roles.permissionsByModule", "Permissions by Module")}
+                  </h4>
+                  
+                  {selectedRoleForDetail.wildcard && (
+                    <div className="p-3 bg-yellow-950/30 border border-yellow-800/50 rounded-lg mb-4">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                        <span className="text-yellow-300 font-medium">{t("superadmin.roles.fullAccess", "Full Access")}</span>
+                      </div>
+                      <p className="text-sm text-yellow-400/80 mt-1">
+                        {t("superadmin.roles.fullAccessDesc", "This role has wildcard (*) access to all permissions.")}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-4">
+                    {groupPermissionsByModule(selectedRoleForDetail.permissions).map(({ module: mod, permissions }) => (
+                      <div key={mod} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-sm font-medium capitalize">{mod}</h5>
+                          <span className="text-xs text-muted-foreground">{permissions.length}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {permissions.map((perm) => (
+                            <Badge 
+                              key={perm} 
+                              variant="outline" 
+                              className="text-xs cursor-pointer hover:bg-muted"
+                              onClick={() => copyToClipboard(perm, "Permission")}
+                              title={t("common.clickToCopy", "Click to copy")}
+                            >
+                              {perm}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="pt-4 border-t space-y-2">
+                  <h4 className="text-sm font-medium mb-3">{t("superadmin.roles.quickActions", "Quick Actions")}</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                    onClick={() => copyToClipboard(selectedRoleForDetail.name, "Role name")}
+                  >
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    {t("superadmin.roles.copyRoleName", "Copy Role Name")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                    onClick={() => copyToClipboard(JSON.stringify(selectedRoleForDetail.permissions), "Permissions")}
+                  >
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    {t("superadmin.roles.copyPermissions", "Copy All Permissions")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      setSelectedRolesForCompare([selectedRoleForDetail.name, null]);
+                      setCompareDialogOpen(true);
+                      setSelectedRoleForDetail(null);
+                    }}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+                    {t("superadmin.roles.compareWithAnother", "Compare with Another Role")}
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
