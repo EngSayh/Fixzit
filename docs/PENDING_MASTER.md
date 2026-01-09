@@ -19,6 +19,45 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+### 2026-01-10T19:00 (Asia/Riyadh) — NIT-002 Implementation [AGENT-0026]
+
+**Agent Token:** [AGENT-0026]  
+**Branch:** `Fixzit-v2.0.27-20260109-0042-test-100-percent`  
+**Status:** ✅ DEFERRED ITEM IMPLEMENTED
+
+#### NIT-002: formatRelativeTime Calendar Date Fallback
+
+**File:** `lib/utils.ts`  
+**Change:** Added calendar date fallback for dates older than 1 year
+
+**Before:** "2 years ago" for old dates  
+**After:** "Jan 15, 2024" (more readable for historical data)
+
+**Implementation:**
+```typescript
+// NIT-002: Fallback to calendar date for dates older than 1 year
+if (Math.abs(diffYear) >= 1) {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+```
+
+**Verification:**
+- TypeCheck: ✅ 0 errors
+- Lint: ✅ 0 errors  
+- Unit Tests: ✅ 12 passed (tests/unit/lib/utils.test.ts)
+
+#### Updated DEFERRED Count
+
+| Category | Count | Status |
+|----------|-------|--------|
+| DEFERRED Items | 6 | ✅ (NIT-002 now COMPLETE) |
+
+---
+
 ### 2026-01-10T18:30 (Asia/Riyadh) — CI & SSOT Final Verification [AGENT-0024]
 
 **Agent Token:** [AGENT-0024]  
