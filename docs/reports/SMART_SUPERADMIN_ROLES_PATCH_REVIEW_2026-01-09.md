@@ -12,8 +12,8 @@ Review the superadmin roles patches (roles API, roles history API, and roles his
 | Metric | Baseline | Target | Current | Status |
 |--------|----------|--------|---------|--------|
 | Files reviewed (roles API/history/tests + Role model) | 0 | 4 | 4 | OK |
-| Findings documented | 0 | 1 | 1 | OK |
-| SSOT findings logged | 0 | 1 | 0 | BLOCKED |
+| Findings documented | 0 | 2 | 2 | OK |
+| SSOT findings logged | 0 | 2 | 0 | BLOCKED |
 | Typecheck errors | 0 | 0 | 0 | OK |
 | Lint errors | 0 | 0 | 0 | OK |
 | Lint warnings | 0 | 0 | 0 | OK |
@@ -39,6 +39,7 @@ Complete review and report update in this session (2026-01-09).
 
 ### Findings
 1) Role creation does not supply required `orgId` for the Role model, which will fail validation and return 500s in production.
+2) Roles history query is not scoped by `orgId`; if audit logs are tenant-scoped, this can leak cross-tenant history.
 
 ### Commits
 | Hash | Description |
