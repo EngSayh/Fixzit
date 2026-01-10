@@ -19,60 +19,102 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
-### 2026-01-10T15:45 (Asia/Riyadh) — 25-Issue Audit + REFAC-0015 Fix [AGENT-001-A]
+### 2026-01-10T15:45 (Asia/Riyadh) — 25-Issue Audit + REFAC-0015 Fix + CI Fix [AGENT-001-A]
 
 **Agent Token:** [AGENT-001-A]  
-**Branch:** `docs/ssot-update-20260109-agent-0031`  
-**Status:** ✅ AUDIT COMPLETE — 1 FIX APPLIED
+**Branch:** `fix/refac-0015-issue-id-collision`  
+**PR:** #687  
+**Status:** ✅ AUDIT COMPLETE — 2 FIXES APPLIED
 
 #### Summary
 
-Audited 25 issues from SSOT export. Identified 21 as roadmap/planning items (SSOT-PLAN series), 4 as code-level issues. Fixed 1 real bug (REFAC-0015), verified 3 as already resolved/false positives.
+Audited 25 issues from SSOT export. Identified 21 as roadmap/planning items (SSOT-PLAN series), 4 as code-level issues. Fixed 1 real bug (REFAC-0015), 1 CI test failure (ZATCA onboarding), verified 3 as already resolved/false positives.
 
 #### Issue Verification Results
 
-| ID | Priority | Title | Verdict | Evidence |
-|----|----------|-------|---------|----------|
-| SSOT-PLAN-0050 | P0 | ZATCA Phase 2 e-invoicing | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0029 | P0 | Enforce strict tenancy/org_id | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0017 | P0 | Layout/hydration errors | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0001 | P0 | Unified layout shell | ROADMAP | Planning item in AGENTS.md §17 |
-| BUG-1722 | P0 | SADAD/SPAN live payouts | ✅ ALREADY FIXED | Migrated to TAP Transfer API (lines 616-651) |
-| FEAT-0043 | P0 | FM vendor assignments API | ✅ ALREADY IMPLEMENTED | Uses MongoDB collections (lines 100-160) |
-| BUG-AGENT0013 | P1 | Clock icon import | ❌ FALSE POSITIVE | Clock imported on line 40 of roles/page.tsx |
-| REFAC-0015 | P1 | Issue ID generator collision | ✅ FIXED | Updated regex to match only PREFIX-NNNN format |
-| SSOT-PLAN-0056 | P1 | Privacy/security gaps | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0055 | P1 | Immutable audit trails | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0053 | P1 | Language/currency toggles | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0052 | P1 | WCAG 2.1 AA compliance | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0051 | P1 | RTL support sweep | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0038 | P1 | SLA/approval unit tests | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0036 | P1 | RBAC access tests | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0035 | P1 | WO/finance integration tests | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0034 | P1 | Page-by-role E2E tests | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0033 | P1 | Data validation rules | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0032 | P1 | Role permissions alignment | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0031 | P1 | Block WO without approvals | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0030 | P1 | Auto-post finance entries | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0028 | P1 | SLA timer business hours | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0027 | P1 | Approval flow thresholds | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0025 | P1 | WO state transitions | ROADMAP | Planning item in AGENTS.md §17 |
-| SSOT-PLAN-0024 | P1 | Notification delivery | ROADMAP | Planning item in AGENTS.md §17 |
+| ID | Priority | Category | Title | Verdict | Evidence |
+|----|----------|----------|-------|---------|----------|
+| SSOT-PLAN-0050 | P0 | feature | ZATCA Phase 2 e-invoicing | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0029 | P0 | security | Enforce strict tenancy/org_id | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0017 | P0 | bug | Layout/hydration errors | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0001 | P0 | feature | Unified layout shell | ROADMAP | AGENTS.md §17 roadmap |
+| BUG-1722 | P0 | bug | SADAD/SPAN live payouts | ✅ ALREADY FIXED | services/payments/payout-processor.ts:616-651 migrated to TAP |
+| FEAT-0043 | P0 | feature | FM vendor assignments API | ✅ ALREADY IMPLEMENTED | app/api/fm/vendor-assignments/route.ts uses MongoDB |
+| BUG-AGENT0013 | P1 | bug | Clock icon import | ❌ FALSE POSITIVE | app/(dashboard)/superadmin/accounts/roles/page.tsx:40 has import |
+| REFAC-0015 | P1 | refactor | Issue ID generator collision | ✅ FIXED PR#687 | server/models/Issue.ts:550-583 regex updated |
+| SSOT-PLAN-0056 | P1 | security | Privacy/security gaps | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0055 | P1 | feature | Immutable audit trails | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0053 | P1 | feature | Language/currency toggles | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0052 | P1 | feature | WCAG 2.1 AA compliance | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0051 | P1 | refactor | RTL support sweep | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0038 | P1 | missing_test | SLA/approval unit tests | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0036 | P1 | missing_test | RBAC access tests | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0035 | P1 | missing_test | WO/finance integration tests | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0034 | P1 | missing_test | Page-by-role E2E tests | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0033 | P1 | logic_error | Data validation rules | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0032 | P1 | logic_error | Role permissions alignment | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0031 | P1 | bug | Block WO without approvals | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0030 | P1 | feature | Auto-post finance entries | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0028 | P1 | bug | SLA timer business hours | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0027 | P1 | feature | Approval flow thresholds | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0025 | P1 | logic_error | WO state transitions | ROADMAP | AGENTS.md §17 roadmap |
+| SSOT-PLAN-0024 | P1 | bug | Notification delivery | ROADMAP | AGENTS.md §17 roadmap |
 
-#### REFAC-0015 Fix Details
+#### Fixes Applied
 
-**Problem:** Issue ID generator used broad regex `^PREFIX-` which matched legacy IDs like `LOGIC-KYC-002`. Sorting by issueId descending put these first, causing ID collision when extracting trailing numbers.
+**1. REFAC-0015: Issue ID Generator Collision**
+- **Problem:** Regex `^PREFIX-` matched legacy IDs like `LOGIC-KYC-002`
+- **Root Cause:** Sorting by issueId descending put legacy IDs first, extracting wrong trailing number
+- **Solution:** Updated regex to `^PREFIX-\\d{4,}$` (4+ digits only)
+- **File:** [server/models/Issue.ts](server/models/Issue.ts#L550-L583)
+- **Status:** ✅ Fixed in PR #687
 
-**Solution:** Updated regex to match only standard format `^PREFIX-\d{4,}$` (4+ digits), excluding legacy IDs with middle segments.
+**2. ZATCA Onboarding Route DB Connection**
+- **Problem:** Route used `connectDb()` which returns mongoose connection
+- **Root Cause:** Route needs native MongoDB `Db` object for collection operations
+- **Solution:** Changed to `getDatabase()` from `mongodb-unified`
+- **File:** [app/api/finance/zatca/onboarding/route.ts](app/api/finance/zatca/onboarding/route.ts#L2)
+- **Status:** ✅ Fixed in PR #687
 
-**File Changed:** `server/models/Issue.ts` (lines 550-583)
+**3. ZATCA Onboarding Test Mock**
+- **Problem:** Test mocked `@/lib/mongo` but route now uses `@/lib/mongodb-unified`
+- **Root Cause:** Mock path mismatch after route fix
+- **Solution:** Updated mock to use `@/lib/mongodb-unified` with `getDatabase`
+- **File:** [tests/api/finance/zatca-onboarding.route.test.ts](tests/api/finance/zatca-onboarding.route.test.ts#L20-L27)
+- **Status:** ✅ Fixed in PR #687
+
+#### MongoDB SSOT Sync Commands (To Execute)
+
+```javascript
+// Update issue statuses in MongoDB Issue Tracker
+db.issues.updateOne(
+  { key: "REFAC-0015" },
+  { $set: { status: "resolved", resolvedAt: new Date(), resolvedBy: "AGENT-001-A", resolution: "Regex updated to ^PREFIX-\\d{4,}$ in generateIssueId()" } }
+);
+
+db.issues.updateOne(
+  { key: "BUG-AGENT0013" },
+  { $set: { status: "closed", closedAt: new Date(), closedBy: "AGENT-001-A", resolution: "FALSE POSITIVE - Clock already imported on line 40" } }
+);
+
+db.issues.updateOne(
+  { key: "BUG-1722" },
+  { $set: { status: "resolved", resolvedAt: new Date(), resolvedBy: "previous-session", resolution: "Migrated to TAP Transfer API" } }
+);
+
+db.issues.updateOne(
+  { key: "FEAT-0043" },
+  { $set: { status: "resolved", resolvedAt: new Date(), resolvedBy: "previous-session", resolution: "Already implemented with MongoDB collections" } }
+);
+```
 
 #### CI Verification (Local)
 
-| Check | Result |
-|-------|--------|
-| `pnpm typecheck` | ✅ 0 errors |
-| `pnpm lint` | ✅ 0 errors |
+| Check | Result | Duration |
+|-------|--------|----------|
+| `pnpm typecheck` | ✅ 0 errors | ~15s |
+| `pnpm lint` | ✅ 0 errors | ~45s |
+| `pnpm vitest run tests/api/finance/zatca-onboarding.route.test.ts` | ✅ 8/8 pass | 2.17s |
 
 ---
 
