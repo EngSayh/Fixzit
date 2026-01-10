@@ -7,7 +7,7 @@ vi.mock("@/server/models/AuditLog", () => ({
   AuditLogModel: { find: findMock, countDocuments: vi.fn().mockResolvedValue(0) },
 }));
 
-vi.mock("@/lib/mongo", () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 

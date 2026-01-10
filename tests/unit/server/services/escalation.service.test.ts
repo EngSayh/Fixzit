@@ -14,8 +14,8 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock mongo connection
-vi.mock("@/lib/mongo", () => ({
+// Mock mongo connection (service uses @/lib/mongodb-unified)
+vi.mock("@/lib/mongodb-unified", () => ({
   connectMongo: vi.fn().mockResolvedValue(undefined),
 }));
 

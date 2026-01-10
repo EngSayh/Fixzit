@@ -21,8 +21,8 @@ vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(),
 }));
 
-// Mock database
-vi.mock("@/lib/mongo", () => ({
+// Mock database (route uses @/lib/mongodb-unified)
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 

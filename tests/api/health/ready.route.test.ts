@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/mongo", () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   pingDatabase: vi.fn().mockResolvedValue(true),
 }));
 

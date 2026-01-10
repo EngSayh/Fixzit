@@ -14,8 +14,8 @@ vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-// Mock database
-vi.mock("@/lib/mongo", () => ({
+// Mock database (route uses @/lib/mongodb-unified)
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
