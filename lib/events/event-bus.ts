@@ -102,7 +102,7 @@ class EventBus {
   private subscriptions = new Map<string, Subscription>();
   private subscriptionCounter = 0;
   private changeStream: ChangeStream | null = null;
-  private pollInterval: NodeJS.Timeout | null = null;
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
   private lastEventTime: Date = new Date();
   private lastEventId: string | null = null; // Track last processed event ID for tie-breaking
   private initialized = false;

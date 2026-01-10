@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { monitorEventLoopDelay } from "node:perf_hooks";
+import { setInterval as setNodeInterval, clearInterval as clearNodeInterval } from "node:timers";
 import { writeHeapSnapshot } from "node:v8";
 
 import { logger } from "@/lib/logger";
@@ -133,7 +134,7 @@ export function startMemoryLeakMonitor(options: MemoryLeakMonitorOptions = {}): 
     }
   };
 
-  const timer = setInterval(recordSample, intervalMs);
+  const timer = setNodeInterval(recordSample, intervalMs);
   timer.unref();
 
   logger.info("[MemoryLeak] Monitor started", {
@@ -148,7 +149,7 @@ export function startMemoryLeakMonitor(options: MemoryLeakMonitorOptions = {}): 
 
   return {
     stop: () => {
-      clearInterval(timer);
+      clearNodeInterval(timer);
       histogram.disable();
     },
     samples: () => [...samples],

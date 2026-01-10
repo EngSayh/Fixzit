@@ -53,7 +53,7 @@ export async function POST(
     let file: File | Blob | null = null;
     let description = "";
     if (contentType.includes("multipart/form-data")) {
-      const form = await request.formData();
+      const form = (await request.formData()) as globalThis.FormData;
       const maybeFile = form.get("file");
       if (maybeFile instanceof Blob) {
         file = maybeFile;

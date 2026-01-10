@@ -28,7 +28,7 @@ export interface FixResult {
 export class AutoFixManager {
   private checks: SystemCheck[] = [];
   private isRunning = false;
-  private intervalId?: NodeJS.Timeout;
+  private intervalId?: ReturnType<typeof setInterval>;
   private isAuthenticated = false;
   private isSuperAdmin = false;
 

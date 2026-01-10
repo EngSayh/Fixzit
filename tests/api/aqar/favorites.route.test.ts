@@ -3,8 +3,8 @@
  * Tests favorite management for Aqar property listings
  */
 import { expectAuthFailure } from '@/tests/api/_helpers';
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock authentication
 vi.mock("@/auth", () => ({

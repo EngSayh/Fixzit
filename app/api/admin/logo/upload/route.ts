@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
 
     // Parse multipart form data
-    const formData = await request.formData();
+    const formData = (await request.formData()) as globalThis.FormData;
     const logoFile = formData.get("logo") as File | null;
 
     if (!logoFile) {

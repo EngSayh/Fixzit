@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
   let body: z.infer<typeof requestSchema>;
 
   if (contentType.includes("multipart/form-data")) {
-    const formData = await req.formData();
+    const formData = (await req.formData()) as globalThis.FormData;
     const toolName = String(formData.get("tool") || "");
     const argsRaw = formData.get("args");
     const file = formData.get("file");

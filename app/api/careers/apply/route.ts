@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
 
-    const formData = await req.formData();
+    const formData = (await req.formData()) as globalThis.FormData;
     const jobId = (formData.get("jobId") as string | null)?.trim();
 
     if (!jobId) {

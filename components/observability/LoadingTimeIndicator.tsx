@@ -38,7 +38,7 @@ export function LoadingTimeIndicator({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [warnedSlow, setWarnedSlow] = useState(false);
   const startTimeRef = useRef<number | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isLoading) {
@@ -199,9 +199,9 @@ export function QueryPerformanceTable() {
 
   useEffect(() => {
     // Intercept fetch to track performance
-    const originalFetch: typeof fetch = window.fetch;
-
-    window.fetch = async (
+    const originalFetch = window.fetch;
+    const boundFetch = originalFetch.bind(window);
+    const wrappedFetch: typeof fetch = async (
       ...args: Parameters<typeof fetch>
     ): Promise<Response> => {
       const startTime = Date.now();
@@ -216,7 +216,7 @@ export function QueryPerformanceTable() {
       }
 
       try {
-        const response = await originalFetch(...args);
+        const response = await boundFetch(...args);
         const duration = Date.now() - startTime;
 
         // Add to queries list
@@ -249,6 +249,8 @@ export function QueryPerformanceTable() {
         throw error;
       }
     };
+
+    window.fetch = wrappedFetch;
 
     return () => {
       window.fetch = originalFetch;

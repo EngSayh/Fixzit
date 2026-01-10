@@ -2,8 +2,8 @@
  * @fileoverview Tests for /api/aqar/pricing routes
  * Tests Aqar pricing/valuation features
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock rate limiting (route uses smartRateLimit from @/server/security/rateLimit)
 vi.mock("@/server/security/rateLimit", () => ({
