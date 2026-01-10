@@ -15,7 +15,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { SouqClaim } from "@/server/models/souq/Claim";
 import { User } from "@/server/models/User";

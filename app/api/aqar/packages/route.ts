@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import mongoose from "mongoose";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarPackage, AqarPayment, PackageType } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ok, badRequest, serverError } from "@/lib/api/http";

@@ -31,7 +31,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { SupportTicket } from '@/server/models/SupportTicket';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";

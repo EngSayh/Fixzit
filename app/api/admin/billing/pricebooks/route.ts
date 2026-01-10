@@ -11,7 +11,7 @@
  */
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";

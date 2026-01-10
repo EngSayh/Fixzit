@@ -17,8 +17,16 @@
 
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
-import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
+import {
+  connectMongo as ensureDatabaseHandle,
+  pingDatabase,
+  db,
+  isMongoOffline,
+} from "@/lib/mongo";
 import { isTruthy } from "@/lib/utils/env";
+
+// Re-export specialized functions from mongo.ts
+export { pingDatabase, db, isMongoOffline };
 
 // Next.js hint: keep this file server-only without breaking tsx/ts-node scripts
 void import("server-only").catch(() => {

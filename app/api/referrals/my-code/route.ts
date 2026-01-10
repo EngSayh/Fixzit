@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ReferralCodeModel } from "@/server/models/ReferralCode";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";

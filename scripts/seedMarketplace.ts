@@ -2,7 +2,7 @@ import "dotenv/config";
 import path from "path";
 import { access } from "fs/promises";
 import { Types } from "mongoose";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import Category from "@/server/models/marketplace/Category";
 import AttributeSet from "@/server/models/marketplace/AttributeSet";
 import Product from "@/server/models/marketplace/Product";

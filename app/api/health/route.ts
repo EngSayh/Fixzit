@@ -7,7 +7,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { pingDatabase } from "@/lib/mongo";
+import { pingDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { createSecureResponse } from "@/server/security/headers";

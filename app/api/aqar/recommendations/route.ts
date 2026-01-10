@@ -12,7 +12,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { smartRateLimit } from "@/server/security/rateLimit";

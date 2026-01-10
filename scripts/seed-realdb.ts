@@ -4,7 +4,7 @@
     $env:MONGODB_URI="mongodb://localhost:27017/fixzit"; npm run seed:realdb
 */
 
-import { db } from "@/lib/mongo";
+import { db } from "@/lib/mongodb-unified";
 import { Property } from "@/server/models/Property";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { computeDueAt, computeSlaMinutes } from "@/lib/sla";

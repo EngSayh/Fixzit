@@ -28,7 +28,7 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 import { GET } from "@/app/api/health/ready/route";
-import { pingDatabase } from "@/lib/mongo";
+import { pingDatabase } from "@/lib/mongodb-unified";
 import { hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 

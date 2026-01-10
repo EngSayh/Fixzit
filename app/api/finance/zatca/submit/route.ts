@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongo";
+import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { submitForClearance, submitForReporting, encodeInvoiceXml } from "@/lib/zatca/fatoora-client";
 import { generateInvoiceHash } from "@/lib/zatca/crypto";
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!invoiceId || typeof invoiceId !== "string" || !invoiceId.trim()) return NextResponse.json({ error: "Missing or empty invoiceId" }, { status: 400 });
   if (type !== "clearance" && type !== "reporting") return NextResponse.json({ error: "Invalid type" }, { status: 400 });
 
-  const db = await connectDb();
+  const db = await getDatabase();
   const creds = await db.collection(COLLECTIONS.ZATCA_CREDENTIALS).findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;
   if (!creds?.productionCsid || !creds?.secret) return NextResponse.json({ error: "Complete ZATCA onboarding first" }, { status: 400 });
 
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const limit = parseInt(url.searchParams.get("limit") || "20", 10);
   const skip = parseInt(url.searchParams.get("skip") || "0", 10);
 
-  const db = await connectDb();
+  const db = await getDatabase();
   const collection = db.collection(COLLECTIONS.ZATCA_SUBMISSIONS);
   const cursor = collection.find({ orgId: user.orgId }) as FindCursor<WithId<ZatcaSubmissionDoc>>;
   const submissions = await cursor.sort({ createdAt: -1 } as Sort).skip(skip).limit(limit).toArray();

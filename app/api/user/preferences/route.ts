@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { User } from '@/server/models/User';
-import { connectDb } from '@/lib/mongo';
+import { connectDb } from '@/lib/mongodb-unified';
 import { APP_DEFAULTS } from '@/config/constants';
 import { logger } from '@/lib/logger';
 import { isTruthy } from '@/lib/utils/env';

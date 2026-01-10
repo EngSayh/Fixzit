@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarListing } from "@/server/models/aqar";
 import { SmartHomeLevel } from "@/server/models/aqar/Listing";
 import { smartRateLimit } from "@/server/security/rateLimit";

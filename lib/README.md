@@ -80,19 +80,22 @@ const payload = await verifyToken(token);
 - `edge-auth-middleware.ts` - Edge runtime auth (Vercel Edge)
 - `rbac.ts` - Role-based access control
 
-### Database (`mongo.ts`)
+### Database (`mongodb-unified.ts`)
 
-MongoDB connection with connection pooling and retry logic:
+Unified MongoDB connection module with build-safe toggles and health checks:
 
 ```typescript
-import { db, getDb } from '@/lib/mongo';
+import { connectDb, db, pingDatabase } from '@/lib/mongodb-unified';
 
-// Use default database
-await db;
+// Connect to database
+await connectDb();
 
-// Get specific database instance
-const database = await getDb();
+// Use raw database handle
+const database = await db;
 const collection = database.collection('users');
+
+// Health check
+const { ok, latencyMs } = await pingDatabase();
 ```
 
 ### Logger (`logger.ts`)

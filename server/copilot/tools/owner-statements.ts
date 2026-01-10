@@ -1,4 +1,4 @@
-import { db } from "@/lib/mongo";
+import { db } from "@/lib/mongodb-unified";
 import { OwnerStatement } from "@/server/models/OwnerStatement";
 import { ensureToolAllowed } from "./guard";
 import { CopilotSession } from "../session";

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import { quotePrice } from "@/lib/finance/pricing";
 import { logger } from "@/lib/logger";
 

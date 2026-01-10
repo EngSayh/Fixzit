@@ -1,5 +1,5 @@
 import { Worker, Job } from '@/lib/queue';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { VerificationDocument, type VerificationDocumentDoc } from '@/server/models/onboarding/VerificationDocument';
 import { VerificationLog } from '@/server/models/onboarding/VerificationLog';

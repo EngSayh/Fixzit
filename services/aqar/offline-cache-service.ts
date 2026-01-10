@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import type { Db, Collection } from "mongodb";
 import { AqarListing } from "@/server/models/aqar";
 import {

@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarListing, AqarPackage } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ok, badRequest, forbidden, serverError } from "@/lib/api/http";

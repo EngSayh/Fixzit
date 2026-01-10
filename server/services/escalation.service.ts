@@ -15,7 +15,7 @@
 
 import { Types } from 'mongoose';
 import type { SessionUser } from '@/server/middleware/withAuthRbac';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { EMAIL_DOMAINS } from '@/lib/config/domains';
 

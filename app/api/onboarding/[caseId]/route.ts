@@ -13,7 +13,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { parseBodySafe } from '@/lib/api/parse-body';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase, type OnboardingStatus } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';

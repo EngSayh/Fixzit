@@ -22,7 +22,7 @@ import type { FilterQuery } from "mongoose";
 export const dynamic = "force-dynamic";
 import { auth } from "@/auth";
 import { AuditLogModel, type AuditLog } from "@/server/models/AuditLog";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 
 import { logger } from "@/lib/logger";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";

@@ -16,7 +16,7 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarListing } from "@/server/models/aqar";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
 import type { IListing } from "@/server/models/aqar/Listing";

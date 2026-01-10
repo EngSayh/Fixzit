@@ -31,7 +31,7 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
 import { SupportTicket } from "@/server/models/SupportTicket";
-import { connectMongo } from "@/lib/mongo";
+import { connectMongo } from "@/lib/mongodb-unified";
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),

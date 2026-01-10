@@ -17,7 +17,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
 import * as cron from "node-cron";
-import { db } from "@/lib/mongo";
+import { db } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { COLLECTIONS } from "@/lib/db/collections";
 
