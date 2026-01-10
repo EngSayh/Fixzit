@@ -3,7 +3,7 @@
   ============================================================
   Authority: MongoDB Issue Tracker (SSOT)
   Sync: This file is primarily auto-generated/updated by agent workflows
-  Last-Sync: 2026-01-09T21:15:00+03:00
+  Last-Sync: 2026-01-10T15:45:00+03:00
   
   NOTE: Manual edits are permitted for annotations and cross-references.
   Core issue data should be maintained in the MongoDB Issue Tracker.
@@ -16,6 +16,63 @@
 -->
 
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+---
+
+### 2026-01-10T15:45 (Asia/Riyadh) — 25-Issue Audit + REFAC-0015 Fix [AGENT-001-A]
+
+**Agent Token:** [AGENT-001-A]  
+**Branch:** `docs/ssot-update-20260109-agent-0031`  
+**Status:** ✅ AUDIT COMPLETE — 1 FIX APPLIED
+
+#### Summary
+
+Audited 25 issues from SSOT export. Identified 21 as roadmap/planning items (SSOT-PLAN series), 4 as code-level issues. Fixed 1 real bug (REFAC-0015), verified 3 as already resolved/false positives.
+
+#### Issue Verification Results
+
+| ID | Priority | Title | Verdict | Evidence |
+|----|----------|-------|---------|----------|
+| SSOT-PLAN-0050 | P0 | ZATCA Phase 2 e-invoicing | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0029 | P0 | Enforce strict tenancy/org_id | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0017 | P0 | Layout/hydration errors | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0001 | P0 | Unified layout shell | ROADMAP | Planning item in AGENTS.md §17 |
+| BUG-1722 | P0 | SADAD/SPAN live payouts | ✅ ALREADY FIXED | Migrated to TAP Transfer API (lines 616-651) |
+| FEAT-0043 | P0 | FM vendor assignments API | ✅ ALREADY IMPLEMENTED | Uses MongoDB collections (lines 100-160) |
+| BUG-AGENT0013 | P1 | Clock icon import | ❌ FALSE POSITIVE | Clock imported on line 40 of roles/page.tsx |
+| REFAC-0015 | P1 | Issue ID generator collision | ✅ FIXED | Updated regex to match only PREFIX-NNNN format |
+| SSOT-PLAN-0056 | P1 | Privacy/security gaps | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0055 | P1 | Immutable audit trails | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0053 | P1 | Language/currency toggles | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0052 | P1 | WCAG 2.1 AA compliance | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0051 | P1 | RTL support sweep | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0038 | P1 | SLA/approval unit tests | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0036 | P1 | RBAC access tests | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0035 | P1 | WO/finance integration tests | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0034 | P1 | Page-by-role E2E tests | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0033 | P1 | Data validation rules | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0032 | P1 | Role permissions alignment | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0031 | P1 | Block WO without approvals | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0030 | P1 | Auto-post finance entries | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0028 | P1 | SLA timer business hours | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0027 | P1 | Approval flow thresholds | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0025 | P1 | WO state transitions | ROADMAP | Planning item in AGENTS.md §17 |
+| SSOT-PLAN-0024 | P1 | Notification delivery | ROADMAP | Planning item in AGENTS.md §17 |
+
+#### REFAC-0015 Fix Details
+
+**Problem:** Issue ID generator used broad regex `^PREFIX-` which matched legacy IDs like `LOGIC-KYC-002`. Sorting by issueId descending put these first, causing ID collision when extracting trailing numbers.
+
+**Solution:** Updated regex to match only standard format `^PREFIX-\d{4,}$` (4+ digits), excluding legacy IDs with middle segments.
+
+**File Changed:** `server/models/Issue.ts` (lines 550-583)
+
+#### CI Verification (Local)
+
+| Check | Result |
+|-------|--------|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors |
 
 ---
 

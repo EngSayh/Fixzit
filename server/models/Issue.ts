@@ -564,16 +564,21 @@ IssueSchema.statics.generateIssueId = async function(
   
   const prefix = prefixMap[category] || 'ISSUE';
   
-  const lastIssue = await this.findOne({ issueId: new RegExp(`^${prefix}-`) })
+  // Match only standard format: PREFIX-NNNN (4+ digits)
+  // This excludes legacy IDs like LOGIC-KYC-002 that have middle segments
+  const standardFormatRegex = new RegExp(`^${prefix}-\\d{4,}$`);
+  
+  const lastIssue = await this.findOne({ issueId: standardFormatRegex })
     .sort({ issueId: -1 })
     .select('issueId')
     .lean();
   
   let nextNumber = 1;
   if (lastIssue?.issueId) {
-    const match = lastIssue.issueId.match(/\d+$/);
+    // Extract the numeric suffix from standard format PREFIX-NNNN
+    const match = lastIssue.issueId.match(new RegExp(`^${prefix}-(\\d+)$`));
     if (match) {
-      nextNumber = parseInt(match[0], 10) + 1;
+      nextNumber = parseInt(match[1], 10) + 1;
     }
   }
   
