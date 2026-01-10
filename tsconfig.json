@@ -91,6 +91,7 @@
     "docs/artifacts",
     "reports",
     "logs",
-    "ai-memory"
+    "ai-memory",
+    "mobile"
   ]
 }
