@@ -268,13 +268,20 @@ export async function GET(req: NextRequest) {
       SLA.countDocuments(match),
     ]);
 
-    return NextResponse.json({
-      items,
-      page,
-      limit,
-      total,
-      pages: Math.ceil(total / limit),
-    });
+    return NextResponse.json(
+      {
+        items,
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      },
+    );
   } catch (error: unknown) {
     // Log full error server-side
     logger.error(

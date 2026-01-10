@@ -51,11 +51,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      logoUrl: settings.logoUrl,
-      brandName: settings.brandName || "Fixzit Enterprise",
-      brandColor: settings.brandColor || BRAND_COLORS.primary,
-    });
+    return NextResponse.json(
+      {
+        logoUrl: settings.logoUrl,
+        brandName: settings.brandName || "Fixzit Enterprise",
+        brandColor: settings.brandColor || BRAND_COLORS.primary,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      },
+    );
   } catch (error) {
     logger.error("[GET /api/settings/logo] Error", error as Error);
     // Return defaults on error (don't break the UI)

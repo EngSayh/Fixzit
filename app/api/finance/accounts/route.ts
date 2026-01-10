@@ -131,10 +131,17 @@ export async function GET(req: NextRequest) {
             .sort({ accountCode: 1 })
             .lean();
 
-          return NextResponse.json({
-            success: true,
-            data: accounts,
-          });
+          return NextResponse.json(
+            {
+              success: true,
+              data: accounts,
+            },
+            {
+              headers: {
+                'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+              },
+            },
+          );
         } else {
           // Return hierarchical structure
           const allAccounts = await ChartAccount.find(query)
@@ -150,10 +157,17 @@ export async function GET(req: NextRequest) {
             filteredHierarchy = filterTreeByAccountType(hierarchy, accountType);
           }
 
-          return NextResponse.json({
-            success: true,
-            data: filteredHierarchy,
-          });
+          return NextResponse.json(
+            {
+              success: true,
+              data: filteredHierarchy,
+            },
+            {
+              headers: {
+                'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+              },
+            },
+          );
         }
       },
     );
