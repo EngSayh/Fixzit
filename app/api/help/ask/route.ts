@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { parseBodySafe } from "@/lib/api/parse-body";
-import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
-import { Filter, Document } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import crypto from "crypto";
+import { Document, Filter } from "mongodb";
+import { NextRequest, NextResponse } from "next/server";
 
-import { createSecureResponse } from "@/server/security/headers";
-import { getClientIP } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -112,10 +111,10 @@ async function maybeSummarizeWithOpenAI(
 ): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
-  let t: NodeJS.Timeout | undefined;
+  let t: ReturnType<typeof globalThis.setTimeout> | undefined;
   try {
     const controller = new AbortController();
-    t = setTimeout(() => controller.abort(), 8000);
+    t = globalThis.setTimeout(() => controller.abort(), 8000);
     const messages = [
       {
         role: "system",
