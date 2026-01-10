@@ -267,7 +267,11 @@ export async function GET(request: NextRequest) {
       isSuperadmin,
     });
     
-    return NextResponse.json(providerNetwork);
+    return NextResponse.json(providerNetwork, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+      },
+    });
   } catch (error) {
     logger.error("Failed to get provider network", { error });
     return NextResponse.json(

@@ -195,9 +195,14 @@ export async function GET(req: NextRequest) {
 
     const normalized = normalizePreferencesResponse(user.preferences ?? DEFAULT_PREFERENCES);
 
-    return NextResponse.json({
-      preferences: normalized,
-    });
+    return NextResponse.json(
+      { preferences: normalized },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      },
+    );
   } catch (error) {
     logger.error('Failed to fetch user preferences:', error);
     if (allowPlaywright) {

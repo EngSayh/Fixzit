@@ -211,7 +211,7 @@ export function LeadCard({
         onClick={() => onViewDetails?.(lead)}
       >
         {/* Status dot */}
-        <div className={cn("w-2 h-2 rounded-full", statusConfig.bgColor.replace("bg-", "bg-").replace("-100", "-500"))} />
+        <div className={cn("w-2 h-2 rounded-full", statusConfig.bgColor.replace("-100", "-500"))} />
         
         {/* Info */}
         <div className="flex-1 min-w-0">

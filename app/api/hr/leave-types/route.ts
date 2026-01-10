@@ -68,7 +68,14 @@ export async function GET(req: NextRequest) {
       limit: Number.isNaN(limit) || limit <= 0 ? undefined : limit,
     });
 
-    return NextResponse.json({ leaveTypes });
+    return NextResponse.json(
+      { leaveTypes },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      },
+    );
   } catch (error) {
     logger.error("Failed to fetch leave types", error as Error);
     return NextResponse.json(

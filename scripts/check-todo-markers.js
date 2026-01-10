@@ -154,6 +154,9 @@ function main() {
   let allViolations = [];
   
   for (const file of files) {
+    if (verbose) {
+      console.log(`  Checking: ${path.relative(process.cwd(), file)}`);
+    }
     const violations = checkFile(file);
     allViolations = allViolations.concat(violations);
   }

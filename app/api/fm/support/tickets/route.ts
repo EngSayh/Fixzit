@@ -162,16 +162,23 @@ export async function GET(req: NextRequest) {
       collection.countDocuments(query),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: items,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
+    return NextResponse.json(
+      {
+        success: true,
+        data: items,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      },
+    );
   } catch (error) {
     logger.error("FM Support Tickets API - GET error", error as Error);
     return FMErrors.internalError();

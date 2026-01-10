@@ -182,15 +182,22 @@ export async function GET(req: NextRequest) {
           return safeEmployee;
         });
 
-    return NextResponse.json({
-      employees: sanitizedItems,
-      pagination: {
-        page: safePage,
-        limit: safeLimit,
-        total,
-        pages: Math.ceil(total / safeLimit),
+    return NextResponse.json(
+      {
+        employees: sanitizedItems,
+        pagination: {
+          page: safePage,
+          limit: safeLimit,
+          total,
+          pages: Math.ceil(total / safeLimit),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      },
+    );
   } catch (error) {
     logger.error("Error fetching employees:", error);
     return NextResponse.json(

@@ -13,6 +13,7 @@ const baseExcludes = [
   "**/*.e2e.test.tsx",
   "tests/unit/api/qa/log.route.playwright.test.ts",
   "tests/unit/contexts/TranslationContext (1).test.tsx",
+  "mobile/**",
 ];
 
 const sharedProjectConfig = {

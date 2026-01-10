@@ -307,7 +307,64 @@ export default function SuperadminPermissionsPage() {
       const response = await fetch("/api/superadmin/roles", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
-        setRoles(Array.isArray(data) ? data : data.roles || DEFAULT_ROLES);
+        const apiRoles = Array.isArray(data) ? data : data.roles || [];
+        
+        // Transform API roles to UI format
+        // API returns permissions: string[] but UI expects permissions: Record<string, string[]>
+        // Also map systemReserved -> isSystem for UI compatibility
+        const transformedRoles: Role[] = apiRoles.map((role: {
+          _id: string;
+          name: string;
+          description?: string;
+          systemReserved?: boolean;
+          isSystem?: boolean;
+          wildcard?: boolean;
+          permissions: string[] | Record<string, string[]>;
+          userCount?: number;
+          createdAt?: string;
+        }) => {
+          // If permissions is already Record format, use as-is
+          // If permissions is string[], convert to Record<string, string[]>
+          let permissionsRecord: Record<string, string[]>;
+          if (Array.isArray(role.permissions)) {
+            // Convert ["users.view", "users.edit"] to { "users.view": ["read"], "users.edit": ["update"] }
+            permissionsRecord = {};
+            for (const perm of role.permissions) {
+              // Infer action from permission key suffix
+              if (perm.endsWith(".view")) {
+                permissionsRecord[perm] = ["read"];
+              } else if (perm.endsWith(".create")) {
+                permissionsRecord[perm] = ["create"];
+              } else if (perm.endsWith(".edit")) {
+                permissionsRecord[perm] = ["update"];
+              } else if (perm.endsWith(".delete")) {
+                permissionsRecord[perm] = ["delete"];
+              } else if (perm.endsWith(".manage")) {
+                permissionsRecord[perm] = ["create", "read", "update", "delete", "manage"];
+              } else {
+                // Default: grant read
+                permissionsRecord[perm] = ["read"];
+              }
+            }
+          } else {
+            permissionsRecord = role.permissions || {};
+          }
+
+          return {
+            _id: role._id,
+            name: role.name,
+            displayName: role.name, // API doesn't have displayName, use name
+            description: role.description || "",
+            // Map systemReserved to isSystem for UI compatibility
+            isSystem: role.systemReserved ?? role.isSystem ?? role.wildcard ?? false,
+            permissions: permissionsRecord,
+            userCount: role.userCount ?? 0,
+            createdAt: role.createdAt || new Date().toISOString(),
+          };
+        });
+
+        // Use transformed roles if available, fallback to defaults
+        setRoles(transformedRoles.length > 0 ? transformedRoles : DEFAULT_ROLES);
       } else {
         // Handle non-OK responses
         const errorText = await response.text().catch(() => "");
