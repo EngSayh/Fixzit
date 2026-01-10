@@ -37,18 +37,17 @@ export type MobileUserRole =
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
-  expiresAt: number; // Unix timestamp
-  tokenType: "Bearer";
+  expiresAt: string; // ISO timestamp
+  tokenType?: "Bearer";
 }
 
 /**
- * Login request (phone + OTP)
+ * Login request (email + password for technicians)
  */
 export interface MobileLoginRequest {
-  phone: string;
-  otp: string;
-  deviceId?: string;
-  pushToken?: string;
+  email: string;
+  password: string;
+  deviceInfo?: import("./common").DeviceInfo;
 }
 
 /**
@@ -56,8 +55,8 @@ export interface MobileLoginRequest {
  */
 export interface MobileLoginResponse {
   success: boolean;
-  user?: MobileUser;
-  tokens?: AuthTokens;
+  user: MobileUser;
+  tokens: AuthTokens;
   error?: string;
 }
 
