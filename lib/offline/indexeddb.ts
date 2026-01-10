@@ -15,6 +15,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
 
 // ============================================================================
 // Constants
@@ -25,7 +26,7 @@ const DB_VERSION = 1;
 
 /** Object store names */
 export const STORES = {
-  WORK_ORDERS: "work_orders",
+  WORK_ORDERS: WORK_ORDERS_ENTITY_LEGACY,
   INSPECTIONS: "inspections",
   INSPECTION_TEMPLATES: "inspection_templates",
   PHOTO_QUEUE: "photo_queue",
