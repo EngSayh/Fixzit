@@ -3,7 +3,7 @@
  * Tests: resolveEscalationContact function for escalation routing
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock logger
 vi.mock("@/lib/logger", () => ({
@@ -27,18 +27,18 @@ vi.mock("@/lib/config/domains", () => ({
   },
 }));
 
-// Mock User model
-const mockUserFindOne = vi.fn();
+// Mock User model - service now uses aggregate instead of findOne
+const mockUserAggregate = vi.fn();
 vi.mock("@/server/models/User", () => ({
   User: {
-    findOne: mockUserFindOne,
+    aggregate: mockUserAggregate,
   },
 }));
 
 // Import after mocks
-import { resolveEscalationContact, type EscalationContact } from "@/server/services/escalation.service";
-import type { SessionUser } from "@/server/middleware/withAuthRbac";
 import { logger } from "@/lib/logger";
+import type { SessionUser } from "@/server/middleware/withAuthRbac";
+import { resolveEscalationContact } from "@/server/services/escalation.service";
 import { UserRole } from "@/types/user";
 
 // Helper to create mock session user
@@ -88,15 +88,14 @@ describe("resolveEscalationContact", () => {
 
     it("should allow TENANT role to query org contacts", async () => {
       const user = createSessionUser({ role: "TENANT" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      // aggregate returns an array
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "admin-123" },
           email: "admin@org.com",
           professional: { role: "ADMIN" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -106,15 +105,13 @@ describe("resolveEscalationContact", () => {
 
     it("should allow VENDOR role to query org contacts", async () => {
       const user = createSessionUser({ role: "VENDOR" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "admin-123" },
           email: "admin@org.com",
           professional: { role: "CORPORATE_ADMIN" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -123,15 +120,13 @@ describe("resolveEscalationContact", () => {
 
     it("should allow OWNER role to query org contacts", async () => {
       const user = createSessionUser({ role: "OWNER" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "super-admin-123" },
           email: "super@org.com",
           professional: { role: "SUPER_ADMIN" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -142,16 +137,14 @@ describe("resolveEscalationContact", () => {
   describe("Org Contact Resolution", () => {
     it("should return org admin contact when found", async () => {
       const user = createSessionUser({ role: UserRole.TENANT, orgId: "org-123" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "contact-456" },
           username: "orgadmin",
           email: "orgadmin@example.com",
           professional: { role: "ADMIN" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -165,11 +158,8 @@ describe("resolveEscalationContact", () => {
 
     it("should return user fallback when no org contact found", async () => {
       const user = createSessionUser({ role: UserRole.TENANT, orgId: "org-123" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce(null),
-      });
+      // Empty array = no contact found
+      mockUserAggregate.mockResolvedValueOnce([]);
       
       const result = await resolveEscalationContact(user);
       
@@ -191,17 +181,15 @@ describe("resolveEscalationContact", () => {
   describe("Display Name Derivation", () => {
     it("should use username as display name if available", async () => {
       const user = createSessionUser({ role: "ADMIN" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "123" },
           username: "johndoe",
           email: "john@example.com",
           professional: { role: "ADMIN" },
           personal: { firstName: "John", lastName: "Doe" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -210,16 +198,14 @@ describe("resolveEscalationContact", () => {
 
     it("should fall back to firstName + lastName if no username", async () => {
       const user = createSessionUser({ role: "ADMIN" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "123" },
           email: "john@example.com",
           professional: { role: "ADMIN" },
           personal: { firstName: "John", lastName: "Doe" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -228,15 +214,13 @@ describe("resolveEscalationContact", () => {
 
     it("should handle missing name fields gracefully", async () => {
       const user = createSessionUser({ role: "ADMIN" });
-      mockUserFindOne.mockReturnValueOnce({
-        sort: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        lean: vi.fn().mockResolvedValueOnce({
+      mockUserAggregate.mockResolvedValueOnce([
+        {
           _id: { toString: () => "123" },
           email: "john@example.com",
           professional: { role: "ADMIN" },
-        }),
-      });
+        },
+      ]);
       
       const result = await resolveEscalationContact(user);
       
@@ -248,9 +232,7 @@ describe("resolveEscalationContact", () => {
   describe("Error Handling", () => {
     it("should return fallback on DB error", async () => {
       const user = createSessionUser({ role: "TENANT", orgId: "org-123" });
-      mockUserFindOne.mockImplementationOnce(() => {
-        throw new Error("DB connection failed");
-      });
+      mockUserAggregate.mockRejectedValueOnce(new Error("DB connection failed"));
       
       const result = await resolveEscalationContact(user);
       

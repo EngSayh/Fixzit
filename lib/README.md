@@ -63,10 +63,10 @@ import {
   verifyToken,
   authenticateUser,
   getUserFromToken,
-} from '@/lib/auth';
+} from "@/lib/auth";
 
 // Hash password for storage
-const hash = await hashPassword('userPassword');
+const hash = await hashPassword("userPassword");
 
 // Authenticate user
 const { token, user } = await authenticateUser(email, password);
@@ -76,23 +76,31 @@ const payload = await verifyToken(token);
 ```
 
 **Related:**
+
 - `auth-middleware.ts` - Express middleware for route protection
 - `edge-auth-middleware.ts` - Edge runtime auth (Vercel Edge)
 - `rbac.ts` - Role-based access control
 
 ### Database (`mongodb-unified.ts`)
 
-Unified MongoDB connection module with build-safe toggles and health checks:
+Unified MongoDB connection module with build-safe toggles and health checks. This module consolidates database connectivity from legacy `mongo.ts` and `mongoose` imports to enforce consistent patterns and health checking across the codebase.
+
+> **Migration Note (REFAC-0015 / NIT-001):** As of Jan 2026, all database imports should use `@/lib/mongodb-unified` instead of `@/lib/mongo` or `@/db/mongoose`. This ensures:
+>
+> - Single entry point for database connections
+> - Build-safe toggles (DISABLE_MONGODB_FOR_BUILD)
+> - Consistent health checks via `pingDatabase()`
+> - Proper singleton caching in development
 
 ```typescript
-import { connectDb, db, pingDatabase } from '@/lib/mongodb-unified';
+import { connectDb, db, pingDatabase } from "@/lib/mongodb-unified";
 
-// Connect to database
+// Connect to database (idempotent, cached)
 await connectDb();
 
-// Use raw database handle
-const database = await db;
-const collection = database.collection('users');
+// Use raw database handle (for native MongoDB operations)
+const database = await db();
+const collection = database.collection("users");
 
 // Health check
 const { ok, latencyMs } = await pingDatabase();
@@ -103,10 +111,10 @@ const { ok, latencyMs } = await pingDatabase();
 Structured logging with correlation IDs:
 
 ```typescript
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
-logger.info('Operation completed', { userId, action: 'create' });
-logger.error('Operation failed', { error, correlationId });
+logger.info("Operation completed", { userId, action: "create" });
+logger.error("Operation failed", { error, correlationId });
 ```
 
 ### Cache (`cache/`)
@@ -114,10 +122,10 @@ logger.error('Operation failed', { error, correlationId });
 In-memory caching with TTL:
 
 ```typescript
-import { getCached, CacheTTL } from '@/lib/cache';
+import { getCached, CacheTTL } from "@/lib/cache";
 
 // Get with fallback + TTL
-const data = await getCached('key', CacheTTL.ONE_HOUR, fetchFunction);
+const data = await getCached("key", CacheTTL.ONE_HOUR, fetchFunction);
 ```
 
 ### Queues (`queues/`)
@@ -125,11 +133,11 @@ const data = await getCached('key', CacheTTL.ONE_HOUR, fetchFunction);
 In-memory job queues:
 
 ```typescript
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 
-await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-  to: 'user@example.com',
-  template: 'welcome',
+await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+  to: "user@example.com",
+  template: "welcome",
 });
 ```
 
@@ -146,19 +154,20 @@ import {
   ASSET_DEFAULTS,
   type AssetType,
   type AssetStatus,
-} from '@/lib/constants/asset-constants';
+} from "@/lib/constants/asset-constants";
 
 // Type-safe asset type
-const type: AssetType = 'HVAC';
+const type: AssetType = "HVAC";
 
 // Bilingual labels for dropdowns
-const label = ASSET_TYPE_LABELS['HVAC']; // { en: 'HVAC', ar: 'التكييف', tKey: 'assets.type.hvac' }
+const label = ASSET_TYPE_LABELS["HVAC"]; // { en: 'HVAC', ar: 'التكييف', tKey: 'assets.type.hvac' }
 
 // Default values for forms
 const defaults = ASSET_DEFAULTS; // { location coordinates, etc. }
 ```
 
 **Modules:**
+
 - `asset-constants.ts` - Asset types, statuses, criticality levels with EN/AR labels
 
 ### Validations (`validations/`)
@@ -171,9 +180,9 @@ import {
   UpdateAssetSchema,
   createAssetFormDefaults,
   type CreateAssetInput,
-} from '@/lib/validations/asset-schemas';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+} from "@/lib/validations/asset-schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 // Use with react-hook-form
 const form = useForm<CreateAssetInput>({
@@ -189,6 +198,7 @@ if (!result.success) {
 ```
 
 **Schemas:**
+
 - `asset-schemas.ts` - Create/Update asset, location, purchase info schemas
 
 ---
@@ -200,10 +210,10 @@ if (!result.success) {
 Role-based access control:
 
 ```typescript
-import { checkPermission, hasRole } from '@/lib/rbac';
+import { checkPermission, hasRole } from "@/lib/rbac";
 
-if (!checkPermission(user, 'work-orders:create')) {
-  throw new ForbiddenError('Insufficient permissions');
+if (!checkPermission(user, "work-orders:create")) {
+  throw new ForbiddenError("Insufficient permissions");
 }
 ```
 
@@ -212,9 +222,9 @@ if (!checkPermission(user, 'work-orders:create')) {
 AWS Secrets Manager integration:
 
 ```typescript
-import { getSecret } from '@/lib/secrets';
+import { getSecret } from "@/lib/secrets";
 
-const apiKey = await getSecret('stripe-api-key');
+const apiKey = await getSecret("stripe-api-key");
 ```
 
 ### Security Utilities (`security/`)
@@ -227,6 +237,7 @@ const apiKey = await getSecret('stripe-api-key');
 ---
 
 ## STRICT v4.1 RBAC & Multi-tenancy Essentials
+
 - Canonical roles (14): Super Admin, Corporate Admin, Management, Finance, HR, Corporate Employee, Property Owner, Technician, Tenant/End-User, plus sub-roles Finance Officer, HR Officer, Support, Operations/Ops, and Vendor-facing roles.
 - Always include `org_id` scoping on data access; SUPER_ADMIN is the only cross-org role and must be audited.
 - Tenants: enforce `unit_id ∈ user.units`; never fetch across units without explicit ownership.
@@ -241,12 +252,12 @@ const apiKey = await getSecret('stripe-api-key');
 
 Key environment variables used by lib modules:
 
-| Variable | Module | Description |
-|----------|--------|-------------|
-| `JWT_SECRET` | auth.ts | JWT signing secret |
-| `MONGODB_URI` | mongo.ts | MongoDB connection string |
-| `AWS_REGION` | secrets.ts | AWS region for Secrets Manager |
-| `LOG_LEVEL` | logger.ts | Logging level (debug/info/warn/error) |
+| Variable      | Module     | Description                           |
+| ------------- | ---------- | ------------------------------------- |
+| `JWT_SECRET`  | auth.ts    | JWT signing secret                    |
+| `MONGODB_URI` | mongo.ts   | MongoDB connection string             |
+| `AWS_REGION`  | secrets.ts | AWS region for Secrets Manager        |
+| `LOG_LEVEL`   | logger.ts  | Logging level (debug/info/warn/error) |
 
 ---
 
@@ -275,10 +286,10 @@ Always use absolute imports:
 
 ```typescript
 // ✅ Good
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 // ❌ Avoid
-import { logger } from '../../../lib/logger';
+import { logger } from "../../../lib/logger";
 ```
 
 ### Error Handling
@@ -286,10 +297,10 @@ import { logger } from '../../../lib/logger';
 Use custom error classes from `lib/errors/`:
 
 ```typescript
-import { ValidationError, NotFoundError } from '@/lib/errors';
+import { ValidationError, NotFoundError } from "@/lib/errors";
 
 if (!isValid) {
-  throw new ValidationError('Invalid input', { field: 'email' });
+  throw new ValidationError("Invalid input", { field: "email" });
 }
 ```
 
@@ -298,12 +309,12 @@ if (!isValid) {
 Always handle async errors:
 
 ```typescript
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 try {
   await riskyOperation();
 } catch (error) {
-  logger.error('Operation failed', { error });
+  logger.error("Operation failed", { error });
   throw error; // Re-throw or handle appropriately
 }
 ```
@@ -325,4 +336,3 @@ try {
 - [CSRF Token Flow](../docs/archived/CSRF_TOKEN_FLOW.md)
 - [Security Guidelines](../docs/guides/SECURITY.md)
 - [Architecture Overview](../docs/architecture/ARCHITECTURE.md)
-
