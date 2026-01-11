@@ -7,18 +7,18 @@
  * No authentication required, but rate-limited to prevent abuse.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
-import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { AqarListing } from "@/server/models/aqar";
 import {
-  ListingStatus,
-  type IListing,
+    ListingStatus,
+    type IListing,
 } from "@/server/models/aqar/Listing";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import crypto from "crypto";
 import type { Model } from "mongoose";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 interface ListingQuery {
   status: string;
@@ -138,6 +138,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Execute query - select only safe, public fields
+    // Note: Public marketplace listing - intentionally cross-tenant for anonymous users
     const listings = await listingModel
       .find(query)
       .select({
