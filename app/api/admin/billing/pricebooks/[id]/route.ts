@@ -12,7 +12,7 @@
  */
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";

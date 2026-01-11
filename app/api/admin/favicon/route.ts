@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
 
     // Parse multipart form data
-    const formData = await request.formData();
+    const formData = (await request.formData()) as globalThis.FormData;
     const faviconFile = formData.get("favicon") as File | null;
 
     if (!faviconFile) {

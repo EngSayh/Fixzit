@@ -3,8 +3,8 @@
  * Tests single listing CRUD operations
  */
 import { expectAuthFailure } from '@/tests/api/_helpers';
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
@@ -22,8 +22,8 @@ vi.mock("@/server/middleware/withAuthRbac", () => ({
   },
 }));
 
-// Mock database
-vi.mock("@/lib/mongo", () => ({
+// Mock database (route uses @/lib/mongodb-unified)
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 

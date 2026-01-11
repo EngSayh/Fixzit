@@ -6,7 +6,7 @@
  * @requires mongoose
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
 // ============================================================================
 // ENUMS & CONSTANTS
@@ -564,17 +564,35 @@ IssueSchema.statics.generateIssueId = async function(
   
   const prefix = prefixMap[category] || 'ISSUE';
   
-  const lastIssue = await this.findOne({ issueId: new RegExp(`^${prefix}-`) })
-    .sort({ issueId: -1 })
-    .select('issueId')
-    .lean();
+  // Match only standard format: PREFIX-NNNN (4+ digits)
+  // This excludes legacy IDs like LOGIC-KYC-002 that have middle segments
+  const standardFormatRegex = new RegExp(`^${prefix}-\\d{4,}$`);
+  
+  // Use aggregation to sort by numeric value (fixes 9999→10000 collision)
+  // String sort would incorrectly order: PREFIX-10000 < PREFIX-9999
+  const lastIssues = await this.aggregate<{ issueId: string }>([
+    { $match: { issueId: standardFormatRegex } },
+    {
+      $addFields: {
+        // Extract numeric part after 'PREFIX-' and convert to integer for correct sorting
+        numericPart: {
+          $toInt: {
+            $substrCP: ['$issueId', prefix.length + 1, { $subtract: [{ $strLenCP: '$issueId' }, prefix.length + 1] }],
+          },
+        },
+      },
+    },
+    { $sort: { numericPart: -1 } },
+    { $limit: 1 },
+    { $project: { issueId: 1, _id: 0 } },
+  ]);
+  const lastIssue = lastIssues[0] ?? null;
   
   let nextNumber = 1;
   if (lastIssue?.issueId) {
-    const match = lastIssue.issueId.match(/\d+$/);
-    if (match) {
-      nextNumber = parseInt(match[0], 10) + 1;
-    }
+    // Extract the numeric suffix from standard format PREFIX-NNNN
+    const numericPart = lastIssue.issueId.substring(prefix.length + 1);
+    nextNumber = parseInt(numericPart, 10) + 1;
   }
   
   return `${prefix}-${nextNumber.toString().padStart(4, '0')}`;

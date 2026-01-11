@@ -2,9 +2,9 @@
  * @fileoverview Tests for /api/health/ready route (K8s readiness probe)
  * @sprint 65
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/mongo", () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   pingDatabase: vi.fn().mockResolvedValue(true),
 }));
 
@@ -28,9 +28,9 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 import { GET } from "@/app/api/health/ready/route";
-import { pingDatabase } from "@/lib/mongo";
-import { hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { pingDatabase } from "@/lib/mongodb-unified";
+import { hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 
 const mockPingDatabase = vi.mocked(pingDatabase);
 const mockHasOpenCircuitBreakers = vi.mocked(hasOpenCircuitBreakers);

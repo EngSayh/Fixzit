@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Types, type PipelineStage } from 'mongoose';
 import { parseBodySafe } from '@/lib/api/parse-body';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { VerificationDocument, DOCUMENT_STATUSES } from '@/server/models/onboarding/VerificationDocument';
 import { VerificationLog } from '@/server/models/onboarding/VerificationLog';

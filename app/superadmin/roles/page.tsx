@@ -15,53 +15,53 @@
  * - CSV export for compliance/audit
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useI18n } from "@/i18n/useI18n";
-import { 
-  Shield, 
-  CheckCircle, 
-  Users, 
-  Building2, 
-  Wrench,
-  Search,
-  Download,
-  ArrowLeftRight,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  FileJson,
-  Star,
-  Lock,
-  GitCompare,
-  Copy,
-  Eye,
-  EyeOff,
-  Package,
-  Clock,
-} from "@/components/ui/icons";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    AlertCircle,
+    ArrowLeftRight,
+    Building2,
+    CheckCircle,
+    ChevronDown,
+    ChevronUp,
+    Clock,
+    Copy,
+    Download,
+    Eye,
+    EyeOff,
+    FileJson,
+    GitCompare,
+    Loader2,
+    Lock,
+    Package,
+    RefreshCw,
+    Search,
+    Shield,
+    Star,
+    Users,
+    Wrench,
+    X,
+} from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useI18n } from "@/i18n/useI18n";
 import { CANONICAL_ROLES } from "@/types/user";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 // Role interface for API response and local data
@@ -195,6 +195,12 @@ export default function SuperadminRolesPage() {
   const [roleHistory, setRoleHistory] = useState<RoleHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  // History pagination state
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyLimit, setHistoryLimit] = useState(25);
+  const [historyRoleFilter, setHistoryRoleFilter] = useState("");
 
   // Infer category from role slug or name (slug-based is more reliable)
   const inferCategory = useCallback((role: { slug?: string; name: string }): string => {
@@ -220,7 +226,24 @@ export default function SuperadminRolesPage() {
     if (/owner|tenant|vendor|auditor/i.test(role.name)) {
       return "External";
     }
+    // Default unknown categories to "Staff" for consistent filtering
     return "Staff";
+  }, []);
+
+  // Highlight search matches in text
+  const highlightMatch = useCallback((text: string, query: string): React.ReactNode => {
+    if (!query.trim()) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")})`, "gi");
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <mark key={i} className="bg-yellow-400/40 text-foreground rounded px-0.5">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
   }, []);
 
   // Normalize permission to string (handles ObjectId case)
@@ -248,33 +271,43 @@ export default function SuperadminRolesPage() {
 
       const data = await response.json();
       
-      if (data.roles && Array.isArray(data.roles) && data.roles.length > 0) {
-        // Map API roles with normalized permissions
-        const mappedRoles = data.roles.map((role: RoleData & { permissions?: unknown[] }) => {
-          const normalizedPermissions = Array.isArray(role.permissions)
-            ? role.permissions.map(normalizePermission)
-            : [];
-          
-          // For wildcard roles with no explicit permissions, show "*"
-          const displayPermissions = role.wildcard && normalizedPermissions.length === 0
-            ? ["*"]
-            : normalizedPermissions;
+      if (data.roles && Array.isArray(data.roles)) {
+        if (data.roles.length > 0) {
+          // Map API roles with normalized permissions
+          const mappedRoles = data.roles.map((role: RoleData & { permissions?: unknown[] }) => {
+            const normalizedPermissions = Array.isArray(role.permissions)
+              ? role.permissions.map(normalizePermission)
+              : [];
+            
+            // For wildcard roles with no explicit permissions, show "*"
+            const displayPermissions = role.wildcard && normalizedPermissions.length === 0
+              ? ["*"]
+              : normalizedPermissions;
 
-          return {
-            ...role,
-            category: role.category || inferCategory(role),
-            permissions: displayPermissions,
-            permissionCount: role.permissionCount ?? displayPermissions.length,
-          };
-        });
-        setRoles(mappedRoles);
-        setDataSource("api");
-        setLastUpdated(data.fetchedAt || new Date().toISOString());
+            return {
+              ...role,
+              category: role.category || inferCategory(role),
+              permissions: displayPermissions,
+              permissionCount: role.permissionCount ?? displayPermissions.length,
+            };
+          });
+          setRoles(mappedRoles);
+          setDataSource("api");
+          setLastUpdated(data.fetchedAt || new Date().toISOString());
+        } else {
+          // Valid 200 but empty roles array - this is the actual DB state, not an error
+          // Use fallback but mark as API source since fetch succeeded
+          setRoles(FALLBACK_ROLES);
+          setDataSource("api"); // API worked, DB just has no roles yet
+          setLastUpdated(data.fetchedAt || new Date().toISOString());
+          setError("Database has no roles configured. Showing canonical role definitions.");
+        }
       } else {
-        // API returned empty or no roles, use fallback
+        // Unexpected API response format, use fallback
         setRoles(FALLBACK_ROLES);
         setDataSource("fallback");
         setLastUpdated(null);
+        setError("Unexpected API response. Using cached role definitions.");
       }
     } catch (_err) {
       // API failed, use fallback data
@@ -287,33 +320,41 @@ export default function SuperadminRolesPage() {
     }
   }, [inferCategory, normalizePermission]);
 
-  // Fetch role change history
-  const fetchRoleHistory = useCallback(async () => {
+  // Fetch role change history with pagination
+  const fetchRoleHistory = useCallback(async (page = historyPage, limit = historyLimit, roleName = historyRoleFilter) => {
     setHistoryLoading(true);
     setHistoryError(null);
     try {
-      const response = await fetch("/api/superadmin/roles/history?limit=50", {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
+      if (roleName) params.set("roleName", roleName);
+      
+      const response = await fetch(`/api/superadmin/roles/history?${params}`, {
         credentials: "include",
       });
       
       if (response.ok) {
         const data = await response.json();
         setRoleHistory(data.history || []);
+        setHistoryPage(data.page ?? 1);
+        setHistoryTotalPages(data.totalPages ?? 1);
+        setHistoryTotal(data.total ?? 0);
       } else if (response.status === 401) {
-        setHistoryError("Unauthorized - superadmin access required");
+        setHistoryError(t("superadmin.roles.historyUnauthorized", "Unauthorized - superadmin access required"));
         setRoleHistory([]);
       } else {
-        setHistoryError(`Failed to load history (HTTP ${response.status})`);
+        setHistoryError(t("superadmin.roles.historyFetchError", `Failed to load history (HTTP ${response.status})`));
         setRoleHistory([]);
       }
     } catch (_err) {
       // Show error instead of silently failing
-      setHistoryError("Unable to fetch role history - network error");
+      setHistoryError(t("superadmin.roles.historyNetworkError", "Unable to fetch role history - network error"));
       setRoleHistory([]);
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [historyPage, historyLimit, historyRoleFilter, t]);
 
   useEffect(() => {
     fetchRoles();
@@ -509,6 +550,69 @@ export default function SuperadminRolesPage() {
     return mismatches;
   }, [roles]);
 
+  // Export canonical diff to JSON
+  const exportCanonicalDiff = useCallback(() => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      dataSource,
+      canonicalRolesCount: CANONICAL_ROLES.length,
+      databaseRolesCount: roles.length,
+      mismatches: canonicalMismatches,
+      summary: {
+        missing: canonicalMismatches.filter(m => m.status === "missing").length,
+        extra: canonicalMismatches.filter(m => m.status === "extra").length,
+        permissionDiff: canonicalMismatches.filter(m => m.status === "permission_diff").length,
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `fixzit-canonical-diff-${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(t("superadmin.roles.diffExportSuccess", "Canonical diff exported to JSON"));
+  }, [roles, dataSource, canonicalMismatches, t]);
+
+  // Seed missing roles from canonical (API call)
+  const syncFromCanonical = useCallback(async () => {
+    if (canonicalMismatches.filter(m => m.status === "missing").length === 0) {
+      toast.info(t("superadmin.roles.noMissingRoles", "No missing roles to sync"));
+      return;
+    }
+    
+    try {
+      const response = await fetch("/api/superadmin/roles/sync-canonical", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          missingRoles: canonicalMismatches
+            .filter(m => m.status === "missing")
+            .map(m => m.roleName),
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(t("superadmin.roles.syncSuccess", `Synced ${data.created ?? 0} roles from canonical`));
+        // Refresh roles after sync
+        await fetchRoles();
+      } else if (response.status === 401) {
+        toast.error(t("superadmin.roles.syncUnauthorized", "Unauthorized - superadmin access required"));
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(t("superadmin.roles.syncFailed", errorData.error || "Failed to sync roles"));
+      }
+    } catch (_err) {
+      toast.error(t("superadmin.roles.syncNetworkError", "Network error during sync"));
+    }
+  }, [canonicalMismatches, fetchRoles, t]);
+
   // Copy to clipboard helper
   const copyToClipboard = useCallback((text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -555,7 +659,7 @@ export default function SuperadminRolesPage() {
             {t("superadmin.nav.roles", "Roles & Permissions")}
           </h1>
           <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
-            RBAC role matrix ({roles.length} roles)
+            {t("superadmin.roles.rbacMatrix", `RBAC role matrix (${roles.length} roles)`)}
             {dataSource === "api" && (
               <Badge variant="outline" className="text-green-400 border-green-500/30">
                 <CheckCircle className="h-3 w-3 me-1" aria-hidden="true" />
@@ -568,8 +672,8 @@ export default function SuperadminRolesPage() {
               </Badge>
             )}
             {lastUpdated && (
-              <span className="text-xs text-muted-foreground">
-                • Updated {new Date(lastUpdated).toLocaleTimeString()}
+              <span className="text-xs text-muted-foreground" title={new Date(lastUpdated).toISOString()}>
+                • {t("common.updated", "Updated")} {new Date(lastUpdated).toLocaleTimeString()} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
               </span>
             )}
           </p>
@@ -623,7 +727,9 @@ export default function SuperadminRolesPage() {
             size="sm"
             onClick={() => {
               setHistoryDialogOpen(true);
-              fetchRoleHistory();
+              setHistoryPage(1);
+              setHistoryRoleFilter("");
+              fetchRoleHistory(1, historyLimit, "");
             }}
             className="gap-2"
             aria-label={t("superadmin.roles.viewHistory", "View role change history")}
@@ -726,7 +832,7 @@ export default function SuperadminRolesPage() {
             onClick={() => setCategoryFilter(categoryFilter === category ? "All" : category)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && setCategoryFilter(categoryFilter === category ? "All" : category)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setCategoryFilter(categoryFilter === category ? "All" : category))}
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -734,8 +840,8 @@ export default function SuperadminRolesPage() {
                   {CATEGORY_ICONS[category]}
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{category}</p>
-                  <p className="text-xl font-bold text-foreground">{categoryCounts[category]} roles</p>
+                  <p className="text-sm text-muted-foreground">{t(`superadmin.roles.category.${category.toLowerCase()}`, category)}</p>
+                  <p className="text-xl font-bold text-foreground">{t("superadmin.roles.rolesCount", `${categoryCounts[category]} roles`)}</p>
                 </div>
               </div>
             </CardContent>
@@ -748,13 +854,13 @@ export default function SuperadminRolesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Role Definitions
+            {t("superadmin.roles.roleDefinitions", "Role Definitions")}
             {loading && <Loader2 className="h-4 w-4 animate-spin ms-2" />}
           </CardTitle>
           <CardDescription>
             {filteredRoles.length === roles.length
-              ? `Showing all ${roles.length} roles`
-              : `Showing ${filteredRoles.length} of ${roles.length} roles`}
+              ? t("superadmin.roles.showingAll", `Showing all ${roles.length} roles`)
+              : t("superadmin.roles.showingFiltered", `Showing ${filteredRoles.length} of ${roles.length} roles`)}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -779,7 +885,9 @@ export default function SuperadminRolesPage() {
                 filteredRoles.map((role) => {
                   const isExpanded = expandedRows.has(role.name);
                   const hasMany = role.permissions.length > 4;
-                  const permCount = role.permissionCount ?? role.permissions.length;
+                  // For wildcard roles, always show "∞" instead of potentially misleading counts
+                  const isWildcardRole = role.wildcard || role.permissions.includes("*");
+                  const permCount = isWildcardRole ? "∞" : (role.permissionCount ?? role.permissions.length);
                   
                   return (
                     <TableRow 
@@ -788,7 +896,7 @@ export default function SuperadminRolesPage() {
                       onClick={() => setSelectedRoleForDetail(role)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === "Enter" && setSelectedRoleForDetail(role)}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setSelectedRoleForDetail(role))}
                       aria-label={t("superadmin.roles.viewDetails", `View details for ${role.name}`)}
                     >
                       <TableCell>
@@ -840,25 +948,30 @@ export default function SuperadminRolesPage() {
                         <div className="flex flex-wrap gap-1">
                           {(isExpanded ? role.permissions : role.permissions.slice(0, 4)).map((perm) => {
                             const permStr = typeof perm === "string" ? perm : String(perm);
+                            const isMatch = searchQuery && permStr.toLowerCase().includes(searchQuery.toLowerCase());
                             return (
-                              <Badge key={permStr} variant="outline" className="text-xs">
-                                {permStr}
+                              <Badge 
+                                key={permStr} 
+                                variant="outline" 
+                                className={`text-xs ${isMatch ? "ring-1 ring-yellow-400/50" : ""}`}
+                              >
+                                {highlightMatch(permStr, searchQuery)}
                               </Badge>
                             );
                           })}
-                          {!isExpanded && hasMany && (
+                          {!isExpanded && hasMany && !isWildcardRole && (
                             <Badge 
                               variant="outline" 
                               className="text-xs text-muted-foreground cursor-pointer hover:text-foreground"
                               onClick={() => toggleRowExpansion(role.name)}
                               role="button"
-                              aria-label={t("superadmin.roles.showMorePermissions", `Show ${permCount - 4} more permissions`)}
+                              aria-label={t("superadmin.roles.showMorePermissions", `Show ${Number(permCount) - 4} more permissions`)}
                             >
-                              +{permCount - 4} {t("superadmin.roles.more", "more")}
+                              +{Number(permCount) - 4} {t("superadmin.roles.more", "more")}
                             </Badge>
                           )}
                           <span className="text-xs text-muted-foreground ms-2">
-                            ({permCount} {t("superadmin.roles.total", "total")})
+                            ({isWildcardRole ? t("superadmin.roles.fullAccessShort", "∞ Full") : `${permCount} ${t("superadmin.roles.total", "total")}`})
                           </span>
                         </div>
                       </TableCell>
@@ -1033,18 +1146,33 @@ export default function SuperadminRolesPage() {
               {t("superadmin.roles.canonicalDiff", "Canonical Role Comparison")}
             </DialogTitle>
             <DialogDescription>
-              {t("superadmin.roles.canonicalDiffDescription", "Compare database roles against the canonical role definitions in types/user.ts")}
+              {t("superadmin.roles.canonicalDiffDescription", "Compare database roles against the canonical role definitions. This checks for missing or extra roles only. For permission comparison, select individual roles from the table.")}
             </DialogDescription>
           </DialogHeader>
           
           <div className="mt-4 space-y-4">
+            {/* Warning when using fallback data - diff comparison may be unreliable */}
+            {dataSource === "fallback" && (
+              <div className="flex items-center gap-3 p-4 bg-amber-950/30 border border-amber-800/50 rounded-lg">
+                <AlertCircle className="h-6 w-6 text-amber-400" aria-hidden="true" />
+                <div>
+                  <p className="text-amber-300 font-medium">{t("superadmin.roles.fallbackWarning", "Using Cached Data")}</p>
+                  <p className="text-sm text-amber-400/80">
+                    {t("superadmin.roles.fallbackWarningDesc", "Comparison uses cached role definitions. Database state may differ.")}
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {canonicalMismatches.length === 0 ? (
               <div className="flex items-center gap-3 p-4 bg-green-950/30 border border-green-800/50 rounded-lg">
                 <CheckCircle className="h-6 w-6 text-green-400" aria-hidden="true" />
                 <div>
                   <p className="text-green-300 font-medium">{t("superadmin.roles.allSynced", "All Roles Synced")}</p>
                   <p className="text-sm text-green-400/80">
-                    {t("superadmin.roles.allSyncedDesc", "All database roles match the canonical role definitions.")}
+                    {dataSource === "fallback" 
+                      ? t("superadmin.roles.allSyncedFallback", "Cached roles match canonical definitions. Verify with live API for accuracy.")
+                      : t("superadmin.roles.allSyncedDesc", "All database roles match the canonical role definitions.")}
                   </p>
                 </div>
               </div>
@@ -1094,6 +1222,32 @@ export default function SuperadminRolesPage() {
             <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded">
               <p>{t("superadmin.roles.canonicalCount", `Canonical roles: ${CANONICAL_ROLES.length}`)}</p>
               <p>{t("superadmin.roles.databaseCount", `Database roles: ${roles.length}`)}</p>
+            </div>
+            
+            {/* Action buttons for diff */}
+            <div className="flex gap-2 mt-4 pt-4 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportCanonicalDiff}
+                className="gap-2"
+                aria-label={t("superadmin.roles.exportDiff", "Export diff to JSON")}
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                {t("superadmin.roles.exportDiff", "Export Diff")}
+              </Button>
+              {canonicalMismatches.filter(m => m.status === "missing").length > 0 && dataSource === "api" && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={syncFromCanonical}
+                  className="gap-2"
+                  aria-label={t("superadmin.roles.syncFromCanonical", "Seed missing roles from canonical")}
+                >
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                  {t("superadmin.roles.syncFromCanonical", "Sync Missing Roles")}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -1157,7 +1311,11 @@ export default function SuperadminRolesPage() {
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{t("superadmin.roles.permissionCount", "Permissions")}</span>
-                    <span className="font-mono">{selectedRoleForDetail.permissionCount ?? selectedRoleForDetail.permissions.length}</span>
+                    <span className="font-mono">
+                      {selectedRoleForDetail.wildcard || selectedRoleForDetail.permissions.includes("*")
+                        ? t("superadmin.roles.fullAccessCount", "∞ (Full Access)")
+                        : (selectedRoleForDetail.permissionCount ?? selectedRoleForDetail.permissions.length)}
+                    </span>
                   </div>
                 </div>
                 
@@ -1256,8 +1414,48 @@ export default function SuperadminRolesPage() {
             </DialogTitle>
             <DialogDescription>
               {t("superadmin.roles.historyDescription", "View recent changes to roles and permissions")}
+              {historyTotal > 0 && (
+                <span className="ms-2 text-xs">
+                  ({t("superadmin.roles.historyTotal", `${historyTotal} total entries`)})
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
+          
+          {/* History filters */}
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                placeholder={t("superadmin.roles.filterByRole", "Filter by role name...")}
+                value={historyRoleFilter}
+                onChange={(e) => setHistoryRoleFilter(e.target.value)}
+                className="text-sm"
+                aria-label={t("superadmin.roles.filterByRoleLabel", "Filter history by role name")}
+              />
+            </div>
+            <select
+              value={historyLimit}
+              onChange={(e) => {
+                setHistoryLimit(Number(e.target.value));
+                fetchRoleHistory(1, Number(e.target.value), historyRoleFilter);
+              }}
+              className="p-2 rounded-md border bg-background text-foreground text-sm"
+              aria-label={t("superadmin.roles.entriesPerPage", "Entries per page")}
+            >
+              <option value={10}>10 {t("common.perPage", "per page")}</option>
+              <option value={25}>25 {t("common.perPage", "per page")}</option>
+              <option value={50}>50 {t("common.perPage", "per page")}</option>
+              <option value={100}>100 {t("common.perPage", "per page")}</option>
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchRoleHistory(1, historyLimit, historyRoleFilter)}
+              aria-label={t("superadmin.roles.applyFilter", "Apply filter")}
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
           
           <div className="mt-4">
             {historyLoading ? (
@@ -1288,44 +1486,75 @@ export default function SuperadminRolesPage() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("superadmin.roles.action", "Action")}</TableHead>
-                    <TableHead>{t("superadmin.roles.roleName", "Role")}</TableHead>
-                    <TableHead>{t("superadmin.roles.timestamp", "Time")}</TableHead>
-                    <TableHead>{t("superadmin.roles.status", "Status")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {roleHistory.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {entry.action.replace("role.", "")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono">{entry.roleName}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(entry.timestamp).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        {entry.success ? (
-                          <Badge variant="outline" className="text-green-400 border-green-500/30">
-                            <CheckCircle className="h-3 w-3 me-1" aria-hidden="true" />
-                            {t("common.success", "Success")}
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <X className="h-3 w-3 me-1" aria-hidden="true" />
-                            {t("common.failed", "Failed")}
-                          </Badge>
-                        )}
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("superadmin.roles.action", "Action")}</TableHead>
+                      <TableHead>{t("superadmin.roles.roleName", "Role")}</TableHead>
+                      <TableHead>{t("superadmin.roles.timestamp", "Time")}</TableHead>
+                      <TableHead>{t("superadmin.roles.status", "Status")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {roleHistory.map((entry) => (
+                      <TableRow key={entry.id}>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {entry.action.replace("role.", "")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono">{entry.roleName}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          {entry.success ? (
+                            <Badge variant="outline" className="text-green-400 border-green-500/30">
+                              <CheckCircle className="h-3 w-3 me-1" aria-hidden="true" />
+                              {t("common.success", "Success")}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <X className="h-3 w-3 me-1" aria-hidden="true" />
+                              {t("common.failed", "Failed")}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                {/* Pagination controls */}
+                {historyTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <span className="text-sm text-muted-foreground">
+                      {t("superadmin.roles.pageOf", `Page ${historyPage} of ${historyTotalPages}`)}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={historyPage <= 1}
+                        onClick={() => fetchRoleHistory(historyPage - 1, historyLimit, historyRoleFilter)}
+                        aria-label={t("common.previousPage", "Previous page")}
+                      >
+                        {t("common.previous", "Previous")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={historyPage >= historyTotalPages}
+                        onClick={() => fetchRoleHistory(historyPage + 1, historyLimit, historyRoleFilter)}
+                        aria-label={t("common.nextPage", "Next page")}
+                      >
+                        {t("common.next", "Next")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </DialogContent>

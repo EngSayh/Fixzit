@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const formData = await request.formData();
+      const formData = (await request.formData()) as globalThis.FormData;
       const logoFile = formData.get("logo") as File | null;
 
       if (!logoFile) {

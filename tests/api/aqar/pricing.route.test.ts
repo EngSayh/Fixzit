@@ -2,17 +2,31 @@
  * @fileoverview Tests for /api/aqar/pricing routes
  * Tests Aqar pricing/valuation features
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock rate limiting
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+// Mock rate limiting (route uses smartRateLimit from @/server/security/rateLimit)
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }));
 
-// Mock database
-vi.mock("@/lib/mongo", () => ({
-  connectDb: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/server/security/headers", () => ({
+  getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+// Mock database (route uses @/lib/mongodb-unified)
+vi.mock("@/lib/mongodb-unified", () => ({
+  dbConnect: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock PricingInsightsService
+vi.mock("@/services/aqar/pricing-insights-service", () => ({
+  PricingInsightsService: {
+    getInsights: vi.fn().mockResolvedValue({
+      averagePrice: 500000,
+      priceRange: { min: 400000, max: 600000 },
+    }),
+  },
 }));
 
 // Mock logger
@@ -24,7 +38,7 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 const importRoute = async () => {
   try {
@@ -37,7 +51,7 @@ const importRoute = async () => {
 describe("API /api/aqar/pricing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
   });
 
   describe("GET - Get Pricing Data", () => {
@@ -47,16 +61,12 @@ describe("API /api/aqar/pricing", () => {
         throw new Error("Route handler missing: GET");
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
-      );
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
 
-      const req = new NextRequest("http://localhost:3000/api/aqar/pricing");
+      const req = new NextRequest("http://localhost:3000/api/aqar/pricing?city=Riyadh");
       const response = await route.GET(req);
 
-      expect([401, 429, 500]).toContain(response.status);
+      expect(response.status).toBe(429);
     });
 
     it("returns pricing data successfully", async () => {
@@ -65,10 +75,10 @@ describe("API /api/aqar/pricing", () => {
         throw new Error("Route handler missing: GET");
       }
 
-      const req = new NextRequest("http://localhost:3000/api/aqar/pricing");
+      const req = new NextRequest("http://localhost:3000/api/aqar/pricing?city=Riyadh");
       const response = await route.GET(req);
 
-      expect([200, 401, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
   });
 });

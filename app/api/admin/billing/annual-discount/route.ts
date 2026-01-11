@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { parseBodySafe } from "@/lib/api/parse-body";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import DiscountRule from "@/server/models/DiscountRule";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";

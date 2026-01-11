@@ -16,10 +16,10 @@
  * - Without NATS_URL, notifications only reach subscribers on the same instance
  */
 
-import { Types } from 'mongoose';
-import { getNatsConnection, publish as natsPublish } from '@/lib/nats-client';
-import { JSONCodec, type Subscription } from 'nats';
 import { logger } from '@/lib/logger';
+import { getNatsConnection, publish as natsPublish } from '@/lib/nats-client';
+import { Types } from 'mongoose';
+import { JSONCodec, type Subscription } from 'nats';
 
 // ============================================================================
 // TYPES
@@ -85,7 +85,7 @@ interface InternalSubscription {
 
 const subscriptions = new Map<string, InternalSubscription>();
 let subscriptionIdCounter = 0;
-let cleanupIntervalId: NodeJS.Timeout | null = null;
+let cleanupIntervalId: ReturnType<typeof globalThis.setInterval> | null = null;
 let natsSubscription: Subscription | null = null;
 let natsInitialized = false;
 
@@ -186,7 +186,7 @@ export function getUserConnectionCount(userId: Types.ObjectId): number {
 export function startConnectionCleanup(): void {
   if (cleanupIntervalId) return; // Already running
   
-  cleanupIntervalId = setInterval(() => {
+  cleanupIntervalId = globalThis.setInterval(() => {
     const now = Date.now();
     const timeout = SSE_CONFIG.CONNECTION_TIMEOUT_MS;
     

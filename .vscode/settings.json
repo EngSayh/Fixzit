@@ -1,57 +1,230 @@
 {
   // ══════════════════════════════════════════════════════════════════════════════
-  // AGENT INSTRUCTIONS ENFORCEMENT (NON-NEGOTIABLE)
-  // All AI agents MUST follow AGENTS.md and .github/copilot-instructions.md
+  // COPILOT AGENT MODE — PRODUCTION-SAFE CONFIGURATION (v7.3.0 - Jan 2026)
+  // Aligned with Fixzit Agent Working Agreement v7.0.0 + VS Code Copilot Agent Mode
+  // Multi-agent governance for Next.js 14 + TS + MongoDB Multi-Tenant SaaS
   // ══════════════════════════════════════════════════════════════════════════════
+
+  // ==========================================================
+  // CUSTOM INSTRUCTIONS & PROMPTS (Repo-scoped)
+  // ==========================================================
+  // Uses:
+  // - .github/copilot-instructions.md (repo-wide)
+  // - .github/instructions/*.instructions.md (path-scoped, via applyTo)
+  // - .github/prompts/*.prompt.md (workflow prompts)
+  // - AGENTS.md (agent-mode specific guidance)
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+
+  // ==========================================================
+  // AGENTS.MD / SKILLS (Agent Mode Context)
+  // ==========================================================
   "chat.useAgentsMdFile": true,
-  "github.copilot.chat.agent.followRules": true,
-  "github.copilot.chat.agent.thinkingProcess": "extended",
+  "chat.useNestedAgentsMdFiles": true,
+  "chat.useAgentSkills": true,
+
+  // ==========================================================
+  // 🔐 TOOLS SAFETY & APPROVALS
+  // Global auto-approve ON for unattended operation (user preference)
+  // Terminal allowlist provides fine-grained control for safety
+  // ==========================================================
+  "chat.tools.global.autoApprove": true,
+
+  // Terminal: enable selective auto-approve for safe, read-only commands only.
+  "chat.tools.terminal.enableAutoApprove": true,
+  "chat.tools.terminal.autoApprove": {
+    // ─────────────────────────────────────────────────────────
+    // ✅ ALLOW: Git read-only / low-risk introspection
+    // ─────────────────────────────────────────────────────────
+    "/^git\\s+(status|diff|log|show|branch|rev-parse|stash\\s+list|remote\\s+-v|ls-files|grep|worktree\\s+list)\\b/": true,
+    // Fetch is read-only to working tree, but does hit the network
+    "/^git\\s+fetch\\b/": true,
+
+    // ─────────────────────────────────────────────────────────
+    // ✅ ALLOW: Filesystem read-only / navigation
+    // ─────────────────────────────────────────────────────────
+    "pwd": true,
+    "ls": true,
+    "dir": true,
+    "cat": true,
+    "head": true,
+    "tail": true,
+    "grep": true,
+    "find": true,
+    "echo": true,
+    "cd": true,
+    "rg": true,
+    "Get-Content": true,
+    "Get-ChildItem": true,
+    "Select-String": true,
+    "Test-Path": true,
+    "Get-Item": true,
+    "Get-Location": true,
+
+    // Safe workspace setup (non-destructive)
+    "mkdir": true,
+
+    // ─────────────────────────────────────────────────────────
+    // ✅ ALLOW: Package scripts (NO dev server auto-approval)
+    // ─────────────────────────────────────────────────────────
+    "/^pnpm\\s+(lint|type-check|typecheck|test|vitest|build|install)\\b/": true,
+    "/^npm\\s+(test|ci|run\\s+lint|run\\s+type-check|run\\s+typecheck|run\\s+build)\\b/": true,
+    "/^yarn\\s+(test|lint|type-check|typecheck|build)\\b/": true,
+
+    // ─────────────────────────────────────────────────────────
+    // ❌ BLOCK: Dev-server commands (violates Fixzit terminal rules)
+    // ─────────────────────────────────────────────────────────
+    "/^pnpm\\s+dev\\b/": false,
+    "/^npm\\s+run\\s+dev\\b/": false,
+    "/^yarn\\s+dev\\b/": false,
+
+    // ─────────────────────────────────────────────────────────
+    // ❌ BLOCK: Destructive / risky / network tooling
+    // ─────────────────────────────────────────────────────────
+    "rm": false,
+    "rmdir": false,
+    "del": false,
+    "kill": false,
+    "taskkill": false,
+    "curl": false,
+    "wget": false,
+    "powershell": false,
+    "bash": false,
+    "sh": false,
+    "eval": false,
+    "chmod": false,
+    "chown": false,
+    "sudo": false,
+    "/^Remove-Item\\b/i": false,
+    "/^Invoke-WebRequest\\b/i": false,
+    "/^iwr\\b/i": false,
+    "/\\b(Stop-Process)\\b/i": false,
+
+    // ─────────────────────────────────────────────────────────
+    // ❌ BLOCK: Git destructive operations
+    // ─────────────────────────────────────────────────────────
+    "/^git\\s+(push|reset|revert|clean|checkout\\s+--|restore\\s+--|commit\\s+--amend|rebase|merge)\\b/": false,
+
+    // ─────────────────────────────────────────────────────────
+    // ❌ BLOCK: Publishing / registry-impacting
+    // ─────────────────────────────────────────────────────────
+    "/^npm\\s+(publish|unpublish)\\b/": false,
+
+    // Remote services (require explicit approval)
+    "/\\bgh\\b/": false,
+    "/\\bvercel\\b/": false
+  },
+
+  // Prevent tool-driven writes outside workspace
+  "chat.tools.terminal.blockDetectedFileWrites": "outsideWorkspace",
+
+  // ==========================================================
+  // CHAT UX SAFETY NETS
+  // ==========================================================
+  "chat.commandCenter.enabled": true,
+  "chat.checkpoints.enabled": true,
+  "chat.checkpoints.showFileChanges": true,
+  "chat.editRequests": "inline",
+  "chat.editing.autoAcceptDelay": 0,
+  "chat.notifyWindowOnConfirmation": true,
+  "chat.notifyWindowOnResponseReceived": true,
+  "chat.editor.wordWrap": "on",
+  "chat.editor.fontSize": 14,
+  "chat.fontSize": 13,
+
+  // ==========================================================
+  // 🧠 CONTEXT QUALITY
+  // ==========================================================
+  "github.copilot.chat.codesearch.enabled": true,
+
+  // ============================================================
+  // 🌐 LANGUAGE ENABLEMENT (documented)
+  // ============================================================
+  "github.copilot.enable": {
+    "*": true,
+    "typescript": true,
+    "typescriptreact": true,
+    "javascript": true,
+    "javascriptreact": true,
+    "json": true,
+    "jsonc": true,
+    "yaml": true,
+    "markdown": true,
+    "html": true,
+    "css": true,
+    "scss": true,
+    "scminput": true,
+    "plaintext": false
+  },
+
+  // Force English responses
   "github.copilot.chat.localeOverride": "en",
-  
-  // Agent instruction files (explicit paths)
-  "github.copilot.chat.codeGeneration.instructionFiles": [
-    "docs/AGENTS.md",
-    ".github/copilot-instructions.md",
-    ".github/instructions/*.instructions.md"
+
+  // ============================================================
+  // 🔍 CODE REVIEW INSTRUCTIONS (documented)
+  // ============================================================
+  "github.copilot.chat.reviewSelection.enabled": true,
+  "github.copilot.chat.reviewSelection.instructions": [
+    { "text": "TypeScript strict: no implicit any; no ts-ignore; no unsafe casts." },
+    { "text": "Multi-tenant isolation: tenantId/org_id must be in every DB filter and index strategy." },
+    { "text": "AuthZ: verify access control at the boundary (API route / server action), not in UI only." },
+    { "text": "Async correctness: await promises; handle errors at IO boundaries (DB/network)." },
+    { "text": "DX hygiene: keep ESLint and type-check green; no commented-out tests." },
+    { "text": "Use Fixzit error codes: [FIXZIT-MODULE-NNN] for traceability." }
   ],
 
-  // Agent behavior enforcement
-  "github.copilot.chat.agent.rules": [
-    "Always read and follow AGENTS.md before any task",
-    "Never take shortcuts or workarounds - fix root cause",
-    "Report ALL findings to MongoDB SSOT",
-    "Update docs/PENDING_MASTER.md after every session",
-    "Run SSOT Sync Protocol before closing any task",
-    "Notify Eng. Sultan with Final Output box",
-    "Never claim fixed without evidence",
-    "Before blaming missing env var - verify in BOTH GitHub Secrets AND Vercel",
-    "If env var is truly missing - report which platform(s) need it",
-    "Always use error codes [FIXZIT-MODULE-NNN] for traceability",
-    "Never swallow errors - always log with context and error code",
-    "NEVER force merge PRs - address ALL comments first",
-    "ALL PR comments must be resolved before merge",
-    "If GitHub CI fails due to billing - run ALL tests locally first",
-    "Zero error tolerance - 100% tests pass, 0 skips, 0 errors"
+  // ============================================================
+  // 📝 COMMIT MESSAGE GENERATION (documented)
+  // ============================================================
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    { "text": "Use Conventional Commits: type(scope): description" },
+    { "text": "Types: feat, fix, docs, refactor, perf, test, chore, ci" },
+    { "text": "Subject <= 72 chars; imperative mood" },
+    { "text": "Include the active Agent Token: [AGENT-XXXX]" },
+    { "text": "Include SSOT issue key if applicable: [ISSUE-KEY]" }
   ],
 
+  // ==========================================================
+  // 📄 PR DESCRIPTION GENERATION
+  // ==========================================================
+  "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+    { "text": "Start with a one-sentence summary." },
+    { "text": "Add ## Changes with bullet points of what changed." },
+    { "text": "Add ## Testing with exact commands run." },
+    { "text": "Add ## Risk / Rollback if relevant." },
+    { "text": "Note tenant isolation implications for multi-tenant changes." },
+    { "text": "Include Agent Token: [AGENT-XXXX] in the description." }
+  ],
+
+  // ============================================================
+  // 📦 ESLINT / TYPESCRIPT / EDITOR (workspace settings)
+  // ============================================================
   "eslint.enable": true,
   "eslint.workingDirectories": [{ "mode": "location" }],
   "eslint.options": {
     "cache": true,
     "cacheLocation": ".eslintcache"
   },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
 
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.maxTsServerMemory": 16384,
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.disableAutomaticTypeAcquisition": true,
 
+  "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
   },
 
-  // File watching optimizations for large workspace (77K+ files)
+  // ============================================================
+  // ⚡ FILE WATCHING OPTIMIZATIONS (77K+ files workspace)
+  // ============================================================
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
@@ -69,7 +242,6 @@
     "**/reports/**": true
   },
 
-  // Hide large artifact folders from explorer (reduces indexing)
   "files.exclude": {
     "**/docs/artifacts": true,
     "**/artifacts/audit": true,
@@ -89,17 +261,18 @@
     "**/*.lock": true
   },
 
-  // Performance optimizations for 35GB allocated to VS Code
   "files.maxMemoryForLargeFilesMB": 16384,
 
-  // Git performance
+  // ============================================================
+  // 🔀 GIT SETTINGS
+  // ============================================================
   "git.untrackedChanges": "hidden",
   "git.ignoreLimitWarning": true,
-  
-  // Prevent direct commits/pushes to protected branches in VS Code
   "git.branchProtection": ["main", "master"],
 
-  // Editor performance
+  // ============================================================
+  // 🎨 EDITOR PERFORMANCE
+  // ============================================================
   "editor.codeLens": false,
   "editor.minimap.enabled": false,
 
@@ -109,40 +282,27 @@
   "grunt.autoDetect": "off",
   "jake.autoDetect": "off",
 
-  // Terminal rendering fixes (prevents white blocks)
+  // Terminal rendering
   "terminal.integrated.fontFamily": "Consolas, 'Courier New', monospace",
   "terminal.integrated.gpuAcceleration": "canvas",
 
-  // GitHub Actions/workflow YAML validation - COMPLETELY DISABLED
-  // All workflow files pass `js-yaml` validation (30/30 files valid)
-  // VS Code extensions generate false positives for valid GitHub Actions syntax:
-  // - "Unrecognized named-value: 'secrets'" - extension can't access secrets context
-  // - "Nested mappings not allowed" - parser confused by multi-line run: blocks  
-  // - "Implicit keys need to be on single line" - CRLF line ending confusion
-  // Workflows are validated by GitHub on push, so local validation is unnecessary.
+  // ============================================================
+  // 📋 GITHUB ACTIONS / YAML (disabled local validation)
+  // Workflows validated by GitHub on push
+  // ============================================================
   "github-actions.workflows.pinned.refresh.enabled": false,
   "github-actions.remote-name": "origin",
   "github-actions.org.slug": "",
-  
-  // Completely disable GitHub Actions expression validation
-  // Ref: https://github.com/github/vscode-github-actions/issues/278
   "github-actions.use-enterprise": false,
-  
-  // Exclude workflow files from problem matchers
   "problems.showCurrentInStatus": true,
-  
-  // YAML extension settings - disable validation for GitHub workflow files
-  // The redhat.vscode-yaml extension generates false positives for GitHub Actions syntax
-  // Workflows are validated by GitHub on push, so local validation is unnecessary
+
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml"
   },
   "yaml.validate": false,
   "yaml.schemaStore.enable": false,
   "yaml.schemas": {},
-  "yaml.customTags": [
-    "!reference sequence"
-  ],
+  "yaml.customTags": ["!reference sequence"],
   "files.associations": {
     ".github/workflows/*.yml": "yaml"
   }

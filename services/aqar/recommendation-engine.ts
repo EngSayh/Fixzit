@@ -1,22 +1,22 @@
-import crypto from "crypto";
 import { logger } from "@/lib/logger";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarListing } from "@/server/models/aqar";
 import {
-  ListingStatus,
-  type IListing,
-  type IListingAnalytics,
-  type IListingImmersive,
-  type IListingPricingInsights,
-  type IListingProptech,
-  ListingIntent,
-  PropertyType,
-  SmartHomeLevel,
+    ListingIntent,
+    ListingStatus,
+    PropertyType,
+    SmartHomeLevel,
+    type IListing,
+    type IListingAnalytics,
+    type IListingImmersive,
+    type IListingPricingInsights,
+    type IListingProptech,
 } from "@/server/models/aqar/Listing";
 import {
-  buildUserPreferenceProfile,
-  type UserPreferenceProfile,
+    buildUserPreferenceProfile,
+    type UserPreferenceProfile,
 } from "@/services/aqar/personalization-service";
+import crypto from "crypto";
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
 
@@ -677,8 +677,15 @@ export class AqarRecommendationEngine {
         update.pricingInsights = item.listing.pricingInsights;
       }
 
+      // Multi-tenancy: scope update by orgId to prevent cross-tenant writes
+      const scopedOrgId = context.orgId || context.tenantId;
+      const filter: Record<string, unknown> = { _id: item.listingId };
+      if (scopedOrgId && Types.ObjectId.isValid(scopedOrgId)) {
+        filter.orgId = new Types.ObjectId(scopedOrgId);
+      }
+
       await listingModel
-        .findByIdAndUpdate(item.listingId, { $set: update })
+        .findOneAndUpdate(filter, { $set: update })
         .lean();
     } catch (_error) {
       const error =

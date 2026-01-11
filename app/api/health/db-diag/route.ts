@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { MongoClient } from "mongodb";
-import { db } from "@/lib/mongo";
+import { db } from "@/lib/mongodb-unified";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 

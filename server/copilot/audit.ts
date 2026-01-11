@@ -1,7 +1,7 @@
 import { CopilotSession } from "./session";
 import { logger } from "@/lib/logger";
 import { setTenantContext } from "../plugins/tenantIsolation";
-import { isMongoOffline } from "@/lib/mongo";
+import { isMongoOffline } from "@/lib/mongodb-unified";
 
 export interface AuditOptions {
   session: CopilotSession;

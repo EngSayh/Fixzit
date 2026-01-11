@@ -28,14 +28,14 @@
  * - Tenant-scoped: Ticket linked to user's organization
  * - Unique ticket codes prevent collisions
  */
-import { NextRequest, NextResponse } from 'next/server';
-import { getSessionOrNull } from '@/lib/auth/safe-session';
-import { resolveEscalationContact } from '@/server/services/escalation.service';
-import { connectMongo } from '@/lib/mongo';
-import { SupportTicket } from '@/server/models/SupportTicket';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { getSessionOrNull } from '@/lib/auth/safe-session';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { connectMongo } from '@/lib/mongodb-unified';
+import { SupportTicket } from '@/server/models/SupportTicket';
+import { clearTenantContext, setTenantContext } from '@/server/plugins/tenantIsolation';
+import { resolveEscalationContact } from '@/server/services/escalation.service';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "help:escalate" });
@@ -47,6 +47,11 @@ export async function POST(req: NextRequest) {
   }
   const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  
+  // Require orgId for ticket creation (tenant isolation)
+  if (!user.orgId) {
+    return NextResponse.json({ error: 'Organization context required' }, { status: 400 });
+  }
 
   const { data: body, error: parseError } = await parseBodySafe<{ module?: string; attempted_action?: string }>(req, { logPrefix: "[help:escalate]" });
   if (parseError) {
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
     : 'Other';
 
   await connectMongo();
-  if (user.orgId) setTenantContext({ orgId: user.orgId });
+  setTenantContext({ orgId: user.orgId });
 
   try {
     const escalation = await resolveEscalationContact(user);
@@ -76,7 +81,6 @@ export async function POST(req: NextRequest) {
     // Generate unique ticket code with timestamp + random suffix to prevent collisions
     const code = `HELP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Escalation routing uses user.orgId when present (dynamic)
     const ticket = await SupportTicket.create({
       code,
       subject: `Access request: ${attempted_action || 'Unknown action'}`,
@@ -90,7 +94,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       assignment: { assignedTo: { userId: escalation.user_id } },
-      ...(user.orgId ? { orgId: user.orgId } : {}),
+      orgId: user.orgId,
     });
 
     return NextResponse.json({ ticket_id: ticket._id, escalated_to: escalation }, { status: 201 });

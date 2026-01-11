@@ -70,7 +70,7 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
     checkScreenSize();
 
     // Debounced resize handler to prevent excessive re-renders
-    let resizeTimeout: NodeJS.Timeout;
+    let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
     const debouncedResize = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(checkScreenSize, 150);

@@ -16,9 +16,25 @@
  */
 
 import { logger } from "@/lib/logger";
-import mongoose from "mongoose";
-import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
+import {
+    db,
+    connectMongo as ensureDatabaseHandle,
+    isMongoOffline,
+    pingDatabase,
+} from "@/lib/mongo";
 import { isTruthy } from "@/lib/utils/env";
+import mongoose from "mongoose";
+
+/**
+ * Re-exported database utilities from the underlying mongo.ts module.
+ *
+ * @property {() => Promise<{ ok: boolean; latencyMs?: number }>} pingDatabase - Health check that pings the database
+ * @property {() => Promise<Db>} db - Async function returning the native MongoDB Db instance
+ * @property {() => boolean} isMongoOffline - Returns true if MongoDB is in offline/build mode
+ *
+ * @see {@link @/lib/mongo} for implementation details
+ */
+export { db, isMongoOffline, pingDatabase };
 
 // Next.js hint: keep this file server-only without breaking tsx/ts-node scripts
 void import("server-only").catch(() => {

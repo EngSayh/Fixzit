@@ -13,11 +13,11 @@
  * console.log(contact.email); // admin@org.com or support@fixzit.co
  */
 
-import { Types } from 'mongoose';
-import type { SessionUser } from '@/server/middleware/withAuthRbac';
-import { connectMongo } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
 import { EMAIL_DOMAINS } from '@/lib/config/domains';
+import { logger } from '@/lib/logger';
+import { connectMongo } from '@/lib/mongodb-unified';
+import type { SessionUser } from '@/server/middleware/withAuthRbac';
+import { Types } from 'mongoose';
 
 /**
  * Contact information for escalation routing
@@ -120,19 +120,38 @@ export async function resolveEscalationContact(
     try {
       await connectMongo();
       const { User } = await import('@/server/models/User');
-      const contact = await User.findOne({
-        orgId: user.orgId,
-        'professional.role': { $in: PRIORITY_ROLES },
-      })
-        .sort({ 'professional.role': 1, _id: 1 })
-        .select('username email professional.role personal.firstName personal.lastName')
-        .lean<{
-          _id: Types.ObjectId;
-          username?: string;
-          email?: string;
-          professional?: { role?: string };
-          personal?: { firstName?: string; lastName?: string };
-        }>();
+      
+      // Use aggregation to sort by role priority order (not lexicographic)
+      // PRIORITY_ROLES[0] = highest priority, PRIORITY_ROLES[n] = lowest
+      const [contact] = await User.aggregate<{
+        _id: Types.ObjectId;
+        username?: string;
+        email?: string;
+        professional?: { role?: string };
+        personal?: { firstName?: string; lastName?: string };
+      }>([
+        {
+          $match: {
+            orgId: user.orgId,
+            'professional.role': { $in: PRIORITY_ROLES },
+          },
+        },
+        {
+          $addFields: {
+            _roleRank: { $indexOfArray: [PRIORITY_ROLES, '$professional.role'] },
+          },
+        },
+        { $sort: { _roleRank: 1, _id: 1 } },
+        {
+          $project: {
+            username: 1,
+            email: 1,
+            professional: 1,
+            personal: 1,
+          },
+        },
+        { $limit: 1 },
+      ]);
 
       if (contact) {
         const contactRole = contact.professional?.role || 'ADMIN';

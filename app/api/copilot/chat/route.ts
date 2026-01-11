@@ -6,32 +6,31 @@
  * @module copilot
  */
 
-import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { z } from "zod";
-import { resolveCopilotSession } from "@/server/copilot/session";
 import {
-  evaluateMessagePolicy,
-  describeDataClass,
-  redactSensitiveText,
-  getPermittedTools,
-} from "@/server/copilot/policy";
-import { detectToolFromMessage, executeTool } from "@/server/copilot/tools";
-import { retrieveKnowledge } from "@/server/copilot/retrieval";
-import { generateCopilotResponse } from "@/server/copilot/llm";
+    formatApartmentResults,
+    searchAvailableUnits,
+} from "@/server/copilot/apartmentSearch";
 import { recordAudit } from "@/server/copilot/audit";
 import { classifyIntent, detectSentiment } from "@/server/copilot/classifier";
+import { generateCopilotResponse } from "@/server/copilot/llm";
 import {
-  searchAvailableUnits,
-  formatApartmentResults,
-} from "@/server/copilot/apartmentSearch";
+    describeDataClass,
+    evaluateMessagePolicy,
+    getPermittedTools,
+    redactSensitiveText,
+} from "@/server/copilot/policy";
+import { retrieveKnowledge } from "@/server/copilot/retrieval";
+import { resolveCopilotSession } from "@/server/copilot/session";
+import { detectToolFromMessage, executeTool } from "@/server/copilot/tools";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
+import { connectMongo } from "@/lib/mongodb-unified";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { createSecureResponse } from "@/server/security/headers";
-import { getClientIP } from "@/server/security/headers";
-import { SupportTicket } from "@/server/models/SupportTicket";
-import { connectMongo } from "@/lib/mongo";
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -104,10 +103,10 @@ export async function POST(req: NextRequest) {
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
-    const toolName = String(formData.get("tool") || "");
-    const argsRaw = formData.get("args");
-    const file = formData.get("file");
-    const workOrderId = formData.get("workOrderId");
+    const toolName = String((formData as unknown as globalThis.FormData).get("tool") || "");
+    const argsRaw = (formData as unknown as globalThis.FormData).get("args");
+    const file = (formData as unknown as globalThis.FormData).get("file");
+    const workOrderId = (formData as unknown as globalThis.FormData).get("workOrderId");
 
     if (!toolName) {
       return createSecureResponse({ error: "Tool name is required" }, 400, req);

@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarFavorite } from "@/server/models/aqar";
 import { FavoriteType, type IFavorite } from "@/server/models/aqar/Favorite";
 import {

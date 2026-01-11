@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import Subscription from "@/server/models/Subscription";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";

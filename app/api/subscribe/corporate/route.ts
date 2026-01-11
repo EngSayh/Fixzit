@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { dbConnect } from "@/db/mongoose";
+import { dbConnect } from "@/lib/mongodb-unified";
 import { createSubscriptionCheckout } from "@/lib/finance/checkout";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";

@@ -5,8 +5,8 @@
  * the User model inline using mongoose.model(). This is safe in unit/
  * tests as they don't interact with MongoMemoryServer from vitest.setup.ts.
  */
-import { describe, it, expect, beforeEach, vi, afterAll } from "vitest";
 import { NextRequest } from "next/server";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Use vi.hoisted() to make findMock available in vi.mock() factory
 const { findMock } = vi.hoisted(() => ({
@@ -38,7 +38,7 @@ vi.mock("mongoose", () => {
   };
 });
 
-vi.mock("@/lib/mongo", () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 

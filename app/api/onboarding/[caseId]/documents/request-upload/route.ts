@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { parseBodySafe } from '@/lib/api/parse-body';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
 import { assertS3Configured, S3NotConfiguredError, buildS3Key } from '@/lib/storage/s3-config';

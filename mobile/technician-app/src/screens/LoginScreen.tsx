@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
   Alert,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';

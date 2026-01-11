@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { AqarListing } from "@/server/models/aqar";
 import { ListingStatus, type IListing } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";

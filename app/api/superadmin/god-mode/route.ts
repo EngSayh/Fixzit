@@ -13,8 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { pingDatabase } from "@/lib/mongo";
+import { getDatabase, pingDatabase } from "@/lib/mongodb-unified";
 import { healthAggregator, HealthStatus } from "@/lib/monitoring/health-aggregator";
 import { createHash } from "crypto";
 import { ObjectId } from "mongodb";

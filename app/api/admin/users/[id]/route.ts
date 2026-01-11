@@ -14,7 +14,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { Schema, model, models, Types } from "mongoose";
 import { logger } from "@/lib/logger";
 import type { Session } from "next-auth";

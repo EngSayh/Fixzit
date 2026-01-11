@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongo";
+import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { requestComplianceCsid, requestProductionCsid, submitComplianceInvoice } from "@/lib/zatca/fatoora-client";
 import type { ZatcaComplianceResponse, ZatcaProductionCsidResponse } from "@/lib/zatca/fatoora-types";
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   
   const body = await req.json() as { action: string; csr?: string; otp?: string; invoice?: string; invoiceHash?: string };
   const { action, csr, otp, invoice, invoiceHash } = body;
-  const db = await connectDb();
+  const db = await getDatabase();
   const collection = db.collection(COLLECTIONS.ZATCA_CREDENTIALS);
   
   if (action === "request-compliance") {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const user = await getSessionUser(req);
   if (!user?.orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const db = await connectDb();
+  const db = await getDatabase();
   const creds = await db.collection(COLLECTIONS.ZATCA_CREDENTIALS).findOne({ orgId: user.orgId }) as WithId<ZatcaCredentialsDoc> | null;
   if (!creds) return NextResponse.json({ status: "not_started", hasCompliance: false, hasProduction: false });
   return NextResponse.json({ status: creds.status, hasCompliance: !!creds.complianceCsid, hasProduction: !!creds.productionCsid, updatedAt: creds.updatedAt });

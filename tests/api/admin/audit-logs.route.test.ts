@@ -4,8 +4,8 @@
  * SECURITY TAG: Critical for compliance and security monitoring
  */
 import { expectAuthFailure } from '@/tests/api/_helpers';
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock rate limiting
 vi.mock("@/server/security/rateLimit", () => ({
@@ -19,7 +19,7 @@ vi.mock("@/auth", () => ({
 }));
 
 // Mock MongoDB connection
-vi.mock("@/lib/mongo", () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -41,8 +41,8 @@ vi.mock("@/server/models/AuditLog", () => ({
 }));
 
 import { auth } from "@/auth";
-import { smartRateLimit } from "@/server/security/rateLimit";
 import { AuditLogModel } from "@/server/models/AuditLog";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 const importRoute = async () => {
   try {

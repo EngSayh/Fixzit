@@ -18,8 +18,8 @@ vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(async () => mockSessionUser),
 }));
 
-vi.mock("@/lib/mongo", () => ({
-  connectDb: vi.fn().mockResolvedValue({
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn().mockResolvedValue({
     collection: vi.fn().mockReturnValue({
       findOne: vi.fn(async () => mockDbResult),
       updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),

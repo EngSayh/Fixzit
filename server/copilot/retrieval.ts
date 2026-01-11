@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { db } from "@/lib/mongo";
+import { db } from "@/lib/mongodb-unified";
 import {
   CopilotKnowledge,
   KnowledgeDoc,

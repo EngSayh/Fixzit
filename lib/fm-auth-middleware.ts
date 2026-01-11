@@ -117,7 +117,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/domain/fm/fm.types";
-import { connectDb } from "@/lib/mongo";
+import { connectDb } from "@/lib/mongodb-unified";
 import { Organization } from "@/server/models/Organization";
 
 export interface FMAuthContext {

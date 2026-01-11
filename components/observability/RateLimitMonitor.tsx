@@ -198,12 +198,12 @@ export function useRateLimitInterceptor() {
   const [devPanelVisible, setDevPanelVisible] = useState(false);
 
   useEffect(() => {
-    const originalFetch: typeof fetch = window.fetch;
-
-    window.fetch = async (
+    const originalFetch = window.fetch;
+    const boundFetch = originalFetch.bind(window);
+    const wrappedFetch: typeof fetch = async (
       ...args: Parameters<typeof fetch>
     ): Promise<Response> => {
-      const response = await originalFetch(...args);
+      const response = await boundFetch(...args);
 
       // Clone response to read headers without consuming body
       const clonedResponse = response.clone();
@@ -217,6 +217,8 @@ export function useRateLimitInterceptor() {
 
       return response;
     };
+
+    window.fetch = wrappedFetch;
 
     return () => {
       window.fetch = originalFetch;

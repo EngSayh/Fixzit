@@ -148,7 +148,7 @@ export const otpSessionStore = {
   },
 };
 
-let cleanupTimer: NodeJS.Timeout | null = null;
+let cleanupTimer: ReturnType<typeof globalThis.setInterval> | null = null;
 
 function cleanupExpiredEntries(): void {
   const now = Date.now();
@@ -165,7 +165,7 @@ function cleanupExpiredEntries(): void {
 
 function ensureCleanupTimer(): void {
   if (cleanupTimer) return;
-  cleanupTimer = setInterval(cleanupExpiredEntries, 60_000);
+  cleanupTimer = globalThis.setInterval(cleanupExpiredEntries, 60_000);
 }
 
 ensureCleanupTimer();

@@ -3,8 +3,8 @@
  * Tests favorite management for Aqar property listings
  */
 import { expectAuthFailure } from '@/tests/api/_helpers';
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock authentication
 vi.mock("@/auth", () => ({
@@ -21,8 +21,8 @@ vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(),
 }));
 
-// Mock database
-vi.mock("@/lib/mongo", () => ({
+// Mock database (route uses @/lib/mongodb-unified)
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 

@@ -11,7 +11,7 @@
  * @throws {404} If onboarding case is not found
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';

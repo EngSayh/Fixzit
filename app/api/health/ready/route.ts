@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { pingDatabase } from "@/lib/mongo";
+import { pingDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { getAllCircuitBreakerStats, hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 import { createTaqnyatProvider } from "@/lib/sms-providers/taqnyat";

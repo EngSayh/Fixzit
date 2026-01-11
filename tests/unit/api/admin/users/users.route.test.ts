@@ -6,9 +6,9 @@
  * the User model inline using mongoose.model(). This is safe in unit/
  * tests as they don't interact with MongoMemoryServer from vitest.setup.ts.
  */
-import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
-import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
+import { NextRequest } from "next/server";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ----- Mock Setup -----
 const ORG_ID = new ObjectId().toHexString();
@@ -23,7 +23,7 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(async () => mockSession),
 }));
 
-vi.mock("@/lib/mongo", () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn(async () => undefined),
 }));
 

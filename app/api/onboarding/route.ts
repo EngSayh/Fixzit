@@ -24,7 +24,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
-import { connectMongo } from '@/lib/mongo';
+import { connectMongo } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';

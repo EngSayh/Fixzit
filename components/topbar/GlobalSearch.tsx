@@ -59,7 +59,7 @@ export default function GlobalSearch({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
-  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const placeholder = t(searchPlaceholderKey, searchPlaceholderFallback);
   const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);

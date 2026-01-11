@@ -142,7 +142,7 @@ export function VersionMonitorProvider({ children, initialBuildId }: ProviderPro
   const [autoReloadEnabled, setAutoReloadEnabled] = useState(true);
   
   const versionListeners = useRef<Set<(v: VersionInfo) => void>>(new Set());
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isCheckingRef = useRef(false);
   
   // Initialize from stored version

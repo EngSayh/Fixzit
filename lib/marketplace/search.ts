@@ -4,7 +4,7 @@ import path from "path";
 import { MarketplaceProduct } from "@/server/models/marketplace/Product";
 import { Types } from "mongoose";
 import Product from "@/server/models/marketplace/Product";
-import { db } from "@/lib/mongo";
+import { db } from "@/lib/mongodb-unified";
 import { serializeProduct } from "./serializers";
 
 /**
