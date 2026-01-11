@@ -1146,7 +1146,7 @@ export default function SuperadminRolesPage() {
               {t("superadmin.roles.canonicalDiff", "Canonical Role Comparison")}
             </DialogTitle>
             <DialogDescription>
-              {t("superadmin.roles.canonicalDiffDescription", "Compare database roles against the canonical role definitions in types/user.ts")}
+              {t("superadmin.roles.canonicalDiffDescription", "Compare database roles against the canonical role definitions. This checks for missing or extra roles only. For permission comparison, select individual roles from the table.")}
             </DialogDescription>
           </DialogHeader>
           
